@@ -96,19 +96,39 @@ def render(bank: list[dict]) -> int:
     payload = json.dumps(bank, ensure_ascii=False, separators=(",", ":"))
     payload = payload.replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
     template = TEMPLATE.read_text(encoding="utf-8")
-    if "__BANK_DATA__" not in template:
-        print("模板缺少 __BANK_DATA__ 占位符", file=sys.stderr)
-        return 1
-    html = template.replace("__BANK_DATA__", payload)
+    for placeholder in ("__BANK_DATA__", "__BANK_SCRIPT__"):
+        if placeholder not in template:
+            print(f"模板缺少 {placeholder} 占位符", file=sys.stderr)
+            return 1
+
+    # 托管版：题库拆成单独的、可长缓存的脚本文件。用普通 <script src>（不加
+    # defer）而不是 fetch，是因为离线包要能在 file:// 下直接打开；defer 会让
+    # 它在内联脚本之后执行，BANK 就是 undefined。
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
+    bank_name = f"bank.{digest}.js"
+    OUT_DOCS.parent.mkdir(parents=True, exist_ok=True)
+    (OUT_DOCS.parent / bank_name).write_text(
+        "window.NPESL_BANK=" + payload + ";\n", encoding="utf-8")
+    for stale in OUT_DOCS.parent.glob("bank.*.js"):
+        if stale.name != bank_name:
+            stale.unlink()
+    hosted = (template
+              .replace("__BANK_SCRIPT__", f'<script src="{bank_name}"></script>')
+              .replace("__BANK_DATA__", "window.NPESL_BANK"))
+
+    # 单文件版：题库仍然内联，保证一个 HTML 拷到哪都能打开。
+    single = template.replace("__BANK_SCRIPT__", "").replace("__BANK_DATA__", payload)
+
     OUT_HTML.parent.mkdir(parents=True, exist_ok=True)
-    OUT_HTML.write_text(html, encoding="utf-8")
+    OUT_HTML.write_text(single, encoding="utf-8")
     print(f"\n已写入 {OUT_HTML.relative_to(ROOT)}  ({OUT_HTML.stat().st_size / 1024:.0f} KB)")
     print(f"已写入 {OUT_JSON.relative_to(ROOT)}")
 
     # 托管用副本：apps/drill/index.html，整个目录既是本地可开的页面，也是 Cloudflare Pages 的发布源。
-    OUT_DOCS.parent.mkdir(parents=True, exist_ok=True)
-    OUT_DOCS.write_text(html, encoding="utf-8")
-    print(f"已写入 {OUT_DOCS.relative_to(ROOT)}")
+    OUT_DOCS.write_text(hosted, encoding="utf-8")
+    print(f"已写入 {OUT_DOCS.relative_to(ROOT)} + {bank_name}"
+          f"  ({OUT_DOCS.stat().st_size / 1024:.0f} KB + "
+          f"{(OUT_DOCS.parent / bank_name).stat().st_size / 1024:.0f} KB)")
     return 0
 
 

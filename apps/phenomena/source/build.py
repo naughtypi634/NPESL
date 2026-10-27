@@ -389,7 +389,7 @@ def build_index(lessons):
         for lesson in lessons:
             if lesson.get("category") != category:
                 continue
-            name = f"{lesson['num']:02d}-{slug(lesson['title_en'])}.html"
+            name = f"{lesson['num']:02d}-{slug(lesson['title_en'])}"
             tag = " / ".join(target["spoken"] for target in lesson.get("targets", []))
             rows.append(
                 f'<a class="row" href="{name}" data-num="{lesson["num"]}">'

@@ -50,14 +50,18 @@ const MIME = {
 const server = createServer(async (req, res) => {
   let rel = decodeURIComponent(req.url.split('?')[0]);
   if (rel.endsWith('/')) rel += 'index.html';
-  try {
-    const body = await readFile(join(SERVE_DIR, rel));
-    res.writeHead(200, { 'content-type': MIME[extname(rel)] || 'application/octet-stream' });
-    res.end(body);
-  } catch {
-    res.writeHead(404);
-    res.end('not found');
+  // 线上是 Cloudflare Pages 的 pretty URL：/foo 提供 foo.html。
+  const candidates = [rel, rel + '.html', rel + '/index.html'];
+  for (const candidate of candidates) {
+    try {
+      const body = await readFile(join(SERVE_DIR, candidate));
+      res.writeHead(200, { 'content-type': MIME[extname(candidate)] || 'application/octet-stream' });
+      res.end(body);
+      return;
+    } catch {}
   }
+  res.writeHead(404);
+  res.end('not found');
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}`;

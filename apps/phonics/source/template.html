@@ -467,12 +467,12 @@
     var map = JSON.parse(document.getElementById("audioMap").textContent);
     var VOICE_KEYS = ["f", "m"];
     var audios = {};
+    // 两条音轨是独立文件，preload=none：打开页面不下载音频，
+    // 点到哪句才取当前音色的那一条。
     VOICE_KEYS.forEach(function (key) {
-      var bin = atob(map[key]);
-      var bytes = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      var track = new Audio(URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" })));
-      track.preload = "auto";
+      var track = new Audio();
+      track.preload = "none";
+      track.src = map[key];
       audios[key] = track;
     });
     var SPEED_KEY = "npesl-phonics-speed";
@@ -499,6 +499,9 @@
     var icoStop = document.getElementById("icoStop");
     var statusEl = document.getElementById("status");
     var state = null;
+    // 每次 stop()/start() 递增；异步回调（seeked、guard）用它判断自己是否过期，
+    // 否则连点两次时旧的 seek 回调会把新的一次播放带偏。
+    var generation = 0;
 
     function showStatus(text) {
       statusEl.textContent = text;
@@ -545,6 +548,7 @@
     }
 
     function stop() {
+      generation++;
       if (state) {
         cancelAnimationFrame(state.raf);
         state = null;
@@ -608,6 +612,7 @@
 
     function start(startTime, endTime, mode, el) {
       stop();
+      var gen = generation;
       state = { raf: 0, stopAt: endTime, mode: mode, hlChunk: null, hlSection: null };
       if (mode === "chunk") {
         el.classList.add("is-playing");
@@ -619,7 +624,7 @@
       }
       if (mode === "all") setPlayAll(true);
       whenReady(function () {
-        if (!state) return;
+        if (!state || gen !== generation) return;
         // iOS Safari 的 seek 是异步的：设完 currentTime 立刻 play，
         // 跳转可能还没落地就开始播，导致句子开头被吃掉。
         // 留一点前置余量，并等 seeked 再播。
@@ -627,14 +632,16 @@
         var from = Math.max(0, startTime - LEAD);
         var started = false;
         var play = function () {
-          if (started || !state) return;
+          if (started || !state || gen !== generation) return;
           started = true;
+          // 音频换成外链后，load() 可能把 playbackRate 重置回 1。
+          audio.playbackRate = speed;
           audio.onended = function () {
             if (state) stop();
           };
           audio.play().then(function () {
             var tick = function () {
-              if (!state) return;
+              if (!state || gen !== generation) return;
               var time = audio.currentTime;
               if (state.stopAt !== null && time >= state.stopAt - 0.006) {
                 stop();
@@ -656,9 +663,17 @@
         var onSeeked = function () {
           audio.removeEventListener("seeked", onSeeked);
           clearTimeout(guard);
+          if (gen !== generation) return;
           play();
         };
-        var guard = setTimeout(onSeeked, 260);
+        // 网络音频的 seek 比内存 Blob 慢，guard 放宽到 600ms；
+        // 真没落到实处就再设一次，避免从上一句的位置开始播。
+        var guard = setTimeout(function () {
+          audio.removeEventListener("seeked", onSeeked);
+          if (gen !== generation) return;
+          if (Math.abs(audio.currentTime - from) > 0.05) audio.currentTime = from;
+          play();
+        }, 600);
         audio.addEventListener("seeked", onSeeked);
         audio.currentTime = from;
       });

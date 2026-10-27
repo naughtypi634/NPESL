@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """Merge the 48 built lessons + the index into one self-contained HTML file.
 
-Every lesson page already carries its own recording as base64 inside a
-<script id="audioMap"> block, so the merged file needs no external assets.
-The lessons are stored verbatim in <script type="text/plain"> blocks and
-handed to an iframe one at a time, which keeps the original player code
+The网页版 lessons now point at external `../audio/<NN>-<hash>-<voice>.mp3`
+files.  This build turns those URLs back into base64 data URIs, read from
+`source/audio/<NN>/story-<voice>.mp3`, so the merged file needs no external
+assets.  The lessons are stored verbatim in <script type="text/plain"> blocks
+and handed to an iframe one at a time, which keeps the original player code
 untouched and only one document alive in memory.
 """
 
+import base64
 import pathlib
 import re
 import sys
@@ -15,6 +17,7 @@ import sys
 ROOT = pathlib.Path(__file__).parent
 BASE = ROOT.parent
 LESSONS_DIR = BASE / "lessons"
+AUDIO_DIR = ROOT / "audio"
 INDEX = BASE / "index.html"
 OUT = BASE / "自然拼读阅读训练-成人A1-单文件版.html"
 
@@ -114,6 +117,19 @@ def lesson_files():
     return found
 
 
+def embed_audio(text, num):
+    """Turn the lesson's external audio URLs back into base64 data URIs."""
+    def repl(match):
+        voice = match.group(1)
+        path = AUDIO_DIR / num / f"story-{voice}.mp3"
+        if not path.exists():
+            raise SystemExit(f"missing source audio for lesson {num} ({voice})")
+        b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+        return f'"{voice}":"data:audio/mpeg;base64,{b64}"'
+
+    return re.sub(r'"(f|m)":"\.\./audio/[^"]+"', repl, text)
+
+
 def main():
     index = INDEX.read_text(encoding="utf-8")
     style = re.search(r"<style>(.*?)</style>", index, re.S)
@@ -135,7 +151,7 @@ def main():
         raw = path.read_text(encoding="utf-8")
         if "<!--" in raw:
             raise SystemExit(f"{path.name}: comment sequence would break the raw text block")
-        body = raw.replace("</script>", "<\\/script>")
+        body = embed_audio(raw, num).replace("</script>", "<\\/script>")
         total += len(path.read_bytes())
         blocks.append(f'<script type="text/plain" data-lesson="{num}">{body}</script>')
 

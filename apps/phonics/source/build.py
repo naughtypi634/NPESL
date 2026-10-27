@@ -9,6 +9,7 @@ prosody.
 import argparse
 import asyncio
 import base64
+import hashlib
 import html
 import json
 import pathlib
@@ -21,6 +22,9 @@ ROOT = pathlib.Path(__file__).parent
 BASE = ROOT.parent
 LESSONS_DIR = BASE / "lessons"
 AUDIO_DIR = ROOT / "audio"
+# 网页版把两条音轨写成独立文件，页面只引用 URL；文件名带内容哈希，
+# 配合 /phonics/audio/* 的 immutable 缓存头，内容变了文件名就变。
+LESSON_AUDIO_DIR = BASE / "audio"
 RATE = "-5%"
 VOICES = [
     {"key": "f", "tts": "en-US-AvaMultilingualNeural", "label": "女声"},
@@ -295,7 +299,15 @@ def build_lesson(lesson):
             {(item["sentence"], item["chunk"]): item for item in items},
             sentence_spans,
         )
-        audio_map[voice] = base64.b64encode(mp3.read_bytes()).decode("ascii")
+        data = mp3.read_bytes()
+        digest = hashlib.sha1(data).hexdigest()[:8]
+        name = f"{lesson['num']:02d}-{digest}-{voice}.mp3"
+        LESSON_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+        (LESSON_AUDIO_DIR / name).write_bytes(data)
+        for stale in LESSON_AUDIO_DIR.glob(f"{lesson['num']:02d}-*-{voice}.mp3"):
+            if stale.name != name:
+                stale.unlink()
+        audio_map[voice] = f"../audio/{name}"
 
     rows = []
     for sentence_index, sentence in enumerate(lesson["sentences"]):
@@ -407,7 +419,7 @@ def build_index(lessons):
             continue
         rows = []
         for lesson in items:
-            href = f"lessons/{lesson['num']:02d}-{slug(lesson['ipa'])}.html"
+            href = f"lessons/{lesson['num']:02d}-{slug(lesson['ipa'])}"
             rows.append(
                 f'<a class="row" href="{href}">'
                 f'<span class="num">{lesson["num"]:02d}</span>'

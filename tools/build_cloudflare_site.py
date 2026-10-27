@@ -52,7 +52,13 @@ SITE_URL = "https://npesl.pages.dev"
 AUDIO_URL = "https://npesl-audio.pages.dev"
 ICON = f"{SITE_URL}/npesl-icon.png"
 
-HEADERS = """/drill/audio/*
+HEADERS = """/phonics/audio/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/drill/bank.*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/drill/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /ipa/audio/*
@@ -183,6 +189,7 @@ def main() -> int:
     (phonics_out).mkdir()
     shutil.copy2(PHONICS / "index.html", phonics_out / "index.html")
     shutil.copytree(PHONICS / "lessons", phonics_out / "lessons")
+    shutil.copytree(PHONICS / "audio", phonics_out / "audio")
     inject_head(
         phonics_out / "index.html",
         "phonics/",
@@ -236,6 +243,8 @@ def main() -> int:
     drill_out = OUT / "drill"
     drill_out.mkdir()
     shutil.copy2(DRILL / "index.html", drill_out / "index.html")
+    for bank in DRILL.glob("bank.*.js"):
+        shutil.copy2(bank, drill_out / bank.name)
     shutil.copytree(DRILL / "audio", drill_out / "audio")
     inject_head(
         drill_out / "index.html",

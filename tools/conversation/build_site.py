@@ -861,8 +861,15 @@ PLAY_JS = """
 """
 
 
-def head(title: str, prefix: str, css: str, lang: str = "zh-CN") -> str:
+def head(title: str, prefix: str, css: str, lang: str = "zh-CN",
+         audio_base: str = "") -> str:
     theme_head = THEME_HEAD.replace("__PREFIX__", prefix)
+    # 音频在独立域名上：提前建连，第一次点读就少一次 DNS+TLS 往返。
+    preconnect = ""
+    if audio_base.startswith("http"):
+        origin = audio_base.split("/audio/")[0]
+        preconnect = (f'<link rel="preconnect" href="{origin}" crossorigin>'
+                      + chr(10))
     return f"""<!doctype html>
 <html lang="{lang}">
 <head>
@@ -871,7 +878,7 @@ def head(title: str, prefix: str, css: str, lang: str = "zh-CN") -> str:
 <title>{html.escape(title)}</title>
 <link rel="icon" type="image/png" sizes="512x512" href="{prefix}npesl-icon.png">
 <link rel="apple-touch-icon" href="{prefix}apple-touch-icon.png">
-{theme_head}
+{preconnect}{theme_head}
 <style>{BASE_CSS}{css}</style>
 </head>
 <body>
@@ -904,7 +911,7 @@ def level_pills(current: str, prefix: str) -> str:
         en, cn = LEVEL_LABEL[lv]
         current_attr = ' aria-current="page"' if lv == current else ""
         links.append(
-            f'<a class="level" href="{prefix}{lv.lower()}/index.html"{current_attr}>'
+            f'<a class="level" href="{prefix}{lv.lower()}/"{current_attr}>'
             f'{lv}<span class="cn">{cn}</span></a>'
         )
     return '<nav class="levels">' + "".join(links) + "</nav>\n"
@@ -937,14 +944,14 @@ def make_index() -> str:
         num = lv if len(lv) <= 2 else ""
         label = f"{en} · {cn}" if cn else en
         rows.append(
-            f'<a class="row" href="{lv.lower()}/index.html">'
+            f'<a class="row" href="{lv.lower()}/">'
             f'<span class="num">{num}</span>'
             f'<span class="t">{label}</span>'
             '<span class="arrow">›</span></a>'
         )
     body = (
         head("Conversation Starters", "../", "")
-        + back("../index.html", "NPESL")
+        + back("../", "NPESL")
         + '<h1>Conversation Starters</h1>\n'
         + '<nav class="list">' + "".join(rows) + "</nav>\n"
         + tail("../")
@@ -960,7 +967,7 @@ def make_level(level: str, units: list) -> str:
         for si, story in enumerate(unit["stories"], 1):
             slug = f"{ui:02d}-{si:02d}-{slugify(story['title'])}"
             rows.append(
-                f'<a class="row" href="{slug}.html">'
+                f'<a class="row" href="{slug}">'
                 f'<span class="num">{si:02d}</span>'
                 f'<span class="t">{html.escape(story["title"])}</span>'
                 '<span class="arrow">›</span></a>'
@@ -970,8 +977,9 @@ def make_level(level: str, units: list) -> str:
             '<nav class="stories">' + "".join(rows) + "</nav></section>\n"
         )
     body = (
-        head(f"Conversation Starters · {level}", "../../", "")
-        + back("../index.html", "Conversation Starters")
+        head(f"Conversation Starters · {level}", "../../", "",
+             audio_base=audio_base_for(level))
+        + back("../", "Conversation Starters")
         + f'<h1>{level_title(level)}</h1>\n'
         + level_pills(level, "../")
         + "".join(sections)
@@ -1135,8 +1143,8 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
 
     body = (
         head(f"{story['title']} · {level} · Conversation Starters", "../../",
-             STORY_CSS, "en")
-        + back("../index.html", f"{level} {cn}".strip())
+             STORY_CSS, "en", audio_base=audio_base_for(level))
+        + back("../", f"{level} {cn}".strip())
         + f'<p class="unit-label">{html.escape(unit["title"])}</p>\n'
         + title
         + toolbar_html()

@@ -34,13 +34,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import (CONVERSATION_OUT, DRILL_APP, IPA_APP, OFFLINE_OUT,
-                   PHONICS_APP, SITE_APP)
+                   PHENOMENA_APP, PHONICS_APP, SITE_APP)
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE_SRC = SITE_APP
 PHONICS = PHONICS_APP
 IPA = IPA_APP
 DRILL = DRILL_APP
+PHENOMENA = PHENOMENA_APP
 CONVERSATION = CONVERSATION_OUT
 OUT = OFFLINE_OUT
 PACKAGE_NAME = "NPESL-offline"
@@ -100,11 +101,55 @@ def inject_back(path: Path, href: str, label: str) -> None:
             return
 
 
+def replace_back(path: Path, href: str, label: str) -> None:
+    """Swap a product's own back link for the shared NPESL one."""
+    text = path.read_text(encoding="utf-8")
+    text = re.sub(r'\s*<a class="back" href="[^"]*">[^<]*</a>\n?', "\n", text, count=1)
+    write_page(path, text)
+    inject_back(path, href, label)
+
+
 def rewrite(path: Path, pairs: list[tuple[str, str]]) -> None:
     text = path.read_text(encoding="utf-8")
     for old, new in pairs:
         text = text.replace(old, new)
     write_page(path, text)
+
+
+def resolve_links(root: Path) -> int:
+    """file:// 下裸目录与省略 .html 的链接都不成立，补回 index.html / .html。
+
+    线上用的是无扩展名链接（Cloudflare Pages 会把 foo.html 重定向到 foo，
+    省一次往返）；离线包必须在磁盘上指到真实文件。
+    """
+    fixed = 0
+    for page in root.rglob("*.html"):
+        text = page.read_text(encoding="utf-8")
+
+        def repl(match: re.Match) -> str:
+            nonlocal fixed
+            href = match.group(1)
+            if not href or href.startswith(
+                    ("#", "/", "http:", "https:", "mailto:", "data:", "javascript:")):
+                return match.group(0)
+            target, sep, frag = href.partition("#")
+            if not target:
+                return match.group(0)
+            base = page.parent / target
+            if target.endswith("/"):
+                if (base / "index.html").exists():
+                    fixed += 1
+                    return f'href="{target}index.html{sep}{frag}"'
+                return match.group(0)
+            if base.suffix == "" and base.with_suffix(".html").exists():
+                fixed += 1
+                return f'href="{target}.html{sep}{frag}"'
+            return match.group(0)
+
+        new = re.sub(r'href="([^"]*)"', repl, text)
+        if new != text:
+            write_page(page, new)
+    return fixed
 
 
 def main() -> int:
@@ -129,6 +174,7 @@ def main() -> int:
     phonics_out.mkdir()
     shutil.copy2(PHONICS / "index.html", phonics_out / "index.html")
     shutil.copytree(PHONICS / "lessons", phonics_out / "lessons")
+    shutil.copytree(PHONICS / "audio", phonics_out / "audio")
     inject_theme(phonics_out / "index.html", "../")
     inject_back(phonics_out / "index.html", "../index.html", "NPESL")
     for page in sorted((phonics_out / "lessons").glob("*.html")):
@@ -141,10 +187,28 @@ def main() -> int:
     inject_theme(ipa_out / "index.html", "../")
     inject_back(ipa_out / "index.html", "../index.html", "NPESL")
 
+    # 常见发音现象：30 章 + 音频（和线上同一套页面，只把返回链接改成相对路径）
+    if PHENOMENA.exists():
+        phenomena_out = OUT / "phenomena"
+        shutil.copytree(
+            PHENOMENA,
+            phenomena_out,
+            ignore=shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md"),
+        )
+        inject_theme(phenomena_out / "index.html", "../")
+        replace_back(phenomena_out / "index.html", "../index.html", "NPESL")
+        for page in sorted(phenomena_out.glob("*.html")):
+            if page.name == "index.html":
+                continue
+            inject_theme(page, "../")
+            replace_back(page, "index.html", "常见发音现象")
+
     # Question Drill：目录页 + 男女音频
     drill_out = OUT / "drill"
     drill_out.mkdir()
     shutil.copy2(DRILL / "index.html", drill_out / "index.html")
+    for bank in DRILL.glob("bank.*.js"):
+        shutil.copy2(bank, drill_out / bank.name)
     shutil.copytree(DRILL / "audio", drill_out / "audio")
     rewrite(drill_out / "index.html", [
         ('href="/npesl-icon.png"', 'href="../npesl-icon.png"'),
@@ -163,6 +227,9 @@ def main() -> int:
     else:
         print(f"警告：{CONVERSATION.relative_to(ROOT)} 不存在，"
               "Conversation Starters 未包含；先运行 build_site.py")
+
+    fixed = resolve_links(OUT)
+    print(f"  链接补全：{fixed} 处")
 
     files = [p for p in OUT.rglob("*") if p.is_file()]
     size = sum(p.stat().st_size for p in files)
