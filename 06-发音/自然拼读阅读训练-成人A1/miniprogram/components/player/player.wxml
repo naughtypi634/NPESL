@@ -1,0 +1,74 @@
+<view class="page">
+  <view class="lesson">
+    <text class="phoneme">{{lesson.ipa}}</text>
+    <text class="patterns">{{lesson.patterns}}</text>
+  </view>
+
+  <text class="h1">{{lesson.titleEn}}</text>
+  <text class="title-zh">{{lesson.titleZh}}</text>
+
+  <view class="toolbar">
+    <view class="seg">
+      <view
+        class="seg-btn {{voice === 'f' ? 'is-on' : ''}}"
+        catchtap="setVoice"
+        data-voice="f"
+      >女声</view>
+      <view
+        class="seg-btn {{voice === 'm' ? 'is-on' : ''}}"
+        catchtap="setVoice"
+        data-voice="m"
+      >男声</view>
+    </view>
+    <view class="play-all {{mode === 'all' ? 'is-on' : ''}}" bindtap="toggleAll">
+      <text>{{mode === 'all' ? '停止' : '全文连读'}}</text>
+    </view>
+  </view>
+
+  <view class="rule"></view>
+
+  <view class="passage">
+    <view
+      class="sentence"
+      wx:for="{{lesson.sentences}}"
+      wx:for-item="sentence"
+      wx:for-index="si"
+      wx:key="startF"
+    >
+      <view
+        class="speaker {{activeSentence === si ? 'is-active' : ''}}"
+        catchtap="playSentence"
+        data-si="{{si}}"
+      >
+        <text class="speaker-ico">▶</text>
+      </view>
+
+      <view class="rows">
+        <view
+          class="row"
+          wx:for="{{sentence.chunks}}"
+          wx:for-item="chunk"
+          wx:for-index="ci"
+          wx:key="startF"
+        >
+          <view
+            class="chunk {{activeChunk === si + '-' + ci ? 'is-playing' : ''}}"
+            catchtap="playChunk"
+            data-si="{{si}}"
+            data-ci="{{ci}}"
+          >
+            <text
+              wx:for="{{chunk.parts}}"
+              wx:for-item="part"
+              wx:key="i"
+              class="{{part.s ? 'sound' : ''}}"
+            >{{part.t}}</text>
+          </view>
+          <text class="zh">{{chunk.zh}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <text wx:if="{{failed}}" class="status">这段音频没能播放，请返回再试。</text>
+</view>

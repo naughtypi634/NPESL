@@ -1,0 +1,58 @@
+<view class="page">
+  <scroll-view class="cats" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="cats-inner">
+      <view
+        wx:for="{{cats}}"
+        wx:key="value"
+        class="cat {{cat === item.value ? 'on' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="selectCat"
+      >{{item.label}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="card" wx:if="{{q}}">
+    <view class="meta">
+      <text class="chip">{{q.cat}}</text>
+      <text class="scene">{{q.scene}}</text>
+    </view>
+
+    <text class="zh">{{q.zh}}</text>
+
+    <view class="answers" wx:if="{{revealed}}">
+      <view class="answer" wx:for="{{answers}}" wx:for-item="answer" wx:key="audio">
+        <text class="num">{{answer.num}}</text>
+        <view class="answer-body">
+          <text class="en">{{answer.en}}</text>
+          <view class="play" wx:if="{{audioReady}}">
+            <view
+              class="play-btn {{playingKey === answer.fKey ? 'is-playing' : ''}}"
+              catchtap="play"
+              data-voice="f"
+              data-idx="{{answer.idx}}"
+            ><view class="play-ico"></view>女声</view>
+            <view
+              class="play-btn {{playingKey === answer.mKey ? 'is-playing' : ''}}"
+              catchtap="play"
+              data-voice="m"
+              data-idx="{{answer.idx}}"
+            ><view class="play-ico"></view>男声</view>
+          </view>
+          <text class="note">{{answer.note}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="actions">
+      <block wx:if="{{!revealed}}">
+        <view class="btn primary" bindtap="reveal">显示英文</view>
+        <view class="btn ghost" bindtap="showQuestion">换一题</view>
+      </block>
+      <view wx:else class="btn primary" bindtap="showQuestion">下一题</view>
+    </view>
+  </view>
+
+  <view class="empty" wx:else>
+    <view class="btn primary" bindtap="showQuestion">随机生成</view>
+  </view>
+</view>

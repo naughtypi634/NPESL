@@ -1,0 +1,272 @@
+/*
+ * NPESL theme tokens and the floating theme switch.
+ * Loaded after each page's own styles; the html[data-theme] selectors win
+ * over the pages' :root rules, including their prefers-color-scheme media.
+ */
+
+html[data-theme="bright"],
+html[data-theme="auto"],
+html:not([data-theme]) {
+  color-scheme: light;
+  --bg: #ffffff;
+  --fg: #1d1d1f;
+  --muted: #6e6e73;
+  --rule: #e0e0e0;
+  --rail: #e5e5ea;
+  --surface: #f5f5f7;
+  --surface-strong: #e8e8ed;
+  --blue: #0071e3;
+  --blue-hover: #0077ed;
+  --blue-tint: #e8f2ff;
+  --on-blue: #ffffff;
+  --icon: #515154;
+}
+
+html[data-theme="sepia"] {
+  color-scheme: light;
+  --bg: #f6efe0;
+  --fg: #3b3327;
+  --muted: #7b6d58;
+  --rule: #ded1b8;
+  --rail: #d6c7aa;
+  --surface: #efe5d1;
+  --surface-strong: #e5d8bf;
+  --blue: #8a5a2b;
+  --blue-hover: #a06c37;
+  --blue-tint: #f0e0c8;
+  --on-blue: #ffffff;
+  --icon: #6d5c44;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --fg: #f5f5f7;
+  --muted: #98989d;
+  --rule: #38383a;
+  --rail: #2c2c2e;
+  --surface: #1c1c1e;
+  --surface-strong: #2c2c2e;
+  --blue: #2997ff;
+  --blue-hover: #40a9ff;
+  --blue-tint: #102a43;
+  --on-blue: #ffffff;
+  --icon: #98989d;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="auto"],
+  html:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #000000;
+    --fg: #f5f5f7;
+    --muted: #98989d;
+    --rule: #38383a;
+    --rail: #2c2c2e;
+    --surface: #1c1c1e;
+    --surface-strong: #2c2c2e;
+    --blue: #2997ff;
+    --blue-hover: #40a9ff;
+    --blue-tint: #102a43;
+    --on-blue: #ffffff;
+    --icon: #98989d;
+  }
+}
+
+.npesl-back {
+  position: sticky;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 20px;
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.npesl-back svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.npesl-back:hover { background: var(--surface-strong); }
+.npesl-back:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.npesl-theme {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  z-index: 9999;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Segoe UI Variable", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+}
+
+.npesl-theme-fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.npesl-theme-fab:hover { background: var(--surface-strong); }
+.npesl-theme-fab:active { transform: scale(0.96); }
+.npesl-theme-fab:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.npesl-theme-fab svg { width: 21px; height: 21px; display: block; }
+
+.npesl-theme-menu {
+  position: absolute;
+  right: 0;
+  bottom: 54px;
+  display: none;
+  min-width: 158px;
+  padding: 6px;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.npesl-theme-menu[data-open="true"] { display: block; }
+
+.npesl-theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.npesl-theme-option:hover { background: var(--surface); }
+.npesl-theme-option:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+.npesl-theme-swatch {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+}
+
+.npesl-theme-swatch[data-swatch="auto"] {
+  background: linear-gradient(90deg, #ffffff 50%, #000000 50%);
+}
+.npesl-theme-swatch[data-swatch="bright"] { background: #ffffff; }
+.npesl-theme-swatch[data-swatch="dark"] { background: #000000; }
+.npesl-theme-swatch[data-swatch="sepia"] { background: #f6efe0; }
+
+.npesl-theme-check {
+  margin-left: auto;
+  color: var(--blue);
+  font-size: 14px;
+  opacity: 0;
+}
+
+.npesl-theme-option[aria-checked="true"] .npesl-theme-check { opacity: 1; }
+
+@media print {
+  .npesl-theme { display: none !important; }
+}
+
+/* 统一的圆角与卡片阴影尺度：卡片 24 / 控件 12 / 胶囊 999 */
+:root {
+  --radius-card: 24px;
+  --radius-control: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/*
+ * 统一按钮动作：独立按钮 hover 浮起 1px + 柔和阴影。
+ * 行内文字按钮（句子里的可点单词）不参与，避免整段文字跳动。
+ */
+.pill,
+.chip,
+.opt,
+.primary,
+.ghost,
+.browseBtn,
+.browserClose,
+.speed-reset,
+.play-all,
+.marks-toggle,
+.chips button,
+.level,
+.npesl-back,
+.npesl-theme-fab,
+.npesl-theme-option,
+.speaker {
+  transition: transform 0.16s ease, box-shadow 0.16s ease,
+    background-color 0.16s ease, color 0.16s ease,
+    border-color 0.16s ease !important;
+}
+
+.pill:hover,
+.chip:hover,
+.opt:hover,
+.primary:hover,
+.ghost:hover,
+.browseBtn:hover,
+.browserClose:hover,
+.speed-reset:hover,
+.play-all:hover,
+.marks-toggle:hover,
+.chips button:hover,
+.level:hover,
+.npesl-back:hover,
+.npesl-theme-fab:hover,
+.npesl-theme-option:hover,
+.speaker:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.pill:active,
+.chip:active,
+.opt:active,
+.primary:active,
+.ghost:active,
+.browseBtn:active,
+.browserClose:active,
+.speed-reset:active,
+.play-all:active,
+.marks-toggle:active,
+.chips button:active,
+.level:active,
+.npesl-back:active,
+.npesl-theme-fab:active,
+.npesl-theme-option:active,
+.speaker:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}

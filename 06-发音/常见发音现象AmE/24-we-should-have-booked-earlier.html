@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>We Should Have Booked Earlier · 常见发音现象(AmE)</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#000000; --fg:#f5f5f7; --muted:#98989d; --rule:#2c2c2e;
+      --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+
+  .targets { margin-top:30px; display:grid; gap:12px; }
+  .target { display:flex; flex-wrap:wrap; align-items:center; gap:12px 26px;
+    padding:16px 18px; background:var(--surface); border-radius:24px; }
+  .pair { display:inline-flex; align-items:baseline; gap:10px; font-size:17px; }
+  .pair .w { color:var(--muted); }
+  .pair .s { color:var(--mark); font-weight:700; font-size:19px; }
+  .pair .arrow { color:var(--muted); }
+  .target .pill { white-space:normal; text-align:left; max-width:100%; }
+  .target .pill .play { font-size:0.7em; color:var(--muted); margin-right:6px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; min-width:0; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:#fff; }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .speed input { width:128px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .dialogue { margin-top:8px; }
+  .line { display:block; width:100%; text-align:left; font:inherit;
+    color:inherit; background:transparent; border:0; border-bottom:1px solid var(--rule);
+    padding:15px 12px; cursor:pointer; border-radius:12px;
+    transition:background-color .12s ease; }
+  .line:hover { background:var(--surface); }
+  .line.playing { background:var(--tint); }
+  .line .txt { display:block; font-size:19px; line-height:1.6; }
+  .line .zh { display:block; margin-top:5px; color:var(--muted); font-size:14px;
+    line-height:1.4; }
+  ruby { ruby-position:under; -webkit-ruby-position:after; }
+  rt { font-size:1em; font-weight:700; color:var(--mark); }
+
+
+  .footer { margin-top:34px; }
+  body.zh-off .zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .toolbar { gap:8px; }
+    .seg button, .pill { padding:6px 10px; font-size:13px; }
+    .target { gap:10px 18px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">常见发音现象(AmE)</a>
+  <header>
+    <p class="num">24 · 缩合</p>
+    <h1>We Should Have Booked Earlier</h1>
+    <p class="title-zh">我们该早点订</p>
+  </header>
+
+  <section class="targets">
+      <div class="target"><span class="pair"><span class="w">should have / could have / would have / must have / may have / might have / shouldn&#x27;t have / couldn&#x27;t have / wouldn&#x27;t have</span><span class="arrow">→</span><span class="s">shoulda / coulda / woulda / musta / maya / mighta / shouldna / couldna / wouldna</span></span><button class="pill" type="button" data-clip-f="f/0e/0ed75cc8f7efb48e.mp3" data-clip-m="m/e5/e55aeacef1fad075.mp3"><span class="play">▶</span>We <ruby>should have<rt>shoulda</rt></ruby> booked earlier.</button></div>
+  </section>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="dialogue">
+      <button class="line" type="button" data-clip-f="f/0e/0ed75cc8f7efb48e.mp3" data-clip-m="m/e5/e55aeacef1fad075.mp3"><span class="txt">We <ruby>should have<rt>shoulda</rt></ruby> booked earlier.</span><span class="zh">我们该早点订的。</span></button>
+      <button class="line" type="button" data-clip-f="f/70/70a9a7bdf9b4ea22.mp3" data-clip-m="m/8b/8bfe01cf7344783b.mp3"><span class="txt">I <ruby>could have<rt>coulda</rt></ruby> done it online.</span><span class="zh">我本来可以在网上办的。</span></button>
+      <button class="line" type="button" data-clip-f="f/93/93228f96b4cd9a23.mp3" data-clip-m="m/47/4792407c8be50093.mp3"><span class="txt"><ruby>Would have<rt>Woulda</rt></ruby> been cheaper too.</span><span class="zh">那样还能便宜点。</span></button>
+      <button class="line" type="button" data-clip-f="f/b1/b13fa6960c8435d5.mp3" data-clip-m="m/4e/4e9feccb263f077b.mp3"><span class="txt">He <ruby>must have<rt>musta</rt></ruby> forgotten.</span><span class="zh">他肯定是忘了。</span></button>
+      <button class="line" type="button" data-clip-f="f/16/16f0fe3023374075.mp3" data-clip-m="m/1a/1a5bf2119db73f99.mp3"><span class="txt">She <ruby>may have<rt>maya</rt></ruby> missed the email.</span><span class="zh">她可能没看到邮件。</span></button>
+      <button class="line" type="button" data-clip-f="f/ca/ca7891ebb8114222.mp3" data-clip-m="m/72/72d5ef305525e23d.mp3"><span class="txt">They <ruby>might have<rt>mighta</rt></ruby> left already.</span><span class="zh">他们可能已经走了。</span></button>
+      <button class="line" type="button" data-clip-f="f/41/4129e4c2c7293690.mp3" data-clip-m="m/8c/8c6ec2bef288ac66.mp3"><span class="txt">You <ruby>shouldn&#x27;t have<rt>shouldna</rt></ruby> paid for everyone.</span><span class="zh">你不该替所有人付钱的。</span></button>
+      <button class="line" type="button" data-clip-f="f/54/5458e56a8aa33058.mp3" data-clip-m="m/2a/2ae0fef8b2f88532.mp3"><span class="txt">I <ruby>couldn&#x27;t have<rt>couldna</rt></ruby> known.</span><span class="zh">我怎么可能知道。</span></button>
+      <button class="line" type="button" data-clip-f="f/8f/8f7b41f8f59e01b4.mp3" data-clip-m="m/b2/b20d41dd3082c744.mp3"><span class="txt">We <ruby>wouldn&#x27;t have<rt>wouldna</rt></ruby> finished without you.</span><span class="zh">没你我们完不成。</span></button>
+      <button class="line" type="button" data-clip-f="f/5c/5cc06d22eba4316c.mp3" data-clip-m="m/01/0122ad952cdddcb6.mp3"><span class="txt">I <ruby>should have<rt>shoulda</rt></ruby> checked the address.</span><span class="zh">我该核对一下地址的。</span></button>
+      <button class="line" type="button" data-clip-f="f/a3/a35388ec0d1ec469.mp3" data-clip-m="m/20/205e467d397920a8.mp3"><span class="txt">It <ruby>must have<rt>musta</rt></ruby> been a typo.</span><span class="zh">肯定是打错了。</span></button>
+      <button class="line" type="button" data-clip-f="f/fb/fb0983f7e9638c7d.mp3" data-clip-m="m/5a/5ab902cf9d26ef8d.mp3"><span class="txt">We <ruby>should have<rt>shoulda</rt></ruby> had a backup plan.</span><span class="zh">我们该留个备用方案的。</span></button>
+  </section>
+
+  <div class="footer">
+    <button class="pill" type="button" data-done aria-pressed="false">标记已学</button>
+  </div>
+  <p class="status" data-audio-status></p>
+</main>
+<script>
+(function () {
+  var KEY_VOICE = 'rs-voice';
+  var KEY_SPEED = 'rs-speed', KEY_ZH = 'rs-zh', KEY_DONE = 'rs-done';
+  var LESSON = parseInt(document.querySelector('.num').textContent, 10);
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.line'));
+  var current = null, playlist = null, statusTimer = null;
+
+  function clipFor(el) {
+    return el.getAttribute('data-clip-' + voice);
+  }
+
+  function loadClip(clip) {
+    player.src = 'audio/' + clip;
+    // Browsers reset playbackRate when src changes; apply it again.
+    player.playbackRate = speed;
+    player.preservesPitch = true;
+    player.webkitPreservesPitch = true;
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    unmark();
+  }
+
+  function showStatus(text) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    if (statusTimer) clearTimeout(statusTimer);
+    statusTimer = setTimeout(function () {
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var clip = clipFor(el);
+    if (!clip) { audioFailed(el); return; }
+    loadClip(clip);
+    var playing = player.play();
+    if (playing && playing.catch) {
+      playing.catch(function () { if (current === el) audioFailed(el); });
+    }
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    var clip = clipFor(el);
+    if (!clip) { showStatus('这一句暂无语音'); return; }
+    current = el;
+    el.classList.add('playing');
+    loadClip(clip);
+    var playing = player.play();
+    if (playing && playing.catch) {
+      playing.catch(function () { if (current === el) audioFailed(el); });
+    }
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('ended', function () {
+    if (playlist) playItem(playlist.at + 1);
+    else unmark();
+  });
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stopPlaylist();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function isDone() {
+    try {
+      var list = JSON.parse(load(KEY_DONE) || '[]');
+      return list.indexOf(LESSON) >= 0;
+    } catch (e) { return false; }
+  }
+
+  function setDone(on) {
+    var list = [];
+    try { list = JSON.parse(load(KEY_DONE) || '[]'); } catch (e) {}
+    if (!Array.isArray(list)) list = [];
+    var has = list.indexOf(LESSON) >= 0;
+    if (on && !has) list.push(LESSON);
+    if (!on && has) list.splice(list.indexOf(LESSON), 1);
+    store(KEY_DONE, JSON.stringify(list));
+    var btn = document.querySelector('[data-done]');
+    if (btn) {
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.textContent = on ? '已学' : '标记已学';
+    }
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+  var doneBtn = document.querySelector('[data-done]');
+  if (doneBtn) doneBtn.addEventListener('click', function () { setDone(!isDone()); });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.line, .target .pill');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+  setDone(isDone());
+})();
+</script>
+</body>
+</html>

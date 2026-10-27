@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A Late Train 末班车</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Apple-clean reader: white ground, one blue accent, gray hint text */
+  :root {
+    --bg: #ffffff;
+    --fg: #1d1d1f;
+    --muted: #6e6e73;
+    --rule: #e5e5ea;
+    --rail: #e5e5ea;
+    --surface: #f5f5f7;
+    --surface-strong: #e8e8ed;
+    --blue: #0071e3;
+    --blue-hover: #0077ed;
+    --blue-tint: #e8f2ff;
+    --on-blue: #ffffff;
+    --icon: #515154;
+    --font-ipa: "Lucida Sans Unicode", "Arial Unicode MS", "Charis SIL", "Doulos SIL", "Segoe UI", sans-serif;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+      "Segoe UI Variable", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+      "Microsoft YaHei", sans-serif;
+    color-scheme: light;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding-left: max(24px, env(safe-area-inset-left, 0px));
+    padding-right: max(24px, env(safe-area-inset-right, 0px));
+    padding-block: clamp(48px, 8vh, 80px) 96px;
+  }
+
+  .lesson {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+
+  .phoneme {
+    font-family: var(--font-ipa);
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 12px;
+    background: var(--blue-tint);
+    color: var(--blue);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .patterns {
+    color: var(--muted);
+    font-size: 15px;
+    letter-spacing: 0.02em;
+  }
+
+  h1 {
+    margin: 20px 0 0;
+    font-size: clamp(2.5rem, 7.2vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  .title-zh {
+    margin: 8px 0 0;
+    font-size: 20px;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    color: var(--muted);
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 28px;
+  }
+
+  .seg {
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+    padding: 4px;
+    border-radius: 980px;
+    background: var(--surface);
+  }
+
+  .seg button {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 36px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 980px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+
+  .seg button:hover {
+    color: var(--fg);
+  }
+
+  .seg button[aria-pressed="true"] {
+    background: var(--bg);
+    color: var(--fg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .seg button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 1px;
+  }
+
+  .play-all {
+    -webkit-appearance: none;
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    margin-top: 0;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 980px;
+    background: var(--blue);
+    color: var(--on-blue);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .play-all:hover {
+    background: var(--blue-hover);
+  }
+
+  .play-all .ico {
+    width: 11px;
+    height: 11px;
+    fill: currentColor;
+    flex: none;
+  }
+
+  .play-all .ico[hidden] {
+    display: none;
+  }
+
+  .speed {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 12px;
+    border-radius: 980px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .speed input[type="range"] {
+    width: 104px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--blue);
+    cursor: pointer;
+  }
+  .speed output {
+    min-width: 32px;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .speed-reset {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 30px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--blue);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .speed-reset:hover {
+    background: var(--blue-tint);
+  }
+  .speed-reset:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 1px;
+  }
+
+  .rule {
+    height: 1px;
+    margin-top: 36px;
+    background: var(--rule);
+  }
+
+  .passage {
+    position: relative;
+    margin-top: 38px;
+  }
+
+  .passage::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    bottom: 14px;
+    width: 1px;
+    background: var(--rail);
+  }
+
+  .sentence {
+    position: relative;
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    column-gap: 16px;
+    margin-bottom: 34px;
+  }
+
+  .sentence:last-child {
+    margin-bottom: 0;
+  }
+
+  .speaker {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    z-index: 1;
+    width: 28px;
+    height: 28px;
+    margin-top: 2px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--icon);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+
+  .speaker svg {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+    margin-left: 1px;
+  }
+
+  .speaker:hover {
+    background: var(--surface-strong);
+    color: var(--fg);
+  }
+
+  .speaker.is-active {
+    background: var(--blue);
+    color: var(--on-blue);
+  }
+
+  .speaker::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+  }
+
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    min-width: 0;
+  }
+
+  .row {
+    min-width: 0;
+  }
+
+  .chunk {
+    -webkit-appearance: none;
+    appearance: none;
+    display: inline;
+    font-family: var(--font);
+    font-size: clamp(1.15rem, 2.7vw, 1.3rem);
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: -0.012em;
+    color: var(--fg);
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-radius: 12px;
+    padding: 2px 6px;
+    margin-left: -6px;
+    cursor: pointer;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    transition: background-color 0.16s ease;
+  }
+
+  .chunk:hover {
+    background: var(--surface);
+  }
+
+  .chunk.is-playing {
+    background: var(--surface-strong);
+  }
+
+  .sound {
+    color: var(--blue);
+    font-weight: 600;
+    background: var(--blue-tint);
+    border-radius: 4px;
+    padding: 0 1px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
+  .zh {
+    margin: 1px 0 0;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    color: var(--muted);
+  }
+
+  .status {
+    margin: 30px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .page {
+      padding-left: max(20px, env(safe-area-inset-left, 0px));
+      padding-right: max(20px, env(safe-area-inset-right, 0px));
+      padding-block: 40px 72px;
+    }
+    h1 {
+      font-size: clamp(2.3rem, 11vw, 2.9rem);
+    }
+    .title-zh {
+      font-size: 18px;
+    }
+    .controls {
+      margin-top: 24px;
+    }
+    .seg,
+    .play-all {
+      height: 42px;
+    }
+    .seg button {
+      height: 34px;
+      padding: 0 16px;
+    }
+    .rule {
+      margin-top: 30px;
+    }
+    .passage {
+      margin-top: 32px;
+    }
+    .sentence {
+      margin-bottom: 30px;
+    }
+    .rows {
+      gap: 8px;
+    }
+    .chunk {
+      font-size: clamp(1.12rem, 4.9vw, 1.25rem);
+      padding: 2px 5px;
+      margin-left: -5px;
+    }
+    .zh {
+      font-size: 15px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="masthead">
+    <div class="lesson">
+      <span class="phoneme">__TARGET__</span>
+      <span class="patterns">__PATTERNS__</span>
+    </div>
+    <h1>__TITLE_EN__</h1>
+    <p class="title-zh">__TITLE_ZH__</p>
+    <div class="controls">
+      <div class="seg" id="voiceSeg" role="group" aria-label="朗读音色">
+        <button type="button" data-voice="f" aria-pressed="true">女声</button>
+        <button type="button" data-voice="m" aria-pressed="false">男声</button>
+      </div>
+      <div class="speed">
+        <label for="speedInput">语速</label>
+        <input id="speedInput" type="range" min="0.7" max="1.5" step="0.05" value="1" data-speed-input aria-label="语速">
+        <output data-speed-label>1×</output>
+        <button class="speed-reset" type="button" data-speed-reset aria-label="恢复默认语速">恢复</button>
+      </div>
+      <button class="play-all" id="playAll" type="button" aria-pressed="false">
+        <svg class="ico" id="icoPlay" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 3.2v17.6L20.5 12z"/></svg>
+        <svg class="ico" id="icoStop" viewBox="0 0 24 24" aria-hidden="true" hidden><rect x="5" y="5" width="14" height="14" rx="1.5"/></svg>
+        <span id="playAllLabel">全文连读</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="rule"></div>
+
+  <main class="passage" id="passage">
+    <!--SENTENCES-->
+  </main>
+
+  <p class="status" id="status" role="status" hidden></p>
+</div>
+
+<script id="audioMap" type="application/json">__AUDIO_MAP__</script>
+<script>
+  (function () {
+    var map = JSON.parse(document.getElementById("audioMap").textContent);
+    var VOICE_KEYS = ["f", "m"];
+    var audios = {};
+    VOICE_KEYS.forEach(function (key) {
+      var bin = atob(map[key]);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      var track = new Audio(URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" })));
+      track.preload = "auto";
+      audios[key] = track;
+    });
+    var SPEED_KEY = "npesl-phonics-speed";
+    var SPEED_MIN = 0.7;
+    var SPEED_MAX = 1.5;
+    var SPEED_DEFAULT = 1;
+    var speed = SPEED_DEFAULT;
+    try {
+      var savedSpeed = parseFloat(localStorage.getItem(SPEED_KEY));
+      if (savedSpeed >= SPEED_MIN && savedSpeed <= SPEED_MAX) speed = savedSpeed;
+    } catch (e) {}
+    VOICE_KEYS.forEach(function (key) {
+      audios[key].playbackRate = speed;
+    });
+    var voice = "f";
+    var audio = audios[voice];
+
+    var sections = Array.prototype.slice.call(document.querySelectorAll(".sentence"));
+    var chunks = Array.prototype.slice.call(document.querySelectorAll(".chunk"));
+    var voiceSeg = document.getElementById("voiceSeg");
+    var playAllBtn = document.getElementById("playAll");
+    var playAllLabel = document.getElementById("playAllLabel");
+    var icoPlay = document.getElementById("icoPlay");
+    var icoStop = document.getElementById("icoStop");
+    var statusEl = document.getElementById("status");
+    var state = null;
+
+    function showStatus(text) {
+      statusEl.textContent = text;
+      statusEl.hidden = false;
+    }
+
+    function speedLabel(value) {
+      return String(Math.round(value * 100) / 100).replace(/0$/, "") + "×";
+    }
+
+    function setSpeed(value, save) {
+      var n = Number(value);
+      if (!isFinite(n)) n = SPEED_DEFAULT;
+      n = Math.max(SPEED_MIN, Math.min(SPEED_MAX, Math.round(n * 100) / 100));
+      speed = n;
+      VOICE_KEYS.forEach(function (key) {
+        audios[key].playbackRate = n;
+      });
+      var label = document.querySelector("[data-speed-label]");
+      if (label) label.textContent = speedLabel(n);
+      var input = document.querySelector("[data-speed-input]");
+      if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+      if (save) {
+        try { localStorage.setItem(SPEED_KEY, String(n)); } catch (e) {}
+      }
+    }
+
+    function clearMarks() {
+      document.querySelectorAll(".is-playing, .is-active").forEach(function (el) {
+        el.classList.remove("is-playing", "is-active");
+      });
+    }
+
+    function setPlayAll(on) {
+      playAllBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      if (on) {
+        icoPlay.setAttribute("hidden", "");
+        icoStop.removeAttribute("hidden");
+      } else {
+        icoPlay.removeAttribute("hidden");
+        icoStop.setAttribute("hidden", "");
+      }
+      playAllLabel.textContent = on ? "停止" : "全文连读";
+    }
+
+    function stop() {
+      if (state) {
+        cancelAnimationFrame(state.raf);
+        state = null;
+      }
+      audio.pause();
+      audio.onended = null;
+      clearMarks();
+      setPlayAll(false);
+    }
+
+    function whenReady(callback) {
+      if (audio.readyState >= 1) {
+        callback();
+        return;
+      }
+      var handler = function () {
+        audio.removeEventListener("loadedmetadata", handler);
+        callback();
+      };
+      audio.addEventListener("loadedmetadata", handler);
+      audio.load();
+    }
+
+    function stamp(el, kind) {
+      return parseFloat(el.dataset[kind + (voice === "f" ? "F" : "M")]);
+    }
+
+    function current(list, time) {
+      var found = null;
+      list.forEach(function (el) {
+        if (time + 0.001 >= stamp(el, "start")) found = el;
+      });
+      return found;
+    }
+
+    function highlight(time) {
+      var chunk = current(chunks, time);
+      if (chunk !== state.hlChunk) {
+        if (state.hlChunk) state.hlChunk.classList.remove("is-playing");
+        state.hlChunk = chunk;
+        if (chunk) chunk.classList.add("is-playing");
+      }
+      var section = current(sections, time);
+      if (section !== state.hlSection) {
+        if (state.hlSection) {
+          var oldSpeaker = state.hlSection.querySelector(".speaker");
+          if (oldSpeaker) oldSpeaker.classList.remove("is-active");
+        }
+        state.hlSection = section;
+        if (section) {
+          var speaker = section.querySelector(".speaker");
+          if (speaker) speaker.classList.add("is-active");
+        }
+      }
+    }
+
+    function fail() {
+      stop();
+      showStatus("这段音频没能播放，请刷新页面再试。");
+    }
+
+    function start(startTime, endTime, mode, el) {
+      stop();
+      state = { raf: 0, stopAt: endTime, mode: mode, hlChunk: null, hlSection: null };
+      if (mode === "chunk") {
+        el.classList.add("is-playing");
+        state.hlChunk = el;
+      }
+      if (mode === "sentence") {
+        el.querySelector(".speaker").classList.add("is-active");
+        state.hlSection = el;
+      }
+      if (mode === "all") setPlayAll(true);
+      whenReady(function () {
+        if (!state) return;
+        // iOS Safari 的 seek 是异步的：设完 currentTime 立刻 play，
+        // 跳转可能还没落地就开始播，导致句子开头被吃掉。
+        // 留一点前置余量，并等 seeked 再播。
+        var LEAD = 0.12;
+        var from = Math.max(0, startTime - LEAD);
+        var started = false;
+        var play = function () {
+          if (started || !state) return;
+          started = true;
+          audio.onended = function () {
+            if (state) stop();
+          };
+          audio.play().then(function () {
+            var tick = function () {
+              if (!state) return;
+              var time = audio.currentTime;
+              if (state.stopAt !== null && time >= state.stopAt - 0.006) {
+                stop();
+                return;
+              }
+              if (state.mode !== "chunk") highlight(time);
+              state.raf = requestAnimationFrame(tick);
+            };
+            tick();
+          }).catch(function (error) {
+            if (error && error.name === "AbortError") return;
+            fail();
+          });
+        };
+        if (Math.abs(audio.currentTime - from) < 0.02) {
+          play();
+          return;
+        }
+        var onSeeked = function () {
+          audio.removeEventListener("seeked", onSeeked);
+          clearTimeout(guard);
+          play();
+        };
+        var guard = setTimeout(onSeeked, 260);
+        audio.addEventListener("seeked", onSeeked);
+        audio.currentTime = from;
+      });
+    }
+
+    document.getElementById("passage").addEventListener("click", function (event) {
+      var chunk = event.target.closest(".chunk");
+      if (chunk) {
+        start(stamp(chunk, "start"), stamp(chunk, "end"), "chunk", chunk);
+        return;
+      }
+      var speaker = event.target.closest(".speaker");
+      if (speaker) {
+        var section = speaker.closest(".sentence");
+        start(stamp(section, "start"), stamp(section, "end"), "sentence", section);
+      }
+    });
+
+    playAllBtn.addEventListener("click", function () {
+      if (state && state.mode === "all") {
+        stop();
+        return;
+      }
+      start(0, null, "all", null);
+    });
+
+    voiceSeg.addEventListener("click", function (event) {
+      var btn = event.target.closest("button[data-voice]");
+      if (!btn || btn.dataset.voice === voice) return;
+      stop();
+      voice = btn.dataset.voice;
+      audio = audios[voice];
+      Array.prototype.forEach.call(voiceSeg.querySelectorAll("button"), function (item) {
+        item.setAttribute("aria-pressed", item === btn ? "true" : "false");
+      });
+    });
+
+    var speedInput = document.querySelector("[data-speed-input]");
+    if (speedInput) {
+      speedInput.value = speed;
+      speedInput.addEventListener("input", function () {
+        setSpeed(parseFloat(speedInput.value), true);
+      });
+    }
+    var speedReset = document.querySelector("[data-speed-reset]");
+    if (speedReset) {
+      speedReset.addEventListener("click", function () {
+        setSpeed(SPEED_DEFAULT, true);
+      });
+    }
+    setSpeed(speed, false);
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Question Drill</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230071e3'/%3E%3Ctext x='32' y='39' font-family='Segoe UI,Arial,sans-serif' font-size='14' font-weight='700' fill='%23fff' text-anchor='middle'%3ENPESL%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="512x512" href="/npesl-icon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:site_name" content="NPESL">
+<meta property="og:title" content="NPESL · Question Drill">
+<meta property="og:image" content="https://npesl.pages.dev/npesl-icon.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:url" content="https://npesl.pages.dev/drill/">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1d1d1f;
+    --muted: #6e6e73;
+    --rule: #e5e5ea;
+    --surface: #f5f5f7;
+    --surface-strong: #e8e8ed;
+    --blue: #0071e3;
+    --blue-hover: #0077ed;
+    --blue-tint: #e8f2ff;
+    --on-blue: #ffffff;
+    --radius: 24px;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+      "Segoe UI Variable", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+      "Microsoft YaHei", sans-serif;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --fg: #f5f5f7;
+      --muted: #98989d;
+      --rule: #38383a;
+      --surface: #1c1c1e;
+      --surface-strong: #2c2c2e;
+      --blue: #2997ff;
+      --blue-hover: #40a9ff;
+      --blue-tint: #102a43;
+      --on-blue: #ffffff;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .page {
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    padding-top: clamp(16px, 3vh, 44px);
+    padding-bottom: clamp(12px, 2.2vh, 28px);
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+  }
+  .npesl-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 14px;
+    padding: 7px 13px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--fg);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+  }
+  .npesl-back:hover { background: var(--surface-strong); }
+  .npesl-back svg { width: 14px; height: 14px; flex: none; }
+  .masthead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 24px;
+    flex-wrap: wrap;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(30px, 5vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+  .browseRow {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: clamp(8px, 1.2vh, 12px);
+  }
+  .browseBtn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface);
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 999px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .browseBtn:hover { background: var(--blue-tint); }
+  .browseBtn svg { width: 14px; height: 14px; flex: none; }
+  .browser { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .browserBackdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.36);
+    animation: fadeIn 0.18s ease both;
+    touch-action: none;
+  }
+  .browserSheet:focus { outline: none; }
+  .browserSheet {
+    position: relative;
+    width: min(720px, 100%);
+    height: min(78vh, 720px);
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-radius: 28px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+    animation: sheetIn 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .browserHead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .browserHead h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .browserMeta { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+  .browserClose {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    background: var(--surface-strong);
+    color: var(--fg);
+    border-radius: 999px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .browserClose:hover { background: var(--blue-tint); color: var(--blue); }
+  .browserClose svg { width: 16px; height: 16px; }
+  .browserSearch { padding: 12px 24px; border-bottom: 1px solid var(--rule); }
+  .searchField {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface-strong);
+    border-radius: 999px;
+    padding: 9px 14px;
+  }
+  .searchField svg { width: 16px; height: 16px; color: var(--muted); flex: none; }
+  .searchField input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-size: 15px;
+    line-height: 1.3;
+    padding: 0;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .searchField input::-webkit-search-cancel-button { -webkit-appearance: none; }
+  .searchField input::placeholder { color: var(--muted); }
+  .browserEmpty {
+    margin: 0;
+    padding: 28px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .questionList {
+    --row-h: 76px;
+    list-style: none;
+    margin: 0;
+    padding: 8px 12px 16px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .questionList li { height: var(--row-h); box-sizing: border-box; border-bottom: 1px solid var(--rule); }
+  .questionList li.listSpacer { height: auto; border-bottom: none; }
+  .qItem {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    text-align: left;
+    background: transparent;
+    color: var(--fg);
+    padding: 0 12px;
+    border-radius: 14px;
+    transition: background-color 0.15s ease;
+  }
+  .qItem:hover { background: var(--surface-strong); }
+  .qZh {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+  .qScene {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+  .qItem[aria-current="true"] { background: var(--blue-tint); }
+  .qItem[aria-current="true"] .qZh,
+  .qItem[aria-current="true"] .qScene { color: var(--blue); }
+  .qItem[aria-current="true"] .qScene { opacity: 0.72; }
+  .browser.is-closing .browserBackdrop { animation: fadeOut 0.16s ease both; }
+  .browser.is-closing .browserSheet { animation: sheetOut 0.16s ease both; }
+  body.is-browser-open { overflow: hidden; }
+  .controls {
+    margin-top: clamp(10px, 1.8vh, 18px);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+  }
+  .catBtn {
+    background: var(--surface);
+    color: var(--fg);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 12px;
+    border-radius: 999px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .catBtn:hover { background: var(--surface-strong); }
+  .catBtn[aria-pressed="true"] {
+    background: var(--blue);
+    color: var(--on-blue);
+  }
+  .catBtn[aria-pressed="true"]:hover { background: var(--blue-hover); }
+  .err {
+    margin: 14px 0 0;
+    color: #c7362f;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .stage { position: relative; margin-top: clamp(10px, 1.8vh, 22px); }
+  .empty, .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: clamp(28px, 5vw, 44px);
+  }
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding-top: clamp(52px, 9vw, 84px);
+    padding-bottom: clamp(52px, 9vw, 84px);
+    text-align: center;
+  }
+  .card { animation: cardIn 0.28s ease both; }
+  .sceneRow {
+    display: flex;
+    align-items: center;
+    gap: 10px 12px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    flex: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--blue);
+    background: var(--blue-tint);
+    padding: 4px 11px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .scene {
+    flex: 0 1 auto;
+    min-width: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .zh {
+    margin: 22px 0 0;
+    font-size: clamp(26px, 4.6vw, 36px);
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .actions {
+    margin-top: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px 12px;
+    flex-wrap: wrap;
+  }
+  button {
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+  }
+  .primary {
+    background: var(--blue);
+    color: var(--on-blue);
+    font-size: 16px;
+    font-weight: 600;
+    padding: 13px 26px;
+    border-radius: 999px;
+    letter-spacing: -0.01em;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+  }
+  .primary:hover { background: var(--blue-hover); }
+  .primary:active { transform: scale(0.98); }
+  .ghost {
+    background: transparent;
+    color: var(--blue);
+    font-size: 16px;
+    font-weight: 500;
+    padding: 13px 18px;
+    border-radius: 999px;
+    transition: background-color 0.15s ease;
+  }
+  .ghost:hover { background: var(--blue-tint); }
+  .ghost:disabled { opacity: 0.35; cursor: default; }
+  .ghost:disabled:hover { background: transparent; }
+  button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+  }
+  .answers {
+    list-style: none;
+    margin: 32px 0 0;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .answers li {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 12px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule);
+    animation: rise 0.34s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .answers li:nth-child(2) { animation-delay: 0.05s; }
+  .answers li:nth-child(3) { animation-delay: 0.1s; }
+  .num {
+    color: var(--blue);
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    padding-top: 4px;
+  }
+  .en {
+    margin: 0;
+    font-size: clamp(18px, 2.6vw, 20px);
+    font-weight: 500;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
+  }
+  .enRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+  .enRow .en { flex: 1 1 auto; min-width: 0; }
+  .meaning {
+    margin: 8px 0 0;
+    color: var(--fg);
+    opacity: 0.68;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .play {
+    flex: none;
+    display: flex;
+    gap: 6px;
+  }
+  .playBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface-strong);
+    color: var(--fg);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 8px 11px;
+    border-radius: 999px;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  }
+  .playBtn svg { width: 15px; height: 15px; flex: none; }
+  .playBtn:hover { background: var(--blue-tint); color: var(--blue); }
+  .playBtn:active { transform: scale(0.96); }
+  .playBtn.is-playing { background: var(--blue); color: var(--on-blue); }
+  .note {
+    margin: 7px 0 0;
+    padding-left: 10px;
+    border-left: 2px solid var(--rule);
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .foot {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  kbd {
+    font-family: inherit;
+    font-size: 12px;
+    border: 1px solid var(--rule);
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    padding: 2px 6px;
+    color: var(--muted);
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes sheetIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes sheetOut {
+    from { opacity: 1; transform: none; }
+    to { opacity: 0; transform: translateY(8px) scale(0.99); }
+  }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+  @keyframes sheetDown { from { transform: none; } to { transform: translateY(100%); } }
+  @media (max-width: 620px) {
+    .browser { align-items: flex-end; padding: 0; }
+    .browserSheet {
+      width: 100%;
+      height: 84vh;
+      border-radius: 24px 24px 0 0;
+      animation: sheetUp 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    }
+    .browser.is-closing .browserSheet { animation: sheetDown 0.16s ease both; }
+    .browserHead { padding: 18px 20px 14px; }
+    .browserHead h2 { font-size: 20px; }
+    .browserSearch { padding: 10px 20px; }
+    .searchField { padding: 8px 12px; }
+    .searchField input { font-size: 16px; }
+    .browserEmpty { padding: 24px 20px; }
+    .questionList {
+      --row-h: 70px;
+      padding: 6px 10px max(20px, env(safe-area-inset-bottom));
+    }
+    .qItem { padding: 0 10px; }
+    .qZh { font-size: 16px; }
+    .qScene { font-size: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+  @media (min-width: 900px) {
+    .page {
+      max-width: min(1680px, 100%);
+      padding-left: clamp(32px, 4vw, 64px);
+      padding-right: clamp(32px, 4vw, 64px);
+    }
+    h1 { font-size: clamp(26px, 2.4vw, 36px); }
+    .controls { margin-top: clamp(12px, 2vh, 22px); }
+    .catBtn { font-size: 13px; padding: 7px 12px; }
+    .card, .empty { padding: clamp(16px, 2vw, 28px); }
+    .card {
+      display: flex;
+      align-items: stretch;
+      column-gap: clamp(28px, 3vw, 52px);
+      min-height: 380px;
+    }
+    .empty { min-height: 380px; }
+    .left {
+      flex: 0 0 42%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .right {
+      flex: 1 1 auto;
+      min-width: 0;
+      border-left: 1px solid var(--rule);
+      padding-left: clamp(36px, 4vw, 72px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .zh {
+      font-size: clamp(28px, 3.2vw, 48px);
+      margin-top: 16px;
+      white-space: nowrap;
+    }
+    .chip, .scene { font-size: 15px; }
+    .actions { margin-top: 20px; }
+    .answers { margin-top: 0; border-top: none; }
+    .answers li { grid-template-columns: 30px minmax(0, 1fr); padding: 10px 0; }
+    .answers li:first-child { padding-top: 0; }
+    .num { font-size: 15px; padding-top: 6px; }
+    .en { font-size: clamp(18px, 1.6vw, 26px); white-space: nowrap; }
+    .playBtn { font-size: 12px; padding: 7px 10px; }
+    .meaning { margin-top: 6px; font-size: clamp(15px, 1.1vw, 18px); }
+    .note { margin-top: 6px; font-size: clamp(13px, 0.95vw, 15px); }
+    .primary { font-size: 15px; padding: 11px 22px; }
+    .ghost { font-size: 15px; padding: 11px 18px; }
+  }
+  @media (min-width: 900px) and (max-height: 720px) {
+    .page { padding-top: 8px; padding-bottom: 8px; }
+    h1 { font-size: 22px; }
+    .catBtn { font-size: 12px; padding: 6px 10px; }
+    .controls { margin-top: 8px; }
+    .stage { margin-top: 8px; }
+    .card, .empty { padding: 12px 18px; }
+    .zh { font-size: 24px; margin-top: 10px; }
+    .actions { margin-top: 12px; }
+    .primary, .ghost { font-size: 14px; padding: 8px 16px; }
+    .answers li { padding: 7px 0; }
+    .en { font-size: 16px; }
+    .meaning { font-size: 13px; margin-top: 4px; }
+    .note { font-size: 12px; margin-top: 4px; }
+    .playBtn { font-size: 11px; padding: 6px 8px; }
+    .foot { margin-top: 10px; }
+  }
+  @media (max-width: 899px) {
+    .card { display: flex; flex-direction: column; }
+    .left, .right { display: contents; }
+    .sceneRow { order: 1; }
+    .zh { order: 2; }
+    .answers { order: 3; }
+    .actions { order: 4; }
+    .enRow { align-items: flex-start; }
+    .play { padding-top: 3px; }
+  }
+  @media (max-width: 560px) {
+    .page { padding-top: 36px; }
+    .controls {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      margin-left: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
+      margin-right: calc(-1 * max(20px, env(safe-area-inset-right, 0px)));
+      padding-left: max(20px, env(safe-area-inset-left, 0px));
+      padding-right: max(20px, env(safe-area-inset-right, 0px));
+      -webkit-overflow-scrolling: touch;
+    }
+    .controls::-webkit-scrollbar { display: none; }
+    .catBtn { flex: none; }
+    .card { display: flex; flex-direction: column; padding: 24px 20px 28px; }
+    .empty { padding-left: 20px; padding-right: 20px; }
+    .actions { margin-top: 28px; }
+    .primary, .ghost { font-size: 15px; }
+    .primary { padding: 12px 22px; }
+    .ghost { padding: 12px 14px; }
+    .foot .keys { display: none; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="npesl-back" href="../index.html" aria-label="返回 NPESL">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M15 5l-7 7 7 7"/>
+    </svg>
+    NPESL
+  </a>
+  <header class="masthead">
+    <h1>Question Drill</h1>
+  </header>
+
+  <div class="controls" id="cats" role="group" aria-label="选择场景"></div>
+  <div class="browseRow">
+    <button class="browseBtn" id="browse" type="button" aria-haspopup="dialog" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h10"/>
+      </svg>
+      <span id="browseCount">1370 题</span>
+    </button>
+  </div>
+  <p class="err" id="err" hidden></p>
+  <noscript><p class="err">请在浏览器中打开本页。微信里可点右上角「…」，选「在浏览器打开」。</p></noscript>
+
+  <section class="stage" aria-live="polite">
+    <div class="empty" id="empty">
+      <button class="primary" id="gen" type="button">随机生成</button>
+    </div>
+
+    <article class="card" id="card" hidden>
+      <div class="left">
+        <div class="sceneRow">
+          <span class="chip" id="chip"></span>
+          <span class="scene" id="scene"></span>
+        </div>
+        <p class="zh" id="zh"></p>
+        <div class="actions">
+          <button class="ghost" id="prev" type="button" disabled>上一题</button>
+          <button class="primary" id="reveal" type="button">显示英文</button>
+          <button class="ghost" id="skip" type="button">换一题</button>
+          <button class="primary" id="next" type="button" hidden>下一题</button>
+        </div>
+      </div>
+      <div class="right">
+        <ol class="answers" id="answers" hidden></ol>
+      </div>
+    </article>
+  </section>
+
+  <footer class="foot">
+    <span class="keys"><kbd>空格</kbd> 显示英文 · 下一题 · <kbd>←</kbd> 上一题</span>
+  </footer>
+</main>
+
+<div class="browser" id="browser" hidden>
+  <div class="browserBackdrop" id="browserBackdrop"></div>
+  <section class="browserSheet" role="dialog" aria-modal="true" aria-labelledby="browserTitle" tabindex="-1">
+    <header class="browserHead">
+      <div>
+        <h2 id="browserTitle"></h2>
+        <p class="browserMeta" id="browserMeta"></p>
+      </div>
+      <button class="browserClose" id="browserClose" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+    </header>
+    <div class="browserSearch">
+      <div class="searchField">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="M16 16l4 4"/>
+        </svg>
+        <input id="browserSearch" type="search" placeholder="搜索问题或场景" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <p class="browserEmpty" id="browserEmpty" hidden>没有匹配的问题</p>
+    <ol class="questionList" id="questionList"></ol>
+  </section>
+</div>
+
+<script>
+const BANK = __BANK_DATA__;
+
+const $ = (id) => document.getElementById(id);
+
+function showError(message) {
+  const el = $('err');
+  if (!el) return;
+  el.textContent = '页面出错：' + message;
+  el.hidden = false;
+}
+window.onerror = (message) => { showError(String(message)); };
+
+function clear(node) {
+  while (node.firstChild) node.removeChild(node.firstChild);
+}
+
+const DESKTOP = window.matchMedia('(min-width: 900px)');
+
+function fitOneLine(el, minSize) {
+  el.style.fontSize = '';
+  el.style.whiteSpace = 'nowrap';
+  const base = parseFloat(window.getComputedStyle(el).fontSize) || 16;
+  const avail = el.clientWidth;
+  const width = el.scrollWidth;
+  let size = base;
+  if (avail > 0 && width > avail) size = Math.max(minSize, Math.floor(base * avail / width));
+  el.style.fontSize = size === base ? '' : size + 'px';
+  el.style.whiteSpace = el.scrollWidth <= avail + 1 ? 'nowrap' : 'normal';
+  return size;
+}
+
+function fitText() {
+  const zh = $('zh');
+  const list = $('answers');
+  zh.style.fontSize = '';
+  zh.style.whiteSpace = '';
+  for (const el of list.querySelectorAll('.en')) {
+    el.style.fontSize = '';
+    el.style.whiteSpace = '';
+  }
+  if (!DESKTOP.matches || !current) return;
+  fitOneLine(zh, 30);
+  if (list.hidden) return;
+  const items = Array.prototype.slice.call(list.querySelectorAll('.en'));
+  let size = Infinity;
+  for (const el of items) size = Math.min(size, fitOneLine(el, 18));
+  for (const el of items) el.style.fontSize = size + 'px';
+  for (const el of items) el.style.whiteSpace = 'nowrap';
+  for (const el of items) {
+    el.style.whiteSpace = el.scrollWidth > el.clientWidth + 1 ? 'normal' : 'nowrap';
+  }
+}
+
+/* 空状态和答题卡共用同一高度：按当前断点实测最高的三句答案。 */
+function makeEl(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+
+const SPEAKER_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M4 9v6h4l5 4V5L8 9H4z"/>' +
+  '<path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>';
+
+function playButton(voice, text) {
+  const btn = makeEl('button', 'playBtn');
+  const label = voice === 'f' ? '女声' : '男声';
+  btn.type = 'button';
+  btn.dataset.voice = voice;
+  btn.innerHTML = SPEAKER_ICON + '<span>' + label + '</span>';
+  btn.setAttribute('aria-label', label + '朗读：' + text);
+  return btn;
+}
+
+function cloneAnswerCard(q, width) {
+  const card = makeEl('div', 'card');
+  card.style.cssText =
+    'position:absolute;left:0;top:0;width:' + width + 'px;min-height:0;' +
+    'visibility:hidden;pointer-events:none;animation:none;';
+
+  const left = makeEl('div', 'left');
+  const sceneRow = makeEl('div', 'sceneRow');
+  sceneRow.appendChild(makeEl('span', 'chip', q.cat));
+  sceneRow.appendChild(makeEl('span', 'scene', q.scene));
+  left.appendChild(sceneRow);
+  left.appendChild(makeEl('p', 'zh', q.zh));
+  const actions = makeEl('div', 'actions');
+  actions.appendChild(makeEl('button', 'primary', '显示英文'));
+  actions.appendChild(makeEl('button', 'ghost', '换一题'));
+  left.appendChild(actions);
+
+  const right = makeEl('div', 'right');
+  const list = makeEl('ol', 'answers');
+  q.answers.forEach((answer, index) => {
+    const li = makeEl('li');
+    li.appendChild(makeEl('span', 'num', (index < 9 ? '0' : '') + (index + 1)));
+    const body = makeEl('div');
+    const row = makeEl('div', 'enRow');
+    row.appendChild(makeEl('p', 'en', answer.en));
+    const play = makeEl('div', 'play');
+    play.appendChild(playButton('f', answer.en));
+    play.appendChild(playButton('m', answer.en));
+    row.appendChild(play);
+    body.appendChild(row);
+    body.appendChild(makeEl('p', 'meaning', q.zh));
+    body.appendChild(makeEl('p', 'note', answer.note));
+    li.appendChild(body);
+    list.appendChild(li);
+  });
+  right.appendChild(list);
+
+  card.appendChild(left);
+  card.appendChild(right);
+  return card;
+}
+
+function fitClone(clone) {
+  if (!DESKTOP.matches) return;
+  const zh = clone.querySelector('.zh');
+  if (zh) fitOneLine(zh, 30);
+  const items = Array.prototype.slice.call(clone.querySelectorAll('.en'));
+  let size = Infinity;
+  items.forEach((item) => {
+    size = Math.min(size, fitOneLine(item, 18));
+  });
+  items.forEach((item) => {
+    item.style.fontSize = size + 'px';
+    item.style.whiteSpace = 'nowrap';
+  });
+  items.forEach((item) => {
+    item.style.whiteSpace = item.scrollWidth > item.clientWidth + 1 ? 'normal' : 'nowrap';
+  });
+}
+
+function stabilizeStage() {
+  const stage = document.querySelector('.stage');
+  const empty = $('empty');
+  const card = $('card');
+  if (!stage || !empty || !card) return;
+
+  empty.style.minHeight = '';
+  card.style.minHeight = '';
+  if (!DESKTOP.matches) return;
+  const source = card.hidden ? empty : card;
+  const baseline = parseFloat(getComputedStyle(source).minHeight) || 0;
+  const width = stage.clientWidth;
+  if (!width) return;
+
+  /* 均匀取样覆盖典型卡片，另加最长中文和最长英文兜底；
+     取 90 分位而不是最大值，避免为极少数超长题把每张卡都撑高。 */
+  const score = (q) =>
+    q.answers.reduce((total, a) => total + a.en.length + a.note.length, 0) +
+    q.zh.length * 3;
+  const step = Math.max(1, Math.floor(BANK.length / 60));
+  const sample = [];
+  for (let i = 0; i < BANK.length; i += step) sample.push(BANK[i]);
+  const longestZh = BANK.slice().sort((a, b) => b.zh.length - a.zh.length)[0];
+  const longestEn = BANK
+    .slice()
+    .sort(
+      (a, b) =>
+        Math.max.apply(null, b.answers.map((x) => x.en.length)) -
+        Math.max.apply(null, a.answers.map((x) => x.en.length))
+    )[0];
+  [longestZh, longestEn]
+    .concat(BANK.slice().sort((a, b) => score(b) - score(a)).slice(0, 10))
+    .forEach((q) => {
+      if (q && sample.indexOf(q) === -1) sample.push(q);
+    });
+
+  const heights = [];
+  sample.forEach((q) => {
+    const clone = cloneAnswerCard(q, width);
+    stage.appendChild(clone);
+    fitClone(clone);
+    heights.push(clone.getBoundingClientRect().height);
+    clone.remove();
+  });
+  heights.sort((a, b) => a - b);
+  const p90 = heights[Math.floor((heights.length - 1) * 0.9)] || 0;
+
+  const available = Math.max(380, window.innerHeight - stage.getBoundingClientRect().top - 12);
+  const target = Math.min(Math.ceil(Math.max(baseline, p90)) + 8, available);
+  empty.style.minHeight = target + 'px';
+  card.style.minHeight = target + 'px';
+}
+
+let stageResizeTimer = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(stageResizeTimer);
+  stageResizeTimer = setTimeout(stabilizeStage, 180);
+});
+
+const player = new Audio();
+player.preload = 'none';
+let playingBtn = null;
+
+function markIdle() {
+  if (playingBtn) playingBtn.classList.remove('is-playing');
+  playingBtn = null;
+}
+
+player.addEventListener('ended', markIdle);
+player.addEventListener('pause', markIdle);
+
+/* Clips live in audio/<voice>/<id>.mp3 next to the deployed page.
+   If a clip fails, stop rather than falling back to a device voice. */
+function playCue(btn, id, voice) {
+  if (playingBtn === btn && !player.paused) {
+    player.pause();
+    return;
+  }
+  markIdle();
+  player.pause();
+  const fail = () => {
+    if (playingBtn === btn) markIdle();
+  };
+  player.onerror = fail;
+  player.src = 'audio/' + voice + '/' + id + '.mp3';
+  playingBtn = btn;
+  btn.classList.add('is-playing');
+  const started = player.play();
+  if (started && started.catch) started.catch(fail);
+}
+
+const CATS = [];
+for (const q of BANK) {
+  if (CATS.indexOf(q.cat) === -1) CATS.push(q.cat);
+}
+
+let cat = 'all';
+let deck = [];
+let current = null;
+let revealed = false;
+let history = [];
+const HISTORY_MAX = 50;
+let browserTimer = 0;
+let browseTrigger = null;
+let browserAll = [];
+let browserItems = [];
+let browserFirst = -1;
+let browserLast = -1;
+let browserRaf = 0;
+let searchTimer = 0;
+
+function fillCats() {
+  const wrap = $('cats');
+  const values = ['all'].concat(CATS);
+  for (const value of values) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'catBtn';
+    btn.dataset.cat = value;
+    btn.textContent = value === 'all' ? '全部场景' : value;
+    btn.setAttribute('aria-pressed', String(value === cat));
+    btn.addEventListener('click', () => selectCat(value));
+    wrap.appendChild(btn);
+  }
+}
+
+function syncFilters() {
+  for (const btn of $('cats').querySelectorAll('.catBtn')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.cat === cat));
+  }
+  updateBrowseCount();
+}
+
+function pool() {
+  return cat === 'all' ? BANK : BANK.filter((q) => q.cat === cat);
+}
+
+function updateBrowseCount() {
+  const n = pool().length;
+  const label = '浏览' + (cat === 'all' ? '全部场景' : cat) + '的 ' + n + ' 道题';
+  $('browseCount').textContent = n + ' 题';
+  const browse = $('browse');
+  if (browse) browse.setAttribute('aria-label', label);
+}
+
+/* 浮层打开时把页面其余部分设为 inert（含注入的主题按钮），
+   Tab 不会跑到浮层后面去。 */
+function setBackgroundInert(on) {
+  for (const el of document.body.children) {
+    if (el === $('browser') || el.tagName === 'SCRIPT') continue;
+    el.inert = on;
+  }
+}
+
+function rowHeight() {
+  const list = $('questionList');
+  return parseFloat(getComputedStyle(list).getPropertyValue('--row-h')) || 76;
+}
+
+/* 只渲染可视区域附近的十来行；滚动时换窗口，
+   搜索只过滤数据，不逐行改 DOM，所以 1370 题也不会卡。 */
+function renderBrowserWindow(force) {
+  const list = $('questionList');
+  if (list.hidden || $('browser').hidden) return;
+  const rowH = rowHeight();
+  const total = browserItems.length;
+  const padTop = 8;
+  const visible = Math.max(1, Math.ceil(list.clientHeight / rowH));
+  const first = Math.max(0, Math.floor((list.scrollTop - padTop) / rowH) - 4);
+  const end = Math.min(total, first + visible + 8);
+  if (!force && first === browserFirst && end === browserLast) return;
+  browserFirst = first;
+  browserLast = end;
+
+  const frag = document.createDocumentFragment();
+  const top = document.createElement('li');
+  top.className = 'listSpacer';
+  top.setAttribute('aria-hidden', 'true');
+  top.style.height = first * rowH + 'px';
+  frag.appendChild(top);
+  for (let i = first; i < end; i++) {
+    const q = browserItems[i].q;
+    const li = document.createElement('li');
+    li.setAttribute('aria-setsize', String(total));
+    li.setAttribute('aria-posinset', String(i + 1));
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'qItem';
+    if (q === current) btn.setAttribute('aria-current', 'true');
+    btn.appendChild(makeEl('span', 'qZh', q.zh));
+    btn.appendChild(makeEl('span', 'qScene', q.scene));
+    btn.addEventListener('click', () => selectFromBrowser(q));
+    li.appendChild(btn);
+    frag.appendChild(li);
+  }
+  const bottom = document.createElement('li');
+  bottom.className = 'listSpacer';
+  bottom.setAttribute('aria-hidden', 'true');
+  bottom.style.height = (total - end) * rowH + 'px';
+  frag.appendChild(bottom);
+  clear(list);
+  list.appendChild(frag);
+}
+
+function openBrowser(trigger) {
+  const el = $('browser');
+  if (!el.hidden && !browserTimer) return;
+  clearTimeout(browserTimer);
+  clearTimeout(searchTimer);
+  browserTimer = 0;
+  browseTrigger = trigger || $('browse');
+  const search = $('browserSearch');
+  search.value = '';
+  $('browserEmpty').hidden = true;
+  browserAll = pool().slice().sort((a, b) =>
+    a.scene === b.scene
+      ? a.zh.localeCompare(b.zh, 'zh')
+      : a.scene.localeCompare(b.scene, 'zh')
+  ).map((q) => ({ q: q, search: (q.zh + ' ' + q.scene).toLowerCase() }));
+  browserItems = browserAll;
+  browserFirst = browserLast = -1;
+  $('browserTitle').textContent = cat === 'all' ? '全部场景' : cat;
+  $('browserMeta').textContent = browserItems.length + ' 个问题';
+
+  el.hidden = false;
+  el.classList.remove('is-closing');
+  document.body.classList.add('is-browser-open');
+  setBackgroundInert(true);
+  $('browse').setAttribute('aria-expanded', 'true');
+  if (DESKTOP.matches) {
+    search.focus();
+  } else {
+    const sheet = document.querySelector('.browserSheet');
+    if (sheet) sheet.focus();
+  }
+
+  const list = $('questionList');
+  list.scrollTop = 0;
+  renderBrowserWindow(true);
+  if (current) {
+    const index = browserItems.findIndex((item) => item.q === current);
+    if (index >= 0) {
+      const rowH = rowHeight();
+      list.scrollTop = Math.max(0, 8 + index * rowH - Math.max(0, (list.clientHeight - rowH) / 2));
+      renderBrowserWindow(true);
+    }
+  }
+}
+
+function applySearch() {
+  const query = $('browserSearch').value.trim().toLowerCase();
+  browserItems = query
+    ? browserAll.filter((item) => item.search.indexOf(query) !== -1)
+    : browserAll;
+  browserFirst = browserLast = -1;
+  $('browserMeta').textContent = query
+    ? browserItems.length + ' / ' + browserAll.length + ' 个问题'
+    : browserAll.length + ' 个问题';
+  $('browserEmpty').hidden = browserItems.length !== 0;
+  const list = $('questionList');
+  list.scrollTop = 0;
+  renderBrowserWindow(true);
+}
+
+function scheduleSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(applySearch, 120);
+}
+
+function closeBrowser(after) {
+  const el = $('browser');
+  if (el.hidden || browserTimer) return;
+  clearTimeout(searchTimer);
+  if (browserRaf) {
+    cancelAnimationFrame(browserRaf);
+    browserRaf = 0;
+  }
+  el.classList.add('is-closing');
+  $('browse').setAttribute('aria-expanded', 'false');
+  browserTimer = setTimeout(() => {
+    browserTimer = 0;
+    el.hidden = true;
+    el.classList.remove('is-closing');
+    document.body.classList.remove('is-browser-open');
+    setBackgroundInert(false);
+    if (typeof after === 'function') after();
+    else (browseTrigger || $('browse')).focus();
+  }, 160);
+}
+
+function selectFromBrowser(q) {
+  const same = q === current;
+  closeBrowser(() => {
+    if (same) (browseTrigger || $('browse')).focus();
+    else $('reveal').focus();
+  });
+  if (same) return;
+  if (current) {
+    history.push({ q: current, revealed: revealed });
+    if (history.length > HISTORY_MAX) history.shift();
+  }
+  deck = deck.filter((x) => x !== q);
+  current = q;
+  revealed = false;
+  if (playingBtn) player.pause();
+  paintQuestion();
+}
+
+function selectCat(value) {
+  if (value === cat && current) return;
+  cat = value;
+  deck = [];
+  history = [];
+  current = null;
+  syncFilters();
+  showQuestion();
+}
+
+function rebuildDeck() {
+  const a = pool().slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  deck = a;
+}
+
+function draw() {
+  if (!deck.length) rebuildDeck();
+  let q = deck.pop();
+  if (deck.length && current && q === current) {
+    const swap = deck.pop();
+    deck.push(q);
+    q = swap;
+  }
+  return q;
+}
+
+function renderAnswers() {
+  const list = $('answers');
+  clear(list);
+  current.answers.forEach((a, i) => {
+    const li = document.createElement('li');
+    const num = document.createElement('span');
+    num.className = 'num';
+    num.textContent = (i + 1 < 10 ? '0' : '') + (i + 1);
+    const body = document.createElement('div');
+    const row = document.createElement('div');
+    row.className = 'enRow';
+    const en = document.createElement('p');
+    en.className = 'en';
+    en.textContent = a.en;
+    const play = document.createElement('div');
+    play.className = 'play';
+    for (const voice of ['f', 'm']) {
+      const btn = playButton(voice, a.en);
+      btn.addEventListener('click', () => playCue(btn, a.audio, voice));
+      play.appendChild(btn);
+    }
+    row.appendChild(en);
+    row.appendChild(play);
+    const meaning = document.createElement('p');
+    meaning.className = 'meaning';
+    meaning.textContent = a.zh || current.zh;
+    const note = document.createElement('p');
+    note.className = 'note';
+    note.textContent = a.note;
+    body.appendChild(row);
+    body.appendChild(meaning);
+    body.appendChild(note);
+    li.appendChild(num);
+    li.appendChild(body);
+    list.appendChild(li);
+  });
+}
+
+/* 题面、答案和按钮状态都从 current / revealed / history 重新画，
+   所以「上一题」可以原样恢复之前那道题（包括有没有显示英文）。 */
+function paintQuestion() {
+  if (!current) return;
+  $('empty').hidden = true;
+  $('card').hidden = false;
+  $('chip').textContent = current.cat;
+  $('scene').textContent = current.scene;
+  $('zh').textContent = current.zh;
+  const list = $('answers');
+  clear(list);
+  if (revealed) renderAnswers();
+  list.hidden = !revealed;
+  $('reveal').hidden = revealed;
+  $('skip').hidden = revealed;
+  $('next').hidden = !revealed;
+  $('prev').disabled = history.length === 0;
+  fitText();
+}
+
+function showQuestion() {
+  if (current) {
+    history.push({ q: current, revealed: revealed });
+    if (history.length > HISTORY_MAX) history.shift();
+  }
+  const q = draw();
+  if (!q) return;
+  current = q;
+  revealed = false;
+  if (playingBtn) player.pause();
+  paintQuestion();
+}
+
+function goPrev() {
+  if (!history.length) return;
+  const entry = history.pop();
+  if (playingBtn) player.pause();
+  current = entry.q;
+  revealed = entry.revealed;
+  paintQuestion();
+}
+
+function reveal() {
+  if (revealed || !current) return;
+  revealed = true;
+  paintQuestion();
+}
+
+function primaryAction() {
+  if (!current || revealed) showQuestion();
+  else reveal();
+}
+
+$('gen').addEventListener('click', showQuestion);
+$('reveal').addEventListener('click', reveal);
+$('next').addEventListener('click', showQuestion);
+$('skip').addEventListener('click', showQuestion);
+$('prev').addEventListener('click', goPrev);
+$('browse').addEventListener('click', () => openBrowser($('browse')));
+$('browserSearch').addEventListener('input', scheduleSearch);
+$('questionList').addEventListener('scroll', () => {
+  if (browserRaf) return;
+  browserRaf = requestAnimationFrame(() => {
+    browserRaf = 0;
+    renderBrowserWindow();
+  });
+});
+$('browserClose').addEventListener('click', () => closeBrowser());
+$('browserBackdrop').addEventListener('click', () => closeBrowser());
+
+window.addEventListener('resize', fitText);
+
+document.addEventListener('keydown', (e) => {
+  if (!$('browser').hidden) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeBrowser();
+    }
+    return;
+  }
+  if (e.key === 'ArrowLeft') {
+    if (history.length) {
+      e.preventDefault();
+      goPrev();
+    }
+    return;
+  }
+  if (e.key !== ' ' && e.key !== 'Enter') return;
+  if (e.target && e.target.closest && e.target.closest('button')) return;
+  e.preventDefault();
+  primaryAction();
+});
+
+try {
+  fillCats();
+  updateBrowseCount();
+} catch (err) {
+  showError(err && err.message ? err.message : String(err));
+}
+
+try {
+  stabilizeStage();
+} catch (err) {
+  showError(err && err.message ? err.message : String(err));
+}
+</script>
+</body>
+</html>
