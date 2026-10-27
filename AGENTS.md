@@ -6,11 +6,19 @@
 
 ## 一 · 路径约定
 
-复制时保留了原来 `01-零基础入门/`、`05-ConversationStarters/`、`06-发音/`、`build/` 的相对深度，脚本里的 `ROOT / "06-发音" / ...` 才不用改。**不要把这几层拍平或改名**；真要动，先改所有脚本里的 `ROOT` 相对路径并逐个验证。
+四层结构：**`content/` 内容源 · `apps/` 应用 · `tools/` 脚本 · `build/` 暂存产物**。
+
+```
+content/   phonetics/ conversation/ drill/     写内容只看这里
+apps/      site/ phonics/ ipa/ drill/ phenomena/
+tools/     paths.py 与所有构建脚本
+build/     cloudflare-site/ cloudflare-audio/ npesl-offline/ …（gitignore）
+```
 
 - 所有构建从库根目录运行。
 - Python 一律用本库 `.venv`。
-- 站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`），源目录不能直接当站点预览；预览走 `build_cloudflare_site.py` 或 `build_offline_package.py` 的暂存目录。
+- **路径常量集中在 `tools/paths.py`**。要搬目录，只改它，然后重跑全部构建并用 `tools/audit_build.py --diff` 证明产物没变。
+- 站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`），源目录不能直接当站点预览；预览走 `tools/build_cloudflare_site.py` 或 `tools/build_offline_package.py` 的暂存目录。
 - A1–C2 语音写 `https://npesl-audio.pages.dev/audio/`，ESLSE 写相对路径 `audio/`。离线包负责把前者改回相对路径。
 
 ## 二 · 内容标准
@@ -28,19 +36,20 @@
 
 构建命令见 [README.md](README.md) 的「构建」「部署」两节。几条硬规则：
 
-- **不要手改生成物**：`06-发音/自然拼读阅读训练-成人A1/lessons/`、该系列的 `index.html`、`06-发音/音标表/index.html`、`06-发音/Question Drill/index.html`、`06-发音/常见发音现象AmE/*.html`、`build/conversation-site/`、`build/cloudflare-*/` 都是脚本产物。改内容改源（`source/content/`、`05-ConversationStarters/MD/`、`build/zh-en-bank/*.json`），再重新构建。
-- **Question Drill 的唯一源是 `build/zh-en-bank/` 的批次 JSON**；`questions.json` 和两个 HTML 都由 `assemble.py` 生成，音频由 `make_audio.py` 按内容哈希写入 `06-发音/Question Drill/audio/`。
-- **语音缓存不要删**：`build/tts/cs/`（Conversation Starters）和 `06-发音/自然拼读阅读训练-成人A1/source/audio/` 是本地缓存，gitignore，但删了就得重新联网合成。内容没变的音频会自动跳过。
+- **不要手改生成物**：`apps/phonics/lessons/`、该系列的 `index.html`、`apps/ipa/index.html`、`apps/drill/index.html`、`apps/phenomena/*.html`、`build/conversation-site/`、`build/cloudflare-*/`、`build/npesl-offline/` 都是脚本产物。改内容改源（`content/`、`apps/phonics/source/content/`、`content/drill/*.json`），再重新构建。
+- **Question Drill 的权威题库是 `content/drill/questions.json`**（1,370 题）。批次 JSON 复现不出它——`extra-questions.json` 里还有 192 道补充题，所以 `assemble.py` 默认从 `questions.json` 重渲染，只有显式 `--from-batches` 才从批次重建。音频由 `make_audio.py` 按内容哈希写入 `apps/drill/audio/`。
+- **语音缓存不要删**：`build/tts/cs/`（Conversation Starters）和 `apps/phonics/source/audio/` 是本地缓存，gitignore，但删了就得重新联网合成。内容没变的音频会自动跳过。
 - **部署是对外发布**：`wrangler pages deploy` 之前先确认要发布哪些改动；不要在没有明确要求时部署。
 - Cloudflare Pages 单次部署上限 20,000 个文件，所以音频站和主站分开；不要图省事把 `build/cloudflare-audio` 合进主站。
 
 ## 四 · 交付前自检
 
 ```powershell
-.venv\Scripts\python.exe -I build\check_bre.py 06-发音 05-ConversationStarters
+.venv\Scripts\python.exe -I tools\check_bre.py apps content
+node tests\smoke.mjs
 ```
 
-要求 **FIX = 0**；REVIEW 项逐条人工判断。页面还要在浏览器里过一遍：手机宽度、深浅主题、点读播放、返回链接。
+要求 **FIX = 0**；REVIEW 项逐条人工判断。`tests\smoke.mjs` 用无头 Edge 打开五个应用，确认无 console 错误、点读真的出声。页面还要在浏览器里过一遍：手机宽度、深浅主题、点读播放、返回链接。
 
 ## 五 · Git
 
