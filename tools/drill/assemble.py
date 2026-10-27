@@ -18,6 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from paths import DRILL_APP, DRILL_CONTENT  # noqa: E402
+import audio_sprite  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 TEMPLATE = HERE / "template.html"
@@ -80,6 +81,48 @@ def audio_id(text: str) -> str:
     return hashlib.sha1(norm.encode("utf-8")).hexdigest()[:12]
 
 
+def build_sprites(bank: list[dict]) -> None:
+    """每题每音色拼一条 sprite，并把每句的时间区间写回题库。
+
+    逐条母版仍留在 audio/{f,m}/，微信小程序从云存储按条下载靠它；
+    网页只引用 sprite，部署文件从 8,772 个降到 2,740 个。
+    """
+    root = DRILL_APP / "audio"
+    sprite_dir = root / "sprites"
+    sprite_dir.mkdir(parents=True, exist_ok=True)
+    missing = 0
+    for question in bank:
+        made = {}
+        for voice in ("f", "m"):
+            picks = []
+            for index, answer in enumerate(question["answers"]):
+                path = root / voice / f"{answer['audio']}.mp3"
+                if path.exists():
+                    picks.append((index, answer["audio"], path.read_bytes()))
+                else:
+                    missing += 1
+            if not picks:
+                continue
+            blob, spans = audio_sprite.concat([chunk for _, _, chunk in picks])
+            name = audio_sprite.name_for(
+                [f"{answer_id}:{voice}" for _, answer_id, _ in picks])
+            (sprite_dir / f"{name}-{voice}.mp3").write_bytes(blob)
+            made[voice] = name
+            for (index, _, _), span in zip(picks, spans):
+                question["answers"][index].setdefault("at", {})[voice] = [
+                    round(span[0], 3), round(span[1], 3),
+                ]
+        if made:
+            question["sp"] = made
+    if missing:
+        print(f"注意：{missing} 条录音还没有生成，对应句子暂时没有语音"
+              f"（先跑 make_audio.py）")
+    written = {f"{q['sp'][v]}-{v}.mp3" for q in bank if q.get("sp") for v in q["sp"]}
+    for stale in sprite_dir.glob("*.mp3"):
+        if stale.name not in written:
+            stale.unlink()
+
+
 def render(bank: list[dict]) -> int:
     for q in bank:
         for old_en, new_en, note, zh in OLD_FIXES.get(q["zh"], []):
@@ -92,6 +135,7 @@ def render(bank: list[dict]) -> int:
         for a in q["answers"]:
             a["audio"] = audio_id(a["en"])
             a["zh"] = (a.get("zh") or "").strip() or TRANSLATIONS.get(a["audio"], "")
+    build_sprites(bank)
     OUT_JSON.write_text(json.dumps(bank, ensure_ascii=False, indent=1), encoding="utf-8")
     payload = json.dumps(bank, ensure_ascii=False, separators=(",", ":"))
     payload = payload.replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")

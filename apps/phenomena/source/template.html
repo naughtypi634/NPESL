@@ -129,6 +129,7 @@
   </div>
   <p class="status" data-audio-status></p>
 </main>
+<!--SPRITES-->
 <script>
 (function () {
   var KEY_VOICE = 'rs-voice';
@@ -153,17 +154,96 @@
 
   var allRows = Array.prototype.slice.call(document.querySelectorAll('.line'));
   var current = null, playlist = null, statusTimer = null;
+  var raf = 0, loadedVoice = null;
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
 
-  function clipFor(el) {
-    return el.getAttribute('data-clip-' + voice);
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
   }
 
-  function loadClip(clip) {
-    player.src = 'audio/' + clip;
-    // Browsers reset playbackRate when src changes; apply it again.
-    player.playbackRate = speed;
-    player.preservesPitch = true;
-    player.webkitPreservesPitch = true;
+  function spriteUrl() {
+    var rel = SPRITES[voice];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 每章一条音频：跳到片段起点，等 seek 落地再播，播到终点就停。
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var fire = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      var onSeeked = function () { fire(); };
+      player.addEventListener('seeked', onSeeked);
+      setTimeout(function () {
+        if (done) return;
+        if (Math.abs(player.currentTime - from) > 0.05) player.currentTime = from;
+        fire();
+      }, 600);
+      player.currentTime = from;
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  function prepare(el) {
+    var span = spanFor(el);
+    var url = spriteUrl();
+    if (!span || !url) return null;
+    if (loadedVoice !== voice) {
+      player.src = url;
+      loadedVoice = voice;
+    }
+    return span;
   }
 
   function unmark() {
@@ -173,6 +253,7 @@
 
   function stopAudio() {
     try { player.pause(); } catch (e) {}
+    stopTick();
     unmark();
   }
 
@@ -238,28 +319,33 @@
         catch (e) { el.scrollIntoView(); }
       }
     }
-    var clip = clipFor(el);
+    var clip = prepare(el);
     if (!clip) { audioFailed(el); return; }
-    loadClip(clip);
-    var playing = player.play();
-    if (playing && playing.catch) {
-      playing.catch(function () { if (current === el) audioFailed(el); });
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
     }
+    var list = playlist;
+    startSpan(el, clip, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
   }
 
   function play(el) {
     if (playlist) stopPlaylist();
     if (current === el && !player.paused) { stopAudio(); return; }
     stopAudio();
-    var clip = clipFor(el);
+    var clip = prepare(el);
     if (!clip) { showStatus('这一句暂无语音'); return; }
     current = el;
     el.classList.add('playing');
-    loadClip(clip);
-    var playing = player.play();
-    if (playing && playing.catch) {
-      playing.catch(function () { if (current === el) audioFailed(el); });
-    }
+    startSpan(el, clip, null);
   }
 
   function replayCurrent() {
@@ -270,10 +356,6 @@
     if (wasPlaying) play(el);
   }
 
-  player.addEventListener('ended', function () {
-    if (playlist) playItem(playlist.at + 1);
-    else unmark();
-  });
   player.addEventListener('loadedmetadata', function () {
     try { player.playbackRate = speed; } catch (e) {}
   });
@@ -281,7 +363,8 @@
     if (current) audioFailed(current);
   });
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) stopPlaylist();
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
   });
 
   function setVoice(next) {

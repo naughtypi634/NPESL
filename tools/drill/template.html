@@ -895,33 +895,102 @@ window.addEventListener('resize', () => {
 const player = new Audio();
 player.preload = 'none';
 let playingBtn = null;
+let cueRaf = 0;
+let spriteVoice = null;
 
 function markIdle() {
+  if (cueRaf) { cancelAnimationFrame(cueRaf); cueRaf = 0; }
   if (playingBtn) playingBtn.classList.remove('is-playing');
   playingBtn = null;
 }
 
 player.addEventListener('ended', markIdle);
-player.addEventListener('pause', markIdle);
 
-/* Clips live in audio/<voice>/<id>.mp3 next to the deployed page.
-   If a clip fails, stop rather than falling back to a device voice. */
-function playCue(btn, id, voice) {
+/* 每题每音色一条 sprite：audio/sprites/<name>-<voice>.mp3。
+   每句只知道自己在 sprite 里的起止时间。找不到就停下，
+   不回退到设备语音。 */
+function playCue(btn, answer, voice) {
+  const question = current;
+  const at = answer && answer.at && answer.at[voice];
+  const sprite = question && question.sp && question.sp[voice];
   if (playingBtn === btn && !player.paused) {
     player.pause();
+    markIdle();
     return;
   }
   markIdle();
-  player.pause();
-  const fail = () => {
-    if (playingBtn === btn) markIdle();
-  };
+  try { player.pause(); } catch (e) {}
+  if (!at || !sprite) return;
+  const url = 'audio/sprites/' + sprite + '-' + voice + '.mp3';
+  const fail = () => { if (playingBtn === btn) markIdle(); };
   player.onerror = fail;
-  player.src = 'audio/' + voice + '/' + id + '.mp3';
+  if (player.getAttribute('src') !== url) {
+    player.src = url;
+    spriteVoice = voice;
+  }
   playingBtn = btn;
   btn.classList.add('is-playing');
-  const started = player.play();
-  if (started && started.catch) started.catch(fail);
+  const startAt = at[0];
+  const stopAt = at[1];
+
+  const begin = () => {
+    if (playingBtn !== btn) return;
+    if (Math.abs(player.currentTime - startAt) > 0.02) {
+      let done = false;
+      const fire = () => {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (playingBtn !== btn) return;
+        player.playbackRate = 1;
+        const started = player.play();
+        if (started && started.catch) started.catch(fail);
+        const tick = () => {
+          if (playingBtn !== btn) return;
+          if (player.currentTime >= stopAt - 0.008) {
+            player.pause();
+            markIdle();
+            return;
+          }
+          cueRaf = requestAnimationFrame(tick);
+        };
+        cueRaf = requestAnimationFrame(tick);
+      };
+      const onSeeked = () => fire();
+      player.addEventListener('seeked', onSeeked);
+      setTimeout(() => {
+        if (done) return;
+        if (Math.abs(player.currentTime - startAt) > 0.05) player.currentTime = startAt;
+        fire();
+      }, 600);
+      player.currentTime = startAt;
+      return;
+    }
+    player.playbackRate = 1;
+    const started = player.play();
+    if (started && started.catch) started.catch(fail);
+    const tick = () => {
+      if (playingBtn !== btn) return;
+      if (player.currentTime >= stopAt - 0.008) {
+        player.pause();
+        markIdle();
+        return;
+      }
+      cueRaf = requestAnimationFrame(tick);
+    };
+    cueRaf = requestAnimationFrame(tick);
+  };
+
+  if (player.readyState < 1) {
+    const onLoaded = () => {
+      player.removeEventListener('loadedmetadata', onLoaded);
+      begin();
+    };
+    player.addEventListener('loadedmetadata', onLoaded);
+    try { player.load(); } catch (e) {}
+  } else {
+    begin();
+  }
 }
 
 const CATS = [];
@@ -1189,7 +1258,7 @@ function renderAnswers() {
     play.className = 'play';
     for (const voice of ['f', 'm']) {
       const btn = playButton(voice, a.en);
-      btn.addEventListener('click', () => playCue(btn, a.audio, voice));
+      btn.addEventListener('click', () => playCue(btn, a, voice));
       play.appendChild(btn);
     }
     row.appendChild(en);

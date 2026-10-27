@@ -27,6 +27,7 @@
 | `apps/drill/` | 中译英练习网页（`index.html` + `audio/f,m/`）与独立单文件 HTML |
 | `apps/phenomena/` | 30 章发音现象课，逐词音素标注 + 男女声 |
 | `tools/` | 构建、部署、校验脚本；`tools/paths.py` 是路径的唯一来源 |
+| `tools/audio_sprite.py` | 把逐条录音拼成每页/每课/每题一条（不改码率，音质不变） |
 | `tools/conversation/` | Conversation Starters 页面与语音构建器 |
 | `tools/drill/` | Question Drill 题库工具与小程序数据生成器 |
 | `build/` | 暂存产物（gitignore，脚本可重建） |
@@ -58,9 +59,9 @@ cd apps\phenomena\source
 # Conversation Starters：页面 + 全部级别男女两套语音（缓存命中就不重新合成）
 .venv\Scripts\python.exe -I tools\conversation\build_site.py
 
-# Question Drill：从已发布的 questions.json 重渲染页面
-.venv\Scripts\python.exe -I tools\drill\assemble.py
+# Question Drill：先补语音，再拼 sprite 并重渲染页面，最后生成小程序题库
 .venv\Scripts\python.exe -I tools\drill\make_audio.py
+.venv\Scripts\python.exe -I tools\drill\assemble.py
 .venv\Scripts\python.exe -I tools\drill\build_miniprogram_bank.py
 ```
 
@@ -76,7 +77,7 @@ npx --yes wrangler@latest pages deploy build\cloudflare-site --project-name npes
 npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npesl-audio --branch main
 ```
 
-主站是 https://npesl.pages.dev/。A1–C2 两套语音约 1.76 万个文件，和页面放在一起会超过 Cloudflare Pages 单次部署 20,000 个文件的上限，所以音频单独部署到 https://npesl-audio.pages.dev/audio/；ESLSE 的语音留在主站的 `/conversation/eslse/audio/`。
+主站是 https://npesl.pages.dev/。音频仍然单独部署到 https://npesl-audio.pages.dev/audio/：A1–C2 两套语音是每页一条的 sprite（约 600 个文件），ESLSE 的语音留在主站的 `/conversation/eslse/audio/`。两边都远低于 Cloudflare Pages 单次 20,000 个文件的上限，但分开部署可以让音频按 immutable 长缓存独立更新。
 
 离线包：
 

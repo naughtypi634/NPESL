@@ -51,6 +51,7 @@ import pron  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from paths import CONVERSATION_CONTENT, CONVERSATION_OUT, TTS_CACHE  # noqa: E402
+import audio_sprite  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = CONVERSATION_CONTENT
@@ -590,8 +591,8 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
 .vocab-s:hover, .vocab-s.playing {
   color:var(--blue); background:none; border-bottom-color:currentColor;
 }
-.vocab-s[data-clip-f]::after,
-.vocab-s[data-clip-m]::after {
+.vocab-s[data-start-f]::after,
+.vocab-s[data-start-m]::after {
   content:"▸"; margin-left:5px; font-size:10px;
   color:var(--muted); opacity:.55;
 }
@@ -639,6 +640,12 @@ PLAY_JS = """
   var voice = 'f';
   var playlist = null;
   var statusTimer = null;
+  var raf = 0;
+  var loadedVoice = null;
+  var SPRITES = {};
+  try {
+    SPRITES = JSON.parse(document.getElementById('spriteMap').textContent);
+  } catch (e) { SPRITES = {}; }
   var playAllBtn = document.querySelector('[data-play-all]');
   var playAllLabel = document.querySelector('[data-play-label]');
   var fullItems = (function () {
@@ -661,6 +668,7 @@ PLAY_JS = """
 
   function stopAudio() {
     try { player.pause(); } catch (e) {}
+    stopTick();
     unmark();
   }
 
@@ -707,8 +715,97 @@ PLAY_JS = """
     stopAudio();
   }
 
-  function clipFor(btn) {
-    return btn.getAttribute(voice === 'm' ? 'data-clip-m' : 'data-clip-f');
+  function spanFor(btn) {
+    var short = voice === 'm' ? 'm' : 'f';
+    var start = btn.getAttribute('data-start-' + short);
+    var end = btn.getAttribute('data-end-' + short);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start);
+    var e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrl() {
+    var rel = SPRITES[voice];
+    if (!rel) return null;
+    return AUDIO_BASE + VOICE_DIR[voice] + '/' + rel;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 每页一整条音频：先跳到片段起点，等 seek 落地再播，播到终点就停。
+  // 连点时 current 会变，旧的回调据此自动作废。
+  function startSpan(btn, span, onEnd) {
+    var from = span[0];
+    var stopAt = span[1];
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var play = function () {
+      if (current !== btn) return;
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== btn) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === btn) audioFailed(btn);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== btn) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { play(); return; }
+      var done = false;
+      var onSeeked = function () { fire(); };
+      var fire = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === btn) play();
+      };
+      player.addEventListener('seeked', onSeeked);
+      // 网络音频 seek 比内存 Blob 慢；超时还没落地就再设一次再播。
+      setTimeout(function () {
+        if (done) return;
+        if (Math.abs(player.currentTime - from) > 0.05) player.currentTime = from;
+        fire();
+      }, 600);
+      player.currentTime = from;
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  function prepare(btn) {
+    var span = spanFor(btn);
+    var url = spriteUrl();
+    if (!span || !url) return null;
+    if (loadedVoice !== voice) {
+      player.src = url;
+      loadedVoice = voice;
+    }
+    return span;
   }
 
   function audioFailed(btn) {
@@ -723,8 +820,9 @@ PLAY_JS = """
     if (index >= playlist.items.length) { stopPlaylist(); return; }
     playlist.index = index;
     var btn = playlist.items[index];
-    try { player.pause(); } catch (e) {}
     unmark();
+    var span = prepare(btn);
+    if (!span) { audioFailed(btn); return; }
     current = btn;
     btn.classList.add('playing');
     if (index > 0) {
@@ -737,15 +835,11 @@ PLAY_JS = """
         }
       }
     }
-    var clip = clipFor(btn);
-    if (!clip) { audioFailed(btn); return; }
-    player.src = AUDIO_BASE + VOICE_DIR[voice] + '/' + clip;
-    var playing = player.play();
-    if (playing && playing.catch) {
-      playing.catch(function () {
-        if (current === btn) audioFailed(btn);
-      });
-    }
+    var list = playlist;
+    startSpan(btn, span, function () {
+      if (playlist !== list) return;
+      playItem(list.index + 1);
+    });
   }
 
   function playAll() {
@@ -764,34 +858,22 @@ PLAY_JS = """
       return;
     }
     stopAudio();
-    var clip = clipFor(btn);
-    if (!clip) {
+    var span = prepare(btn);
+    if (!span) {
       showStatus('这一句暂无可用语音，请切换音色');
       return;
     }
     current = btn;
     btn.classList.add('playing');
-    player.src = AUDIO_BASE + VOICE_DIR[voice] + '/' + clip;
-    var playing = player.play();
-    if (playing && playing.catch) {
-      playing.catch(function () {
-        if (current === btn) audioFailed(btn);
-      });
-    }
+    startSpan(btn, span, null);
   }
 
-  player.addEventListener('ended', function () {
-    if (playlist) {
-      playItem(playlist.index + 1);
-    } else {
-      unmark();
-    }
-  });
   player.addEventListener('error', function () {
     if (current) audioFailed(current);
   });
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) stopPlaylist();
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
   });
 
   function setVoice(next) {
@@ -886,9 +968,17 @@ def head(title: str, prefix: str, css: str, lang: str = "zh-CN",
 """
 
 
-def tail(prefix: str, audio_base: str = AUDIO_BASE) -> str:
+def tail(prefix: str, audio_base: str = AUDIO_BASE,
+         sprites: dict | None = None) -> str:
+    sprite_block = ""
+    if sprites:
+        sprite_block = (
+            '<script id="spriteMap" type="application/json">'
+            + json.dumps(sprites, separators=(",", ":"))
+            + "</script>\n"
+        )
     return f"""</main>
-<script src="{prefix}theme.js" defer></script>
+{sprite_block}<script src="{prefix}theme.js" defer></script>
 <script>{PLAY_JS.replace("__AUDIO_BASE__", audio_base)}</script>
 </body>
 </html>
@@ -988,18 +1078,76 @@ def make_level(level: str, units: list) -> str:
     return body
 
 
-def clip_attrs(text: str, audio_maps: dict) -> str:
-    h = clip_hash(text)
-    attrs = []
-    for voice in VOICES:
-        if h in audio_maps.get(voice["key"], set()):
-            attrs.append(
-                f'data-clip-{voice["short"]}="{h[:2]}/{h}.mp3"'
-            )
-    return (" " + " ".join(attrs)) if attrs else ""
+class PageAudio:
+    """Serves each playable element its (start, end) inside the page sprite.
+
+    按页面渲染顺序逐个弹出；顺序必须和 build_page_sprite 里拼进去的顺序一致。
+    """
+
+    def __init__(self, items: list[dict]):
+        self.items = items
+        self.index = 0
+
+    def attrs(self) -> str:
+        item = self.items[self.index] if self.index < len(self.items) else {}
+        self.index += 1
+        parts = []
+        for voice in VOICES:
+            short = voice["short"]
+            span = item.get(short)
+            if span:
+                parts.append(
+                    f'data-start-{short}="{span[0]:.3f}" '
+                    f'data-end-{short}="{span[1]:.3f}"'
+                )
+        return (" " + " ".join(parts)) if parts else ""
 
 
-def sentence_html(text: str, audio_maps: dict, extra_class: str = "",
+def page_texts(story: dict) -> list[str]:
+    """Playable texts in the order make_story consumes them (= page DOM order)."""
+    texts: list[str] = [story["title"]]
+    texts.extend(story["vocab"])
+    for para in story["text"]:
+        texts.extend(split_sentences(para))
+    texts.extend(story["comp"])
+    texts.extend(story["conv"])
+    return texts
+
+
+def build_page_sprite(level: str, story: dict, audio_maps: dict,
+                      out: Path, voices: list) -> tuple[PageAudio, dict]:
+    """One sprite per voice for this page; returns the span cursor and URLs."""
+    texts = page_texts(story)
+    items: list[dict] = [dict() for _ in texts]
+    names: dict[str, str] = {}
+    dest_root = (out / level.lower() / "audio"
+                 if level in AUDIO_BASE_BY_LEVEL else out / "audio")
+    for voice in voices:
+        key = voice["key"]
+        hashes = audio_maps.get(key, set())
+        picks = []
+        for index, text in enumerate(texts):
+            h = clip_hash(text)
+            if h not in hashes:
+                continue
+            path = CACHE / voice["dir"] / h[:2] / f"{h}.mp3"
+            if path.exists():
+                picks.append((index, h, path.read_bytes()))
+        if not picks:
+            continue
+        blob, spans = audio_sprite.concat([item[2] for item in picks])
+        name = audio_sprite.name_for([f"{h}:{voice['dir']}" for _, h, _ in picks])
+        rel = f"sprites/{name}.mp3"
+        dst = dest_root / voice["dir"] / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(blob)
+        names[voice["short"]] = rel
+        for (index, _, _), span in zip(picks, spans):
+            items[index][voice["short"]] = span
+    return PageAudio(items), names
+
+
+def sentence_html(text: str, audio: PageAudio, extra_class: str = "",
                   label: str = "") -> str:
     marked = pron.annotate(text, thought_groups=False)
     safe = html.escape(text, quote=True)
@@ -1007,7 +1155,7 @@ def sentence_html(text: str, audio_maps: dict, extra_class: str = "",
     aria = label or safe
     return (
         f'<button type="button" class="{classes}"'
-        f'{clip_attrs(text, audio_maps)}'
+        f'{audio.attrs()}'
         f' data-text="{safe}" aria-label="{aria}">{marked}</button>'
     )
 
@@ -1060,51 +1208,36 @@ SPEAKER_SVG = (
 
 
 def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
-               audio_maps: dict, zh: dict, vocab_zh: dict) -> str:
+               audio_maps: dict, zh: dict, vocab_zh: dict,
+               out: Path, voices: list) -> str:
     en, cn = LEVEL_LABEL[level]
     key = f"{ui:02d}-{si:02d}-{slugify(story['title'])}"
+    audio, sprites = build_page_sprite(level, story, audio_maps, out, voices)
     zh_entry = zh.get(key, {})
     zh_paras = zh_entry.get("paras", [])
     glosses = vocab_zh.get(key, [])
 
-    paragraphs = []
-    for idx, para in enumerate(story["text"]):
-        sents = split_sentences(para)
-        zh_para = zh_paras[idx] if idx < len(zh_paras) else ""
-        zh_sents = split_zh(zh_para) if zh_para else []
-        if zh_para and len(zh_sents) != len(sents):
-            print(f"警告：{level} {key} 第 {idx + 1} 段中英文句数不一致"
-                  f"（英 {len(sents)} / 中 {len(zh_sents)}），按整段显示")
-            block = (
-                '<div class="para"><p class="en">'
-                + " ".join(sentence_html(s, audio_maps) for s in sents)
-                + '</p><p class="zh" lang="zh-CN">'
-                + html.escape(zh_para)
-                + "</p></div>"
-            )
-            paragraphs.append(block)
-            continue
-        blocks = []
-        for sent, zh_sent in zip(sents, zh_sents or [""] * len(sents)):
-            inner = sentence_html(sent, audio_maps)
-            if zh_sent:
-                inner += (
-                    '<span class="zh" lang="zh-CN">'
-                    + html.escape(zh_sent)
-                    + "</span>"
-                )
-            blocks.append('<div class="sent">' + inner + "</div>")
-        if not zh_sents:
-            blocks = [
-                '<div class="sent">' + sentence_html(sent, audio_maps) + "</div>"
-                for sent in sents
-            ]
-        paragraphs.append('<div class="para">' + "".join(blocks) + "</div>")
+    # 渲染顺序要和页面 DOM 一致（标题 → 词汇 → 正文 → 问答），
+    # 这样 sprite 里的片段顺序就是页面顺序，点标题不用跳到文件末尾。
+    title_marked = html.escape(story["title"])
+    title_safe = html.escape(story["title"], quote=True)
+    title = (
+        f'<h1><button type="button" class="s title-s"'
+        f'{audio.attrs()}'
+        f' data-text="{title_safe}" aria-label="朗读标题 {title_safe}">'
+        f'{title_marked}{SPEAKER_SVG}</button></h1>\n'
+    )
+    if zh_entry.get("title"):
+        title += (
+            '<p class="zh-title" lang="zh-CN">'
+            + html.escape(zh_entry["title"])
+            + "</p>\n"
+        )
 
     vocab_items = []
     for index, term in enumerate(story["vocab"]):
         item = sentence_html(
-            term, audio_maps, "vocab-s", label=f"朗读 {html.escape(term, quote=True)}"
+            term, audio, "vocab-s", label=f"朗读 {html.escape(term, quote=True)}"
         )
         gloss = glosses[index] if index < len(glosses) else ""
         if gloss:
@@ -1121,25 +1254,41 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
         + "".join(vocab_items[half:]) + "</ol></div>"
     )
 
+    paragraphs = []
+    for idx, para in enumerate(story["text"]):
+        sents = split_sentences(para)
+        zh_para = zh_paras[idx] if idx < len(zh_paras) else ""
+        zh_sents = split_zh(zh_para) if zh_para else []
+        if zh_para and len(zh_sents) != len(sents):
+            print(f"警告：{level} {key} 第 {idx + 1} 段中英文句数不一致"
+                  f"（英 {len(sents)} / 中 {len(zh_sents)}），按整段显示")
+            block = (
+                '<div class="para"><p class="en">'
+                + " ".join(sentence_html(s, audio) for s in sents)
+                + '</p><p class="zh" lang="zh-CN">'
+                + html.escape(zh_para)
+                + "</p></div>"
+            )
+            paragraphs.append(block)
+            continue
+        blocks = []
+        for sent, zh_sent in zip(sents, zh_sents or [""] * len(sents)):
+            inner = sentence_html(sent, audio)
+            if zh_sent:
+                inner += (
+                    '<span class="zh" lang="zh-CN">'
+                    + html.escape(zh_sent)
+                    + "</span>"
+                )
+            blocks.append('<div class="sent">' + inner + "</div>")
+        # 没有中文时上面的循环已经产出同样的结构，不要再渲染一遍
+        # （sentence_html 会按顺序消耗 sprite 片段，重复调用会错位）。
+        paragraphs.append('<div class="para">' + "".join(blocks) + "</div>")
+
     def qlist(items):
         return "<ol class=\"qlist\">" + "".join(
-            f"<li>{sentence_html(q, audio_maps)}</li>" for q in items
+            f"<li>{sentence_html(q, audio)}</li>" for q in items
         ) + "</ol>"
-
-    title_marked = html.escape(story["title"])
-    title_safe = html.escape(story["title"], quote=True)
-    title = (
-        f'<h1><button type="button" class="s title-s"'
-        f'{clip_attrs(story["title"], audio_maps)}'
-        f' data-text="{title_safe}" aria-label="朗读标题 {title_safe}">'
-        f'{title_marked}{SPEAKER_SVG}</button></h1>\n'
-    )
-    if zh_entry.get("title"):
-        title += (
-            '<p class="zh-title" lang="zh-CN">'
-            + html.escape(zh_entry["title"])
-            + "</p>\n"
-        )
 
     body = (
         head(f"{story['title']} · {level} · Conversation Starters", "../../",
@@ -1155,7 +1304,7 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
         + qlist(story["comp"]) + "</section>\n"
         '<section class="qs"><h2>Conversation Starters</h2>'
         + qlist(story["conv"]) + "</section>\n"
-        + tail("../../", audio_base_for(level))
+        + tail("../../", audio_base_for(level), sprites)
     )
     return body
 
@@ -1208,51 +1357,35 @@ def main() -> int:
         shutil.rmtree(out)
     out.mkdir(parents=True)
 
-    # 只搬站点实际引用的音频。ESLSE 放主站自己的目录，其余进音频站目录。
+    # 页面只引用每页一个 sprite，这里不再逐条搬剪辑；sprite 由
+    # build_page_sprite 从 TTS 缓存直接拼出来。
     audio_maps = {v["key"]: set() for v in voices}
-    copied = 0
     for voice in voices:
         cache_dir = CACHE / voice["dir"]
-        if not cache_dir.exists():
-            continue
-        hashes = {p.stem for p in cache_dir.rglob("*.mp3")}
-        audio_maps[voice["key"]] = hashes
-        for lv in sorted(active_audio):
-            dest_root = (out / lv.lower() / "audio"
-                         if lv in AUDIO_BASE_BY_LEVEL else out / "audio")
-            seen = set()
-            for text in unique_texts(data, [lv]):
-                h = clip_hash(text)
-                if h not in hashes or h in seen:
-                    continue
-                seen.add(h)
-                src = cache_dir / h[:2] / f"{h}.mp3"
-                dst = dest_root / voice["dir"] / h[:2] / f"{h}.mp3"
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(src, dst)
-                copied += 1
+        if cache_dir.exists():
+            audio_maps[voice["key"]] = {p.stem for p in cache_dir.rglob("*.mp3")}
 
     # 页面
     write(out / "index.html", make_index())
     stories = 0
     for lv in page_levels:
         units = data[lv]
-        # 页面是否挂音频，取决于缓存里有没有这条剪辑；
-        # 复制/合成哪些级别（audio_levels）不影响页面引用。
-        level_maps = audio_maps
         write(out / lv.lower() / "index.html", make_level(lv, units))
         for ui, unit in enumerate(units, 1):
             for si, story in enumerate(unit["stories"], 1):
                 slug = f"{ui:02d}-{si:02d}-{slugify(story['title'])}"
                 write(out / lv.lower() / f"{slug}.html",
-                      make_story(lv, unit, ui, story, si, level_maps,
-                                 zh_data.get(lv, {}), vocab_data.get(lv, {})))
+                      make_story(lv, unit, ui, story, si, audio_maps,
+                                 zh_data.get(lv, {}), vocab_data.get(lv, {}),
+                                 out, voices))
                 stories += 1
+
+    sprites = len(list(out.rglob("sprites/*.mp3")))
 
     pages = 1 + len(page_levels) + stories
     size = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())
     print(f"页面 {pages} 个（{len(page_levels)} 级 / {stories} 篇）")
-    print(f"语音 {copied} 条（{'+'.join(v['dir'] for v in voices)}）")
+    print(f"音频 {sprites} 个 sprite（{'+'.join(v['dir'] for v in voices)}）")
     print(f"输出：{out}，共 {size / 1024 / 1024:.1f} MB")
     return 0
 

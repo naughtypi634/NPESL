@@ -53,12 +53,39 @@ const server = createServer(async (req, res) => {
   // 线上是 Cloudflare Pages 的 pretty URL：/foo 提供 foo.html。
   const candidates = [rel, rel + '.html', rel + '/index.html'];
   for (const candidate of candidates) {
+    let buf;
     try {
-      const body = await readFile(join(SERVE_DIR, candidate));
-      res.writeHead(200, { 'content-type': MIME[extname(candidate)] || 'application/octet-stream' });
-      res.end(body);
+      buf = await readFile(join(SERVE_DIR, candidate));
+    } catch { continue; }
+    const type = MIME[extname(candidate)] || 'application/octet-stream';
+    // 音频要支持 Range，否则浏览器报不出时长、也跳不准（线上 Pages 支持）。
+    const range = req.headers.range;
+    if (range) {
+      const m = /bytes=(\d*)-(\d*)/.exec(range);
+      let start = m && m[1] ? parseInt(m[1], 10) : 0;
+      let end = m && m[2] ? parseInt(m[2], 10) : buf.length - 1;
+      if (start >= buf.length) {
+        res.writeHead(416, { 'content-range': `bytes */${buf.length}` });
+        res.end();
+        return;
+      }
+      end = Math.min(end, buf.length - 1);
+      res.writeHead(206, {
+        'content-type': type,
+        'accept-ranges': 'bytes',
+        'content-range': `bytes ${start}-${end}/${buf.length}`,
+        'content-length': end - start + 1,
+      });
+      res.end(buf.subarray(start, end + 1));
       return;
-    } catch {}
+    }
+    res.writeHead(200, {
+      'content-type': type,
+      'accept-ranges': 'bytes',
+      'content-length': buf.length,
+    });
+    res.end(buf);
+    return;
   }
   res.writeHead(404);
   res.end('not found');
@@ -245,10 +272,26 @@ const cases = [
   {
     name: 'conversation', path: '/conversation/a1/01-01-family.html',
     async run() {
-      const p = await playAndProbe('button.s');
+      // 页面用的是一整条音频 + 时间偏移，所以不只看出声，
+      // 还要确认它落在被点那句的区间里（起点对、终点停得住）。
+      const info = await evaluate(`(() => {
+        const b = document.querySelector('button.s');
+        if (!b) return null;
+        const start = parseFloat(b.getAttribute('data-start-f'));
+        const end = parseFloat(b.getAttribute('data-end-f'));
+        b.click();
+        return { start, end, text: b.dataset.text };
+      })()`);
+      if (!info) return { ok: false, detail: '没有可点读的句子' };
+      const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)');
+      const wait = Math.min(Math.max(info.end - info.start, 0.4), 4) * 1000 + 700;
+      await sleep(wait);
+      const t = await evaluate('window.__lastAudio ? window.__lastAudio.currentTime : -1');
+      const paused = await evaluate('window.__lastAudio ? window.__lastAudio.paused : false');
+      const ok = started && paused && t >= info.start - 0.1 && t <= info.end + 0.35;
       return {
-        ok: p.started && p.currentTime > 0.03 && p.mediaErrors.length === 0,
-        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} src=${p.src?.slice(0, 60)}`,
+        ok,
+        detail: `span=${info.start.toFixed(2)}-${info.end.toFixed(2)} t=${t?.toFixed(2)} paused=${paused} "${info.text}"`,
       };
     },
   },

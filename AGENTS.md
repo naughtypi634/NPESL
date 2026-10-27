@@ -39,6 +39,7 @@ build/     cloudflare-site/ cloudflare-audio/ npesl-offline/ …（gitignore）
 - **不要手改生成物**：`apps/phonics/lessons/`、该系列的 `index.html`、`apps/ipa/index.html`、`apps/drill/index.html`、`apps/phenomena/*.html`、`build/conversation-site/`、`build/cloudflare-*/`、`build/npesl-offline/` 都是脚本产物。改内容改源（`content/`、`apps/phonics/source/content/`、`content/drill/*.json`），再重新构建。
 - **Question Drill 的权威题库是 `content/drill/questions.json`**（1,370 题）。批次 JSON 复现不出它——`extra-questions.json` 里还有 192 道补充题，所以 `assemble.py` 默认从 `questions.json` 重渲染，只有显式 `--from-batches` 才从批次重建。音频由 `make_audio.py` 按内容哈希写入 `apps/drill/audio/`。
 - **语音缓存不要删**：`build/tts/cs/`（Conversation Starters）和 `apps/phonics/source/audio/` 是本地缓存，gitignore，但删了就得重新联网合成。内容没变的音频会自动跳过。
+- **音频交付分两层**：逐条录音是母版（`apps/drill/audio/{f,m}/`、`apps/ipa/audio/*.mp3`、`apps/phenomena/audio/{f,m}/`、`build/tts/cs/`），部署只带构建时拼出来的 `sprites/`（每页/每课/每题每音色一条）。改一句读音：删掉该条母版再跑对应构建，只重合成这一条，然后只重拼那一页的 sprite；部署按内容哈希只上传变化的文件。
 - **部署是对外发布**：`wrangler pages deploy` 之前先确认要发布哪些改动；不要在没有明确要求时部署。
 - Cloudflare Pages 单次部署上限 20,000 个文件，所以音频站和主站分开；不要图省事把 `build/cloudflare-audio` 合进主站。
 

@@ -35,7 +35,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from paths import (AUDIO_OUT, CONVERSATION_OUT, DRILL_APP, ESLSE_MIRROR,
+from paths import (AUDIO_OUT, CONVERSATION_OUT, DRILL_APP,
                    IPA_APP, PHENOMENA_APP, PHONICS_APP, SITE_APP, SITE_OUT)
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -45,7 +45,6 @@ IPA = IPA_APP
 PHENOMENA = PHENOMENA_APP
 DRILL = DRILL_APP
 CONVERSATION = CONVERSATION_OUT
-ESLSE = ESLSE_MIRROR
 OUT = SITE_OUT
 
 SITE_URL = "https://npesl.pages.dev"
@@ -169,6 +168,29 @@ def inject_head(path: Path, url: str, description: str) -> None:
     write_page(path, text)
 
 
+
+def drill_ignore(directory, names):
+    """网页只要拼好的 sprite；逐条录音留给小程序上传和离线母版。"""
+    if Path(directory) == DRILL / "audio":
+        return {"f", "m"}
+    return set()
+
+
+def phenomena_ignore(directory, names):
+    """只要拼好的 sprite；逐条录音（audio/f、audio/m）不进部署包。"""
+    skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md")(
+        directory, names))
+    if Path(directory) == PHENOMENA / "audio":
+        skip |= {"f", "m"}
+    return skip
+
+
+def ipa_ignore(directory, names):
+    """部署只要拼好的 sprite，不搬逐词母版。"""
+    if Path(directory).name == "audio":
+        return {n for n in names if n.endswith(".mp3")}
+    return set()
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -208,7 +230,7 @@ def main() -> int:
 
     # 美式英语音标表：单页 + 单词音频
     ipa_out = OUT / "ipa"
-    shutil.copytree(IPA, ipa_out)
+    shutil.copytree(IPA, ipa_out, ignore=ipa_ignore)
     inject_head(
         ipa_out / "index.html",
         "ipa/",
@@ -223,7 +245,7 @@ def main() -> int:
         shutil.copytree(
             PHENOMENA,
             phenomena_out,
-            ignore=shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md"),
+            ignore=phenomena_ignore,
         )
         index_page = phenomena_out / "index.html"
         inject_head(index_page, "phenomena/", "常见发音现象(AmE) · 30 章")
@@ -245,7 +267,7 @@ def main() -> int:
     shutil.copy2(DRILL / "index.html", drill_out / "index.html")
     for bank in DRILL.glob("bank.*.js"):
         shutil.copy2(bank, drill_out / bank.name)
-    shutil.copytree(DRILL / "audio", drill_out / "audio")
+    shutil.copytree(DRILL / "audio", drill_out / "audio", ignore=drill_ignore)
     inject_head(
         drill_out / "index.html",
         "drill/",
@@ -272,13 +294,10 @@ def main() -> int:
         print(f"警告：{CONVERSATION.relative_to(ROOT)} 不存在，"
               "Conversation Starters 未包含；先运行 build_site.py")
 
-    # ESLSE 第七级与其余级别同源生成，页面样式由 build_site.py 统一；
-    # 语音单独留在主站（音频站装不下第七级）。生成时若未带音频，
-    # 从旧的镜像目录补一份，文件名同为内容哈希，可直接复用。
+    # ESLSE 第七级与其余级别同源生成，语音是它自己目录下的 sprite，
+    # 留在主站（音频站只放 A1–C2）。
     eslse_dest = OUT / "conversation" / "eslse"
     if eslse_dest.exists():
-        if not (eslse_dest / "audio").exists() and (ESLSE / "audio").exists():
-            shutil.copytree(ESLSE / "audio", eslse_dest / "audio")
         print("  Conversation Starters ESLSE：已包含")
     else:
         print("警告：conversation/eslse 不存在，"

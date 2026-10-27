@@ -14,6 +14,7 @@ import html
 import json
 import pathlib
 import re
+import shutil
 import sys
 from xml.sax.saxutils import escape as xml_escape
 
@@ -27,6 +28,9 @@ ROOT = pathlib.Path(__file__).parent
 BASE = ROOT.parent
 CONTENT = ROOT / "content"
 AUDIO_DIR = BASE / "audio"
+
+sys.path.insert(0, str(BASE.parents[1] / "tools"))
+import audio_sprite  # noqa: E402
 
 VOICES = {
     "f": {"tts": "en-US-AvaNeural", "label": "女声"},
@@ -252,6 +256,64 @@ def clip_attrs(clips, prefix=""):
     )
 
 
+class ClipPlan:
+    """第一遍：只登记每个可播放元素对应哪几条录音，不产出属性。"""
+
+    def __init__(self):
+        self.items: list[dict] = []
+
+    def attrs(self, clips):
+        self.items.append({voice: clips.get(f"clip-{voice}") for voice in VOICES})
+        return ""
+
+
+class ClipCursor:
+    """第二遍：按顺序发 (start, end) 时间偏移。"""
+
+    def __init__(self, spans: list[dict]):
+        self.spans = spans
+        self.index = 0
+
+    def attrs(self, clips):
+        item = self.spans[self.index] if self.index < len(self.spans) else {}
+        self.index += 1
+        parts = []
+        for voice, span in item.items():
+            if span:
+                parts.append(
+                    f'data-start-{voice}="{span[0]:.3f}" '
+                    f'data-end-{voice}="{span[1]:.3f}"'
+                )
+        return " ".join(parts)
+
+
+def build_sprites(plan: ClipPlan) -> tuple[ClipCursor, dict]:
+    """每章每音色一个 sprite；返回偏移游标和页面要引用的地址。"""
+    spans: list[dict] = [dict() for _ in plan.items]
+    urls: dict[str, str] = {}
+    for voice in VOICES:
+        picks = []
+        for index, item in enumerate(plan.items):
+            rel = item.get(voice)
+            if not rel:
+                continue
+            path = AUDIO_DIR / rel
+            if path.exists():
+                picks.append((index, rel.replace("\\", "/"), path.read_bytes()))
+        if not picks:
+            continue
+        blob, offsets = audio_sprite.concat([chunk for _, _, chunk in picks])
+        name = audio_sprite.name_for([rel for _, rel, _ in picks])
+        rel = f"sprites/{name}.mp3"
+        dst = AUDIO_DIR / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(blob)
+        urls[voice] = rel
+        for (index, _, _), span in zip(picks, offsets):
+            spans[index][voice] = span
+    return ClipCursor(spans), urls
+
+
 def text_clips(lesson, text):
     """clip attrs for one plain string, honouring the lesson's TTS backend."""
     if lesson.get("tts") == "azure":
@@ -261,7 +323,7 @@ def text_clips(lesson, text):
     return {f"clip-{voice}": clip_rel(text, voice, RATE) for voice in VOICES}
 
 
-def build_targets(lesson):
+def build_targets(lesson, audio):
     cards = []
     for target in lesson.get("targets", []):
         parts = [
@@ -283,19 +345,19 @@ def build_targets(lesson):
             else:
                 clips = text_clips(lesson, text)
             parts.append(
-                f'<button class="pill" type="button" {clip_attrs(clips)}>'
+                f'<button class="pill" type="button" {audio.attrs(clips)}>'
                 f'<span class="play">▶</span>{marks_html(demo.get("display") or text)}</button>'
             )
         cards.append(f'<div class="target">{"".join(parts)}</div>')
     return "\n      ".join(cards)
 
 
-def build_lines(lesson):
+def build_lines(lesson, audio):
     rows = []
     for line in lesson["lines"]:
         clips = line_clips(lesson, line)
         rows.append(
-            f'<button class="line" type="button" {clip_attrs(clips)}>'
+            f'<button class="line" type="button" {audio.attrs(clips)}>'
             f'<span class="txt">{marks_html(line["display"])}</span>'
             f'<span class="zh">{html.escape(line["zh"])}</span>'
             "</button>"
@@ -310,8 +372,17 @@ def build_page(lesson, total):
     page = page.replace("__TITLE_EN__", html.escape(lesson["title_en"]))
     page = page.replace("__CATEGORY__", html.escape(lesson.get("category", "")))
     page = page.replace("__TITLE_ZH__", html.escape(lesson["title_zh"]))
-    page = page.replace("<!--TARGETS-->", build_targets(lesson))
-    page = page.replace("<!--LINES-->", build_lines(lesson))
+    plan = ClipPlan()
+    build_targets(lesson, plan)
+    build_lines(lesson, plan)
+    audio, sprites = build_sprites(plan)
+    page = page.replace("<!--TARGETS-->", build_targets(lesson, audio))
+    page = page.replace("<!--LINES-->", build_lines(lesson, audio))
+    page = page.replace(
+        "<!--SPRITES-->",
+        '<script id="spriteMap" type="application/json">'
+        + json.dumps(sprites, separators=(",", ":")) + "</script>",
+    )
     page = page.replace("__LESSON_COUNT__", str(total))
     name = f"{lesson['num']:02d}-{slug(lesson['title_en'])}.html"
     out = BASE / name
@@ -459,6 +530,12 @@ async def main():
     parser.add_argument("--index-only", action="store_true")
     parser.add_argument("--voices", default="f,m", help="要合成的音色：f,m")
     args = parser.parse_args()
+
+    # 全量构建时先清掉旧的 sprite，避免改过的章节留下无人引用的文件。
+    if not args.only and not args.index_only:
+        sprites_dir = AUDIO_DIR / "sprites"
+        if sprites_dir.exists():
+            shutil.rmtree(sprites_dir)
 
     voices = [x.strip() for x in args.voices.split(",") if x.strip()]
     bad = [x for x in voices if x not in VOICES]

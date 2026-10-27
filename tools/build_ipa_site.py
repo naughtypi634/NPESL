@@ -28,6 +28,7 @@ import asyncio
 import html
 import io
 import re
+import shutil
 import sys
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -38,6 +39,7 @@ import pymupdf
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import IPA_APP, PHONETICS_MD, PHONETICS_PDF, SITE_APP
+import audio_sprite  # noqa: E402
 
 SOURCE = PHONETICS_MD
 AUDIO_PDF = PHONETICS_PDF
@@ -300,14 +302,37 @@ def build_card(
     words: list[str],
     pairs: dict[str, dict[str, str]],
 ) -> str:
+    # 每个音标一张卡：把这 10 个词的录音按顺序拼成一条，卡片只引用两个文件。
+    spans: dict[str, list[tuple[float, float]]] = {}
+    sprites: dict[str, str] = {}
+    for voice in ("f", "m"):
+        blobs = []
+        names = []
+        for marked in words:
+            plain = strip_marks(marked).lower()
+            name = pairs[plain][voice]
+            blobs.append((AUDIO_DIR / name).read_bytes())
+            names.append(name)
+        blob, card_spans = audio_sprite.concat(blobs)
+        digest = audio_sprite.name_for(names)
+        rel = f"sprites/{digest}-{voice}.mp3"
+        dst = AUDIO_DIR / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(blob)
+        spans[voice] = card_spans
+        sprites[voice] = "audio/" + rel
+
     buttons = []
-    for marked in words:
+    for index, marked in enumerate(words):
         plain = strip_marks(marked)
-        pair = pairs[plain.lower()]
+        marks = " ".join(
+            f'data-start-{voice}="{spans[voice][index][0]:.3f}" '
+            f'data-end-{voice}="{spans[voice][index][1]:.3f}"'
+            for voice in ("f", "m")
+        )
         buttons.append(
             f'<button class="word" type="button" lang="en" '
-            f'data-audio-f="audio/{html.escape(pair["f"], quote=True)}" '
-            f'data-audio-m="audio/{html.escape(pair["m"], quote=True)}" '
+            f'{marks} '
             f'aria-label="{html.escape(plain, quote=True)}">'
             f"{render_word(marked)}</button>"
         )
@@ -316,7 +341,9 @@ def build_card(
     hint_html = f'<p class="hint">{html.escape(hint)}</p>' if hint else ""
     sound_attr = html.escape(sound, quote=True)
     return (
-        f'<section class="card" data-sound="{sound_attr}">\n'
+        f'<section class="card" data-sound="{sound_attr}" '
+        f'data-sprite-f="{html.escape(sprites["f"], quote=True)}" '
+        f'data-sprite-m="{html.escape(sprites["m"], quote=True)}">\n'
         f'  <div class="card-head">\n'
         f'    <span class="ipa">{html.escape(sound)}</span>\n'
         f'    <span class="badge{badge_class}">{badge}</span>\n'
@@ -436,6 +463,10 @@ def build_page(
 
 
 def main() -> int:
+    # 每次重建都从干净的 sprite 目录开始：页面只有 40 张卡，全量生成。
+    sprites_dir = AUDIO_DIR / "sprites"
+    if sprites_dir.exists():
+        shutil.rmtree(sprites_dir)
     groups = parse_source()
     clips = extract_audio()
     if len(clips) != sum(len(words) for _, words in groups):
@@ -692,17 +723,62 @@ TEMPLATE = """<!doctype html>
     var card = button.closest('.card');
     if (!card) return;
     var voice = cardVoice(card);
-    var source = button.getAttribute(voice === 'm'
-      ? 'data-audio-m' : 'data-audio-f');
-    if (!source) return;
+    var start = parseFloat(button.getAttribute('data-start-' + voice));
+    var end = parseFloat(button.getAttribute('data-end-' + voice));
+    var source = card.getAttribute('data-sprite-' + voice);
+    if (!source || !isFinite(start) || !isFinite(end)) return;
     stop();
     var current = ++token;
     active = button;
     button.classList.add('playing');
-    player.src = source;
-    var result = player.play();
-    if (result && result.catch) {
-      result.catch(function () { if (current === token) clearActive(); });
+    if (player.getAttribute('src') !== source) player.src = source;
+    var raf = 0;
+    var play = function () {
+      if (current !== token) return;
+      var result = player.play();
+      var tick = function () {
+        if (current !== token) return;
+        if (player.currentTime >= end - 0.008) {
+          player.pause();
+          cancelAnimationFrame(raf);
+          clearActive();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (result && result.catch) {
+        result.catch(function () { if (current === token) clearActive(); });
+      }
+    };
+    var seek = function () {
+      if (current !== token) return;
+      if (Math.abs(player.currentTime - start) < 0.02) { play(); return; }
+      var done = false;
+      var fire = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        play();
+      };
+      var onSeeked = function () { fire(); };
+      player.addEventListener('seeked', onSeeked);
+      setTimeout(function () {
+        if (done) return;
+        if (Math.abs(player.currentTime - start) > 0.05) player.currentTime = start;
+        fire();
+      }, 600);
+      player.currentTime = start;
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
     }
   }
 

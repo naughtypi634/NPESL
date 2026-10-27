@@ -152,6 +152,29 @@ def resolve_links(root: Path) -> int:
     return fixed
 
 
+
+def drill_ignore(directory, names):
+    """网页只要拼好的 sprite；逐条录音留给小程序上传和离线母版。"""
+    if Path(directory) == DRILL / "audio":
+        return {"f", "m"}
+    return set()
+
+
+def phenomena_ignore(directory, names):
+    """只要拼好的 sprite；逐条录音（audio/f、audio/m）不进部署包。"""
+    skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md")(
+        directory, names))
+    if Path(directory) == PHENOMENA / "audio":
+        skip |= {"f", "m"}
+    return skip
+
+
+def ipa_ignore(directory, names):
+    """部署只要拼好的 sprite，不搬逐词母版。"""
+    if Path(directory).name == "audio":
+        return {n for n in names if n.endswith(".mp3")}
+    return set()
+
 def main() -> int:
     if OUT.exists():
         shutil.rmtree(OUT)
@@ -183,7 +206,7 @@ def main() -> int:
 
     # 美式英语音标表：单页 + 单词音频
     ipa_out = OUT / "ipa"
-    shutil.copytree(IPA, ipa_out)
+    shutil.copytree(IPA, ipa_out, ignore=ipa_ignore)
     inject_theme(ipa_out / "index.html", "../")
     inject_back(ipa_out / "index.html", "../index.html", "NPESL")
 
@@ -193,7 +216,7 @@ def main() -> int:
         shutil.copytree(
             PHENOMENA,
             phenomena_out,
-            ignore=shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md"),
+            ignore=phenomena_ignore,
         )
         inject_theme(phenomena_out / "index.html", "../")
         replace_back(phenomena_out / "index.html", "../index.html", "NPESL")
@@ -209,7 +232,7 @@ def main() -> int:
     shutil.copy2(DRILL / "index.html", drill_out / "index.html")
     for bank in DRILL.glob("bank.*.js"):
         shutil.copy2(bank, drill_out / bank.name)
-    shutil.copytree(DRILL / "audio", drill_out / "audio")
+    shutil.copytree(DRILL / "audio", drill_out / "audio", ignore=drill_ignore)
     rewrite(drill_out / "index.html", [
         ('href="/npesl-icon.png"', 'href="../npesl-icon.png"'),
         ('href="/apple-touch-icon.png"', 'href="../apple-touch-icon.png"'),

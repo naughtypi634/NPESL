@@ -155,7 +155,6 @@ try {
     result.answersVisible = !$('answers').hidden;
     const firstLi = document.querySelector('#answers li');
     result.playBtns = [...firstLi.querySelectorAll('.playBtn')].map((b) => b.dataset.voice + ':' + b.textContent);
-    result.expectedAudio = current.answers[0].audio;
     if (${process.argv.includes('--serve')}) {
       firstLi.querySelector('.playBtn[data-voice="m"]').click();
       await sleep(400);
@@ -244,7 +243,7 @@ try {
   const check = (name, ok, detail = '') => checks.push({ name, ok, detail });
   check('masthead has only the title', out.h1 === 'Question Drill', out.h1);
   check('back to NPESL button', out.backCount === 1 && out.backText === 'NPESL' &&
-    out.backHref === '../index.html', `${out.backCount}/${out.backText}/${out.backHref}`);
+    out.backHref === '../', `${out.backCount}/${out.backText}/${out.backHref}`);
   check('category buttons', out.catButtons.length >= 16, `${out.catButtons.length} buttons`);
   check('all category active by default', out.activeCat === 'all', String(out.activeCat));
   check('question generated', out.zh1.length > 0 && out.cardVisible, out.zh1);
@@ -259,8 +258,8 @@ try {
   check('answers visible', out.answersVisible);
   check('every answer has two voice buttons', out.playBtns.join(',') === 'f:女声,m:男声', out.playBtns.join(','));
   if (out.audioSrc !== undefined) {
-    check('male button points at its clip',
-      out.audioSrc.endsWith('/audio/m/' + out.expectedAudio + '.mp3'), out.audioSrc);
+    check('male button points at its sprite',
+      /\/audio\/sprites\/[0-9a-f]+-m\.mp3$/.test(out.audioSrc), out.audioSrc);
     check('clip loads', out.audioErr === 0, `media error ${out.audioErr}`);
   }
   check('next question differs', out.zh2 && out.zh2 !== out.zh1, `${out.zh1} -> ${out.zh2}`);
