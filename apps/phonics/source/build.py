@@ -18,6 +18,9 @@ import sys
 
 import edge_tts
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent.parent.parent / "tools"))
+import azure_speech  # noqa: E402
+
 ROOT = pathlib.Path(__file__).parent
 BASE = ROOT.parent
 LESSONS_DIR = BASE / "lessons"
@@ -116,12 +119,19 @@ def audio_is_fresh(lesson, voice):
     )
 
 
-async def synthesize(text, voice, semaphore):
+async def synthesize(text, voice, semaphore, backend="edge"):
     tts = VOICE_BY_KEY[voice]["tts"]
     async with semaphore:
         last = None
         for attempt in range(5):
             try:
+                if backend == "azure":
+                    audio, words = await asyncio.to_thread(
+                        azure_speech.synthesize_with_words, text, tts, RATE
+                    )
+                    if not audio or not words:
+                        raise RuntimeError("empty audio")
+                    return audio, words
                 communicate = edge_tts.Communicate(
                     text, tts, rate=RATE, boundary="WordBoundary"
                 )
@@ -147,18 +157,18 @@ async def synthesize(text, voice, semaphore):
         raise last
 
 
-async def ensure_audio(lessons, voices):
+async def ensure_audio(lessons, voices, backend="edge", force=False):
     semaphore = asyncio.Semaphore(3)
     jobs = [
         (lesson, voice)
         for voice in voices
         for lesson in lessons
-        if not audio_is_fresh(lesson, voice)
+        if force or not audio_is_fresh(lesson, voice)
     ]
     if not jobs:
         print("audio: all cached")
         return []
-    print(f"audio: synthesizing {len(jobs)} stories ({', '.join(voices)})")
+    print(f"audio: synthesizing {len(jobs)} stories ({', '.join(voices)}, {backend})")
     done = 0
 
     async def one(lesson, voice):
@@ -166,7 +176,7 @@ async def ensure_audio(lessons, voices):
         mp3, meta = audio_paths(lesson["num"], voice)
         mp3.parent.mkdir(parents=True, exist_ok=True)
         text = lesson_text(lesson)
-        audio, words = await synthesize(text, voice, semaphore)
+        audio, words = await synthesize(text, voice, semaphore, backend)
         mp3.write_bytes(audio)
         meta.write_text(
             json.dumps(
@@ -174,6 +184,7 @@ async def ensure_audio(lessons, voices):
                     "text": text,
                     "voice": VOICE_BY_KEY[voice]["tts"],
                     "rate": RATE,
+                    "backend": backend,
                     "words": words,
                 },
                 ensure_ascii=False,
@@ -456,6 +467,14 @@ async def main():
         "--voices", default=",".join(VOICE_KEYS),
         help="要合成的音色：f,m（默认两套；页面始终内嵌两套）",
     )
+    parser.add_argument(
+        "--tts", choices=("edge", "azure"), default="edge",
+        help="语音后端：edge（默认，免费）或 azure（F0）",
+    )
+    parser.add_argument(
+        "--force", action="store_true",
+        help="忽略缓存，重新合成选中的课程",
+    )
     args = parser.parse_args()
 
     voices = [x.strip() for x in args.voices.split(",") if x.strip()]
@@ -471,7 +490,8 @@ async def main():
         return 0
     failed = []
     if not args.skip_audio:
-        failed = await ensure_audio(lessons, voices)
+        failed = await ensure_audio(
+            lessons, voices, backend=args.tts, force=args.force)
     built = 0
     for lesson in lessons:
         if all(audio_is_fresh(lesson, voice) for voice in VOICE_KEYS):

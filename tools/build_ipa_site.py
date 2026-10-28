@@ -5,13 +5,12 @@
 源：content/phonetics/Pronunciation音标表.md
     40 个音标 × 10 个单词，单词里用 ** 标出该音标的拼写字母。
 
-音频：先从已发布的 apps/ipa/Pronunciation音标表.pdf 抽出内嵌录音。
-    那份 PDF 每个单词带一块 Screen 注记，注记的 Rendition 里内嵌
-    `voice-word.mp3`（10 个声音按顺序交替），网页和 PDF 听到的是同一批录音。
-    每个单词在 PDF 里只有一版声音；页面要「女声 / 男声」切换，所以
-    再用同一套 Edge TTS（Andrew / Ava，语速 -10%）补齐另一性别，
-    新文件命名 `andrew-word.mp3` / `ava-word.mp3`，已有的不重做。
-    注记顺序与 MD 表格逐行一致（400 条），脚本会核对。
+音频：先把已发布的 apps/ipa/Pronunciation音标表.pdf 里的内嵌录音抽出来，
+    只用于核对 400 条注记的顺序（注记 Rendition 里的 `voice-word.mp3`）。
+    页面默认（`--tts azure`）不再使用 PDF 原声：300 个单词全部用 Azure
+    Ava / Andrew（语速 -10%）各生成男女两版，整页音色一致。凭证在
+    ~/.azure-speech/key.txt。`--tts edge` 保留 PDF 原声、只给缺失性别补
+    Edge 录音，那是旧的混合方案。
 
 输出：apps/ipa/index.html + audio/*.mp3
     页面自带返回按钮和主题切换（主题样式直接内联自 apps/site/），
@@ -19,12 +18,15 @@
     build_offline_package.py 看到内联标记就不再重复注入。
 
 用法：
-    python -I tools/build_ipa_site.py
+    python -I tools/build_ipa_site.py              # 默认 azure 全量
+    python -I tools/build_ipa_site.py --tts edge   # 回退到 PDF + Edge 混合
 """
 
 from __future__ import annotations
 
 import asyncio
+import argparse
+import hashlib
 import html
 import io
 import re
@@ -40,6 +42,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import IPA_APP, PHONETICS_MD, PHONETICS_PDF, SITE_APP
 import audio_sprite  # noqa: E402
+import azure_speech  # noqa: E402
 
 SOURCE = PHONETICS_MD
 AUDIO_PDF = PHONETICS_PDF
@@ -187,7 +190,12 @@ def voice_gender(filename: str) -> str:
     raise SystemExit(f"认不出声音：{filename}")
 
 
-async def synthesize(text: str, voice: str) -> bytes:
+async def synthesize(text: str, voice: str, backend: str = "edge") -> bytes:
+    if backend == "azure":
+        audio = await asyncio.to_thread(azure_speech.synthesize, text, voice, RATE)
+        if not audio:
+            raise RuntimeError("Azure TTS 没有返回音频")
+        return audio
     communicate = edge_tts.Communicate(text, voice, rate=RATE)
     chunks = [
         chunk["data"]
@@ -203,6 +211,7 @@ async def synthesize(text: str, voice: str) -> bytes:
 async def generate_audio(
     jobs: list[tuple[str, str, Path]],
     concurrency: int = 10,
+    backend: str = "edge",
 ) -> list[tuple[str, str]]:
     semaphore = asyncio.Semaphore(concurrency)
     failed: list[tuple[str, str]] = []
@@ -217,7 +226,7 @@ async def generate_audio(
             for attempt in range(1, 4):
                 try:
                     audio = await asyncio.wait_for(
-                        synthesize(word, voice), timeout=90
+                        synthesize(word, voice, backend), timeout=90
                     )
                     tmp = target.with_suffix(".mp3.part")
                     tmp.write_bytes(audio)
@@ -243,8 +252,17 @@ async def generate_audio(
 def build_voice_pairs(
     groups: list[tuple[str, list[str]]],
     clips: list[str],
+    backend: str = "edge",
+    skip_audio: bool = False,
 ) -> dict[str, dict[str, str]]:
-    """word -> {"m": filename, "f": filename}，缺的用 Edge TTS 补齐。"""
+    """word -> {"m": filename, "f": filename}.
+
+    ``backend="azure"`` rebuilds **every** word with Ava/Andrew, replacing the
+    PDF's mixed voices so each card has one consistent pair.  The PDF clips
+    are still extracted to validate the source order, but the page no longer
+    uses them.  ``backend="edge"`` keeps the PDF source and only fills the
+    missing gender with Edge.
+    """
     pairs: dict[str, dict[str, str]] = {}
     cursor = 0
     for _sound, words in groups:
@@ -255,23 +273,39 @@ def build_voice_pairs(
             pairs.setdefault(key, {})[voice_gender(name)] = name
 
     jobs: list[tuple[str, str, Path]] = []
-    for key, pair in pairs.items():
-        if "m" not in pair:
-            target = f"andrew-{key}.mp3"
-            pair["m"] = target
-            path = AUDIO_DIR / target
-            if not path.exists() or path.stat().st_size <= 500:
-                jobs.append(("m", key, path))
-        if "f" not in pair:
-            target = f"ava-{key}.mp3"
-            pair["f"] = target
-            path = AUDIO_DIR / target
-            if not path.exists() or path.stat().st_size <= 500:
-                jobs.append(("f", key, path))
+    if backend == "azure":
+        for key in pairs:
+            pairs[key] = {
+                "m": f"andrew-{key}.mp3",
+                "f": f"ava-{key}.mp3",
+            }
+        jobs = [
+            (gender, key, AUDIO_DIR / pairs[key][gender])
+            for key in pairs
+            for gender in ("m", "f")
+        ]
+        label = f"全量 Azure（{len(pairs)} 个单词 × 2 音色）"
+    else:
+        for key, pair in pairs.items():
+            if "m" not in pair:
+                target = f"andrew-{key}.mp3"
+                pair["m"] = target
+                path = AUDIO_DIR / target
+                if not path.exists() or path.stat().st_size <= 500:
+                    jobs.append(("m", key, path))
+            if "f" not in pair:
+                target = f"ava-{key}.mp3"
+                pair["f"] = target
+                path = AUDIO_DIR / target
+                if not path.exists() or path.stat().st_size <= 500:
+                    jobs.append(("f", key, path))
+        label = f"Edge 补录（{len(pairs)} 个单词）"
 
-    if jobs:
-        print(f"男女双版本：补 {len(jobs)} 条录音（已有 {len(pairs)} 个单词）")
-        failed = asyncio.run(generate_audio(jobs))
+    if skip_audio:
+        print(f"男女双版本：{label}，跳过合成，使用现有录音")
+    elif jobs:
+        print(f"男女双版本：{label}，合成 {len(jobs)} 条录音")
+        failed = asyncio.run(generate_audio(jobs, backend=backend))
         if failed:
             for gender, word in failed[:20]:
                 print(f"  {gender}  {word}")
@@ -311,8 +345,11 @@ def build_card(
         for marked in words:
             plain = strip_marks(marked).lower()
             name = pairs[plain][voice]
-            blobs.append((AUDIO_DIR / name).read_bytes())
-            names.append(name)
+            data = (AUDIO_DIR / name).read_bytes()
+            blobs.append(data)
+            # Content-address the card sprite: replacing a voice file (Edge →
+            # Azure) must change the deployed name despite the same source name.
+            names.append(f"{name}:{hashlib.sha1(data).hexdigest()[:10]}")
         blob, card_spans = audio_sprite.concat(blobs)
         digest = audio_sprite.name_for(names)
         rel = f"sprites/{digest}-{voice}.mp3"
@@ -463,6 +500,16 @@ def build_page(
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--tts", choices=("azure", "edge"), default="azure",
+        help="azure（默认，全量 Ava/Andrew）或 edge（PDF 原声 + Edge 补缺）",
+    )
+    parser.add_argument(
+        "--skip-audio", action="store_true",
+        help="只重建页面和 sprite，不重新合成录音",
+    )
+    args = parser.parse_args()
     # 每次重建都从干净的 sprite 目录开始：页面只有 40 张卡，全量生成。
     sprites_dir = AUDIO_DIR / "sprites"
     if sprites_dir.exists():
@@ -486,7 +533,8 @@ def main() -> int:
     if pdf_words != md_words:
         raise SystemExit("PDF 注记顺序与 MD 表格不一致，先核对源文件")
 
-    pairs = build_voice_pairs(groups, clips)
+    pairs = build_voice_pairs(
+        groups, clips, backend=args.tts, skip_audio=args.skip_audio)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     with OUT_PAGE.open("w", encoding="utf-8", newline="") as fh:
         fh.write(build_page(groups, pairs))
@@ -616,8 +664,9 @@ TEMPLATE = """<!doctype html>
     font:inherit; font-size:19px; line-height:1.2; text-align:center;
     padding:8px 8px; border-radius:10px; cursor:pointer;
     transition:background-color .12s ease, color .12s ease; }
-  .word u { text-decoration-color:var(--blue); text-decoration-thickness:2px;
-    text-underline-offset:3px; }
+  .word u { text-decoration-line:underline; text-decoration-color:var(--blue);
+    text-decoration-thickness:2px; text-underline-offset:0.3em;
+    text-decoration-skip-ink:none; }
   .word:hover { background:var(--surface); }
   .word.playing { background:var(--blue-tint); color:var(--blue); }
   .word:focus-visible { outline:2px solid var(--blue); outline-offset:1px; }

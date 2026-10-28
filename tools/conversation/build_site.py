@@ -62,6 +62,8 @@ PROGRESS = CACHE / "progress.txt"
 FAILED = CACHE / "failed.json"
 
 AUDIO_BASE = "https://npesl-audio.pages.dev/audio/"
+# 本地预览时可以换成同源路径（如 /audio/），页面和音频放在同一个测试服务器下。
+AUDIO_BASE_OVERRIDE = None
 # 所有级别（含 ESLSE）统一走音频站。改用 sprite 后音频站只有 700 个文件，
 # 不再受 Cloudflare Pages 20,000 文件上限约束，页面里也只出现一种音频地址。
 
@@ -140,6 +142,108 @@ def clip_hash(text: str) -> str:
     return hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]
 
 
+def timing_path(mp3: Path) -> Path:
+    """Word-boundary sidecar written next to the cached clip."""
+    return mp3.with_suffix(".json")
+
+
+def timing_ready(mp3: Path) -> bool:
+    """True when the sidecar still describes this exact mp3 (size match).
+
+    Edge TTS is not byte-deterministic, so timings are only valid for the
+    audio produced by the same request.  The build hashes the bytes again
+    before trusting a sidecar; this cheap check only decides whether the
+    clip must be synthesized again.
+    """
+    side = timing_path(mp3)
+    if not side.exists():
+        return False
+    try:
+        meta = json.loads(side.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return meta.get("size") == mp3.stat().st_size
+
+
+# --------------------------------------------------------------------------
+# word timings
+# --------------------------------------------------------------------------
+def _norm_word(word: str) -> str:
+    word = word.lower().replace("’", "'")
+    return re.sub(r"^[^a-z0-9']+|[^a-z0-9']+$", "", word)
+
+
+def _words_match(edge_word: str, token: str) -> bool:
+    if edge_word == token:
+        return True
+    # Edge keeps the number in "7-Eleven" / "30-minute"; WORD_RE only sees the
+    # letter part after the hyphen.
+    return edge_word.endswith("-" + token) or token.endswith("-" + edge_word)
+
+
+def align_word_starts(text: str, words: list) -> list | None:
+    """Map Edge word boundaries onto WORD_RE tokens.
+
+    ``words`` is ``[[text, start, duration], ...]`` from the TTS sidecar.
+    Returns one start time (seconds, relative to the clip) per token, or None
+    when the alignment is too weak to drive karaoke.
+    """
+    tokens = [m.group(0) for m in pron.WORD_RE.finditer(text)]
+    if not tokens or not words:
+        return None
+    starts: list = [None] * len(tokens)
+    cursor = 0
+    for entry in words:
+        if not entry:
+            continue
+        spoken = _norm_word(str(entry[0]))
+        if not spoken:
+            continue
+        found = None
+        for j in range(cursor, min(len(tokens), cursor + 4)):
+            if _words_match(spoken, _norm_word(tokens[j])):
+                found = j
+                break
+        if found is None:
+            # Numbers and symbols are not WORD_RE tokens; leaving them
+            # unhighlighted is better than shifting every later word.
+            continue
+        try:
+            starts[found] = round(float(entry[1]), 3)
+        except (TypeError, ValueError, IndexError):
+            continue
+        cursor = found + 1
+
+    known = sum(1 for value in starts if value is not None)
+    if known < max(1, int(len(tokens) * 0.7)):
+        return None
+    # A token Edge skipped keeps the previous word's onset, so it lights up
+    # together with the word before it instead of never lighting up.
+    last = 0.0
+    for i, value in enumerate(starts):
+        if value is None:
+            starts[i] = last
+        else:
+            last = value
+    return starts
+
+
+def load_word_starts(text: str, mp3: Path, audio: bytes) -> list | None:
+    """Read the sidecar and verify it belongs to these exact audio bytes."""
+    side = timing_path(mp3)
+    if not side.exists():
+        return None
+    try:
+        meta = json.loads(side.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if meta.get("text") != text:
+        return None
+    if meta.get("sha1") != hashlib.sha1(audio).hexdigest():
+        return None
+    return align_word_starts(text, meta.get("words") or [])
+
+
 def story_texts(story: dict) -> list:
     """Every piece of text on a story page that can be played."""
     texts = [story["title"]]
@@ -164,6 +268,17 @@ def unique_texts(data: dict, levels) -> list:
     return out
 
 
+def story_sentences(data: dict, levels) -> set:
+    """Unique body sentences — the only clips that need word timings."""
+    out = set()
+    for lv in sorted(levels):
+        for unit in data.get(lv, []):
+            for story in unit["stories"]:
+                for para in story["text"]:
+                    out.update(split_sentences(para))
+    return out
+
+
 # --------------------------------------------------------------------------
 # audio
 # --------------------------------------------------------------------------
@@ -180,20 +295,47 @@ async def synth_one(text: str, voice: str, target: Path) -> dict:
     error = ""
     for attempt in range(1, 4):
         try:
-            communicate = edge_tts.Communicate(text, voice, rate="+0%")
+            # WordBoundary drives the karaoke highlight in the story body.
+            communicate = edge_tts.Communicate(
+                text, voice, rate="+0%", boundary="WordBoundary")
 
-            async def stream() -> bytes:
-                return b"".join([
-                    chunk["data"] async for chunk in communicate.stream()
-                    if chunk["type"] == "audio"
-                ])
+            async def stream() -> tuple:
+                audio = []
+                words = []
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        audio.append(chunk["data"])
+                    elif chunk["type"] == "WordBoundary":
+                        words.append([
+                            chunk["text"],
+                            round(chunk["offset"] / 10_000_000, 4),
+                            round(chunk["duration"] / 10_000_000, 4),
+                        ])
+                return b"".join(audio), words
 
-            audio = await asyncio.wait_for(stream(), timeout=45)
+            audio, words = await asyncio.wait_for(stream(), timeout=60)
             if not audio:
                 raise RuntimeError("empty audio")
             tmp = target.with_suffix(".part")
             tmp.write_bytes(audio)
             tmp.replace(target)
+            # Sidecar holds the boundaries for exactly these bytes; write it
+            # after the mp3 so a crash leaves "audio without timings", never
+            # stale timings for new audio.
+            meta = {
+                "v": 1,
+                "text": text,
+                "voice": voice,
+                "size": len(audio),
+                "sha1": hashlib.sha1(audio).hexdigest(),
+                "words": words,
+            }
+            side = timing_path(target)
+            tmp_side = side.with_name(side.name + ".part")
+            tmp_side.write_text(
+                json.dumps(meta, ensure_ascii=False, separators=(",", ":")),
+                encoding="utf-8")
+            tmp_side.replace(side)
             return {"text": text, "target": target, "ok": True, "error": ""}
         except Exception as exc:                     # 网络抖动、限流、超时
             error = str(exc)
@@ -221,10 +363,19 @@ async def synth_all(items: list, voice: str, jobs: int, on_batch) -> tuple:
     return done, failures
 
 
-def generate(voices: list, texts: list, jobs: int) -> dict:
-    """Synthesize missing clips for every requested voice."""
+def generate(voices: list, texts: list, jobs: int,
+             timed_texts: set | None = None) -> dict:
+    """Synthesize missing clips for every requested voice.
+
+    ``timed_texts`` are the body sentences that need word-boundary sidecars.
+    Edge TTS audio is not byte-deterministic, so an existing clip without a
+    matching sidecar has to be synthesized again: its old boundaries would
+    not line up with the audio on disk.
+    """
+    timed_texts = timed_texts or set()
     CACHE.mkdir(parents=True, exist_ok=True)
     plans = []
+    retimed = 0
     for voice in voices:
         cache_dir = CACHE / voice["dir"]
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -235,7 +386,12 @@ def generate(voices: list, texts: list, jobs: int) -> dict:
             if not target.exists():
                 target.parent.mkdir(parents=True, exist_ok=True)
                 missing.append((text, target))
+            elif text in timed_texts and not timing_ready(target):
+                retimed += 1
+                missing.append((text, target))
         plans.append((voice, cache_dir, missing))
+    if retimed:
+        print(f"逐词时间缺失或过期：{retimed} 条需要重新合成（音色 × 句）")
 
     overall_total = sum(len(missing) for _, _, missing in plans)
     overall_done = 0
@@ -601,11 +757,137 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
 .qlist { margin:12px 0 0; padding-left:26px; }
 .qlist li { padding:7px 0; font-size:17px; line-height:1.55; }
 .qlist li::marker { color:var(--muted); font-size:15px; }
+/* Karaoke: the spoken part of the sentence lights up word by word. */
+.s .w {
+  border-radius:4px;
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+  transition:color .08s linear, background-color .08s linear;
+}
+.s.ktv.playing {
+  background:var(--surface); color:var(--fg); border-bottom-color:transparent;
+}
+.s.ktv.playing .w.read { color:var(--blue); }
+.s.ktv.playing .w.now {
+  color:var(--blue); background:var(--blue-tint);
+  box-shadow:0 0 0 2px var(--blue-tint);
+}
+body.has-player .page { padding-bottom:140px; }
+/* The floating theme button would sit over the dock / speed menu; it comes
+   back as soon as the player is closed. */
+body.has-player .npesl-theme {
+  opacity:0; visibility:hidden; pointer-events:none;
+}
+.kplayer {
+  position:fixed; left:50%; z-index:60;
+  bottom:calc(14px + env(safe-area-inset-bottom, 0px));
+  transform:translateX(-50%);
+  width:min(720px, calc(100% - 24px));
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; border:1px solid var(--rule); border-radius:20px;
+  background:var(--surface); box-shadow:0 18px 48px rgba(0,0,0,.18);
+}
+.kplayer[hidden] { display:none; }
+.kp-toggle {
+  flex:none; width:42px; height:42px; padding:0; border:0; border-radius:50%;
+  background:var(--blue); color:var(--on-blue); cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  box-shadow:0 3px 10px rgba(0,113,227,.28);
+}
+.kp-toggle:hover { background:var(--blue-hover); }
+.kp-toggle:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+.kp-toggle svg { width:18px; height:18px; fill:currentColor; }
+.kp-pause { display:none; }
+.kp-toggle[aria-pressed="true"] .kp-play { display:none; }
+.kp-toggle[aria-pressed="true"] .kp-pause { display:block; }
+.kp-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.kp-range {
+  -webkit-appearance:none; appearance:none;
+  width:100%; height:20px; margin:0; background:transparent; cursor:pointer;
+}
+.kp-range::-webkit-slider-runnable-track {
+  height:6px; border-radius:3px;
+  background:linear-gradient(to right,
+    var(--blue) var(--p,0%), var(--surface-strong) var(--p,0%));
+}
+.kp-range::-webkit-slider-thumb {
+  -webkit-appearance:none; width:16px; height:16px; margin-top:-5px;
+  border-radius:50%; border:2px solid var(--blue); background:var(--bg);
+  box-shadow:0 1px 4px rgba(0,0,0,.28);
+}
+.kp-range::-moz-range-track {
+  height:6px; border-radius:3px; background:var(--surface-strong);
+}
+.kp-range::-moz-range-progress {
+  height:6px; border-radius:3px; background:var(--blue);
+}
+.kp-range::-moz-range-thumb {
+  width:14px; height:14px; border-radius:50%;
+  border:2px solid var(--blue); background:var(--bg);
+}
+.kp-range:focus-visible {
+  outline:2px solid var(--blue); outline-offset:4px; border-radius:6px;
+}
+.kp-time {
+  color:var(--muted); font-size:12px; letter-spacing:0;
+  font-variant-numeric:tabular-nums;
+}
+.kp-speed-wrap { position:relative; flex:none; }
+.kp-speed {
+  display:inline-flex; align-items:center; gap:4px;
+  border:1px solid transparent; background:transparent; color:var(--muted);
+  font:inherit; font-size:12.5px; font-weight:650; padding:8px 8px;
+  border-radius:999px; cursor:pointer; font-variant-numeric:tabular-nums;
+}
+.kp-speed:hover, .kp-speed[aria-expanded="true"] {
+  background:var(--surface-strong); color:var(--fg);
+}
+.kp-speed:focus-visible { outline:2px solid var(--blue); outline-offset:1px; }
+.kp-caret {
+  width:11px; height:11px; fill:none; stroke:currentColor;
+  stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;
+  opacity:.65;
+}
+.kp-speed-menu {
+  position:absolute; right:0; bottom:calc(100% + 10px); z-index:70;
+  min-width:104px; padding:6px;
+  border:1px solid var(--rule); border-radius:14px;
+  background:var(--bg); box-shadow:0 12px 32px rgba(0,0,0,.18);
+}
+.kp-speed-menu[hidden] { display:none; }
+.kp-speed-menu button {
+  display:flex; align-items:center; justify-content:space-between;
+  width:100%; padding:11px 12px; border:0; border-radius:9px;
+  background:transparent; color:var(--fg); font:inherit;
+  font-size:13.5px; font-weight:600; text-align:left; cursor:pointer;
+  font-variant-numeric:tabular-nums;
+}
+.kp-speed-menu button:hover { background:var(--surface); }
+.kp-speed-menu button[aria-checked="true"] {
+  background:var(--blue-tint); color:var(--blue);
+}
+.kp-speed-menu button[aria-checked="true"]::after {
+  content:"✓"; margin-left:12px; font-size:12px;
+}
+.kp-speed-menu button:focus-visible {
+  outline:2px solid var(--blue); outline-offset:-2px;
+}
+.kp-close {
+  flex:none; width:38px; height:38px; padding:0; border:0; border-radius:50%;
+  background:transparent; color:var(--muted); font-size:16px; line-height:1;
+  cursor:pointer;
+}
+.kp-close:hover { background:var(--surface-strong); color:var(--fg); }
+.kp-close:focus-visible { outline:2px solid var(--blue); outline-offset:1px; }
 @media (max-width:560px) {
   .vocab { grid-template-columns:1fr; gap:0; }
   .vocab .col-r { margin-top:2px; }
   .story { font-size:18px; line-height:1.72; }
   .story .zh { font-size:15px; line-height:1.7; }
+  .kplayer { width:calc(100% - 16px); gap:8px; padding:8px 10px; }
+  .kp-toggle { width:38px; height:38px; }
+  .kp-speed { padding:8px 6px; }
+  .kp-close { width:34px; height:34px; }
+  body.has-player .page { padding-bottom:132px; }
 }
 """
 
@@ -633,7 +915,11 @@ PLAY_JS = """
     if (savedSpeed >= SPEED_MIN && savedSpeed <= SPEED_MAX) speed = savedSpeed;
   } catch (e) {}
   var player = new Audio();
-  player.playbackRate = speed;
+  // ``speed`` is the page-wide default (toolbar slider, saved).  ``activeSpeed``
+  // is a one-sentence override made from the player's speed menu; it resets to
+  // the default as soon as another sentence starts.
+  var activeSpeed = speed;
+  player.playbackRate = activeSpeed;
   player.preservesPitch = true;
   var current = null;
   var voice = 'f';
@@ -648,6 +934,29 @@ PLAY_JS = """
   try {
     SPRITES = JSON.parse(document.getElementById('spriteMap').textContent);
   } catch (e) { SPRITES = {}; }
+  var WORDMAP = {};
+  try {
+    var wordNode = document.getElementById('wordMap');
+    WORDMAP = wordNode ? JSON.parse(wordNode.textContent) : {};
+  } catch (e) { WORDMAP = {}; }
+  var dock = document.querySelector('[data-kplayer]');
+  var dockToggle = document.querySelector('[data-kp-toggle]');
+  var dockRange = document.querySelector('[data-kp-range]');
+  var dockTime = document.querySelector('[data-kp-time]');
+  var dockSpeed = document.querySelector('[data-kp-speed]');
+  var dockSpeedLabel = document.querySelector('[data-kp-speed-label]');
+  var speedMenu = document.querySelector('[data-kp-speed-menu]');
+  var speedWrap = document.querySelector('.kp-speed-wrap');
+  var speedOptions = document.querySelectorAll('[data-kp-rate]');
+  var dockClose = document.querySelector('[data-kp-close]');
+  var spanFrom = 0;
+  var spanTo = 0;
+  var loadingBtn = null;
+  var activeOnEnd = null;
+  var ktvStarts = null;
+  var ktvWords = null;
+  var ktvIndex = -1;
+  var seeking = false;
   var playAllBtn = document.querySelector('[data-play-all]');
   var playAllLabel = document.querySelector('[data-play-label]');
   var fullItems = (function () {
@@ -668,10 +977,39 @@ PLAY_JS = """
     current = null;
   }
 
+  function clearWords() {
+    if (ktvWords) {
+      for (var i = 0; i < ktvWords.length; i++) {
+        if (!ktvWords[i]) continue;
+        ktvWords[i].classList.remove('read');
+        ktvWords[i].classList.remove('now');
+      }
+    }
+    ktvStarts = null;
+    ktvWords = null;
+    ktvIndex = -1;
+  }
+
+  function closeSpeedMenu() {
+    if (!speedMenu) return;
+    speedMenu.hidden = true;
+    if (dockSpeed) dockSpeed.setAttribute('aria-expanded', 'false');
+  }
+
+  function hideDock() {
+    closeSpeedMenu();
+    if (dock) dock.hidden = true;
+    document.body.classList.remove('has-player');
+  }
+
   function stopAudio() {
     try { player.pause(); } catch (e) {}
     stopTick();
     hideStatus();
+    clearWords();
+    hideDock();
+    loadingBtn = null;
+    activeOnEnd = null;
     unmark();
   }
 
@@ -703,19 +1041,47 @@ PLAY_JS = """
     return String(Math.round(value * 100) / 100).replace(/0$/, '') + '×';
   }
 
-  function setSpeed(value, save) {
+  function clampSpeed(value) {
     var n = Number(value);
     if (!isFinite(n)) n = SPEED_DEFAULT;
-    n = Math.max(SPEED_MIN, Math.min(SPEED_MAX, Math.round(n * 100) / 100));
+    return Math.max(SPEED_MIN, Math.min(SPEED_MAX, Math.round(n * 100) / 100));
+  }
+
+  function updateDockSpeed() {
+    if (dockSpeedLabel) dockSpeedLabel.textContent = speedLabel(activeSpeed);
+    if (dockSpeed) {
+      dockSpeed.setAttribute('aria-label', '本句语速，当前 ' + speedLabel(activeSpeed));
+    }
+    for (var i = 0; i < speedOptions.length; i++) {
+      var option = speedOptions[i];
+      var value = parseFloat(option.getAttribute('data-kp-rate'));
+      option.setAttribute('aria-checked',
+        Math.abs(value - activeSpeed) < 0.001 ? 'true' : 'false');
+    }
+  }
+
+  // Page-wide default: toolbar slider + localStorage + the current sentence.
+  function setSpeed(value, save) {
+    var n = clampSpeed(value);
     speed = n;
+    activeSpeed = n;
     player.playbackRate = n;
     var label = document.querySelector('[data-speed-label]');
     if (label) label.textContent = speedLabel(n);
+    updateDockSpeed();
     var input = document.querySelector('[data-speed-input]');
     if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
     if (save) {
       try { localStorage.setItem(SPEED_KEY, String(n)); } catch (e) {}
     }
+  }
+
+  // One-sentence override from the player menu: never touches the toolbar,
+  // localStorage, or the next sentence.
+  function setActiveSpeed(value) {
+    activeSpeed = clampSpeed(value);
+    player.playbackRate = activeSpeed;
+    updateDockSpeed();
   }
 
   function setPlayAll(on) {
@@ -770,9 +1136,180 @@ PLAY_JS = """
     setTimeout(function () { waitForData(btn, seek, from, attempt + 1); }, 250);
   }
 
+  function fmtTime(sec) {
+    if (!isFinite(sec) || sec < 0) sec = 0;
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function updateToggle() {
+    if (!dockToggle) return;
+    var playing = !!(current && !player.paused);
+    dockToggle.setAttribute('aria-pressed', playing ? 'true' : 'false');
+    dockToggle.setAttribute('aria-label', playing ? '暂停' : '播放');
+  }
+
+  // Light the words whose onset has passed.  Starts are absolute sprite
+  // seconds, so playbackRate never needs to be compensated for.
+  function syncWords(now) {
+    if (!ktvStarts || !ktvWords) return;
+    var n = 0;
+    for (var i = 0; i < ktvStarts.length; i++) {
+      if (ktvStarts[i] <= now + 0.02) n = i + 1;
+      else break;
+    }
+    if (n === ktvIndex) return;
+    for (var j = 0; j < ktvWords.length; j++) {
+      var el = ktvWords[j];
+      if (!el) continue;
+      if (j < n) el.classList.add('read');
+      else el.classList.remove('read');
+      if (j === n - 1) el.classList.add('now');
+      else el.classList.remove('now');
+    }
+    ktvIndex = n;
+  }
+
+  function syncDock() {
+    if (!current || !dock || dock.hidden) return;
+    var duration = Math.max(spanTo - spanFrom, 0.01);
+    var offset = Math.min(Math.max(player.currentTime - spanFrom, 0), duration);
+    if (!seeking && dockRange) {
+      dockRange.value = offset;
+      dockRange.style.setProperty('--p', (offset / duration * 100) + '%');
+    }
+    if (dockTime) {
+      dockTime.textContent = fmtTime(offset) + ' / ' + fmtTime(duration);
+    }
+    syncWords(spanFrom + offset);
+  }
+
+  function prepareDock(btn) {
+    var span = spanFor(btn);
+    if (!span) return false;
+    spanFrom = span[0];
+    spanTo = span[1];
+    clearWords();
+    var wi = btn.getAttribute('data-wi');
+    var table = wi !== null ? WORDMAP[voice] : null;
+    var starts = table && table[wi] ? table[wi] : null;
+    if (starts && starts.length) {
+      var words = [];
+      var usable = true;
+      for (var i = 0; i < starts.length; i++) {
+        var el = btn.querySelector('.w[data-i="' + i + '"]');
+        if (!el) { usable = false; break; }
+        words.push(el);
+      }
+      if (usable) { ktvStarts = starts; ktvWords = words; }
+    }
+    ktvIndex = -1;
+    if (dock) {
+      dock.hidden = false;
+      document.body.classList.add('has-player');
+    }
+    // Keep the sentence above the dock instead of letting it slip underneath
+    // on phones, where the fixed bar covers the last ~70px of the viewport.
+    var rect = btn.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight - 110
+        && rect.top < window.innerHeight) {
+      try {
+        btn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } catch (e) {
+        btn.scrollIntoView();
+      }
+    }
+    var duration = Math.max(spanTo - spanFrom, 0.01);
+    if (dockRange) {
+      dockRange.min = 0;
+      dockRange.max = duration;
+      dockRange.step = 0.01;
+      dockRange.value = 0;
+      dockRange.style.setProperty('--p', '0%');
+      dockRange.setAttribute('aria-valuetext',
+        fmtTime(0) + ' / ' + fmtTime(duration));
+    }
+    if (dockTime) dockTime.textContent = fmtTime(0) + ' / ' + fmtTime(duration);
+    syncWords(spanFrom);
+    updateToggle();
+    return true;
+  }
+
+  function seekTo(absolute, fromSlider) {
+    if (!current) return;
+    var duration = Math.max(spanTo - spanFrom, 0.01);
+    var clamped = Math.min(Math.max(absolute, spanFrom), spanTo - 0.002);
+    try { player.currentTime = clamped; } catch (e) {}
+    if (fromSlider && dockRange) {
+      var offset = Math.min(Math.max(clamped - spanFrom, 0), duration);
+      dockRange.style.setProperty('--p', (offset / duration * 100) + '%');
+      if (dockTime) {
+        dockTime.textContent = fmtTime(offset) + ' / ' + fmtTime(duration);
+      }
+    }
+    syncWords(clamped);
+  }
+
+  function pauseActive() {
+    if (!current) return;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    syncDock();
+    updateToggle();
+  }
+
+  function resumeActive() {
+    if (!current) return;
+    if (player.currentTime < spanFrom - 0.05
+        || player.currentTime >= spanTo - 0.02) {
+      seekTo(spanFrom, false);
+    }
+    hideStatus();
+    player.playbackRate = activeSpeed;
+    var started = player.play();
+    startTick(current);
+    updateToggle();
+    if (started && started.catch) {
+      started.catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        if (current) audioFailed(current);
+      });
+    }
+  }
+
+  function startTick(btn) {
+    stopTick();
+    var tick = function () {
+      if (current !== btn) return;
+      if (player.currentTime >= spanTo - 0.008) {
+        try { player.pause(); } catch (e) {}
+        stopTick();
+        syncDock();
+        if (ktvStarts && ktvWords) {
+          ktvIndex = -1;
+          syncWords(spanTo);
+        }
+        var done = activeOnEnd;
+        activeOnEnd = null;
+        if (done) {
+          done();
+        } else if (!btn.classList.contains('ktv')) {
+          unmark();
+          hideDock();
+        }
+        updateToggle();
+        return;
+      }
+      syncDock();
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  }
+
   // 每页一整条音频：先跳到片段起点，等 seek 落地再播，播到终点就停。
   // 连点时 current 会变，旧的回调据此自动作废。
-  function startSpan(btn, span, onEnd) {
+  function startSpan(btn, span) {
     var from = span[0];
     var stopAt = span[1];
     var retries = 0;
@@ -787,20 +1324,11 @@ PLAY_JS = """
         return;
       }
       hideStatus();
-      player.playbackRate = speed;
+      player.playbackRate = activeSpeed;
+      loadingBtn = null;
       var started = player.play();
-      var tick = function () {
-        if (current !== btn) return;
-        if (player.currentTime >= stopAt - 0.008) {
-          try { player.pause(); } catch (e) {}
-          stopTick();
-          unmark();
-          if (onEnd) onEnd();
-          return;
-        }
-        raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
+      syncDock();
+      startTick(btn);
       if (started && started.catch) {
         started.catch(function (err) {
           if (err && err.name === 'AbortError') return;
@@ -879,10 +1407,22 @@ PLAY_JS = """
   function begin(btn, onEnd) {
     var span = spanFor(btn);
     if (!span || !spriteUrlFor(voice)) {
-      if (current === btn) unmark();
+      if (current === btn) {
+        stopAudio();
+      }
       showStatus('这一句暂无可用语音，请切换音色');
       return;
     }
+    spanFrom = span[0];
+    spanTo = span[1];
+    loadingBtn = btn;
+    activeOnEnd = onEnd || null;
+    // A new sentence always starts at the page-wide default speed; the menu
+    // in the player only overrides the sentence it was opened for.
+    activeSpeed = speed;
+    player.playbackRate = activeSpeed;
+    updateDockSpeed();
+    if (btn.classList.contains('ktv')) prepareDock(btn);
     var loading = null;
     if (!READY[voice]) {
       loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
@@ -895,7 +1435,7 @@ PLAY_JS = """
         player.src = src;
         loadedSrc = src;
       }
-      startSpan(btn, span, onEnd);
+      startSpan(btn, span);
     });
   }
 
@@ -913,6 +1453,10 @@ PLAY_JS = """
     var btn = playlist.items[index];
     unmark();
     if (!spanFor(btn)) { audioFailed(btn); return; }
+    if (!btn.classList.contains('ktv')) {
+      clearWords();
+      hideDock();
+    }
     current = btn;
     btn.classList.add('playing');
     if (index > 0) {
@@ -943,8 +1487,17 @@ PLAY_JS = """
 
   function play(btn) {
     if (playlist) stopPlaylist();
-    if (current === btn && !player.paused) {
-      stopAudio();
+    if (current === btn) {
+      // Karaoke sentences pause and resume; short clips keep the old
+      // tap-again-to-stop behavior.  While the sprite is still loading there
+      // is nothing to pause, so a second tap cancels.
+      if (loadingBtn === btn || !btn.classList.contains('ktv') || !dock) {
+        stopAudio();
+      } else if (player.paused) {
+        resumeActive();
+      } else {
+        pauseActive();
+      }
       return;
     }
     stopAudio();
@@ -956,6 +1509,8 @@ PLAY_JS = """
   player.addEventListener('error', function () {
     if (current) audioFailed(current);
   });
+  player.addEventListener('play', updateToggle);
+  player.addEventListener('pause', updateToggle);
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) return;
     if (playlist) stopPlaylist(); else stopAudio();
@@ -1015,6 +1570,58 @@ PLAY_JS = """
     playAllBtn.addEventListener('click', playAll);
   }
 
+  if (dockToggle) {
+    dockToggle.addEventListener('click', function () {
+      if (!current) return;
+      if (player.paused) resumeActive(); else pauseActive();
+    });
+  }
+  if (dockClose) {
+    dockClose.addEventListener('click', function () {
+      if (playlist) stopPlaylist(); else stopAudio();
+    });
+  }
+  if (dockSpeed && speedMenu) {
+    dockSpeed.addEventListener('click', function (event) {
+      event.stopPropagation();
+      var open = speedMenu.hidden;
+      speedMenu.hidden = !open;
+      dockSpeed.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open) return;
+      var checked = speedMenu.querySelector('[aria-checked="true"]');
+      if (checked) checked.focus();
+    });
+    for (var si = 0; si < speedOptions.length; si++) {
+      speedOptions[si].addEventListener('click', function (event) {
+        setActiveSpeed(parseFloat(event.currentTarget.getAttribute('data-kp-rate')));
+        closeSpeedMenu();
+        dockSpeed.focus();
+      });
+    }
+    document.addEventListener('click', function (event) {
+      if (speedMenu.hidden) return;
+      if (speedWrap && speedWrap.contains(event.target)) return;
+      closeSpeedMenu();
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape' || speedMenu.hidden) return;
+      closeSpeedMenu();
+      dockSpeed.focus();
+    });
+  }
+  if (dockRange) {
+    dockRange.addEventListener('pointerdown', function () { seeking = true; });
+    dockRange.addEventListener('input', function () {
+      seeking = true;
+      seekTo(spanFrom + parseFloat(dockRange.value), true);
+    });
+    dockRange.addEventListener('change', function () {
+      seeking = false;
+      seekTo(spanFrom + parseFloat(dockRange.value), true);
+    });
+    window.addEventListener('pointerup', function () { seeking = false; });
+  }
+
   // 点读是这一页的主动作：页面空闲时先把当前音色的 sprite 取进内存，
   // 点下去就能出声（只在联网时预取；离线包走 file://，媒体元素直接读本地文件）。
   function prefetch() {
@@ -1067,7 +1674,7 @@ def head(title: str, prefix: str, css: str, lang: str = "zh-CN",
 
 
 def tail(prefix: str, audio_base: str = AUDIO_BASE,
-         sprites: dict | None = None) -> str:
+         sprites: dict | None = None, words: dict | None = None) -> str:
     sprite_block = ""
     if sprites:
         sprite_block = (
@@ -1075,8 +1682,15 @@ def tail(prefix: str, audio_base: str = AUDIO_BASE,
             + json.dumps(sprites, separators=(",", ":"))
             + "</script>\n"
         )
+    word_block = ""
+    if words and any(words.values()):
+        word_block = (
+            '<script id="wordMap" type="application/json">'
+            + json.dumps(words, separators=(",", ":"))
+            + "</script>\n"
+        )
     return f"""</main>
-{sprite_block}<script src="{prefix}theme.js" defer></script>
+{sprite_block}{word_block}<script src="{prefix}theme.js" defer></script>
 <script>{PLAY_JS.replace("__AUDIO_BASE__", audio_base)}</script>
 </body>
 </html>
@@ -1113,7 +1727,7 @@ def level_title(lv: str) -> str:
 
 
 def audio_base_for(level: str) -> str:
-    return AUDIO_BASE
+    return AUDIO_BASE_OVERRIDE or AUDIO_BASE
 
 
 def write(path: Path, text: str) -> None:
@@ -1186,8 +1800,10 @@ class PageAudio:
         self.items = items
         self.index = 0
 
-    def attrs(self) -> str:
-        item = self.items[self.index] if self.index < len(self.items) else {}
+    def attrs(self, ktv: bool = False) -> tuple:
+        """Return (attribute string, whether this element has word timings)."""
+        index = self.index
+        item = self.items[index] if index < len(self.items) else {}
         self.index += 1
         parts = []
         for voice in VOICES:
@@ -1198,7 +1814,10 @@ class PageAudio:
                     f'data-start-{short}="{span[0]:.3f}" '
                     f'data-end-{short}="{span[1]:.3f}"'
                 )
-        return (" " + " ".join(parts)) if parts else ""
+        has_words = bool(ktv and item.get("words"))
+        if has_words:
+            parts.append(f'data-wi="{index}"')
+        return ((" " + " ".join(parts)) if parts else ""), has_words
 
 
 def page_texts(story: dict) -> list[str]:
@@ -1213,11 +1832,16 @@ def page_texts(story: dict) -> list[str]:
 
 
 def build_page_sprite(level: str, story: dict, audio_maps: dict,
-                      out: Path, voices: list) -> tuple[PageAudio, dict]:
-    """One sprite per voice for this page; returns the span cursor and URLs."""
+                      out: Path, voices: list) -> tuple[PageAudio, dict, dict]:
+    """One sprite per voice for this page.
+
+    Returns the span cursor, the sprite URLs, and absolute word starts in
+    sprite time: ``{"f": {"<text index>": [start, ...]}, "m": {...}}``.
+    """
     texts = page_texts(story)
     items: list[dict] = [dict() for _ in texts]
     names: dict[str, str] = {}
+    wordmap: dict[str, dict] = {voice["short"]: {} for voice in voices}
     dest_root = out / "audio"
     for voice in voices:
         key = voice["key"]
@@ -1233,26 +1857,42 @@ def build_page_sprite(level: str, story: dict, audio_maps: dict,
         if not picks:
             continue
         blob, spans = audio_sprite.concat([item[2] for item in picks])
-        name = audio_sprite.name_for([f"{h}:{voice['dir']}" for _, h, _ in picks])
+        # Sprite names include the audio digest: re-synthesizing a clip changes
+        # its bytes (Edge is not deterministic), so a text-only name would let
+        # a long-cached old sprite pair with new span offsets.
+        name = audio_sprite.name_for([
+            f"{h}:{voice['dir']}:{hashlib.sha1(data).hexdigest()[:10]}"
+            for _, h, data in picks
+        ])
         rel = f"sprites/{name}.mp3"
         dst = dest_root / voice["dir"] / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_bytes(blob)
         names[voice["short"]] = rel
-        for (index, _, _), span in zip(picks, spans):
-            items[index][voice["short"]] = span
-    return PageAudio(items), names
+        for (index, h, data), span in zip(picks, spans):
+            short = voice["short"]
+            items[index][short] = span
+            mp3 = CACHE / voice["dir"] / h[:2] / f"{h}.mp3"
+            starts = load_word_starts(texts[index], mp3, data)
+            if starts:
+                absolute = [round(span[0] + value, 3) for value in starts]
+                items[index].setdefault("words", {})[short] = absolute
+                wordmap[short][str(index)] = absolute
+    return PageAudio(items), names, wordmap
 
 
 def sentence_html(text: str, audio: PageAudio, extra_class: str = "",
-                  label: str = "") -> str:
-    marked = pron.annotate(text, thought_groups=False)
+                  label: str = "", ktv: bool = False) -> str:
+    attrs, has_words = audio.attrs(ktv=ktv)
+    marked = pron.annotate(text, thought_groups=False, wrap_words=has_words)
     safe = html.escape(text, quote=True)
     classes = "s" + (f" {extra_class}" if extra_class else "")
+    if has_words:
+        classes += " ktv"
     aria = label or safe
     return (
         f'<button type="button" class="{classes}"'
-        f'{audio.attrs()}'
+        f'{attrs}'
         f' data-text="{safe}" aria-label="{aria}">{marked}</button>'
     )
 
@@ -1292,6 +1932,47 @@ def toolbar_html() -> str:
         '</div>\n'
         '<div class="audio-status" data-audio-status role="status" '
         'aria-live="polite"></div>\n'
+        '<div class="kplayer" data-kplayer role="region" aria-label="句子播放器" hidden>'
+        '<button type="button" class="kp-toggle" data-kp-toggle '
+        'aria-pressed="false" aria-label="播放">'
+        '<svg class="kp-play" viewBox="0 0 24 24" aria-hidden="true">'
+        '<path d="M8 5v14l11-7z"/></svg>'
+        '<svg class="kp-pause" viewBox="0 0 24 24" aria-hidden="true">'
+        '<rect x="7" y="5" width="3.5" height="14" rx="1"/>'
+        '<rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg>'
+        '</button>'
+        '<div class="kp-body">'
+        '<input type="range" class="kp-range" min="0" max="1" step="0.01" '
+        'value="0" data-kp-range aria-label="句子进度">'
+        '<span class="kp-time" data-kp-time>0:00 / 0:00</span>'
+        '</div>'
+        '<div class="kp-speed-wrap">'
+        '<button type="button" class="kp-speed" data-kp-speed '
+        'aria-haspopup="menu" aria-expanded="false" aria-label="语速">'
+        '<span data-kp-speed-label>0.9×</span>'
+        '<svg class="kp-caret" viewBox="0 0 24 24" aria-hidden="true">'
+        '<path d="M6 9l6 6 6-6"/></svg></button>'
+        '<div class="kp-speed-menu" data-kp-speed-menu role="menu" '
+        'aria-label="选择本句语速" hidden>'
+        '<button type="button" role="menuitemradio" aria-checked="false" '
+        'data-kp-rate="0.7">0.7×</button>'
+        '<button type="button" role="menuitemradio" aria-checked="false" '
+        'data-kp-rate="0.8">0.8×</button>'
+        '<button type="button" role="menuitemradio" aria-checked="true" '
+        'data-kp-rate="0.9">0.9×</button>'
+        '<button type="button" role="menuitemradio" aria-checked="false" '
+        'data-kp-rate="1.0">1.0×</button>'
+        '<button type="button" role="menuitemradio" aria-checked="false" '
+        'data-kp-rate="1.1">1.1×</button>'
+        '<button type="button" role="menuitemradio" aria-checked="false" '
+        'data-kp-rate="1.25">1.25×</button>'
+        '<button type="button" role="menuitemradio" aria-checked="false" '
+        'data-kp-rate="1.5">1.5×</button>'
+        '</div>'
+        '</div>'
+        '<button type="button" class="kp-close" data-kp-close '
+        'aria-label="关闭播放器">✕</button>'
+        '</div>\n'
     )
 
 
@@ -1309,7 +1990,8 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
                out: Path, voices: list) -> str:
     en, cn = LEVEL_LABEL[level]
     key = f"{ui:02d}-{si:02d}-{slugify(story['title'])}"
-    audio, sprites = build_page_sprite(level, story, audio_maps, out, voices)
+    audio, sprites, wordmap = build_page_sprite(
+        level, story, audio_maps, out, voices)
     zh_entry = zh.get(key, {})
     zh_paras = zh_entry.get("paras", [])
     glosses = vocab_zh.get(key, [])
@@ -1318,9 +2000,10 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
     # 这样 sprite 里的片段顺序就是页面顺序，点标题不用跳到文件末尾。
     title_marked = html.escape(story["title"])
     title_safe = html.escape(story["title"], quote=True)
+    title_attrs, _ = audio.attrs()
     title = (
         f'<h1><button type="button" class="s title-s"'
-        f'{audio.attrs()}'
+        f'{title_attrs}'
         f' data-text="{title_safe}" aria-label="朗读标题 {title_safe}">'
         f'{title_marked}{SPEAKER_SVG}</button></h1>\n'
     )
@@ -1361,7 +2044,7 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
                   f"（英 {len(sents)} / 中 {len(zh_sents)}），按整段显示")
             block = (
                 '<div class="para"><p class="en">'
-                + " ".join(sentence_html(s, audio) for s in sents)
+                + " ".join(sentence_html(s, audio, ktv=True) for s in sents)
                 + '</p><p class="zh" lang="zh-CN">'
                 + html.escape(zh_para)
                 + "</p></div>"
@@ -1370,7 +2053,7 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
             continue
         blocks = []
         for sent, zh_sent in zip(sents, zh_sents or [""] * len(sents)):
-            inner = sentence_html(sent, audio)
+            inner = sentence_html(sent, audio, ktv=True)
             if zh_sent:
                 inner += (
                     '<span class="zh" lang="zh-CN">'
@@ -1401,7 +2084,7 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
         + qlist(story["comp"]) + "</section>\n"
         '<section class="qs"><h2>Conversation Starters</h2>'
         + qlist(story["conv"]) + "</section>\n"
-        + tail("../../", audio_base_for(level), sprites)
+        + tail("../../", audio_base_for(level), sprites, wordmap)
     )
     return body
 
@@ -1424,7 +2107,11 @@ def main() -> int:
     parser.add_argument("--no-audio", action="store_true", help="只建页面，不合成")
     parser.add_argument("--out", default=str(OUT),
                         help="输出目录（默认 build/conversation-site）")
+    parser.add_argument("--audio-base", default=None,
+                        help="覆盖页面里的音频地址（本地预览用，如 /audio/）")
     args = parser.parse_args()
+    global AUDIO_BASE_OVERRIDE
+    AUDIO_BASE_OVERRIDE = args.audio_base
 
     page_levels = [x.strip().upper() for x in args.levels.split(",") if x.strip()]
     audio_levels = set()
@@ -1446,7 +2133,9 @@ def main() -> int:
     audio_texts = unique_texts(data, active_audio) if active_audio else []
 
     if audio_texts and not args.no_audio:
-        generate(voices, audio_texts, args.jobs)
+        timed = story_sentences(data, active_audio)
+        print(f"逐词时间：正文 {len(timed)} 句需要 sidecar")
+        generate(voices, audio_texts, args.jobs, timed)
 
     # 站点目录
     out = Path(args.out).expanduser().resolve()

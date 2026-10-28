@@ -76,7 +76,11 @@ node tools\preview_site.mjs
 >
 > 补题流程：新题写到 `content/drill/topup/*.json`（`chip` 必填，取值见 `content/drill/chips.json`），先跑 `tools/drill/check_dup.py` 和 `check_text.py`，再 `tools/drill/tag_chips.py --merge` 合并进 `questions.json`，最后按上面的顺序补语音、拼 sprite。
 
-`build_site.py` 支持 `--levels`、`--audio-levels`、`--voices`、`--no-audio`，只改页面或只补某一级时用。自然拼读的 `build.py` 支持 `--only <课号>`、`--skip-audio`、`--voices m`。
+`build_site.py` 支持 `--levels`、`--audio-levels`、`--voices`、`--no-audio`、`--audio-base`，只改页面或只补某一级时用。自然拼读的 `build.py` 支持 `--only <课号>`、`--skip-audio`、`--voices m`。
+
+> **Conversation 逐词时间**：正文每句的音频旁有一份 `.json` sidecar（Edge TTS 的 WordBoundary，逐词起点）。构建用它驱动「点句子 → 进度条 + KTV 高亮」。Edge 不是逐字节确定的，所以旧音频没有 sidecar 时会把该句重新合成一次（第一次全量构建约 7,400 条）；之后 sidecar 命中就跳过。`--no-audio` 只建页面、不补语音，没有 sidecar 的句子不会出现高亮和播放器。本地预览可用 `--audio-base /audio/`，把页面和音频放进同一个测试服务器。
+
+> **Phonics / IPA 的 Azure 语音**：`apps\phonics\source\build.py --tts azure --force`（需要 `~/.azure-speech/key.txt`；Phonics 用 Speech SDK 取逐词时间，约 4.4 万字符），`tools\build_ipa_site.py`（默认 `--tts azure`，300 个单词 × 男女两版全部用 Ava/Andrew，约 3,000 字符；PDF 录音只用于核对顺序，`--tts edge` 可回退旧的 PDF + Edge 混合）。Azure F0 每月 50 万字符，这两个应用一起跑不会超；IPA 的卡片 sprite 名带音频 sha1，换录音后不会命中旧缓存。
 
 ## 部署
 

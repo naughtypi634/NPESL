@@ -44,6 +44,26 @@
     - `say`：该意群的纯文本，不含方括号；与 `display` 去除方括号后的文字一致（标点可省略）。
     - `zh`：该意群的中文，和前后意群连起来是自然的中文句子。
 
+## 断句与语音停顿
+
+音频是**整课一条**，页面上的 `chunks` 只是时间切片；TTS 不一定在分块边界真的停顿。如果听感把意群读错了，在**这一句的 `say` 和对应 chunk 的 `say` 里加句号或分号**（逗号在 Azure/Edge 里停顿不稳定），例如：
+
+```json
+"say": "The manager walks in. With a big coffee.",
+"chunks": [
+  { "display": "The [m]anager walks in", "say": "The manager walks in.", "zh": "经理走进来，" },
+  { "display": "with a big coffee.", "say": "With a big coffee.", "zh": "手里端着一大杯咖啡。" }
+]
+```
+
+改完只重建这一课：
+
+```powershell
+apps\phonics\source> ..\..\..\.venv\Scripts\python.exe -I -X utf8 build.py --only 43 --tts azure --force
+```
+
+整课会重新合成一次（Azure F0，几百字符），页面时间轴会自动重算；不需要手动剪音频。`display` 可以保持原样，`say` 只用于语音。
+
 ## 硬规则
 
 - **成人 A1**：读者是 2026 年中国成年英语学习者。场景用外卖、地铁、加班、面试、租房、微信、快递、看病、聚餐等当代生活；不要童话、动物主角、校园儿童场景。

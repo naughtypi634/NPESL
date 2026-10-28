@@ -223,6 +223,158 @@ async function probeConversationPage() {
   };
 }
 
+// Karaoke player: dock appears, words light up, pause / seek / speed work.
+async function probeConversationKaraoke() {
+  const info = await evaluate(`(() => {
+    const b = document.querySelector('.story .s.ktv');
+    if (!b) return null;
+    const start = parseFloat(b.getAttribute('data-start-f'));
+    const end = parseFloat(b.getAttribute('data-end-f'));
+    const words = b.querySelectorAll('.w').length;
+    b.click();
+    return { start, end, words, wi: b.getAttribute('data-wi') };
+  })()`);
+  if (!info) return { ok: false, detail: '没有逐词时间的句子（先重跑 build_site.py）' };
+  const shown = await waitFor("!document.querySelector('[data-kplayer]').hidden");
+  const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)');
+  const lit = await waitFor("!!document.querySelector('.story .s.ktv .w.read')", 4000);
+
+  await evaluate("document.querySelector('[data-kp-toggle]').click()");
+  const paused = await waitFor('!!(window.__lastAudio && window.__lastAudio.paused)', 2000);
+
+  const target = (info.start + info.end) / 2;
+  const moved = await evaluate(`(() => {
+    const r = document.querySelector('[data-kp-range]');
+    r.value = String(Number(r.max) / 2);
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+    r.dispatchEvent(new Event('change', { bubbles: true }));
+    return window.__lastAudio ? window.__lastAudio.currentTime : -1;
+  })()`);
+
+  await evaluate("document.querySelector('[data-kp-toggle]').click()");
+  const resumed = await waitFor(
+    `!!(window.__lastAudio && !window.__lastAudio.paused && window.__lastAudio.currentTime > ${target + 0.04})`,
+    2500);
+
+  const speedBefore = await evaluate(
+    "parseFloat(document.querySelector('[data-kp-speed-label]').textContent)");
+  await evaluate("document.querySelector('[data-kp-speed]').click()");
+  const menuOpen = await waitFor("!document.querySelector('[data-kp-speed-menu]').hidden");
+  await evaluate(`(() => {
+    const b = [...document.querySelectorAll('[data-kp-rate]')]
+      .find((x) => Math.abs(parseFloat(x.dataset.kpRate) - 1.1) < 0.001);
+    if (b) b.click();
+  })()`);
+  const speedAfter = await evaluate(
+    "parseFloat(document.querySelector('[data-kp-speed-label]').textContent)");
+  const rate = await evaluate('window.__lastAudio ? window.__lastAudio.playbackRate : -1');
+  // The per-sentence speed must not leak into the toolbar or localStorage.
+  const toolbarSpeed = await evaluate(
+    "parseFloat(document.querySelector('[data-speed-label]').textContent)");
+  const savedSpeed = await evaluate("localStorage.getItem('npesl-speed')");
+  const globalOk = Math.abs(toolbarSpeed - speedBefore) < 0.001
+    && (savedSpeed === null || Math.abs(parseFloat(savedSpeed) - speedBefore) < 0.001);
+
+  // Another sentence starts again at the page-wide default.
+  const second = await evaluate(`(() => {
+    const list = [...document.querySelectorAll('.story .s.ktv')];
+    if (list.length < 2) return null;
+    list[1].click();
+    return list[1].getAttribute('data-text');
+  })()`);
+  const reset = second ? await waitFor(
+    `!!(window.__lastAudio && !window.__lastAudio.paused
+      && Math.abs(window.__lastAudio.playbackRate - ${speedBefore}) < 0.01)`, 3000) : false;
+
+  await evaluate("document.querySelector('[data-kp-close]').click()");
+  const closed = await waitFor("document.querySelector('[data-kplayer]').hidden", 1500);
+
+  const seekOk = Math.abs(moved - target) < 0.25;
+  const ok = shown && started && lit && paused && seekOk && resumed && menuOpen
+    && speedAfter !== speedBefore && Math.abs(rate - speedAfter) < 0.02
+    && globalOk && reset && closed;
+  return {
+    ok,
+    detail: `dock=${shown} words=${info.words} lit=${lit} paused=${paused} `
+      + `seek=${Number(moved).toFixed(2)}/${target.toFixed(2)} resumed=${resumed} `
+      + `menu=${menuOpen} speed=${speedBefore}->${speedAfter}(${rate}) `
+      + `global=${toolbarSpeed}/${savedSpeed} resetNext=${reset} closed=${closed}`,
+  };
+}
+
+// Play-all must still walk title → sentences, showing the dock on body
+// sentences and advancing after each one, with pause/resume intact.
+async function probeConversationPlayAll() {
+  const clicked = await evaluate(`(() => {
+    const b = document.querySelector('[data-play-all]');
+    if (!b) return false;
+    b.click();
+    return true;
+  })()`);
+  if (!clicked) return { ok: false, detail: '没有朗读全文按钮' };
+  const onStory = await waitFor("!!document.querySelector('.story .s.playing')", 12000);
+  const dock = await waitFor("!document.querySelector('[data-kplayer]').hidden", 4000);
+  const first = await evaluate(
+    "(document.querySelector('.story .s.playing') || {}).dataset?.text || ''");
+  const advanced = await waitFor(
+    `(() => {
+      const b = document.querySelector('.story .s.playing');
+      return !!(b && b.dataset.text !== ${JSON.stringify(first)});
+    })()`, 12000);
+
+  await evaluate("document.querySelector('[data-kp-toggle]').click()");
+  const paused = await waitFor('!!(window.__lastAudio && window.__lastAudio.paused)', 2000);
+  await evaluate("document.querySelector('[data-kp-toggle]').click()");
+  const resumed = await waitFor('!!(window.__lastAudio && !window.__lastAudio.paused)', 2500);
+
+  await evaluate("document.querySelector('[data-play-all]').click()");
+  const stopped = await waitFor(`(() => {
+    const b = document.querySelector('[data-play-all]');
+    return b && b.getAttribute('aria-pressed') === 'false'
+      && document.querySelector('[data-kplayer]').hidden
+      && window.__lastAudio && window.__lastAudio.paused;
+  })()`, 2500);
+
+  const ok = onStory && dock && advanced && paused && resumed && stopped;
+  return {
+    ok,
+    detail: `story=${onStory} dock=${dock} advanced=${advanced} paused=${paused} `
+      + `resumed=${resumed} stopped=${stopped} first="${first}"`,
+  };
+}
+
+// Every level, both voices: the sprite must seek, play, and light a word.
+async function probeConversationLevels() {
+  const levels = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2', 'eslse'];
+  const notes = [];
+  for (const level of levels) {
+    await goto(`/conversation/${level}/01-01-family.html`);
+    for (const voice of ['f', 'm']) {
+      await evaluate(`document.querySelector('[data-voice="${voice}"]').click()`);
+      const info = await evaluate(`(() => {
+        const b = document.querySelector('.story .s.ktv');
+        if (!b) return null;
+        b.click();
+        return { words: b.querySelectorAll('.w').length };
+      })()`);
+      if (!info || !info.words) {
+        notes.push(`${level}-${voice}:no-ktv`);
+        continue;
+      }
+      const shown = await waitFor("!document.querySelector('[data-kplayer]').hidden", 4000);
+      const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)', 5000);
+      const lit = await waitFor("!!document.querySelector('.story .s.ktv.playing .w.read')", 4000);
+      const rate = await evaluate('window.__lastAudio ? window.__lastAudio.playbackRate : -1');
+      await evaluate("document.querySelector('[data-kp-close]').click()");
+      const closed = await waitFor("document.querySelector('[data-kplayer]').hidden", 1500);
+      const ok = shown && started && lit && closed && Math.abs(rate - 0.9) < 0.01;
+      notes.push(`${level}-${voice}:${ok ? 'ok' : 'FAIL'}${errors.length ? '(console)' : ''}`);
+      if (!ok) return { ok: false, detail: notes.join(' ') };
+    }
+  }
+  return { ok: true, detail: notes.join(' ') };
+}
+
 const cases = [
   {
     name: 'entry', path: '/',
@@ -237,14 +389,33 @@ const cases = [
   {
     name: 'phonics', path: '/phonics/lessons/01-i.html',
     async run() {
-      const p = await playAndProbe('button.chunk');
+      const female = await playAndProbe('button.chunk');
       const end = await evaluate(
         "parseFloat(document.querySelector('button.chunk').dataset.endF)");
-      const ok = p.started && p.currentTime > 0.03 && p.currentTime <= end + 0.6
-        && p.mediaErrors.length === 0;
+      // Both voices come from Azure now; the male track is a separate file.
+      const maleStart = await evaluate(`(() => {
+        const btn = document.querySelector('#voiceSeg [data-voice="m"]');
+        if (!btn) return null;
+        btn.click();
+        const b = [...document.querySelectorAll('button.chunk')]
+          .find((x) => parseFloat(x.dataset.startM) > 0.1);
+        if (!b) return null;
+        b.setAttribute('data-smoke', '1');
+        return parseFloat(b.dataset.startM);
+      })()`);
+      await sleep(400);
+      const male = maleStart === null ? null
+        : await playAndProbe('button.chunk[data-smoke]');
+      const femaleOk = female.started && female.currentTime > 0.03
+        && female.currentTime <= end + 0.6 && female.mediaErrors.length === 0;
+      const maleOk = male !== null && male.started
+        && male.currentTime >= maleStart - 0.1 && /-m\.mp3/.test(male.src || '')
+        && male.mediaErrors.length === 0;
       return {
-        ok,
-        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} end=${end} err=${JSON.stringify(p.mediaErrors)}`,
+        ok: femaleOk && maleOk,
+        detail: `f start=${female.started} t=${female.currentTime?.toFixed(2)} `
+          + `end=${end}; m t=${male?.currentTime?.toFixed(2)} want≥${maleStart} `
+          + `src=${male?.src?.split('/').pop()} err=${JSON.stringify(female.mediaErrors.concat(male?.mediaErrors || []))}`,
       };
     },
   },
@@ -253,18 +424,39 @@ const cases = [
     async run() {
       // 点一张卡里非第一条的录音：整张卡一条 sprite，必须 seek 到中段。
       // 线上 Pages 不支持 Range，seek 被夹回开头时这里会露馅。
-      const start = await evaluate(`(() => {
+      // 男女两套都要测：补录音现在来自 Azure，和 PDF 自带录音混在同一张卡。
+      const info = await evaluate(`(() => {
         const b = [...document.querySelectorAll('button.word')]
-          .find((x) => parseFloat(x.getAttribute('data-start-f')) > 0);
+          .find((x) => parseFloat(x.getAttribute('data-start-f')) > 0
+            && parseFloat(x.getAttribute('data-start-m')) > 0);
         if (!b) return null;
         b.setAttribute('data-smoke', '1');
-        return parseFloat(b.getAttribute('data-start-f'));
+        return {
+          f: parseFloat(b.getAttribute('data-start-f')),
+          m: parseFloat(b.getAttribute('data-start-m')),
+        };
       })()`);
-      if (start === null) return { ok: false, detail: '没有中段录音可点' };
-      const p = await playAndProbe('button.word[data-smoke]');
+      if (!info) return { ok: false, detail: '没有中段录音可点' };
+      const female = await playAndProbe('button.word[data-smoke]');
+      const switched = await evaluate(`(() => {
+        const b = document.querySelector('button.word[data-smoke]');
+        const card = b && b.closest('.card');
+        const m = card && card.querySelector('.voice button[data-voice="m"]');
+        if (!m) return false;
+        m.click();
+        return true;
+      })()`);
+      await sleep(400);
+      const male = await playAndProbe('button.word[data-smoke]');
+      const femaleOk = female.started && female.currentTime >= info.f - 0.1
+        && female.mediaErrors.length === 0;
+      const maleOk = switched && male.started && male.currentTime >= info.m - 0.1
+        && male.src !== female.src && male.mediaErrors.length === 0;
       return {
-        ok: p.started && p.currentTime >= start - 0.1 && p.mediaErrors.length === 0,
-        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start} src=${p.src?.split('/').pop()}`,
+        ok: femaleOk && maleOk,
+        detail: `f t=${female.currentTime?.toFixed(2)} want≥${info.f}; `
+          + `m t=${male.currentTime?.toFixed(2)} want≥${info.m} `
+          + `src=${male.src === female.src ? 'same' : 'different'}`,
       };
     },
   },
@@ -302,6 +494,18 @@ const cases = [
   {
     name: 'conversation-eslse', path: '/conversation/eslse/01-01-family.html',
     run: probeConversationPage,
+  },
+  {
+    name: 'conversation-ktv', path: '/conversation/a1/01-01-family.html',
+    run: probeConversationKaraoke,
+  },
+  {
+    name: 'conversation-playall', path: '/conversation/a1/01-01-family.html',
+    run: probeConversationPlayAll,
+  },
+  {
+    name: 'conversation-levels', path: '/conversation/a1/01-01-family.html',
+    run: probeConversationLevels,
   },
   {
     name: 'phenomena', path: '/phenomena/01-your-stop-is-next.html',

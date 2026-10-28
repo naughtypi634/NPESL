@@ -794,11 +794,14 @@ def _analyse(sentence: str):
     }
 
 
-def annotate(sentence: str, thought_groups: bool = True) -> str:
+def annotate(sentence: str, thought_groups: bool = True,
+             wrap_words: bool = False) -> str:
     """Return the sentence as HTML with pronunciation marks.
 
     ``thought_groups=False`` leaves out the sense-group bars, for readers that
     play one whole sentence per tap and do not split it visually.
+    ``wrap_words=True`` puts every word in ``<span class="w" data-i="N">`` so
+    the player can follow Edge TTS word boundaries (N follows WORD_RE order).
     """
     analysed = _analyse(sentence)
     if not analysed:
@@ -834,6 +837,9 @@ def annotate(sentence: str, thought_groups: bool = True) -> str:
             )
         else:
             word_html = html.escape(word)
+
+        if wrap_words:
+            word_html = f'<span class="w" data-i="{i}">{word_html}</span>'
 
         out.append(word_html)
 
