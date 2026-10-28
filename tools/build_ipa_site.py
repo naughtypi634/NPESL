@@ -692,6 +692,7 @@ TEMPLATE = """<!doctype html>
   var player = new Audio();
   player.preload = 'none';
   var active = null, token = 0;
+  var SOURCES = {}, SOURCE_KEYS = [], loadedSrc = null;
   var VOICES_KEY = 'npesl-ipa-voices';
   var saved = {};
   try {
@@ -719,26 +720,75 @@ TEMPLATE = """<!doctype html>
     return pressed ? pressed.dataset.voice : 'f';
   }
 
-  function play(button) {
-    var card = button.closest('.card');
-    if (!card) return;
-    var voice = cardVoice(card);
-    var start = parseFloat(button.getAttribute('data-start-' + voice));
-    var end = parseFloat(button.getAttribute('data-end-' + voice));
-    var source = card.getAttribute('data-sprite-' + voice);
-    if (!source || !isFinite(start) || !isFinite(end)) return;
-    stop();
-    var current = ++token;
-    active = button;
-    button.classList.add('playing');
-    if (player.getAttribute('src') !== source) player.src = source;
-    var raf = 0;
+  // Cloudflare Pages 的静态资源不支持 Range 请求（Range 被忽略，永远 200 整包），
+  // 媒体元素在没有 Range 时连 seekable 都只有 [0,0]，点第二个词会被夹回开头播。
+  // 所以先把这张卡的 sprite 取进内存换成 blob 地址：seek 永远精确；离线包用
+  // file:// 时 fetch 不可用，退回直接给媒体元素。
+  function sourceFor(url) {
+    if (SOURCES[url]) return SOURCES[url];
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      SOURCES[url] = Promise.resolve(url);
+      return SOURCES[url];
+    }
+    SOURCES[url] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    });
+    SOURCE_KEYS.push(url);
+    // 一页 40 张卡、两个音色：只留最近用过的十几条，别一直占着内存。
+    while (SOURCE_KEYS.length > 16) {
+      (function (key) {
+        var cached = SOURCES[key];
+        delete SOURCES[key];
+        if (!cached) return;
+        cached.then(function (src) {
+          if (src && src.indexOf('blob:') === 0 && src !== loadedSrc) {
+            try { URL.revokeObjectURL(src); } catch (e) {}
+          }
+        });
+      })(SOURCE_KEYS.shift());
+    }
+    return SOURCES[url];
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  // 拿不到整包时（本地文件、跨域不让 fetch）只有媒体元素可用：等目标位置变
+  // 成可跳的再试，别把用户丢在错误的位置上。
+  function waitForData(current, seek, from, attempt) {
+    if (current !== token) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { clearActive(); return; }
+    setTimeout(function () { waitForData(current, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(current, from, stopAt) {
+    var raf = 0, retries = 0;
     var play = function () {
       if (current !== token) return;
+      if (player.currentTime < from - 0.15) {
+        // seek 没落地：宁可等数据，也不要从整条音频的开头播起。
+        if (++retries > 3) { clearActive(); return; }
+        waitForData(current, seek, from, 0);
+        return;
+      }
       var result = player.play();
       var tick = function () {
         if (current !== token) return;
-        if (player.currentTime >= end - 0.008) {
+        if (player.currentTime >= stopAt - 0.008) {
           player.pause();
           cancelAnimationFrame(raf);
           clearActive();
@@ -753,22 +803,30 @@ TEMPLATE = """<!doctype html>
     };
     var seek = function () {
       if (current !== token) return;
-      if (Math.abs(player.currentTime - start) < 0.02) { play(); return; }
+      if (Math.abs(player.currentTime - from) < 0.02) { play(); return; }
       var done = false;
-      var fire = function () {
+      var onSeeked = function () {
         if (done) return;
         done = true;
         player.removeEventListener('seeked', onSeeked);
-        play();
+        if (current === token) play();
       };
-      var onSeeked = function () { fire(); };
       player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(current, seek, from, 0);
+        return;
+      }
+      // 个别浏览器 seek 后不派发 seeked，别把用户卡在原地。
       setTimeout(function () {
         if (done) return;
-        if (Math.abs(player.currentTime - start) > 0.05) player.currentTime = start;
-        fire();
-      }, 600);
-      player.currentTime = start;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === token) play();
+      }, 1500);
     };
     if (player.readyState < 1) {
       var onLoaded = function () {
@@ -780,6 +838,29 @@ TEMPLATE = """<!doctype html>
     } else {
       seek();
     }
+  }
+
+  function play(button) {
+    var card = button.closest('.card');
+    if (!card) return;
+    var voice = cardVoice(card);
+    var start = parseFloat(button.getAttribute('data-start-' + voice));
+    var end = parseFloat(button.getAttribute('data-end-' + voice));
+    var source = card.getAttribute('data-sprite-' + voice);
+    if (!source || !isFinite(start) || !isFinite(end)) return;
+    stop();
+    var current = ++token;
+    active = button;
+    button.classList.add('playing');
+    sourceFor(source).then(function (src) {
+      if (current !== token) return;
+      if (!src) { clearActive(); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(current, start, end);
+    });
   }
 
   Array.prototype.forEach.call(document.querySelectorAll('.card'), function (card) {

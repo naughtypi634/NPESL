@@ -58,30 +58,11 @@ const server = createServer(async (req, res) => {
       buf = await readFile(join(SERVE_DIR, candidate));
     } catch { continue; }
     const type = MIME[extname(candidate)] || 'application/octet-stream';
-    // 音频要支持 Range，否则浏览器报不出时长、也跳不准（线上 Pages 支持）。
-    const range = req.headers.range;
-    if (range) {
-      const m = /bytes=(\d*)-(\d*)/.exec(range);
-      let start = m && m[1] ? parseInt(m[1], 10) : 0;
-      let end = m && m[2] ? parseInt(m[2], 10) : buf.length - 1;
-      if (start >= buf.length) {
-        res.writeHead(416, { 'content-range': `bytes */${buf.length}` });
-        res.end();
-        return;
-      }
-      end = Math.min(end, buf.length - 1);
-      res.writeHead(206, {
-        'content-type': type,
-        'accept-ranges': 'bytes',
-        'content-range': `bytes ${start}-${end}/${buf.length}`,
-        'content-length': end - start + 1,
-      });
-      res.end(buf.subarray(start, end + 1));
-      return;
-    }
+    // 和线上一致：Cloudflare Pages 的静态资源不支持 Range（Range 被忽略，永远
+    // 200 整包）。这里故意也不做 206——否则本机测不出「seek 被夹回开头」这类
+    // 只在真站上出现的问题。
     res.writeHead(200, {
       'content-type': type,
-      'accept-ranges': 'bytes',
       'content-length': buf.length,
     });
     res.end(buf);
@@ -244,10 +225,20 @@ const cases = [
   {
     name: 'ipa', path: '/ipa/',
     async run() {
-      const p = await playAndProbe('button.word');
+      // 点一张卡里非第一条的录音：整张卡一条 sprite，必须 seek 到中段。
+      // 线上 Pages 不支持 Range，seek 被夹回开头时这里会露馅。
+      const start = await evaluate(`(() => {
+        const b = [...document.querySelectorAll('button.word')]
+          .find((x) => parseFloat(x.getAttribute('data-start-f')) > 0);
+        if (!b) return null;
+        b.setAttribute('data-smoke', '1');
+        return parseFloat(b.getAttribute('data-start-f'));
+      })()`);
+      if (start === null) return { ok: false, detail: '没有中段录音可点' };
+      const p = await playAndProbe('button.word[data-smoke]');
       return {
-        ok: p.started && p.currentTime > 0.03 && p.mediaErrors.length === 0,
-        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} src=${p.src?.split('/').pop()}`,
+        ok: p.started && p.currentTime >= start - 0.1 && p.mediaErrors.length === 0,
+        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start} src=${p.src?.split('/').pop()}`,
       };
     },
   },
@@ -262,10 +253,19 @@ const cases = [
       await evaluate("document.querySelector('#reveal').click()");
       const hasPlay = await waitFor("!!document.querySelector('#answers .playBtn')", 5000);
       if (!hasPlay) return { ok: false, detail: '题目没有渲染出播放按钮' };
-      const p = await playAndProbe('#answers .playBtn');
+      // 点最后一个说法：它前面还有别的录音，必须 seek 过去。
+      const start = await evaluate(`(() => {
+        const b = [...document.querySelectorAll('#answers .playBtn')].pop();
+        if (!b) return null;
+        b.setAttribute('data-smoke', '1');
+        const at = parseFloat(b.dataset.start);
+        return isFinite(at) ? at : null;
+      })()`);
+      if (start === null) return { ok: false, detail: '播放按钮没有时间偏移' };
+      const p = await playAndProbe('#answers .playBtn[data-smoke]');
       return {
-        ok: p.started && p.currentTime > 0.03 && p.mediaErrors.length === 0,
-        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} err=${JSON.stringify(p.mediaErrors)}`,
+        ok: p.started && p.currentTime >= start - 0.1 && p.mediaErrors.length === 0,
+        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start} err=${JSON.stringify(p.mediaErrors)}`,
       };
     },
   },
@@ -274,8 +274,9 @@ const cases = [
     async run() {
       // 页面用的是一整条音频 + 时间偏移，所以不只看出声，
       // 还要确认它落在被点那句的区间里（起点对、终点停得住）。
+      // 点正文第一句（不是从 0 秒开始的标题），才能真正测到 seek。
       const info = await evaluate(`(() => {
-        const b = document.querySelector('button.s');
+        const b = document.querySelector('.story button.s');
         if (!b) return null;
         const start = parseFloat(b.getAttribute('data-start-f'));
         const end = parseFloat(b.getAttribute('data-end-f'));
@@ -298,10 +299,19 @@ const cases = [
   {
     name: 'phenomena', path: '/phenomena/01-your-stop-is-next.html',
     async run() {
-      const p = await playAndProbe('button.line');
+      // 整章一条 sprite：点第二句，确认真的跳到了它的位置。
+      const start = await evaluate(`(() => {
+        const b = [...document.querySelectorAll('button.line')]
+          .find((x) => parseFloat(x.getAttribute('data-start-f')) > 0);
+        if (!b) return null;
+        b.setAttribute('data-smoke', '1');
+        return parseFloat(b.getAttribute('data-start-f'));
+      })()`);
+      if (start === null) return { ok: false, detail: '没有中段句子可点' };
+      const p = await playAndProbe('button.line[data-smoke]');
       return {
-        ok: p.started && p.currentTime > 0.03 && p.mediaErrors.length === 0,
-        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)}`,
+        ok: p.started && p.currentTime >= start - 0.1 && p.mediaErrors.length === 0,
+        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start}`,
       };
     },
   },

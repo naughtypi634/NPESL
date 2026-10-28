@@ -640,8 +640,11 @@ PLAY_JS = """
   var voice = 'f';
   var playlist = null;
   var statusTimer = null;
+  var stickyStatus = false;
   var raf = 0;
-  var loadedVoice = null;
+  var loadedSrc = null;
+  var SOURCES = {};
+  var READY = {};
   var SPRITES = {};
   try {
     SPRITES = JSON.parse(document.getElementById('spriteMap').textContent);
@@ -669,19 +672,32 @@ PLAY_JS = """
   function stopAudio() {
     try { player.pause(); } catch (e) {}
     stopTick();
+    hideStatus();
     unmark();
   }
 
-  function showStatus(text) {
+  function showStatus(text, sticky) {
     var el = document.querySelector('[data-audio-status]');
     if (!el) return;
     el.textContent = text;
     el.classList.add('show');
+    stickyStatus = !!sticky;
     if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
     statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
       el.textContent = '';
       el.classList.remove('show');
     }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
   }
 
   function speedLabel(value) {
@@ -725,14 +741,34 @@ PLAY_JS = """
     return (isFinite(s) && isFinite(e)) ? [s, e] : null;
   }
 
-  function spriteUrl() {
-    var rel = SPRITES[voice];
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
     if (!rel) return null;
-    return AUDIO_BASE + VOICE_DIR[voice] + '/' + rel;
+    return AUDIO_BASE + VOICE_DIR[v] + '/' + rel;
   }
 
   function stopTick() {
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable;
+    var end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  // 拿不到整包时（本地文件、跨域不让 fetch）只有媒体元素可用：等目标位置变
+  // 成可跳的再试，别把用户丢在错误的位置上。
+  function waitForData(btn, seek, from, attempt) {
+    if (current !== btn) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(btn); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(btn, seek, from, attempt + 1); }, 250);
   }
 
   // 每页一整条音频：先跳到片段起点，等 seek 落地再播，播到终点就停。
@@ -740,10 +776,18 @@ PLAY_JS = """
   function startSpan(btn, span, onEnd) {
     var from = span[0];
     var stopAt = span[1];
+    var retries = 0;
     try { player.pause(); } catch (e) {}
     stopTick();
     var play = function () {
       if (current !== btn) return;
+      if (player.currentTime < from - 0.15) {
+        // seek 没落地：宁可等数据，也不要从整条音频的开头播起。
+        if (++retries > 3) { audioFailed(btn); return; }
+        waitForData(btn, seek, from, 0);
+        return;
+      }
+      hideStatus();
       player.playbackRate = speed;
       var started = player.play();
       var tick = function () {
@@ -769,21 +813,28 @@ PLAY_JS = """
       if (current !== btn) return;
       if (Math.abs(player.currentTime - from) < 0.02) { play(); return; }
       var done = false;
-      var onSeeked = function () { fire(); };
-      var fire = function () {
+      var onSeeked = function () {
         if (done) return;
         done = true;
         player.removeEventListener('seeked', onSeeked);
         if (current === btn) play();
       };
       player.addEventListener('seeked', onSeeked);
-      // 网络音频 seek 比内存 Blob 慢；超时还没落地就再设一次再播。
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(btn, seek, from, 0);
+        return;
+      }
+      // 个别浏览器 seek 后不派发 seeked，别把用户卡在原地。
       setTimeout(function () {
         if (done) return;
-        if (Math.abs(player.currentTime - from) > 0.05) player.currentTime = from;
-        fire();
-      }, 600);
-      player.currentTime = from;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === btn) play();
+      }, 1500);
     };
     if (player.readyState < 1) {
       var onLoaded = function () {
@@ -797,15 +848,56 @@ PLAY_JS = """
     }
   }
 
-  function prepare(btn) {
-    var span = spanFor(btn);
-    var url = spriteUrl();
-    if (!span || !url) return null;
-    if (loadedVoice !== voice) {
-      player.src = url;
-      loadedVoice = voice;
+  // Cloudflare Pages 的静态资源不支持 Range 请求（Range 被忽略，永远 200 整包），
+  // 媒体元素在没有 Range 时连 seekable 都只有 [0,0]，点正文会被夹回开头播。
+  // 所以先把整条 sprite 取进内存换成 blob 地址：seek 永远精确，离线包用
+  // file:// 时 fetch 不可用，退回直接给媒体元素。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
     }
-    return span;
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(btn, onEnd) {
+    var span = spanFor(btn);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === btn) unmark();
+      showStatus('这一句暂无可用语音，请切换音色');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== btn) return;
+      if (!src) { audioFailed(btn); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(btn, span, onEnd);
+    });
   }
 
   function audioFailed(btn) {
@@ -821,8 +913,7 @@ PLAY_JS = """
     playlist.index = index;
     var btn = playlist.items[index];
     unmark();
-    var span = prepare(btn);
-    if (!span) { audioFailed(btn); return; }
+    if (!spanFor(btn)) { audioFailed(btn); return; }
     current = btn;
     btn.classList.add('playing');
     if (index > 0) {
@@ -836,7 +927,7 @@ PLAY_JS = """
       }
     }
     var list = playlist;
-    startSpan(btn, span, function () {
+    begin(btn, function () {
       if (playlist !== list) return;
       playItem(list.index + 1);
     });
@@ -858,14 +949,9 @@ PLAY_JS = """
       return;
     }
     stopAudio();
-    var span = prepare(btn);
-    if (!span) {
-      showStatus('这一句暂无可用语音，请切换音色');
-      return;
-    }
     current = btn;
     btn.classList.add('playing');
-    startSpan(btn, span, null);
+    begin(btn, null);
   }
 
   player.addEventListener('error', function () {
@@ -879,6 +965,7 @@ PLAY_JS = """
   function setVoice(next) {
     voice = next === 'm' ? 'm' : 'f';
     stopPlaylist();
+    prefetch();
     try { localStorage.setItem('npesl-voice', voice); } catch (e) {}
     var buttons = document.querySelectorAll('[data-voice]');
     for (var i = 0; i < buttons.length; i++) {
@@ -927,6 +1014,18 @@ PLAY_JS = """
   if (playAllBtn) {
     setPlayAll(false);
     playAllBtn.addEventListener('click', playAll);
+  }
+
+  // 点读是这一页的主动作：页面空闲时先把当前音色的 sprite 取进内存，
+  // 点下去就能出声（只在联网时预取；离线包走 file://，媒体元素直接读本地文件）。
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
   }
 
   document.addEventListener('click', function (event) {

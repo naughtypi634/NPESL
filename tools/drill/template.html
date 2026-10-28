@@ -902,6 +902,9 @@ player.preload = 'none';
 let playingBtn = null;
 let cueRaf = 0;
 let spriteVoice = null;
+const SOURCES = new Map();
+const SOURCE_KEYS = [];
+let loadedSrc = null;
 
 function markIdle() {
   if (cueRaf) { cancelAnimationFrame(cueRaf); cueRaf = 0; }
@@ -910,6 +913,36 @@ function markIdle() {
 }
 
 player.addEventListener('ended', markIdle);
+
+/* Cloudflare Pages 的静态资源不支持 Range 请求（Range 被忽略，永远 200 整包），
+   媒体元素在没有 Range 时连 seekable 都只有 [0,0]，点第二个说法会播回第一句。
+   所以先把这道题的 sprite 整条取进内存换成 blob 地址：seek 永远精确；离线包
+   用 file:// 时 fetch 不可用，退回直接给媒体元素。 */
+function sourceFor(url) {
+  if (SOURCES.has(url)) return SOURCES.get(url);
+  const canFetch = location.protocol !== 'file:' && window.fetch
+    && window.Promise && window.URL && URL.createObjectURL;
+  let pending;
+  if (!canFetch) pending = Promise.resolve(url);
+  else pending = fetch(url).then((res) => {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.blob();
+  }).then((blob) => URL.createObjectURL(blob)).catch(() => url);
+  SOURCES.set(url, pending);
+  SOURCE_KEYS.push(url);
+  // 一轮练习会翻很多题：只留最近用过的几条 sprite，别一直占着内存。
+  while (SOURCE_KEYS.length > 8) {
+    const key = SOURCE_KEYS.shift();
+    const cached = SOURCES.get(key);
+    SOURCES.delete(key);
+    if (cached) cached.then((src) => {
+      if (src && src.indexOf('blob:') === 0 && src !== loadedSrc) {
+        URL.revokeObjectURL(src);
+      }
+    });
+  }
+  return pending;
+}
 
 /* 每题每音色一条 sprite：audio/sprites/<name>-<voice>.mp3。
    每句只知道自己在 sprite 里的起止时间。找不到就停下，
@@ -929,46 +962,37 @@ function playCue(btn, answer, voice) {
   const url = 'audio/sprites/' + sprite + '-' + voice + '.mp3';
   const fail = () => { if (playingBtn === btn) markIdle(); };
   player.onerror = fail;
-  if (player.getAttribute('src') !== url) {
-    player.src = url;
-    spriteVoice = voice;
-  }
   playingBtn = btn;
   btn.classList.add('is-playing');
   const startAt = at[0];
   const stopAt = at[1];
 
-  const begin = () => {
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  const seekableEnd = () => {
+    const ranges = player.seekable;
+    let end = 0;
+    for (let i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  };
+
+  // 拿不到整包时（本地文件、跨域不让 fetch）只有媒体元素可用：等目标位置变
+  // 成可跳的再试，别把用户丢在错误的位置上。
+  const waitForData = (seek, from, attempt) => {
     if (playingBtn !== btn) return;
-    if (Math.abs(player.currentTime - startAt) > 0.02) {
-      let done = false;
-      const fire = () => {
-        if (done) return;
-        done = true;
-        player.removeEventListener('seeked', onSeeked);
-        if (playingBtn !== btn) return;
-        player.playbackRate = 1;
-        const started = player.play();
-        if (started && started.catch) started.catch(fail);
-        const tick = () => {
-          if (playingBtn !== btn) return;
-          if (player.currentTime >= stopAt - 0.008) {
-            player.pause();
-            markIdle();
-            return;
-          }
-          cueRaf = requestAnimationFrame(tick);
-        };
-        cueRaf = requestAnimationFrame(tick);
-      };
-      const onSeeked = () => fire();
-      player.addEventListener('seeked', onSeeked);
-      setTimeout(() => {
-        if (done) return;
-        if (Math.abs(player.currentTime - startAt) > 0.05) player.currentTime = startAt;
-        fire();
-      }, 600);
-      player.currentTime = startAt;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { fail(); return; }
+    setTimeout(() => waitForData(seek, from, attempt + 1), 250);
+  };
+
+  let retries = 0;
+  const play = () => {
+    if (playingBtn !== btn) return;
+    if (player.currentTime < startAt - 0.15) {
+      // seek 没落地：宁可等数据，也不要从整条音频的开头播起。
+      if (++retries > 3) { fail(); return; }
+      waitForData(seek, startAt, 0);
       return;
     }
     player.playbackRate = 1;
@@ -986,16 +1010,58 @@ function playCue(btn, answer, voice) {
     cueRaf = requestAnimationFrame(tick);
   };
 
-  if (player.readyState < 1) {
-    const onLoaded = () => {
-      player.removeEventListener('loadedmetadata', onLoaded);
-      begin();
+  const seek = () => {
+    if (playingBtn !== btn) return;
+    if (Math.abs(player.currentTime - startAt) < 0.02) { play(); return; }
+    let done = false;
+    const onSeeked = () => {
+      if (done) return;
+      done = true;
+      player.removeEventListener('seeked', onSeeked);
+      play();
     };
-    player.addEventListener('loadedmetadata', onLoaded);
-    try { player.load(); } catch (e) {}
-  } else {
+    player.addEventListener('seeked', onSeeked);
+    try {
+      player.currentTime = startAt;
+    } catch (e) {
+      player.removeEventListener('seeked', onSeeked);
+      done = true;
+      waitForData(seek, startAt, 0);
+      return;
+    }
+    // 个别浏览器 seek 后不派发 seeked，别把用户卡在原地。
+    setTimeout(() => {
+      if (done) return;
+      done = true;
+      player.removeEventListener('seeked', onSeeked);
+      if (playingBtn === btn) play();
+    }, 1500);
+  };
+
+  const begin = () => {
+    if (playingBtn !== btn) return;
+    if (player.readyState < 1) {
+      const onLoaded = () => {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  };
+
+  sourceFor(url).then((src) => {
+    if (playingBtn !== btn) return;
+    if (!src) { fail(); return; }
+    if (loadedSrc !== src) {
+      player.src = src;
+      loadedSrc = src;
+      spriteVoice = voice;
+    }
     begin();
-  }
+  });
 }
 
 let bucket = 'all';
@@ -1316,6 +1382,7 @@ function renderAnswers() {
     play.className = 'play';
     for (const voice of ['f', 'm']) {
       const btn = playButton(voice, a.en);
+      if (a.at && a.at[voice]) btn.dataset.start = String(a.at[voice][0]);
       btn.addEventListener('click', () => playCue(btn, a, voice));
       play.appendChild(btn);
     }
