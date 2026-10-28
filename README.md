@@ -63,9 +63,18 @@ cd apps\phenomena\source
 .venv\Scripts\python.exe -I tools\drill\make_audio.py
 .venv\Scripts\python.exe -I tools\drill\assemble.py
 .venv\Scripts\python.exe -I tools\drill\build_miniprogram_bank.py
+
+# 清理构建垃圾（Edge 临时配置、日志、__pycache__）；--all 连部署暂存和离线包一起清
+.venv\Scripts\python.exe -I tools\clean_build.py
+.venv\Scripts\python.exe -I tools\clean_build.py --all
+
+# 本地预览（先构建 build/cloudflare-site）
+node tools\preview_site.mjs
 ```
 
-> **题库注意**：`content/drill/questions.json` 是权威题库（1,370 题）。批次 JSON 复现不出它——`extra-questions.json` 里还有 192 道补充题。所以 `assemble.py` 默认只从 `questions.json` 重渲染；真要重建题库得显式加 `--from-batches`，那会丢掉补充题。
+> **题库注意**：`content/drill/questions.json` 是权威题库（2,247 题）。批次 JSON 复现不出它——`extra-questions.json` 里还有 192 道补充题。所以 `assemble.py` 默认只从 `questions.json` 重渲染；真要重建题库得显式加 `--from-batches`，那会丢掉补充题。
+>
+> 补题流程：新题写到 `content/drill/topup/*.json`（`chip` 必填，取值见 `content/drill/chips.json`），先跑 `tools/drill/check_dup.py` 和 `check_text.py`，再 `tools/drill/tag_chips.py --merge` 合并进 `questions.json`，最后按上面的顺序补语音、拼 sprite。
 
 `build_site.py` 支持 `--levels`、`--audio-levels`、`--voices`、`--no-audio`，只改页面或只补某一级时用。自然拼读的 `build.py` 支持 `--only <课号>`、`--skip-audio`、`--voices m`。
 

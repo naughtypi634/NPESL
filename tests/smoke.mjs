@@ -11,11 +11,11 @@
 //
 // Exit code 0 = all passed.
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { rmSync } from 'node:fs';
-import { dirname, extname, join, resolve } from 'node:path';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -326,9 +326,27 @@ for (const c of cases) {
 }
 
 try { ws.close(); } catch {}
-try { proc.kill(); } catch {}
+try {
+  // Windows 上 proc.kill() / taskkill /T 都收不干净：Edge 的浏览器进程会
+  // 重新挂到别的父进程下，继续锁着 profile。按命令行里的 profile 名精确杀。
+  if (process.platform === 'win32') {
+    const tag = basename(PROFILE);
+    spawnSync('powershell', ['-NoProfile', '-Command',
+      `Get-CimInstance Win32_Process -Filter "Name='msedge.exe'" | Where-Object { $_.CommandLine -like '*${tag}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`,
+    ], { stdio: 'ignore' });
+  } else {
+    proc.kill('SIGKILL');
+  }
+} catch {}
 server.close();
-try { rmSync(PROFILE, { recursive: true, force: true }); } catch {}
+for (let i = 0; i < 8; i++) {
+  try {
+    rmSync(PROFILE, { recursive: true, force: true });
+    break;
+  } catch {
+    await sleep(250);
+  }
+}
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} 通过`);

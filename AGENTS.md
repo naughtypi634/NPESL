@@ -37,7 +37,8 @@ build/     cloudflare-site/ cloudflare-audio/ npesl-offline/ …（gitignore）
 构建命令见 [README.md](README.md) 的「构建」「部署」两节。几条硬规则：
 
 - **不要手改生成物**：`apps/phonics/lessons/`、该系列的 `index.html`、`apps/ipa/index.html`、`apps/drill/index.html`、`apps/phenomena/*.html`、`build/conversation-site/`、`build/cloudflare-*/`、`build/npesl-offline/` 都是脚本产物。改内容改源（`content/`、`apps/phonics/source/content/`、`content/drill/*.json`），再重新构建。
-- **Question Drill 的权威题库是 `content/drill/questions.json`**（1,370 题）。批次 JSON 复现不出它——`extra-questions.json` 里还有 192 道补充题，所以 `assemble.py` 默认从 `questions.json` 重渲染，只有显式 `--from-batches` 才从批次重建。音频由 `make_audio.py` 按内容哈希写入 `apps/drill/audio/`。
+- **Question Drill 的权威题库是 `content/drill/questions.json`**（2,247 题）。批次 JSON 复现不出它——`extra-questions.json` 里还有 192 道补充题，所以 `assemble.py` 默认从 `questions.json` 重渲染，只有显式 `--from-batches` 才从批次重建。音频由 `make_audio.py` 按内容哈希写入 `apps/drill/audio/`。
+- **Question Drill 用两级场景筛选**：一级是旅游 / 日常生活 / 工作商务，二级是 21 个 chip（机场、车站、住宿、景点、交通、餐厅、购物、买药、办事、居住、看病、家务、社交、休闲、学习、数码、面试、办公室、会议、客户、行政），定义在 `content/drill/chips.json`，每题有 `chip` 字段。交通、餐厅、购物、买药、办事 5 个 chip 由旅游和日常共用，题目只写一份。补题写进 `content/drill/topup/*.json`，先跑 `tools/drill/check_dup.py` 和 `check_text.py`，再用 `tools/drill/tag_chips.py --merge` 合并；每个 chip 至少 100 题。
 - **语音缓存不要删**：`build/tts/cs/`（Conversation Starters）和 `apps/phonics/source/audio/` 是本地缓存，gitignore，但删了就得重新联网合成。内容没变的音频会自动跳过。
 - **音频交付分两层**：逐条录音是母版（`apps/drill/audio/{f,m}/`、`apps/ipa/audio/*.mp3`、`apps/phenomena/audio/{f,m}/`、`build/tts/cs/`），部署只带构建时拼出来的 `sprites/`（每页/每课/每题每音色一条）。改一句读音：删掉该条母版再跑对应构建，只重合成这一条，然后只重拼那一页的 sprite；部署按内容哈希只上传变化的文件。
 - **部署是对外发布**：`wrangler pages deploy` 之前先确认要发布哪些改动；不要在没有明确要求时部署。

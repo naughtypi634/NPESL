@@ -262,6 +262,8 @@
     align-items: center;
     gap: 6px 8px;
   }
+  .controlsTop .catBtn { font-weight: 600; }
+  .controlsSub { margin-top: 8px; }
   .catBtn {
     background: var(--surface);
     color: var(--fg);
@@ -625,13 +627,14 @@
     <h1>Question Drill</h1>
   </header>
 
-  <div class="controls" id="cats" role="group" aria-label="选择场景"></div>
+  <div class="controls controlsTop" id="buckets" role="group" aria-label="选择场景大类"></div>
+  <div class="controls controlsSub" id="cats" role="group" aria-label="选择具体场景"></div>
   <div class="browseRow">
     <button class="browseBtn" id="browse" type="button" aria-haspopup="dialog" aria-expanded="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
         <path d="M4 7h16M4 12h16M4 17h10"/>
       </svg>
-      <span id="browseCount">1370 题</span>
+      <span id="browseCount">2247 题</span>
     </button>
   </div>
   <p class="err" id="err" hidden></p>
@@ -695,8 +698,10 @@
 </div>
 
 __BANK_SCRIPT__
+<script>window.NPESL_CHIPS = __CHIP_DATA__;</script>
 <script>
 const BANK = __BANK_DATA__;
+const CHIPS = window.NPESL_CHIPS;
 
 const $ = (id) => document.getElementById(id);
 
@@ -781,7 +786,7 @@ function cloneAnswerCard(q, width) {
 
   const left = makeEl('div', 'left');
   const sceneRow = makeEl('div', 'sceneRow');
-  sceneRow.appendChild(makeEl('span', 'chip', q.cat));
+  sceneRow.appendChild(makeEl('span', 'chip', chipLabel(q.chip)));
   sceneRow.appendChild(makeEl('span', 'scene', q.scene));
   left.appendChild(sceneRow);
   left.appendChild(makeEl('p', 'zh', q.zh));
@@ -993,11 +998,7 @@ function playCue(btn, answer, voice) {
   }
 }
 
-const CATS = [];
-for (const q of BANK) {
-  if (CATS.indexOf(q.cat) === -1) CATS.push(q.cat);
-}
-
+let bucket = 'all';
 let cat = 'all';
 let deck = [];
 let current = null;
@@ -1013,22 +1014,57 @@ let browserLast = -1;
 let browserRaf = 0;
 let searchTimer = 0;
 
+const chipLabel = (id) => (CHIPS.chips[id] || {}).label || id;
+const bucketDef = (id) => (CHIPS.buckets || []).find((b) => b.id === id);
+const bucketLabel = (id) => (bucketDef(id) || {}).label || '全部场景';
+
+function allChipIds() {
+  const seen = new Set();
+  const out = [];
+  for (const b of CHIPS.buckets || []) {
+    for (const id of b.chips) {
+      if (!seen.has(id)) { seen.add(id); out.push(id); }
+    }
+  }
+  return out;
+}
+
 function fillCats() {
-  const wrap = $('cats');
-  const values = ['all'].concat(CATS);
-  for (const value of values) {
+  const top = $('buckets');
+  const sub = $('cats');
+  clear(top);
+  clear(sub);
+
+  const buckets = [{ id: 'all', label: '全部场景' }].concat(CHIPS.buckets || []);
+  for (const b of buckets) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'catBtn';
-    btn.dataset.cat = value;
-    btn.textContent = value === 'all' ? '全部场景' : value;
-    btn.setAttribute('aria-pressed', String(value === cat));
-    btn.addEventListener('click', () => selectCat(value));
-    wrap.appendChild(btn);
+    btn.dataset.bucket = b.id;
+    btn.textContent = b.label;
+    btn.setAttribute('aria-pressed', String(b.id === bucket));
+    btn.addEventListener('click', () => selectBucket(b.id));
+    top.appendChild(btn);
+  }
+
+  const def = bucketDef(bucket);
+  const ids = bucket === 'all' ? allChipIds() : (def ? def.chips : []);
+  for (const id of ['all'].concat(ids)) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'catBtn';
+    btn.dataset.cat = id;
+    btn.textContent = id === 'all' ? '全部' : chipLabel(id);
+    btn.setAttribute('aria-pressed', String(id === cat));
+    btn.addEventListener('click', () => selectChip(id));
+    sub.appendChild(btn);
   }
 }
 
 function syncFilters() {
+  for (const btn of $('buckets').querySelectorAll('.catBtn')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.bucket === bucket));
+  }
   for (const btn of $('cats').querySelectorAll('.catBtn')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.cat === cat));
   }
@@ -1036,15 +1072,25 @@ function syncFilters() {
 }
 
 function pool() {
-  return cat === 'all' ? BANK : BANK.filter((q) => q.cat === cat);
+  let list = BANK;
+  const def = bucketDef(bucket);
+  if (def) list = list.filter((q) => def.chips.indexOf(q.chip) !== -1);
+  if (cat !== 'all') list = list.filter((q) => q.chip === cat);
+  return list;
+}
+
+function scopeLabel() {
+  if (cat !== 'all') return chipLabel(cat);
+  if (bucket !== 'all') return bucketLabel(bucket);
+  return '全部场景';
 }
 
 function updateBrowseCount() {
   const n = pool().length;
-  const label = '浏览' + (cat === 'all' ? '全部场景' : cat) + '的 ' + n + ' 道题';
+  const name = scopeLabel();
   $('browseCount').textContent = n + ' 题';
   const browse = $('browse');
-  if (browse) browse.setAttribute('aria-label', label);
+  if (browse) browse.setAttribute('aria-label', '浏览' + name + '的 ' + n + ' 道题');
 }
 
 /* 浮层打开时把页面其余部分设为 inert（含注入的主题按钮），
@@ -1062,7 +1108,7 @@ function rowHeight() {
 }
 
 /* 只渲染可视区域附近的十来行；滚动时换窗口，
-   搜索只过滤数据，不逐行改 DOM，所以 1370 题也不会卡。 */
+   搜索只过滤数据，不逐行改 DOM，所以 2247 题也不会卡。 */
 function renderBrowserWindow(force) {
   const list = $('questionList');
   if (list.hidden || $('browser').hidden) return;
@@ -1123,7 +1169,7 @@ function openBrowser(trigger) {
   ).map((q) => ({ q: q, search: (q.zh + ' ' + q.scene).toLowerCase() }));
   browserItems = browserAll;
   browserFirst = browserLast = -1;
-  $('browserTitle').textContent = cat === 'all' ? '全部场景' : cat;
+  $('browserTitle').textContent = scopeLabel();
   $('browserMeta').textContent = browserItems.length + ' 个问题';
 
   el.hidden = false;
@@ -1210,7 +1256,19 @@ function selectFromBrowser(q) {
   paintQuestion();
 }
 
-function selectCat(value) {
+function selectBucket(value) {
+  if (value === bucket && cat === 'all' && current) return;
+  bucket = value;
+  cat = 'all';
+  deck = [];
+  history = [];
+  current = null;
+  fillCats();
+  syncFilters();
+  showQuestion();
+}
+
+function selectChip(value) {
   if (value === cat && current) return;
   cat = value;
   deck = [];
@@ -1284,7 +1342,7 @@ function paintQuestion() {
   if (!current) return;
   $('empty').hidden = true;
   $('card').hidden = false;
-  $('chip').textContent = current.cat;
+  $('chip').textContent = chipLabel(current.chip);
   $('scene').textContent = current.scene;
   $('zh').textContent = current.zh;
   const list = $('answers');

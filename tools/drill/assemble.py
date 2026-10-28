@@ -27,6 +27,7 @@ OUT_HTML = DRILL_APP / "中译英问题生成器.html"
 OUT_JSON = WORK / "questions.json"
 OUT_DOCS = DRILL_APP / "index.html"
 TRANSLATIONS_PATH = WORK / "translations.json"
+CHIPS_PATH = WORK / "chips.json"
 TRANSLATIONS = {}
 if TRANSLATIONS_PATH.exists():
     TRANSLATIONS = json.loads(TRANSLATIONS_PATH.read_text(encoding="utf-8"))
@@ -139,8 +140,12 @@ def render(bank: list[dict]) -> int:
     OUT_JSON.write_text(json.dumps(bank, ensure_ascii=False, indent=1), encoding="utf-8")
     payload = json.dumps(bank, ensure_ascii=False, separators=(",", ":"))
     payload = payload.replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+    chip_payload = json.dumps(
+        json.loads(CHIPS_PATH.read_text(encoding="utf-8")),
+        ensure_ascii=False, separators=(",", ":"),
+    ).replace("</", "<\\/")
     template = TEMPLATE.read_text(encoding="utf-8")
-    for placeholder in ("__BANK_DATA__", "__BANK_SCRIPT__"):
+    for placeholder in ("__BANK_DATA__", "__BANK_SCRIPT__", "__CHIP_DATA__"):
         if placeholder not in template:
             print(f"模板缺少 {placeholder} 占位符", file=sys.stderr)
             return 1
@@ -158,10 +163,14 @@ def render(bank: list[dict]) -> int:
             stale.unlink()
     hosted = (template
               .replace("__BANK_SCRIPT__", f'<script src="{bank_name}"></script>')
-              .replace("__BANK_DATA__", "window.NPESL_BANK"))
+              .replace("__BANK_DATA__", "window.NPESL_BANK")
+              .replace("__CHIP_DATA__", chip_payload))
 
     # 单文件版：题库仍然内联，保证一个 HTML 拷到哪都能打开。
-    single = template.replace("__BANK_SCRIPT__", "").replace("__BANK_DATA__", payload)
+    single = (template
+              .replace("__BANK_SCRIPT__", "")
+              .replace("__BANK_DATA__", payload)
+              .replace("__CHIP_DATA__", chip_payload))
 
     OUT_HTML.parent.mkdir(parents=True, exist_ok=True)
     OUT_HTML.write_text(single, encoding="utf-8")

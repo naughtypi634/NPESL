@@ -271,7 +271,7 @@ def main() -> int:
     inject_head(
         drill_out / "index.html",
         "drill/",
-        "中译英随机练习 · 1,370 题",
+        "中译英随机练习 · 2,247 题",
     )
     inject_theme(drill_out / "index.html")
     inject_back(drill_out / "index.html", "/", "NPESL")
