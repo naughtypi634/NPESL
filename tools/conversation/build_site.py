@@ -62,9 +62,8 @@ PROGRESS = CACHE / "progress.txt"
 FAILED = CACHE / "failed.json"
 
 AUDIO_BASE = "https://npesl-audio.pages.dev/audio/"
-# ESLSE 的语音和页面放在主站（/conversation/eslse/audio/），否则音频站
-# 加上第七级会超过 Cloudflare Pages 单次部署 20,000 个文件的上限。
-AUDIO_BASE_BY_LEVEL = {"ESLSE": "audio/"}
+# 所有级别（含 ESLSE）统一走音频站。改用 sprite 后音频站只有 700 个文件，
+# 不再受 Cloudflare Pages 20,000 文件上限约束，页面里也只出现一种音频地址。
 
 LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2", "ESLSE")
 LEVEL_LABEL = {
@@ -1114,7 +1113,7 @@ def level_title(lv: str) -> str:
 
 
 def audio_base_for(level: str) -> str:
-    return AUDIO_BASE_BY_LEVEL.get(level, AUDIO_BASE)
+    return AUDIO_BASE
 
 
 def write(path: Path, text: str) -> None:
@@ -1219,8 +1218,7 @@ def build_page_sprite(level: str, story: dict, audio_maps: dict,
     texts = page_texts(story)
     items: list[dict] = [dict() for _ in texts]
     names: dict[str, str] = {}
-    dest_root = (out / level.lower() / "audio"
-                 if level in AUDIO_BASE_BY_LEVEL else out / "audio")
+    dest_root = out / "audio"
     for voice in voices:
         key = voice["key"]
         hashes = audio_maps.get(key, set())

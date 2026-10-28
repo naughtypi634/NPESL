@@ -77,9 +77,11 @@ AUDIO_HEADERS = """/*
   Cache-Control: public, max-age=31536000, immutable
 """
 
-# 旧页面缓存里还是主站下的 /conversation/audio/Ava/…，转给新的音频站。
+# 旧页面缓存里还是主站下的 /conversation/audio/Ava/… 或 ESLSE 的相对
+# audio/…，转给音频站。
 REDIRECTS = """/conversation/audio/Ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
 /conversation/audio/ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
+/conversation/eslse/audio/*  https://npesl-audio.pages.dev/audio/:splat  301
 """
 
 THEME_HEAD = (

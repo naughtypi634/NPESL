@@ -197,6 +197,31 @@ async function playAndProbe(selector, settle = 900) {
   };
 }
 
+// Conversation 页面用的是一整条音频 + 时间偏移，所以不只看出声，
+// 还要确认它落在被点那句的区间里（起点对、终点停得住）。
+// 点正文第一句（不是从 0 秒开始的标题），才能真正测到 seek。
+async function probeConversationPage() {
+  const info = await evaluate(`(() => {
+    const b = document.querySelector('.story button.s');
+    if (!b) return null;
+    const start = parseFloat(b.getAttribute('data-start-f'));
+    const end = parseFloat(b.getAttribute('data-end-f'));
+    b.click();
+    return { start, end, text: b.dataset.text };
+  })()`);
+  if (!info) return { ok: false, detail: '没有可点读的句子' };
+  const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)');
+  const wait = Math.min(Math.max(info.end - info.start, 0.4), 4) * 1000 + 700;
+  await sleep(wait);
+  const t = await evaluate('window.__lastAudio ? window.__lastAudio.currentTime : -1');
+  const paused = await evaluate('window.__lastAudio ? window.__lastAudio.paused : false');
+  const ok = started && paused && t >= info.start - 0.1 && t <= info.end + 0.35;
+  return {
+    ok,
+    detail: `span=${info.start.toFixed(2)}-${info.end.toFixed(2)} t=${t?.toFixed(2)} paused=${paused} "${info.text}"`,
+  };
+}
+
 const cases = [
   {
     name: 'entry', path: '/',
@@ -271,30 +296,11 @@ const cases = [
   },
   {
     name: 'conversation', path: '/conversation/a1/01-01-family.html',
-    async run() {
-      // 页面用的是一整条音频 + 时间偏移，所以不只看出声，
-      // 还要确认它落在被点那句的区间里（起点对、终点停得住）。
-      // 点正文第一句（不是从 0 秒开始的标题），才能真正测到 seek。
-      const info = await evaluate(`(() => {
-        const b = document.querySelector('.story button.s');
-        if (!b) return null;
-        const start = parseFloat(b.getAttribute('data-start-f'));
-        const end = parseFloat(b.getAttribute('data-end-f'));
-        b.click();
-        return { start, end, text: b.dataset.text };
-      })()`);
-      if (!info) return { ok: false, detail: '没有可点读的句子' };
-      const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)');
-      const wait = Math.min(Math.max(info.end - info.start, 0.4), 4) * 1000 + 700;
-      await sleep(wait);
-      const t = await evaluate('window.__lastAudio ? window.__lastAudio.currentTime : -1');
-      const paused = await evaluate('window.__lastAudio ? window.__lastAudio.paused : false');
-      const ok = started && paused && t >= info.start - 0.1 && t <= info.end + 0.35;
-      return {
-        ok,
-        detail: `span=${info.start.toFixed(2)}-${info.end.toFixed(2)} t=${t?.toFixed(2)} paused=${paused} "${info.text}"`,
-      };
-    },
+    run: probeConversationPage,
+  },
+  {
+    name: 'conversation-eslse', path: '/conversation/eslse/01-01-family.html',
+    run: probeConversationPage,
   },
   {
     name: 'phenomena', path: '/phenomena/01-your-stop-is-next.html',

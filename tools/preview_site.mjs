@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
 
-const ROOT = resolve('build/cloudflare-site');
+const ROOT = resolve(process.env.PREVIEW_DIR || 'build/cloudflare-site');
 const PORT = Number(process.env.PORT || 8765);
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -40,6 +40,7 @@ createServer(async (req, res) => {
       end = Math.min(end, buf.length - 1);
       res.writeHead(206, {
         'content-type': type,
+        'access-control-allow-origin': '*',
         'accept-ranges': 'bytes',
         'content-range': `bytes ${start}-${end}/${buf.length}`,
         'content-length': end - start + 1,
@@ -49,6 +50,7 @@ createServer(async (req, res) => {
     }
     res.writeHead(200, {
       'content-type': type,
+      'access-control-allow-origin': '*',
       'accept-ranges': 'bytes',
       'content-length': buf.length,
     });
