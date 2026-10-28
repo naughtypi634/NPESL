@@ -771,6 +771,30 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
   color:var(--blue); background:var(--blue-tint);
   box-shadow:0 0 0 2px var(--blue-tint);
 }
+html.zh-hide-vocab .vocab-zh,
+html.zh-hide-body .story .zh { display:none; }
+.zh-float {
+  position:fixed; z-index:80;
+  top:max(12px, env(safe-area-inset-top, 0px));
+  right:max(14px, env(safe-area-inset-right, 0px));
+  font-family:var(--font);
+}
+.zh-float[hidden] { display:none; }
+.zh-toggle {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-width:106px; height:36px; padding:0 12px;
+  border:1px solid var(--rule); border-radius:999px;
+  background:var(--surface); color:var(--fg);
+  font:inherit; font-size:13px; font-weight:650;
+  cursor:pointer; box-shadow:0 4px 18px rgba(0,0,0,.10);
+  transition:background-color .15s ease, color .15s ease;
+}
+.zh-toggle:hover { background:var(--surface-strong); }
+.zh-toggle .zh-icon { color:var(--blue); font-size:12px; font-weight:700; }
+.zh-toggle .zh-state { color:var(--muted); font-weight:600; }
+.zh-toggle.is-off { color:var(--muted); }
+.zh-toggle.is-off .zh-icon { color:var(--muted); }
+.zh-toggle:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
 body.has-player .page { padding-bottom:140px; }
 /* The floating theme button would sit over the dock / speed menu; it comes
    back as soon as the player is closed. */
@@ -887,6 +911,10 @@ body.has-player .npesl-theme {
   .kp-toggle { width:38px; height:38px; }
   .kp-speed { padding:8px 6px; }
   .kp-close { width:34px; height:34px; }
+  .zh-float {
+    top:max(10px, env(safe-area-inset-top, 0px));
+    right:max(10px, env(safe-area-inset-right, 0px));
+  }
   body.has-player .page { padding-bottom:132px; }
 }
 """
@@ -896,7 +924,10 @@ THEME_HEAD = (
     "document.documentElement.setAttribute('data-theme',"
     "t&&['auto','bright','dark','sepia'].indexOf(t)>-1?t:'auto');"
     "if(localStorage.getItem('npesl-marks')==='off')"
-    "document.documentElement.classList.add('marks-off');}"
+    "document.documentElement.classList.add('marks-off');"
+    "var z=JSON.parse(localStorage.getItem('npesl-zh')||'{}');"
+    "if(z.vocab===false)document.documentElement.classList.add('zh-hide-vocab');"
+    "if(z.body===false)document.documentElement.classList.add('zh-hide-body');}"
     "catch(e){document.documentElement.setAttribute('data-theme','auto');}</script>\n"
     '<link rel="stylesheet" href="__PREFIX__theme.css">'
 )
@@ -949,6 +980,22 @@ PLAY_JS = """
   var speedWrap = document.querySelector('.kp-speed-wrap');
   var speedOptions = document.querySelectorAll('[data-kp-rate]');
   var dockClose = document.querySelector('[data-kp-close]');
+  var zhFloat = document.querySelector('[data-zh-float]');
+  var zhToggle = document.querySelector('[data-zh-toggle]');
+  var zhLabel = document.querySelector('[data-zh-label]');
+  var zhStateEl = document.querySelector('[data-zh-state]');
+  var ZH_KEY = 'npesl-zh';
+  var zh = { vocab: true, body: true };
+  try {
+    var savedZh = JSON.parse(localStorage.getItem(ZH_KEY) || '{}');
+    if (savedZh.vocab === false) zh.vocab = false;
+    if (savedZh.body === false) zh.body = false;
+  } catch (e) {}
+  var zhActive = null;
+  var zhSections = [
+    { key: 'vocab', el: document.querySelector('.vocab-card') },
+    { key: 'body', el: document.querySelector('.story') },
+  ];
   var spanFrom = 0;
   var spanTo = 0;
   var loadingBtn = null;
@@ -1535,6 +1582,50 @@ PLAY_JS = """
     if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
 
+  function applyZhClasses() {
+    document.documentElement.classList.toggle('zh-hide-vocab', !zh.vocab);
+    document.documentElement.classList.toggle('zh-hide-body', !zh.body);
+  }
+
+  // The floating button follows the section crossing 35% of the viewport:
+  // Key Vocabulary → 词汇, story → 正文, anything else (questions) → hidden.
+  function zhSectionAt() {
+    var probe = window.innerHeight * 0.35;
+    for (var i = 0; i < zhSections.length; i++) {
+      var el = zhSections[i].el;
+      if (!el) continue;
+      var rect = el.getBoundingClientRect();
+      if (rect.top <= probe && rect.bottom >= probe) return zhSections[i].key;
+    }
+    return null;
+  }
+
+  function updateZhButton() {
+    zhActive = zhSectionAt();
+    if (!zhFloat || !zhToggle) return;
+    if (!zhActive) {
+      zhFloat.hidden = true;
+      return;
+    }
+    zhFloat.hidden = false;
+    var on = !!zh[zhActive];
+    var name = zhActive === 'vocab' ? '词汇' : '正文';
+    if (zhLabel) zhLabel.textContent = name;
+    if (zhStateEl) zhStateEl.textContent = on ? '开' : '关';
+    zhToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+    zhToggle.setAttribute('aria-label', name + '中文' + (on ? '开' : '关'));
+    zhToggle.classList.toggle('is-off', !on);
+  }
+
+  var zhFrame = 0;
+  function scheduleZhButton() {
+    if (zhFrame) return;
+    zhFrame = requestAnimationFrame(function () {
+      zhFrame = 0;
+      updateZhButton();
+    });
+  }
+
   var voiceButtons = document.querySelectorAll('[data-voice]');
   for (var i = 0; i < voiceButtons.length; i++) {
     voiceButtons[i].setAttribute('aria-pressed',
@@ -1551,6 +1642,21 @@ PLAY_JS = """
       setMarks(document.documentElement.classList.contains('marks-off'));
     });
   }
+
+  applyZhClasses();
+  updateZhButton();
+  if (zhToggle) {
+    zhToggle.addEventListener('click', function () {
+      if (!zhActive) return;
+      zh[zhActive] = !zh[zhActive];
+      applyZhClasses();
+      try { localStorage.setItem(ZH_KEY, JSON.stringify(zh)); } catch (e) {}
+      updateZhButton();
+    });
+    window.addEventListener('scroll', scheduleZhButton, { passive: true });
+    window.addEventListener('resize', scheduleZhButton);
+  }
+
   var speedInput = document.querySelector('[data-speed-input]');
   if (speedInput) {
     speedInput.value = speed;
@@ -1973,6 +2079,13 @@ def toolbar_html() -> str:
         '<button type="button" class="kp-close" data-kp-close '
         'aria-label="关闭播放器">✕</button>'
         '</div>\n'
+        '<div class="zh-float" data-zh-float hidden>'
+        '<button type="button" class="zh-toggle" data-zh-toggle '
+        'aria-pressed="true" aria-label="中文翻译显示">'
+        '<span class="zh-icon">中</span>'
+        '<span data-zh-label>词汇</span>'
+        '<span class="zh-state" data-zh-state>开</span>'
+        '</button></div>\n'
     )
 
 

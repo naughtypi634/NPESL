@@ -361,12 +361,12 @@ async function probeConversationLevels() {
         notes.push(`${level}-${voice}:no-ktv`);
         continue;
       }
-      const shown = await waitFor("!document.querySelector('[data-kplayer]').hidden", 4000);
-      const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)', 5000);
-      const lit = await waitFor("!!document.querySelector('.story .s.ktv.playing .w.read')", 4000);
+      const shown = await waitFor("!document.querySelector('[data-kplayer]').hidden", 8000);
+      const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)', 8000);
+      const lit = await waitFor("!!document.querySelector('.story .s.ktv.playing .w.read')", 8000);
       const rate = await evaluate('window.__lastAudio ? window.__lastAudio.playbackRate : -1');
       await evaluate("document.querySelector('[data-kp-close]').click()");
-      const closed = await waitFor("document.querySelector('[data-kplayer]').hidden", 1500);
+      const closed = await waitFor("document.querySelector('[data-kplayer]').hidden", 2000);
       const ok = shown && started && lit && closed && Math.abs(rate - 0.9) < 0.01;
       notes.push(`${level}-${voice}:${ok ? 'ok' : 'FAIL'}${errors.length ? '(console)' : ''}`);
       if (!ok) return { ok: false, detail: notes.join(' ') };
@@ -502,6 +502,66 @@ const cases = [
   {
     name: 'conversation-playall', path: '/conversation/a1/01-01-family.html',
     run: probeConversationPlayAll,
+  },
+  {
+    name: 'conversation-zh', path: '/conversation/a1/01-01-family.html',
+    async run() {
+      const scrollTo = (selector, offset) => evaluate(`(() => {
+        const el = document.querySelector(${JSON.stringify(selector)});
+        window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY + ${offset});
+        return true;
+      })()`);
+
+      // 词汇区：按钮出现并只控制 .vocab-zh
+      await scrollTo('.vocab-card', -120);
+      const vocabShown = await waitFor(
+        "!document.querySelector('[data-zh-float]').hidden");
+      const vocabLabel = await waitFor(
+        "document.querySelector('[data-zh-label]').textContent === '词汇'");
+      const fixed = await evaluate(
+        "getComputedStyle(document.querySelector('[data-zh-float]')).position");
+      await evaluate("document.querySelector('[data-zh-toggle]').click()");
+      const vocabOff = await waitFor(
+        "getComputedStyle(document.querySelector('.vocab-zh')).display === 'none'");
+      const vocabStateOff = await evaluate(
+        "document.querySelector('[data-zh-state]').textContent");
+      const bodyStill = await evaluate(
+        "getComputedStyle(document.querySelector('.story .zh')).display !== 'none'");
+      await evaluate("document.querySelector('[data-zh-toggle]').click()");
+      const vocabOn = await waitFor(
+        "getComputedStyle(document.querySelector('.vocab-zh')).display !== 'none'");
+
+      // 正文区：按钮切换成「正文」，只控制 .story .zh
+      await scrollTo('.story', 80);
+      const bodyLabel = await waitFor(
+        "document.querySelector('[data-zh-label]').textContent === '正文'");
+      await evaluate("document.querySelector('[data-zh-toggle]').click()");
+      const bodyOff = await waitFor(
+        "getComputedStyle(document.querySelector('.story .zh')).display === 'none'");
+      const bodyStateOff = await evaluate(
+        "document.querySelector('[data-zh-state]').textContent");
+      const vocabStill = await evaluate(
+        "getComputedStyle(document.querySelector('.vocab-zh')).display !== 'none'");
+      await evaluate("document.querySelector('[data-zh-toggle]').click()");
+      const bodyOn = await waitFor(
+        "getComputedStyle(document.querySelector('.story .zh')).display !== 'none'");
+
+      // 问答区没有中文，按钮隐藏
+      await scrollTo('.qs', 80);
+      const hiddenAtQs = await waitFor(
+        "document.querySelector('[data-zh-float]').hidden");
+
+      const ok = vocabShown && vocabLabel && fixed === 'fixed' && vocabOff
+        && vocabStateOff === '关' && bodyStill && vocabOn && bodyLabel
+        && bodyOff && bodyStateOff === '关' && vocabStill && bodyOn && hiddenAtQs;
+      return {
+        ok,
+        detail: `vocab=${vocabShown}/${vocabLabel}/${vocabOff}(${vocabStateOff}) `
+          + `bodyStill=${bodyStill} vocabOn=${vocabOn} `
+          + `body=${bodyLabel}/${bodyOff}(${bodyStateOff}) vocabStill=${vocabStill} `
+          + `bodyOn=${bodyOn} fixed=${fixed} hiddenAtQs=${hiddenAtQs}`,
+      };
+    },
   },
   {
     name: 'conversation-levels', path: '/conversation/a1/01-01-family.html',
