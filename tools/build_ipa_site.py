@@ -40,6 +40,7 @@ import pymupdf
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from themes import theme_boot
 from paths import IPA_APP, PHONETICS_MD, PHONETICS_PDF, SITE_APP
 import audio_sprite  # noqa: E402
 import azure_speech  # noqa: E402
@@ -494,6 +495,7 @@ def build_page(
 
     page = TEMPLATE.replace("<!--SECTIONS-->", "\n".join(sections))
     page = page.replace("<!--NAV-->", nav)
+    page = page.replace("<!--THEME_BOOT-->", theme_boot())
     page = page.replace("<!--THEME_CSS-->", THEME_CSS.read_text(encoding="utf-8"))
     page = page.replace("<!--THEME_JS-->", THEME_JS.read_text(encoding="utf-8"))
     return page
@@ -552,7 +554,7 @@ TEMPLATE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>美式英语音标表</title>
-<script>try{var t=localStorage.getItem('npesl-theme');document.documentElement.setAttribute('data-theme',t&&['auto','bright','dark','sepia'].indexOf(t)>-1?t:'auto');}catch(e){document.documentElement.setAttribute('data-theme','auto');}</script>
+<!--THEME_BOOT-->
 <style>
   :root {
     --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;

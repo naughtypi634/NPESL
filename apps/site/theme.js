@@ -2,9 +2,13 @@
   var KEY = 'npesl-theme';
   var THEMES = [
     { id: 'auto', label: 'Auto' },
+    { id: 'editorial', label: 'Editorial' },
+    { id: 'brutal', label: 'Brutalist' },
+    { id: 'glass', label: 'Glass' },
+    { id: 'mono', label: 'Mono' },
     { id: 'bright', label: 'Bright' },
-    { id: 'dark', label: 'Dark' },
-    { id: 'sepia', label: 'Sepia' }
+    { id: 'sepia', label: 'Sepia' },
+    { id: 'dark', label: 'Dark' }
   ];
   var VALID = THEMES.map(function (theme) { return theme.id; });
 

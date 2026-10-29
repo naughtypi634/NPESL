@@ -361,15 +361,36 @@ async function probeConversationLevels() {
         notes.push(`${level}-${voice}:no-ktv`);
         continue;
       }
+      // 页面里的 sprite 走音频站 CDN：每个级别第一次播要真的下载整条音频，
+      // 网络抖一下就会超过 8 秒。这里只保证「最终能播、能高亮」，给足 20 秒。
       const shown = await waitFor("!document.querySelector('[data-kplayer]').hidden", 8000);
-      const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)', 8000);
-      const lit = await waitFor("!!document.querySelector('.story .s.ktv.playing .w.read')", 8000);
+      const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)', 20000);
+      const lit = await waitFor("!!document.querySelector('.story .s.ktv.playing .w.read')", 20000);
       const rate = await evaluate('window.__lastAudio ? window.__lastAudio.playbackRate : -1');
       await evaluate("document.querySelector('[data-kp-close]').click()");
       const closed = await waitFor("document.querySelector('[data-kplayer]').hidden", 2000);
       const ok = shown && started && lit && closed && Math.abs(rate - 0.9) < 0.01;
-      notes.push(`${level}-${voice}:${ok ? 'ok' : 'FAIL'}${errors.length ? '(console)' : ''}`);
-      if (!ok) return { ok: false, detail: notes.join(' ') };
+      const step = ok ? 'ok'
+        : `FAIL shown=${shown} started=${started} lit=${lit} closed=${closed} rate=${rate}`
+          + `${errors.length ? ' console=' + errors.slice(-1)[0].slice(0, 80) : ''}`;
+      notes.push(`${level}-${voice}:${step}`);
+      if (!ok) {
+        const dump = await evaluate(`(() => {
+          const b = document.querySelector('.story .s.ktv');
+          const a = window.__lastAudio;
+          return {
+            src: a ? String(a.currentSrc || a.src).split('/').pop() : null,
+            t: a ? +a.currentTime.toFixed(2) : null,
+            paused: a ? a.paused : null,
+            dockHidden: document.querySelector('[data-kplayer]').hidden,
+            cls: b ? b.className : null,
+            read: b ? b.querySelectorAll('.w.read').length : -1,
+            words: b ? b.querySelectorAll('.w').length : -1,
+            voice: localStorage.getItem('npesl-voice'),
+          };
+        })()`);
+        return { ok: false, detail: notes.join(' ') + ' dump=' + JSON.stringify(dump) };
+      }
     }
   }
   return { ok: true, detail: notes.join(' ') };

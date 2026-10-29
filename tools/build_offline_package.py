@@ -35,6 +35,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import (CONVERSATION_OUT, DRILL_APP, IPA_APP, OFFLINE_OUT,
                    PHENOMENA_APP, PHONICS_APP, SITE_APP)
+from themes import theme_boot
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE_SRC = SITE_APP
@@ -46,13 +47,7 @@ CONVERSATION = CONVERSATION_OUT
 OUT = OFFLINE_OUT
 PACKAGE_NAME = "NPESL-offline"
 
-THEME_HEAD = (
-    "<script>try{var t=localStorage.getItem('npesl-theme');"
-    "document.documentElement.setAttribute('data-theme',"
-    "t&&['auto','bright','dark','sepia'].indexOf(t)>-1?t:'auto');}"
-    "catch(e){document.documentElement.setAttribute('data-theme','auto');}</script>\n"
-    '<link rel="stylesheet" href="__PREFIX__theme.css">'
-)
+THEME_HEAD = theme_boot("__PREFIX__theme.css")
 THEME_TAIL = '<script src="__PREFIX__theme.js" defer></script>'
 
 

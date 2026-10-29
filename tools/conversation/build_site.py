@@ -52,6 +52,7 @@ import pron  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from paths import CONVERSATION_CONTENT, CONVERSATION_OUT, TTS_CACHE  # noqa: E402
 import audio_sprite  # noqa: E402
+from themes import theme_boot  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = CONVERSATION_CONTENT
@@ -583,13 +584,14 @@ STORY_CSS = """
     --pron-sg:#c7c7cc;
   }
 }
-html[data-theme="dark"] {
+html[data-theme="dark"], html[data-theme="night"] {
   --pron-link:#6cb6ff;
   --pron-elide:#d0a9e8;
   --pron-change:#ff9f0a;
   --pron-sg:#c7c7cc;
 }
-html[data-theme="bright"], html[data-theme="sepia"] {
+html[data-theme="bright"], html[data-theme="sepia"],
+html[data-theme="mono"], html[data-theme="mist"] {
   --pron-link:#0071e3;
   --pron-elide:#8e44ad;
   --pron-change:#c93400;
@@ -939,18 +941,13 @@ body.has-player .npesl-theme {
 }
 """
 
-THEME_HEAD = (
-    "<script>try{var t=localStorage.getItem('npesl-theme');"
-    "document.documentElement.setAttribute('data-theme',"
-    "t&&['auto','bright','dark','sepia'].indexOf(t)>-1?t:'auto');"
+THEME_HEAD = theme_boot("__PREFIX__theme.css", extra_js=(
     "if(localStorage.getItem('npesl-marks')==='off')"
     "document.documentElement.classList.add('marks-off');"
     "var z=JSON.parse(localStorage.getItem('npesl-zh')||'{}');"
     "if(z.vocab===false)document.documentElement.classList.add('zh-hide-vocab');"
-    "if(z.body===false)document.documentElement.classList.add('zh-hide-body');}"
-    "catch(e){document.documentElement.setAttribute('data-theme','auto');}</script>\n"
-    '<link rel="stylesheet" href="__PREFIX__theme.css">'
-)
+    "if(z.body===false)document.documentElement.classList.add('zh-hide-body');"
+))
 
 PLAY_JS = """
 (function () {
@@ -978,6 +975,7 @@ PLAY_JS = """
   var statusTimer = null;
   var stickyStatus = false;
   var raf = 0;
+  var tickTimer = 0;
   var loadedSrc = null;
   var SOURCES = {};
   var READY = {};
@@ -1184,6 +1182,7 @@ PLAY_JS = """
 
   function stopTick() {
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (tickTimer) { clearInterval(tickTimer); tickTimer = 0; }
   }
 
   // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
@@ -1350,8 +1349,8 @@ PLAY_JS = """
 
   function startTick(btn) {
     stopTick();
-    var tick = function () {
-      if (current !== btn) return;
+    var step = function () {
+      if (current !== btn) return false;
       if (player.currentTime >= spanTo - 0.008) {
         try { player.pause(); } catch (e) {}
         stopTick();
@@ -1369,12 +1368,19 @@ PLAY_JS = """
           hideDock();
         }
         updateToggle();
-        return;
+        return false;
       }
       syncDock();
-      raf = requestAnimationFrame(tick);
+      return true;
     };
-    raf = requestAnimationFrame(tick);
+    var frame = function () {
+      if (!step()) return;
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    // rAF 会在页面被降频或遮挡时彻底停发（无头浏览器里实测能停 20 秒），
+    // 那样句子播到结尾也不停、逐词也不亮。定时器兜底，两条路走同一个 step。
+    tickTimer = setInterval(step, 200);
   }
 
   // 每页一整条音频：先跳到片段起点，等 seek 落地再播，播到终点就停。
