@@ -599,14 +599,24 @@ html[data-theme="bright"], html[data-theme="sepia"] {
   margin:0 0 12px; color:var(--muted); font-size:12.5px; font-weight:600;
   letter-spacing:0.06em; text-transform:uppercase;
 }
-.vocab-card {
-  margin-top:30px; padding:20px 24px 22px; border-radius:var(--radius);
+/* 四个板块用同一张卡片：同样的底色、圆角、内边距。 */
+.content-card {
   background:var(--surface);
+  border-radius:var(--radius);
+  padding:20px 24px 22px;
 }
-.vocab-card h2 {
-  margin:0 0 12px; font-size:13px; font-weight:650; letter-spacing:0.04em;
-  color:var(--muted); text-transform:uppercase;
+/* 板块标题行：左边小标题，右边中英开关。标题行不进卡片，药丸右缘才能和
+   返回按钮对称地贴住正文栏边——浮钮必须和它同一条竖线，才能原地接管。 */
+.sec-head {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; margin:36px 0 12px;
 }
+.sec-head h2 {
+  margin:0; min-width:0;
+  font-size:13px; font-weight:650; letter-spacing:0.04em;
+  color:var(--muted); text-transform:uppercase; line-height:1.3;
+}
+.sec-head > .zh-toggle { flex:none; }
 .vocab { display:grid; grid-template-columns:1fr 1fr; gap:0 28px; }
 .vocab ol { margin:0; padding-left:22px; }
 .vocab li { padding:3px 0; font-size:15px; line-height:1.45; }
@@ -615,7 +625,7 @@ html[data-theme="bright"], html[data-theme="sepia"] {
   letter-spacing:0; white-space:normal; overflow-wrap:anywhere;
 }
 .story {
-  margin-top:36px; font-size:19px; line-height:1.78; letter-spacing:-0.005em;
+  font-size:19px; line-height:1.78; letter-spacing:-0.005em;
 }
 .story .para { margin:0 0 1.45em; }
 .story .sent { margin:0 0 9px; }
@@ -752,11 +762,18 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
   color:var(--muted); opacity:.55;
 }
 .vocab-s:hover::after, .vocab-s.playing::after { color:var(--blue); opacity:1; }
-.qs { margin-top:44px; }
-.qs h2 { font-size:clamp(20px,3vw,24px); font-weight:650; letter-spacing:-0.02em; }
-.qlist { margin:12px 0 0; padding-left:26px; }
-.qlist li { padding:7px 0; font-size:17px; line-height:1.55; }
-.qlist li::marker { color:var(--muted); font-size:15px; }
+/* 序号用计数器而不是 ::marker：按钮是行内元素，换行后 ::marker 会贴着
+   最后一行基线，看起来像序号插进了句子中间。 */
+.qlist { margin:0; padding-left:0; list-style:none; counter-reset:q; }
+.qlist li {
+  display:flex; align-items:baseline; gap:10px;
+  padding:7px 0; font-size:17px; line-height:1.55;
+  counter-increment:q;
+}
+.qlist li::before {
+  content:counter(q) "."; flex:none; min-width:1.3em;
+  color:var(--muted); font-size:15px; font-weight:500;
+}
 /* Karaoke: the spoken part of the sentence lights up word by word. */
 .s .w {
   border-radius:4px;
@@ -764,7 +781,7 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
   transition:color .08s linear, background-color .08s linear;
 }
 .s.ktv.playing {
-  background:var(--surface); color:var(--fg); border-bottom-color:transparent;
+  background:var(--surface-strong); color:var(--fg); border-bottom-color:transparent;
 }
 .s.ktv.playing .w.read { color:var(--blue); }
 .s.ktv.playing .w.now {
@@ -774,15 +791,20 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
 html.zh-hide-vocab .vocab-zh,
 html.zh-hide-body .story .zh { display:none; }
 .zh-float {
-  position:fixed; z-index:80;
+  position:fixed; z-index:80; display:flex;
   top:max(12px, env(safe-area-inset-top, 0px));
-  right:max(14px, env(safe-area-inset-right, 0px));
+  /* 右缘对准板块内药丸，也就是正文栏右缘——和左上角返回按钮对称。
+     固定定位的 50% 相对不含滚动条的视口，所以别写成 100vw。 */
+  right:calc(
+    max(0px, calc(50% - 390px))
+    + max(20px, env(safe-area-inset-right, 0px))
+  );
   font-family:var(--font);
 }
 .zh-float[hidden] { display:none; }
 .zh-toggle {
   display:inline-flex; align-items:center; justify-content:center; gap:6px;
-  min-width:106px; height:36px; padding:0 12px;
+  min-width:106px; height:35px; padding:0 12px;
   border:1px solid var(--rule); border-radius:999px;
   background:var(--surface); color:var(--fg);
   font:inherit; font-size:13px; font-weight:650;
@@ -911,10 +933,8 @@ body.has-player .npesl-theme {
   .kp-toggle { width:38px; height:38px; }
   .kp-speed { padding:8px 6px; }
   .kp-close { width:34px; height:34px; }
-  .zh-float {
-    top:max(10px, env(safe-area-inset-top, 0px));
-    right:max(10px, env(safe-area-inset-right, 0px));
-  }
+  /* .zh-float 的 top/right 不覆盖：和返回按钮同一套 12px / 页面边距。 */
+  .sec-head { gap:12px; }
   body.has-player .page { padding-bottom:132px; }
 }
 """
@@ -981,9 +1001,7 @@ PLAY_JS = """
   var speedOptions = document.querySelectorAll('[data-kp-rate]');
   var dockClose = document.querySelector('[data-kp-close]');
   var zhFloat = document.querySelector('[data-zh-float]');
-  var zhToggle = document.querySelector('[data-zh-toggle]');
-  var zhLabel = document.querySelector('[data-zh-label]');
-  var zhStateEl = document.querySelector('[data-zh-state]');
+  var zhFloatBtn = zhFloat ? zhFloat.querySelector('[data-zh-toggle]') : null;
   var ZH_KEY = 'npesl-zh';
   var zh = { vocab: true, body: true };
   try {
@@ -992,10 +1010,15 @@ PLAY_JS = """
     if (savedZh.body === false) zh.body = false;
   } catch (e) {}
   var zhActive = null;
+  // 每个板块一颗板块内按钮（标题行右端）+ 右上角一颗浮钮，三颗长得一样。
   var zhSections = [
-    { key: 'vocab', el: document.querySelector('.vocab-card') },
-    { key: 'body', el: document.querySelector('.story') },
+    { key: 'vocab', el: document.querySelector('.vocab-card'),
+      btn: document.querySelector('[data-zh-for="vocab"]') },
+    { key: 'body', el: document.querySelector('.story'),
+      btn: document.querySelector('[data-zh-for="body"]') },
   ];
+  var zhSlotTop = null;        // 浮钮顶边的视口 y
+  var zhHiddenBtn = null;      // 当前被浮钮顶替、用 visibility 藏起来的板块内按钮
   var spanFrom = 0;
   var spanTo = 0;
   var loadingBtn = null;
@@ -1600,21 +1623,82 @@ PLAY_JS = """
     return null;
   }
 
+  function zhPaint(btn, key, on) {
+    if (!btn || !key) return;
+    var name = key === 'vocab' ? '词汇' : '正文';
+    var state = on ? '开' : '关';
+    var labelEl = btn.querySelector('[data-zh-label]');
+    var stateEl = btn.querySelector('[data-zh-state]');
+    // 滚动时每帧都会走到这里，没变就别碰 DOM。
+    if (labelEl && labelEl.textContent !== name) labelEl.textContent = name;
+    if (stateEl && stateEl.textContent !== state) stateEl.textContent = state;
+    var pressed = on ? 'true' : 'false';
+    if (btn.getAttribute('aria-pressed') !== pressed) {
+      btn.setAttribute('aria-pressed', pressed);
+    }
+    var aria = name + '中文' + state;
+    if (btn.getAttribute('aria-label') !== aria) {
+      btn.setAttribute('aria-label', aria);
+    }
+    btn.classList.toggle('is-off', !on);
+  }
+
+  // 三颗按钮状态一致；浮钮只在接管时露脸，露脸前先画好，避免换字闪一下。
+  function zhRefresh() {
+    for (var i = 0; i < zhSections.length; i++) {
+      var sec = zhSections[i];
+      zhPaint(sec.btn, sec.key, !!zh[sec.key]);
+    }
+    if (zhActive) zhPaint(zhFloatBtn, zhActive, !!zh[zhActive]);
+  }
+
+  // 浮钮顶边与滚动无关，初始化/改窗口大小时量一次即可。临时露出来量，
+  // 免得把 12px 写死——带刘海（safe-area-inset-top）时它不是 12。
+  function zhMeasureSlot() {
+    if (!zhFloat) return;
+    var wasHidden = zhFloat.hidden;
+    if (wasHidden) zhFloat.hidden = false;
+    var el = zhFloatBtn || zhFloat;
+    zhSlotTop = el.getBoundingClientRect().top;
+    if (wasHidden) zhFloat.hidden = true;
+  }
+
+  function zhShowInline(btn) {
+    if (zhHiddenBtn && zhHiddenBtn !== btn) {
+      zhHiddenBtn.style.visibility = '';
+      zhHiddenBtn = null;
+    }
+  }
+
   function updateZhButton() {
-    zhActive = zhSectionAt();
-    if (!zhFloat || !zhToggle) return;
-    if (!zhActive) {
-      zhFloat.hidden = true;
+    var key = zhSectionAt();
+    zhActive = key;
+    var sec = null;
+    for (var i = 0; i < zhSections.length; i++) {
+      if (zhSections[i].key === key) sec = zhSections[i];
+    }
+    if (!zhFloat || !sec || !sec.btn) {
+      zhShowInline(null);
+      if (zhFloat) zhFloat.hidden = true;
       return;
     }
+    if (zhSlotTop === null) zhMeasureSlot();
+    // 板块标题行里的按钮滚到浮钮那颗位置之前，控制权在它手上；一旦顶边
+    // 越过浮钮顶边，就用浮钮原地接管——先把板块内按钮藏起来（visibility
+    // 不改变布局），两颗按钮的矩形完全重合，所以看起来是原地吸附。
+    if (sec.btn.getBoundingClientRect().top > zhSlotTop) {
+      zhShowInline(null);
+      if (!zhFloat.hidden) zhFloat.hidden = true;
+      return;
+    }
+    zhShowInline(sec.btn);
+    zhPaint(zhFloatBtn, key, !!zh[key]);
     zhFloat.hidden = false;
-    var on = !!zh[zhActive];
-    var name = zhActive === 'vocab' ? '词汇' : '正文';
-    if (zhLabel) zhLabel.textContent = name;
-    if (zhStateEl) zhStateEl.textContent = on ? '开' : '关';
-    zhToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
-    zhToggle.setAttribute('aria-label', name + '中文' + (on ? '开' : '关'));
-    zhToggle.classList.toggle('is-off', !on);
+    if (zhHiddenBtn !== sec.btn) {
+      if (document.activeElement === sec.btn) sec.btn.blur();
+      sec.btn.style.visibility = 'hidden';
+      zhHiddenBtn = sec.btn;
+    }
   }
 
   var zhFrame = 0;
@@ -1643,18 +1727,37 @@ PLAY_JS = """
     });
   }
 
+  function toggleZh(key) {
+    if (!key) return;
+    zh[key] = !zh[key];
+    applyZhClasses();
+    try { localStorage.setItem(ZH_KEY, JSON.stringify(zh)); } catch (e) {}
+    zhRefresh();
+    // 藏/显中文会改变页面高度，板块边界跟着动；下一帧重新判断一次就好。
+    scheduleZhButton();
+  }
+
   applyZhClasses();
+  zhMeasureSlot();
+  zhRefresh();
   updateZhButton();
-  if (zhToggle) {
-    zhToggle.addEventListener('click', function () {
-      if (!zhActive) return;
-      zh[zhActive] = !zh[zhActive];
-      applyZhClasses();
-      try { localStorage.setItem(ZH_KEY, JSON.stringify(zh)); } catch (e) {}
-      updateZhButton();
-    });
+  for (var zb = 0; zb < zhSections.length; zb++) {
+    (function (sec) {
+      if (!sec.btn) return;
+      sec.btn.addEventListener('click', function () { toggleZh(sec.key); });
+    })(zhSections[zb]);
+  }
+  if (zhFloatBtn) {
+    zhFloatBtn.addEventListener('click', function () { toggleZh(zhActive); });
+  }
+  if (zhFloat) {
     window.addEventListener('scroll', scheduleZhButton, { passive: true });
-    window.addEventListener('resize', scheduleZhButton);
+    // 刷新后浏览器恢复滚动位置时，首帧可能还是 0 处的判断，补一次。
+    window.addEventListener('load', scheduleZhButton);
+    window.addEventListener('resize', function () {
+      zhSlotTop = null;          // 宽度/安全区变了，顶边重新量
+      scheduleZhButton();
+    });
   }
 
   var speedInput = document.querySelector('[data-speed-input]');
@@ -2003,6 +2106,23 @@ def sentence_html(text: str, audio: PageAudio, extra_class: str = "",
     )
 
 
+def zh_button(target: str, label: str) -> str:
+    """中 / 词汇|正文 / 开|关 药丸。
+
+    ``target`` 为 ``float``（右上角那颗）或 ``vocab`` / ``body``（板块标题行
+    里的两颗）。板块内按钮用 data-zh-for 定位，浮钮沿用 data-zh-toggle。
+    """
+    hook = " data-zh-toggle" if target == "float" else f' data-zh-for="{target}"'
+    return (
+        f'<button type="button" class="zh-toggle"{hook} '
+        f'aria-pressed="true" aria-label="{label}中文开">'
+        '<span class="zh-icon">中</span>'
+        f'<span data-zh-label>{label}</span>'
+        '<span class="zh-state" data-zh-state>开</span>'
+        '</button>'
+    )
+
+
 def toolbar_html() -> str:
     return (
         '<div class="toolbar">'
@@ -2080,12 +2200,8 @@ def toolbar_html() -> str:
         'aria-label="关闭播放器">✕</button>'
         '</div>\n'
         '<div class="zh-float" data-zh-float hidden>'
-        '<button type="button" class="zh-toggle" data-zh-toggle '
-        'aria-pressed="true" aria-label="中文翻译显示">'
-        '<span class="zh-icon">中</span>'
-        '<span data-zh-label>词汇</span>'
-        '<span class="zh-state" data-zh-state>开</span>'
-        '</button></div>\n'
+        + zh_button("float", "词汇")
+        + '</div>\n'
     )
 
 
@@ -2190,12 +2306,20 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
         + f'<p class="unit-label">{html.escape(unit["title"])}</p>\n'
         + title
         + toolbar_html()
-        + '<section class="vocab-card"><h2>Key Vocabulary &amp; Expressions</h2>'
+        + '<div class="sec-head">'
+        '<h2>Key Vocabulary &amp; Expressions</h2>'
+        + zh_button("vocab", "词汇") + '</div>'
+        '<section class="content-card vocab-card">'
         f'<div class="vocab">{vocab}</div></section>\n'
-        '<section class="story">' + "".join(paragraphs) + "</section>\n"
-        '<section class="qs"><h2>Comprehension Questions</h2>'
+        + '<div class="sec-head"><h2>The Conversation</h2>'
+        + zh_button("body", "正文") + '</div>'
+        + '<section class="content-card"><div class="story">'
+        + "".join(paragraphs) + "</div></section>\n"
+        + '<div class="sec-head"><h2>Comprehension Questions</h2></div>'
+        '<section class="content-card qs">'
         + qlist(story["comp"]) + "</section>\n"
-        '<section class="qs"><h2>Conversation Starters</h2>'
+        + '<div class="sec-head"><h2>Conversation Starters</h2></div>'
+        '<section class="content-card qs">'
         + qlist(story["conv"]) + "</section>\n"
         + tail("../../", audio_base_for(level), sprites, wordmap)
     )

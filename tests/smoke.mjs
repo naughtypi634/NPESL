@@ -506,60 +506,152 @@ const cases = [
   {
     name: 'conversation-zh', path: '/conversation/a1/01-01-family.html',
     async run() {
-      const scrollTo = (selector, offset) => evaluate(`(() => {
+      // 按「元素顶边离视口顶多少 px」定位，不依赖板块高度。
+      const place = (selector, y) => evaluate(`(() => {
         const el = document.querySelector(${JSON.stringify(selector)});
-        window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY + ${offset});
+        if (!el) return false;
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, Math.max(0, top - ${y}));
         return true;
       })()`);
 
-      // 词汇区：按钮出现并只控制 .vocab-zh
-      await scrollTo('.vocab-card', -120);
-      const vocabShown = await waitFor(
-        "!document.querySelector('[data-zh-float]').hidden");
-      const vocabLabel = await waitFor(
-        "document.querySelector('[data-zh-label]').textContent === '词汇'");
-      const fixed = await evaluate(
-        "getComputedStyle(document.querySelector('[data-zh-float]')).position");
-      await evaluate("document.querySelector('[data-zh-toggle]').click()");
+      // (a) 停在词汇区：标题行里的按钮看得见，浮钮不出现。
+      await place('.vocab-card', 140);
+      const vocabIdle = await waitFor(`(() => {
+        const card = document.querySelector('.vocab-card');
+        const b = document.querySelector('[data-zh-for="vocab"]');
+        const probe = innerHeight * 0.35;
+        const r = card.getBoundingClientRect();
+        return getComputedStyle(b).visibility === 'visible'
+          && document.querySelector('[data-zh-float]').hidden
+          && r.top <= probe && r.bottom >= probe;
+      })()`);
+
+      // (b) 板块内词汇按钮只控制 .vocab-zh
+      await evaluate(`document.querySelector('[data-zh-for="vocab"]').click()`);
       const vocabOff = await waitFor(
         "getComputedStyle(document.querySelector('.vocab-zh')).display === 'none'");
       const vocabStateOff = await evaluate(
-        "document.querySelector('[data-zh-state]').textContent");
+        "document.querySelector('[data-zh-for=\"vocab\"] [data-zh-state]').textContent");
       const bodyStill = await evaluate(
         "getComputedStyle(document.querySelector('.story .zh')).display !== 'none'");
-      await evaluate("document.querySelector('[data-zh-toggle]').click()");
+      await evaluate(`document.querySelector('[data-zh-for="vocab"]').click()`);
       const vocabOn = await waitFor(
         "getComputedStyle(document.querySelector('.vocab-zh')).display !== 'none'");
 
-      // 正文区：按钮切换成「正文」，只控制 .story .zh
-      await scrollTo('.story', 80);
-      const bodyLabel = await waitFor(
-        "document.querySelector('[data-zh-label]').textContent === '正文'");
-      await evaluate("document.querySelector('[data-zh-toggle]').click()");
+      // (c) 停在正文区：正文标题行的按钮看得见，浮钮仍不出现。
+      await place('.story', 120);
+      const storyIdle = await waitFor(`(() => {
+        const b = document.querySelector('[data-zh-for="body"]');
+        return getComputedStyle(b).visibility === 'visible'
+          && document.querySelector('[data-zh-float]').hidden;
+      })()`);
+
+      // 浮钮顶边（和页面一样临时露出来量，固定定位不会推动布局）
+      const slotTop = await evaluate(`(() => {
+        const f = document.querySelector('[data-zh-float]');
+        const was = f.hidden;
+        f.hidden = false;
+        const top = f.querySelector('.zh-toggle').getBoundingClientRect().top;
+        f.hidden = was;
+        return top;
+      })()`);
+
+      // (d) 正文标题行正好滚到浮钮的位置：浮钮原地接管，板块内按钮藏起来
+      await place('[data-zh-for="body"]', slotTop - 1);
+      const handedOff = await waitFor(
+        "!document.querySelector('[data-zh-float]').hidden");
+      const handedLabel = await waitFor(
+        "document.querySelector('[data-zh-float] [data-zh-label]').textContent === '正文'");
+      const handoff = await evaluate(`(() => {
+        const f = document.querySelector('[data-zh-float]');
+        const fb = f.querySelector('.zh-toggle');
+        const b = document.querySelector('[data-zh-for="body"]');
+        const fr = fb.getBoundingClientRect(), br = b.getBoundingClientRect();
+        return {
+          inlineHidden: getComputedStyle(b).visibility === 'hidden',
+          fixed: getComputedStyle(f).position,
+          dx: Math.abs(fr.right - br.right),
+          dy: Math.abs(fr.top - br.top),
+        };
+      })()`);
+
+      // (e) 滚到正文深处（标题行早已出视口）：浮钮留在原位，横坐标不变
+      await place('.story', -140);
+      const deep = await evaluate(`(() => {
+        const f = document.querySelector('[data-zh-float]');
+        const fb = f.querySelector('.zh-toggle');
+        const b = document.querySelector('[data-zh-for="body"]');
+        return {
+          shown: !f.hidden,
+          fixed: getComputedStyle(f).position,
+          label: f.querySelector('[data-zh-label]').textContent,
+          offscreen: b.getBoundingClientRect().top < 0,
+          dx: Math.abs(fb.getBoundingClientRect().right - b.getBoundingClientRect().right),
+        };
+      })()`);
+
+      // (f) 浮钮只控制 .story .zh
+      await evaluate(`document.querySelector('[data-zh-float] .zh-toggle').click()`);
       const bodyOff = await waitFor(
         "getComputedStyle(document.querySelector('.story .zh')).display === 'none'");
       const bodyStateOff = await evaluate(
-        "document.querySelector('[data-zh-state]').textContent");
+        "document.querySelector('[data-zh-float] [data-zh-state]').textContent");
       const vocabStill = await evaluate(
         "getComputedStyle(document.querySelector('.vocab-zh')).display !== 'none'");
-      await evaluate("document.querySelector('[data-zh-toggle]').click()");
+      await evaluate(`document.querySelector('[data-zh-float] .zh-toggle').click()`);
       const bodyOn = await waitFor(
         "getComputedStyle(document.querySelector('.story .zh')).display !== 'none'");
 
-      // 问答区没有中文，按钮隐藏
-      await scrollTo('.qs', 80);
-      const hiddenAtQs = await waitFor(
-        "document.querySelector('[data-zh-float]').hidden");
+      // (f2) 往回滚：浮钮让位，正文标题行的按钮重新露出来
+      await place('[data-zh-for="body"]', slotTop + 120);
+      const backToInline = await waitFor(`(() => {
+        const f = document.querySelector('[data-zh-float]');
+        const b = document.querySelector('[data-zh-for="body"]');
+        return f.hidden && getComputedStyle(b).visibility === 'visible';
+      })()`);
 
-      const ok = vocabShown && vocabLabel && fixed === 'fixed' && vocabOff
-        && vocabStateOff === '关' && bodyStill && vocabOn && bodyLabel
-        && bodyOff && bodyStateOff === '关' && vocabStill && bodyOn && hiddenAtQs;
+      // (g) 问答区没有中文：浮钮隐藏，正文区的按钮恢复可见
+      await place('.qs', 120);
+      const hiddenAtQs = await waitFor(`(() => {
+        const f = document.querySelector('[data-zh-float]');
+        const b = document.querySelector('[data-zh-for="body"]');
+        return f.hidden && getComputedStyle(b).visibility === 'visible';
+      })()`);
+
+      // (h) 关掉词汇中文后刷新：板块内按钮从 localStorage 恢复成「关」
+      await evaluate(`document.querySelector('[data-zh-for="vocab"]').click()`);
+      await goto('/conversation/a1/01-01-family.html');
+      const persisted = await waitFor(`(() => {
+        const b = document.querySelector('[data-zh-for="vocab"]');
+        return getComputedStyle(document.querySelector('.vocab-zh')).display === 'none'
+          && b.querySelector('[data-zh-state]').textContent === '关'
+          && b.getAttribute('aria-pressed') === 'false';
+      })()`);
+      await evaluate(`document.querySelector('[data-zh-for="vocab"]').click()`);
+      const restored = await waitFor(
+        "getComputedStyle(document.querySelector('.vocab-zh')).display !== 'none'");
+
+      const ok = vocabIdle && vocabOff && vocabStateOff === '关' && bodyStill
+        && vocabOn && storyIdle && handedOff && handedLabel
+        && handoff.inlineHidden && handoff.fixed === 'fixed'
+        && handoff.dx <= 2 && handoff.dy <= 2
+        && deep.shown && deep.fixed === 'fixed' && deep.label === '正文'
+        && deep.offscreen && deep.dx <= 2
+        && bodyOff && bodyStateOff === '关' && vocabStill && bodyOn && hiddenAtQs
+        && backToInline && persisted && restored;
       return {
         ok,
-        detail: `vocab=${vocabShown}/${vocabLabel}/${vocabOff}(${vocabStateOff}) `
-          + `bodyStill=${bodyStill} vocabOn=${vocabOn} `
-          + `body=${bodyLabel}/${bodyOff}(${bodyStateOff}) vocabStill=${vocabStill} `
-          + `bodyOn=${bodyOn} fixed=${fixed} hiddenAtQs=${hiddenAtQs}`,
+        detail: `vocabIdle=${vocabIdle} vocabOff=${vocabOff}(${vocabStateOff}) `
+          + `bodyStill=${bodyStill} vocabOn=${vocabOn} storyIdle=${storyIdle} `
+          + `handoff=${handedOff}/${handedLabel}/${handoff.fixed}`
+          + `/dx${handoff.dx.toFixed(1)}/dy${handoff.dy.toFixed(1)}`
+          + `/hide${handoff.inlineHidden} `
+          + `deep=${deep.shown}/${deep.fixed}/${deep.label}/off${deep.offscreen}`
+          + `/dx${deep.dx.toFixed(1)} `
+          + `bodyOff=${bodyOff}(${bodyStateOff}) vocabStill=${vocabStill} `
+          + `bodyOn=${bodyOn} hiddenAtQs=${hiddenAtQs} `
+          + `backToInline=${backToInline} persisted=${persisted} restored=${restored}`,
       };
     },
   },
