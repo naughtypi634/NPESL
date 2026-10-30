@@ -577,26 +577,22 @@ STORY_CSS = """
   --pron-change:#c93400;
   --pron-sg:#6e6e73;
 }
+/* auto 才跟随系统；editorial / brutal / glass 都是亮色主题，系统深色时
+   也不能把发音标注换成深色版。 */
 @media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) {
+  html:not([data-theme]),
+  html[data-theme="auto"] {
     --pron-link:#6cb6ff;
     --pron-elide:#d0a9e8;
     --pron-change:#ff9f0a;
     --pron-sg:#c7c7cc;
   }
 }
-html[data-theme="dark"], html[data-theme="night"] {
+html[data-theme="dark"] {
   --pron-link:#6cb6ff;
   --pron-elide:#d0a9e8;
   --pron-change:#ff9f0a;
   --pron-sg:#c7c7cc;
-}
-html[data-theme="bright"], html[data-theme="sepia"],
-html[data-theme="mono"], html[data-theme="mist"] {
-  --pron-link:#0071e3;
-  --pron-elide:#8e44ad;
-  --pron-change:#c93400;
-  --pron-sg:#6e6e73;
 }
 .unit-label {
   margin:0 0 12px; color:var(--muted); font-size:12.5px; font-weight:600;
