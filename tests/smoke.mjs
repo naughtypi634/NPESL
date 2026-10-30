@@ -509,6 +509,32 @@ const cases = [
     },
   },
   {
+    name: 'drill-editorial', path: '/drill/',
+    async run() {
+      // 浏览浮层必须是不透底的纸色，否则编辑网格主题下底下的题目会透上来。
+      await evaluate("localStorage.setItem('npesl-theme','editorial')");
+      await send('Page.reload');
+      const ready = await waitFor(
+        "document.readyState === 'complete' && document.documentElement.dataset.theme === 'editorial'"
+        + " && !!document.querySelector('#browse')", 8000);
+      if (!ready) return { ok: false, detail: '编辑网格主题没生效' };
+      await evaluate("document.querySelector('#browse').click()");
+      const opaque = await waitFor(`(() => {
+        const s = getComputedStyle(document.querySelector('.browserSheet'));
+        const m = s.backgroundColor.match(/[\\d.]+/g);
+        return !!m && (m.length < 4 || Number(m[3]) === 1);
+      })()`);
+      const searchBg = await evaluate(
+        "getComputedStyle(document.querySelector('.searchField')).backgroundColor");
+      await evaluate("localStorage.setItem('npesl-theme','auto')");
+      await send('Page.reload');
+      return {
+        ok: opaque,
+        detail: `sheetOpaque=${opaque} search=${searchBg}`,
+      };
+    },
+  },
+  {
     name: 'conversation', path: '/conversation/a1/01-01-family.html',
     run: probeConversationPage,
   },
