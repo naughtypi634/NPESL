@@ -669,7 +669,7 @@ TEMPLATE = """<!doctype html>
   .word u { text-decoration-line:underline; text-decoration-color:var(--blue);
     text-decoration-thickness:2px; text-underline-offset:0.3em;
     text-decoration-skip-ink:none; }
-  .word:hover { background:var(--surface); }
+  .word:hover { background:var(--blue-tint); color:var(--blue); }
   .word.playing { background:var(--blue-tint); color:var(--blue); }
   .word:focus-visible { outline:2px solid var(--blue); outline-offset:1px; }
 

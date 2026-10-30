@@ -757,7 +757,7 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
   border-bottom:1px dotted transparent; border-radius:3px;
 }
 .vocab-s:hover, .vocab-s.playing {
-  color:var(--blue); background:none; border-bottom-color:currentColor;
+  color:var(--blue); background:var(--blue-tint); border-bottom-color:currentColor;
 }
 .vocab-s[data-start-f]::after,
 .vocab-s[data-start-m]::after {
