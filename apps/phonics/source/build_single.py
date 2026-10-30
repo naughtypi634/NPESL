@@ -140,7 +140,7 @@ def main():
         raise SystemExit("cannot split index.html")
 
     listing = re.sub(
-        r'href="lessons/(\d{2})-[^"]*\.html"',
+        r'href="lessons/(\d{2})-[^"]*"',
         lambda m: f'href="#/{m.group(1)}" data-lesson="{m.group(1)}"',
         page.group(1),
     )
