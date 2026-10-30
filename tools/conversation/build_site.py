@@ -536,7 +536,8 @@ a { color:inherit; }
 .level:hover { background:var(--surface-strong); }
 .level[aria-current="page"] { background:var(--blue); color:var(--on-blue); }
 .level[aria-current="page"]:hover { background:var(--blue-hover); }
-.level .cn { font-weight:500; opacity:.72; font-size:13px; }
+.level .cn { font-weight:500; font-size:13px; color:var(--muted); }
+.level[aria-current="page"] .cn { color:inherit; }
 .list { margin-top:30px; display:flex; flex-direction:column; gap:16px;
   border-top:0; }
 .row {
@@ -761,7 +762,7 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
 .vocab-s[data-start-f]::after,
 .vocab-s[data-start-m]::after {
   content:"▸"; margin-left:5px; font-size:10px;
-  color:var(--muted); opacity:.55;
+  color:var(--muted); opacity:.75;
 }
 .vocab-s:hover::after, .vocab-s.playing::after { color:var(--blue); opacity:1; }
 /* 序号用计数器而不是 ::marker：按钮是行内元素，换行后 ::marker 会贴着
