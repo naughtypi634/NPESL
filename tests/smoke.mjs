@@ -818,17 +818,27 @@ const cases = [
       })()`);
       if (r !== 'ok') return { ok: false, detail: `index=${r}` };
 
-      const open = await evaluate(`(() => {
+      const open = await evaluate(`(() => { try {
         const b = document.querySelector('.prow');
         if (!b) return 'no-row';
         b.click();
         const c = document.querySelector('.card');
         return c && c.querySelectorAll('.say').length > 0 ? 'ok' : 'no-card';
-      })()`);
+      } catch (err) { return 'ERR:' + err.message; } })()`);
       if (open !== 'ok') return { ok: false, detail: `expand=${open}` };
 
+      // 文字不可点：点词条胶囊不应触发播放。
+      const passive = await evaluate(`(() => {
+        const w = document.querySelector('.card .w');
+        if (!w) return 'no-w';
+        const before = window.__phLast || null;
+        w.click();
+        return (window.__phLast || null) === before ? 'ok' : 'played';
+      })()`);
+      if (passive !== 'ok') return { ok: false, detail: `text-click=${passive}` };
+
       // 播放态样式带过渡：测试里临时禁用 transition，直接量最终态。
-      const afford = await evaluate(`(() => {
+      const afford = await evaluate(`(() => { try {
         const style = document.createElement('style');
         style.textContent = '*,*::before,*::after{transition:none !important}';
         document.head.appendChild(style);
@@ -837,7 +847,7 @@ const cases = [
         const t = getComputedStyle(row.querySelector('.arw')).transform;
         const says = [...document.querySelectorAll('.card .say')];
         const badges = says.length > 0 && says.every((b) => b.querySelector('.play'));
-        const head = document.querySelector('.card .head');
+        const head = document.querySelector('.card .card-head');
         const w = head.querySelector('.w');
         const colorOff = getComputedStyle(w).color;
         const bgOff = getComputedStyle(w).backgroundColor;
@@ -845,15 +855,17 @@ const cases = [
         const chipLook = parseFloat(wCss.borderTopWidth) >= 1
           && parseFloat(wCss.borderTopLeftRadius) >= 100;
         head.classList.add('on');
-        const bars = getComputedStyle(head.querySelector('.bars')).display;
-        const svg = getComputedStyle(head.querySelector('svg')).display;
-        const halo = getComputedStyle(head.querySelector('.play'), '::after').animationName;
+        const btn = head.querySelector('.playbtn');
+        btn.classList.add('on');
+        const bars = getComputedStyle(btn.querySelector('.bars')).display;
+        const svg = getComputedStyle(btn.querySelector('svg')).display;
+        const halo = getComputedStyle(btn.querySelector('.play'), '::after').animationName;
         const colorOn = getComputedStyle(w).color;
         const bgOn = getComputedStyle(w).backgroundColor;
         const afterContent = getComputedStyle(w, '::after').content;
-        head.classList.remove('on');
+        btn.classList.remove('on');
         style.remove();
-        const playFx = bars === 'flex' && svg === 'none' && halo === 'halo';
+        const playFx = bars === 'flex' && svg === 'none' && halo === 'pulse';
         let rules = [];
         try {
           const sheet = document.querySelector('style').sheet;
@@ -870,7 +882,7 @@ const cases = [
         return t !== 'none' && badges && playFx && textFx && hoverDiff ? 'ok'
           : 'transform=' + t + '/badges=' + badges + '/playFx=' + playFx + '/textFx=' + textFx
             + '/' + colorOff + '->' + colorOn + '/bg=' + bgOff + '->' + bgOn + '/after=' + afterContent + '/hoverDiff=' + hoverDiff;
-      })()`);
+      } catch (err) { return 'ERR:' + err.message; } })()`);
       if (afford !== 'ok') return { ok: false, detail: `affordance=${afford}` };
 
       // 视觉对齐：默认主题和 glass 主题下都要准；点开时不能出现实心底色。
@@ -878,21 +890,19 @@ const cases = [
         const root = document.documentElement;
         const old = root.getAttribute('data-theme');
         function measure(){
-          const head = document.querySelector('.card .head');
+          const head = document.querySelector('.card .card-head');
           const hb = head.querySelector('.play').getBoundingClientRect();
           const hw = head.querySelector('.w').getBoundingClientRect();
-          const ex = document.querySelector('.card .ex');
+          const ex = document.querySelector('.card .ex-unit');
           const eb = ex.querySelector('.play').getBoundingClientRect();
           const txt = ex.querySelector('.txt');
           const et = txt.getBoundingClientRect();
           const lh = parseFloat(getComputedStyle(txt).lineHeight) || et.height;
           const line = { top: et.top, height: Math.min(lh, et.height) };
           const d = (b, t) => Math.round(Math.abs((b.top + b.height / 2) - (t.top + t.height / 2)) * 10) / 10;
-          head.classList.add('on');
           const bg = getComputedStyle(head).backgroundColor;
           const cardBg = getComputedStyle(document.querySelector('.card')).backgroundColor;
           const playBg = getComputedStyle(head.querySelector('.play')).backgroundColor;
-          head.classList.remove('on');
           return { head: d(hb, hw), ex: d(eb, line), bg, cardBg, playBg };
         }
         const base = measure();
@@ -908,7 +918,7 @@ const cases = [
         && clean(metrics && metrics.dark);
       if (!alignOk) return { ok: false, detail: `align=${JSON.stringify(metrics)}` };
       // 版式一致性：音色右对齐、列表行等高、卡片内边距 16、徽章与词条垂直居中。
-      const layout = await evaluate(`(() => {
+      const layout = await evaluate(`(() => { try {
         const page = document.querySelector('.page');
         const pr = page.getBoundingClientRect();
         const padR = parseFloat(getComputedStyle(page).paddingRight);
@@ -920,13 +930,13 @@ const cases = [
         const cr = card.getBoundingClientRect();
         const wEl = card.querySelector('.w');
         const w = wEl.getBoundingClientRect();
-        const ex = card.querySelector('.ex').getBoundingClientRect();
+        const ex = card.querySelector('.ex-unit').getBoundingClientRect();
         const badge = card.querySelector('.badge').getBoundingClientRect();
         const padLeft = Math.round(w.left - cr.left);
         const padRight = Math.round(cr.right - ex.right);
         const badgeDelta = Math.round(Math.abs((badge.top + badge.height / 2) - (w.top + w.height / 2)));
         return { rightGap, heights, padLeft, padRight, badgeDelta };
-      })()`);
+      } catch (err) { return 'ERR:' + err.message; } })()`);
       const layoutOk = layout && Math.abs(layout.rightGap) <= 1 && layout.heights.length === 1
         && Math.abs(layout.padLeft - 17) <= 1 && Math.abs(layout.padRight - 17) <= 1
         && layout.badgeDelta <= 2;
@@ -1027,7 +1037,8 @@ for (const c of cases) {
       outcome = { ok: false, detail: `${outcome.detail} | console: ${errors.slice(0, 3).join(' ; ')}` };
     }
   } catch (err) {
-    outcome = { ok: false, detail: `异常：${err.message}` };
+    const stack = String(err.stack || err.message).replace(/\s+/g, ' ');
+    outcome = { ok: false, detail: `异常：${stack.slice(0, 240)}` };
   }
   results.push({ name: c.name, ...outcome });
   console.log(`${outcome.ok ? 'PASS' : 'FAIL'}  ${c.name.padEnd(13)} ${outcome.detail}`);

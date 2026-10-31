@@ -349,7 +349,7 @@ INDEX_STYLE = """
   .crumbs a:hover { color:var(--accent); }
   .level1 { display:flex; gap:8px; margin:18px 0 10px; }
   .level1 button { appearance:none; font:inherit; font-size:14px; padding:8px 16px;
-    border:1px solid var(--rule); border-radius:999px; background:transparent;
+    border:1px solid var(--rule); border-radius:var(--radius-pill, 999px); background:transparent;
     color:var(--fg); cursor:pointer; }
   .level1 button:hover { background:var(--surface); }
   .level1 button[aria-pressed="true"] { background:var(--accent);
@@ -364,7 +364,7 @@ INDEX_STYLE = """
   .chips { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 0; }
   .chips button, .chips a { appearance:none; display:inline-block;
     font:inherit; font-size:14px; padding:7px 14px; line-height:1.2;
-    border:1px solid var(--rule); border-radius:999px; background:transparent;
+    border:1px solid var(--rule); border-radius:var(--radius-pill, 999px); background:transparent;
     color:var(--fg); text-decoration:none; cursor:pointer; }
   .chips button:hover, .chips a:hover { background:var(--surface); }
   .chips button[aria-pressed="true"] { background:var(--accent);
@@ -373,7 +373,7 @@ INDEX_STYLE = """
     justify-content:space-between; gap:10px; margin:18px 0 10px; }
   .level1 { margin:0; }
   .voice-seg { display:inline-flex; align-items:center; border:1px solid var(--rule);
-    border-radius:999px; overflow:hidden; }
+    border-radius:var(--radius-pill, 999px); overflow:hidden; }
   .voice-ico { display:inline-flex; align-items:center; padding-left:12px;
     color:var(--muted); }
   .voice-ico svg { width:15px; height:15px; }
@@ -384,7 +384,7 @@ INDEX_STYLE = """
     color:var(--on-accent); }
   .prow { display:flex; align-items:baseline; gap:12px; width:100%;
     text-align:left; font:inherit; color:inherit; background:var(--bg);
-    border:1px solid var(--rule); border-radius:14px; padding:12px 14px;
+    border:1px solid var(--rule); border-radius:var(--radius-control, 14px); padding:12px 14px;
     cursor:pointer; }
   .prow:hover { background:var(--surface); }
   .prow .en { font-size:17px; font-weight:600; min-width:0; }
@@ -393,74 +393,66 @@ INDEX_STYLE = """
   .prow .arw { color:var(--muted); transition:transform .15s ease; }
   .prow[aria-expanded="true"] .arw { transform:rotate(90deg); }
   .card { margin:8px 0 16px; padding:16px; border:1px solid var(--rule);
-    border-radius:16px; background:var(--bg); }
+    border-radius:var(--radius-card, 16px); background:var(--bg); }
   .card-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
-  .card .head { appearance:none; border:0; background:transparent; color:inherit;
-    font:inherit; display:inline-flex; align-items:center; gap:8px;
-    padding:0; cursor:pointer; white-space:normal; }
-  .card .head .w { font-size:14px; font-weight:600; }
-  .card .head .ipa { color:var(--muted); font-size:13px; }
-  /* 可播放元素的统一提示：小圆播放徽标，桌面 hover 实心，手机常驻可见 */
-  .card .say .play { position:relative; display:inline-flex; align-items:center;
+  .card .w { display:inline-block; padding:7px 14px; font-size:14px; font-weight:600;
+    border:1px solid var(--rule); border-radius:var(--radius-pill, 999px);
+    background:transparent; color:var(--fg);
+    transition:background-color .18s ease, color .18s ease, border-color .18s ease; }
+  .card .ipa { color:var(--muted); font-size:13px; }
+  .card .playbtn { appearance:none; border:0; background:transparent; padding:0;
+    display:inline-flex; align-items:center; cursor:pointer; color:inherit; }
+  /* 可播放提示：小圆播放件；播放时一圈向外扩散的渐变脉冲 */
+  .card .playbtn .play { position:relative; display:inline-flex; align-items:center;
     justify-content:center; width:18px; height:18px; flex:none;
     border:1px solid var(--rule); border-radius:50%; background:var(--bg);
     color:var(--muted);
     transition:background-color .12s ease, color .12s ease,
       border-color .12s ease, transform .12s ease; }
-  .card .say .play svg { display:block; width:8px; height:8px; margin-left:1px; }
-  .card .say:hover .play, .card .say.on .play {
+  .card .playbtn .play svg { display:block; width:8px; height:8px; margin-left:1px; }
+  .card .playbtn:hover .play, .card .playbtn.on .play {
     background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
-  .card .say:active .play { transform:scale(.9); }
-  /* 播放中：三角换成三根声波条，外圈一圈淡扩散环 */
-  .card .say .bars { display:none; align-items:flex-end; gap:2px; height:9px; }
-  .card .say .bars i { display:block; width:2px; height:4px; border-radius:1px;
+  .card .playbtn:active .play { transform:scale(.9); }
+  .card .playbtn .bars { display:none; align-items:flex-end; gap:2px; height:9px; }
+  .card .playbtn .bars i { display:block; width:2px; height:4px; border-radius:1px;
     background:currentColor; animation:eq .9s ease-in-out infinite; }
-  .card .say .bars i:nth-child(2) { animation-delay:.15s; }
-  .card .say .bars i:nth-child(3) { animation-delay:.3s; }
-  .card .say.on .play svg { display:none; }
-  .card .say.on .play .bars { display:inline-flex; }
-  .card .say.on .play::after { content:""; position:absolute; inset:-3px;
-    border-radius:50%; border:1px solid var(--accent); pointer-events:none;
-    animation:halo 1.6s ease-out infinite; }
-  /* 词条常驻胶囊：默认是未选中的描边态，播放时切换成选中态 */
-  .card .say .w { display:inline-block; padding:7px 14px;
-    border:1px solid var(--rule); border-radius:999px; background:transparent;
-    transition:background-color .18s ease, color .18s ease, border-color .18s ease; }
-  .card .say .txt { transition:color .18s ease; }
-  .card .head:hover .w { background:var(--surface); }
-  .card .say.on .w { background:var(--accent); border-color:var(--accent);
-    color:var(--on-accent); }
-  .card .say.on .txt { color:var(--accent); }
-  .card .say:focus { outline:none; }
-  .card .say:focus-visible { outline:2px solid var(--accent);
-    outline-offset:2px; border-radius:999px; }
+  .card .playbtn .bars i:nth-child(2) { animation-delay:.15s; }
+  .card .playbtn .bars i:nth-child(3) { animation-delay:.3s; }
+  .card .playbtn.on .play svg { display:none; }
+  .card .playbtn.on .play .bars { display:inline-flex; }
+  .card .playbtn.on .play::after { content:""; position:absolute; inset:-12px;
+    border-radius:50%; pointer-events:none; opacity:0;
+    background:radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    animation:pulse 1.8s ease-out infinite; }
+  .card .say-unit:has(.playbtn.on) .w {
+    background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .card .say-unit:has(.playbtn.on) .txt { color:var(--accent); }
+  .card .playbtn:focus { outline:none; }
+  .card .playbtn:focus-visible { outline:2px solid var(--accent);
+    outline-offset:3px; border-radius:50%; }
   @keyframes eq { 0%,100% { height:3px; } 50% { height:9px; } }
-  @keyframes halo { 0% { transform:scale(.85); opacity:.4; }
-    70% { transform:scale(1.3); opacity:0; } 100% { opacity:0; } }
+  @keyframes pulse { 0% { transform:scale(.35); opacity:.45; }
+    70% { transform:scale(1.4); opacity:0; } 100% { opacity:0; } }
   @media (prefers-reduced-motion: reduce) {
-    .card .say .bars i { animation:none; height:6px; }
-    .card .say.on .play::after { display:none; }
-    .card .say .play { transition:none; }
-    .card .say .w, .card .say .txt { transition:none; }
+    .card .playbtn .bars i { animation:none; height:6px; }
+    .card .playbtn.on .play::after { display:none; }
+    .card .playbtn .play { transition:none; }
+    .card .w, .card .txt { transition:none; }
   }
-  .card .ex {
-    display:flex; align-items:flex-start; gap:10px; width:100%;
-    text-align:left; font:inherit; color:inherit; background:var(--bg);
-    border:1px solid var(--rule); border-radius:12px; padding:10px 12px;
-    cursor:pointer; white-space:normal; overflow-wrap:anywhere; }
-  .card .ex .play { margin-top:3px; }
+  .card .ex-unit { display:flex; align-items:flex-start; gap:10px; }
+  .card .ex-unit .playbtn { margin-top:3px; }
   .card .ex-text { flex:1; min-width:0; }
+  .card .ex-text .txt { display:block; font-size:16px; line-height:1.5; }
+  .card .ex-text .zh { display:block; margin-top:3px; color:var(--muted); font-size:13px; }
   .card .badges { display:inline-flex; gap:6px; }
-  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+  .badge { font-size:12px; padding:2px 8px; border-radius:var(--radius-pill, 999px);
     border:1px solid var(--rule); color:var(--muted); }
   .badge.reg { color:var(--accent); border-color:var(--accent); }
   .card .zh-line { margin:8px 0 0; color:var(--muted); font-size:14px; }
   .card .sense { margin-top:10px; }
   .card .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted); }
-  .card .ex:hover { background:var(--surface-strong, var(--surface)); }
-  .card .ex .txt { display:block; font-size:16px; line-height:1.5; }
-  .card .ex .zh { display:block; margin-top:3px; color:var(--muted); font-size:13px; }
-  .card .note-card { margin-top:12px; padding:12px 14px; border-radius:12px;
+  .card .note-card { margin-top:12px; padding:12px 14px;
+    border-radius:var(--radius-control, 12px);
     background:var(--surface-strong, var(--surface)); border:1px solid var(--rule);
     border-left:3px solid var(--accent); }
   .card .note-card p { margin:6px 0 0; font-size:13px; line-height:1.6; }
@@ -628,11 +620,11 @@ def build_index(themes):
         "function fmt(v){return (v==null?'':v.toFixed(3));}\n"
         "function card(i){\n"
         "  var e=D.entries[i];var out='<div class=\"card\" data-card=\"'+i+'\">';\n"
-        "  out+='<div class=\"card-head\"><button class=\"say head\" type=\"button\" data-i=\"'+i+'\" data-k=\"0\"><span class=\"w\">'+esc(e.h)+'</span><span class=\"ipa\">/'+esc(e.ipa)+'/</span><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><span class=\"badges\"><span class=\"badge reg\">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class=\"badge split\">可分</span>':'')+'</span></div>';\n"
+        "  out+='<div class=\"card-head say-unit\" data-unit=\"'+i+'-0\"><span class=\"w\">'+esc(e.h)+'</span><span class=\"ipa\">/'+esc(e.ipa)+'/</span><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"0\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><span class=\"badges\"><span class=\"badge reg\">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class=\"badge split\">可分</span>':'')+'</span></div>';\n"
         "  out+='<p class=\"zh-line\">'+esc(e.zh)+'</p>';\n"
         "  for(var s=0;s<e.sen.length;s++){\n"
         "    var it=e.sen[s];\n"
-        "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><button class=\"say ex\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span><span class=\"ex-text\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></span></button></div>';\n"
+        "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><div class=\"say-unit ex-unit\" data-unit=\"'+i+'-'+(s+1)+'\"><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><div class=\"ex-text\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></div></div></div>';\n"
         "  }\n"
         "  var notes='';\n"
         "  if(e.l1)notes+='<p class=\"l1\"><b>中文易错</b>'+esc(e.l1)+'</p>';\n"
