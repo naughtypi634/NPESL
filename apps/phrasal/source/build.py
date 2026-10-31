@@ -439,7 +439,6 @@ INDEX_STYLE = """
     .card .say .play { transition:none; }
     .card .say .w, .card .say .txt { transition:none; }
   }
-  .card .head:hover .w { color:var(--accent); }
   .card .ex {
     display:flex; align-items:flex-start; gap:10px; width:100%;
     text-align:left; font:inherit; color:inherit; background:var(--bg);
