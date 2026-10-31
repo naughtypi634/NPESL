@@ -833,7 +833,15 @@ const cases = [
         const t = getComputedStyle(row.querySelector('.arw')).transform;
         const says = [...document.querySelectorAll('.card .say')];
         const badges = says.length > 0 && says.every((b) => b.querySelector('.play'));
-        return t !== 'none' && badges ? 'ok' : 'transform=' + t + '/badges=' + badges;
+        const head = document.querySelector('.card .head');
+        head.classList.add('on');
+        const bars = getComputedStyle(head.querySelector('.bars')).display;
+        const svg = getComputedStyle(head.querySelector('svg')).display;
+        const halo = getComputedStyle(head.querySelector('.play'), '::after').animationName;
+        head.classList.remove('on');
+        const playFx = bars === 'flex' && svg === 'none' && halo === 'halo';
+        return t !== 'none' && badges && playFx ? 'ok'
+          : 'transform=' + t + '/badges=' + badges + '/playFx=' + playFx + '/' + bars + '/' + svg + '/' + halo;
       })()`);
       if (afford !== 'ok') return { ok: false, detail: `affordance=${afford}` };
 

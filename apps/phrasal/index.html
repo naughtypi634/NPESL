@@ -86,13 +86,34 @@
   .card .head .w { font-size:20px; font-weight:700; }
   .card .head .ipa { color:var(--muted); font-size:13px; }
   /* 可播放元素的统一提示：小圆播放徽标，桌面 hover 实心，手机常驻可见 */
-  .card .say .play { display:inline-flex; align-items:center; justify-content:center;
-    width:18px; height:18px; flex:none; border:0; border-radius:50%;
-    background:var(--surface-strong, var(--surface)); color:var(--muted);
-    transition:background-color .12s ease, color .12s ease; }
+  .card .say .play { position:relative; display:inline-flex; align-items:center;
+    justify-content:center; width:18px; height:18px; flex:none; border:0;
+    border-radius:50%; background:var(--surface-strong, var(--surface));
+    color:var(--muted);
+    transition:background-color .12s ease, color .12s ease, transform .12s ease; }
   .card .say .play svg { display:block; width:8px; height:8px; margin-left:1px; }
   .card .say:hover .play, .card .say.on .play {
     background:var(--accent); color:var(--on-accent); }
+  .card .say:active .play { transform:scale(.9); }
+  /* 播放中：三角换成三根声波条，外圈一圈淡扩散环 */
+  .card .say .bars { display:none; align-items:flex-end; gap:2px; height:9px; }
+  .card .say .bars i { display:block; width:2px; height:4px; border-radius:1px;
+    background:currentColor; animation:eq .9s ease-in-out infinite; }
+  .card .say .bars i:nth-child(2) { animation-delay:.15s; }
+  .card .say .bars i:nth-child(3) { animation-delay:.3s; }
+  .card .say.on .play svg { display:none; }
+  .card .say.on .play .bars { display:inline-flex; }
+  .card .say.on .play::after { content:""; position:absolute; inset:-3px;
+    border-radius:50%; border:1px solid var(--accent); pointer-events:none;
+    animation:halo 1.6s ease-out infinite; }
+  @keyframes eq { 0%,100% { height:3px; } 50% { height:9px; } }
+  @keyframes halo { 0% { transform:scale(.85); opacity:.4; }
+    70% { transform:scale(1.3); opacity:0; } 100% { opacity:0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .card .say .bars i { animation:none; height:6px; }
+    .card .say.on .play::after { display:none; }
+    .card .say .play { transition:none; }
+  }
   .card .head:hover .w { color:var(--accent); }
   .card .ex {
     display:flex; align-items:flex-start; gap:10px; width:100%;
@@ -170,11 +191,11 @@ function rowButton(i){
 function fmt(v){return (v==null?'':v.toFixed(3));}
 function card(i){
   var e=D.entries[i];var out='<div class="card" data-card="'+i+'">';
-  out+='<div class="card-head"><button class="say head" type="button" data-i="'+i+'" data-k="0"><span class="w">'+esc(e.h)+'</span><span class="ipa">/'+esc(e.ipa)+'/</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></button><span class="badges"><span class="badge reg">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class="badge split">可分</span>':'')+'</span></div>';
+  out+='<div class="card-head"><button class="say head" type="button" data-i="'+i+'" data-k="0"><span class="w">'+esc(e.h)+'</span><span class="ipa">/'+esc(e.ipa)+'/</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span></button><span class="badges"><span class="badge reg">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class="badge split">可分</span>':'')+'</span></div>';
   out+='<p class="zh-line">'+esc(e.zh)+'</p>';
   for(var s=0;s<e.sen.length;s++){
     var it=e.sen[s];
-    out+='<div class="sense"><p class="sense-zh">'+esc(it[0])+'</p><button class="say ex" type="button" data-i="'+i+'" data-k="'+(s+1)+'"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span><span class="ex-text"><span class="txt">'+esc(it[1])+'</span><span class="zh">'+esc(it[2])+'</span></span></button></div>';
+    out+='<div class="sense"><p class="sense-zh">'+esc(it[0])+'</p><button class="say ex" type="button" data-i="'+i+'" data-k="'+(s+1)+'"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span><span class="ex-text"><span class="txt">'+esc(it[1])+'</span><span class="zh">'+esc(it[2])+'</span></span></button></div>';
   }
   var notes='';
   if(e.l1)notes+='<p class="l1"><b>中文易错</b>'+esc(e.l1)+'</p>';
