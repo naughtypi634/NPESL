@@ -840,12 +840,14 @@ const cases = [
         const head = document.querySelector('.card .head');
         const w = head.querySelector('.w');
         const colorOff = getComputedStyle(w).color;
+        const bgOff = getComputedStyle(w).backgroundColor;
         head.classList.add('on');
         const bars = getComputedStyle(head.querySelector('.bars')).display;
         const svg = getComputedStyle(head.querySelector('svg')).display;
         const halo = getComputedStyle(head.querySelector('.play'), '::after').animationName;
         const colorOn = getComputedStyle(w).color;
-        const line = getComputedStyle(w, '::after').transform;
+        const bgOn = getComputedStyle(w).backgroundColor;
+        const afterContent = getComputedStyle(w, '::after').content;
         head.classList.remove('on');
         style.remove();
         const playFx = bars === 'flex' && svg === 'none' && halo === 'halo';
@@ -857,10 +859,11 @@ const cases = [
             .map((r) => r.selectorText.slice(0, 60) + '=' + (r.style.transform || '-'));
         } catch (e) { rules = ['err:' + e.message]; }
         const content = getComputedStyle(w, '::after').content;
-        const textFx = colorOff !== colorOn && line !== 'none' && line.indexOf('matrix(0') !== 0;
+        const textFx = colorOff !== colorOn && bgOn !== bgOff
+          && bgOn !== 'rgba(0, 0, 0, 0)' && afterContent === 'none';
         return t !== 'none' && badges && playFx && textFx ? 'ok'
           : 'transform=' + t + '/badges=' + badges + '/playFx=' + playFx + '/textFx=' + textFx
-            + '/' + colorOff + '->' + colorOn + '/' + line + '/rules=' + JSON.stringify(rules) + '/content=' + content;
+            + '/' + colorOff + '->' + colorOn + '/bg=' + bgOff + '->' + bgOn + '/after=' + afterContent;
       })()`);
       if (afford !== 'ok') return { ok: false, detail: `affordance=${afford}` };
 
@@ -909,10 +912,12 @@ const cases = [
           .slice(0, 40).map((r) => Math.round(r.getBoundingClientRect().height)))];
         const card = document.querySelector('.card');
         const cr = card.getBoundingClientRect();
-        const w = card.querySelector('.w').getBoundingClientRect();
+        const wEl = card.querySelector('.w');
+        const w = wEl.getBoundingClientRect();
         const ex = card.querySelector('.ex').getBoundingClientRect();
         const badge = card.querySelector('.badge').getBoundingClientRect();
-        const padLeft = Math.round(w.left - cr.left);
+        const wPad = parseFloat(getComputedStyle(wEl).paddingLeft) || 0;
+        const padLeft = Math.round(w.left + wPad - cr.left);
         const padRight = Math.round(cr.right - ex.right);
         const badgeDelta = Math.round(Math.abs((badge.top + badge.height / 2) - (w.top + w.height / 2)));
         return { rightGap, heights, padLeft, padRight, badgeDelta };
