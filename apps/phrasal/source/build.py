@@ -376,7 +376,6 @@ INDEX_STYLE = """
   .voice-ico { display:inline-flex; align-items:center; padding-left:12px;
     color:var(--muted); }
   .voice-ico svg { width:15px; height:15px; }
-  .voice-label { padding:0 8px 0 4px; color:var(--muted); font-size:13px; }
   .voice-seg button { appearance:none; border:0; background:transparent;
     color:var(--fg); font:inherit; font-size:14px; padding:6px 14px; cursor:pointer; }
   .voice-seg button + button { border-left:1px solid var(--rule); }
@@ -557,7 +556,7 @@ def build_index(themes):
         '<span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" '
         'stroke="currentColor" stroke-width="2" stroke-linejoin="round">'
         '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/>'
-        '</svg></span><span class="voice-label">声</span>'
+        '</svg></span>'
         '<button type="button" data-voice="f" aria-pressed="true">女</button>'
         '<button type="button" data-voice="m" aria-pressed="false">男</button>'
         '</div></div>\n'
