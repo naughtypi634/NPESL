@@ -773,26 +773,37 @@ const cases = [
   {
     name: 'phrasal-index', path: '/phrasal/',
     async run() {
-      // 目录页两级筛选：切到「介词」→ 选 up → 只剩 up 分区，再点全部恢复。
+      // 目录页先选一级，再在二级里点，直接出短语；两级不同时展示。
       const r = await evaluate(`(() => {
+        const step2 = document.getElementById('step2');
+        if (!step2 || !step2.hidden) return 'step2-visible-too-early';
         const modes = [...document.querySelectorAll('[data-mode]')];
         const partMode = modes.find((b) => b.dataset.mode === 'particle');
         if (!partMode) return 'no-mode';
         partMode.click();
+        if (step2.hidden) return 'step2-hidden-after-mode';
         const chips = [...document.querySelectorAll('[data-part]')];
         const up = chips.find((b) => b.dataset.part === 'up');
-        const all = chips.find((b) => b.dataset.part === 'all');
-        if (!up || !all) return 'no-chip';
+        if (!up) return 'no-chip';
         up.click();
-        const groups = [...document.querySelectorAll('#view-particle .group')];
-        const shown = groups.filter((g) => g.style.display !== 'none');
+        const pgroups = [...document.querySelectorAll('#view-particle .group')];
+        const shown = pgroups.filter((g) => g.style.display !== 'none');
         const bad = shown.filter((g) => g.getAttribute('data-particle') !== 'up').length;
         const sceneHidden = document.getElementById('view-scene').hidden;
-        all.click();
-        const restored = groups.every((g) => g.style.display !== 'none');
-        return bad === 0 && shown.length > 0 && sceneHidden && restored
+        const partShown = !document.getElementById('view-particle').hidden;
+        const sceneMode = modes.find((b) => b.dataset.mode === 'scene');
+        sceneMode.click();
+        const cat = [...document.querySelectorAll('[data-cat]')].find((b) => b.dataset.cat === 'daily');
+        if (!cat) return 'no-cat';
+        cat.click();
+        const sgroups = [...document.querySelectorAll('#view-scene .group')];
+        const sShown = sgroups.filter((g) => g.style.display !== 'none');
+        const sBad = sShown.filter((g) => g.getAttribute('data-cat') !== 'daily').length;
+        return bad === 0 && shown.length > 0 && sceneHidden && partShown
+          && sBad === 0 && sShown.length > 0
           ? 'ok'
-          : 'bad=' + bad + '/shown=' + shown.length + '/sceneHidden=' + sceneHidden + '/restored=' + restored;
+          : 'bad=' + bad + '/shown=' + shown.length + '/sceneHidden=' + sceneHidden
+            + '/partShown=' + partShown + '/sBad=' + sBad + '/sShown=' + sShown.length;
       })()`);
       return { ok: r === 'ok', detail: `two-level=${r}` };
     },

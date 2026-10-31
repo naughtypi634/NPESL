@@ -353,6 +353,11 @@ INDEX_STYLE = """
   .level1 button:hover { background:var(--surface); }
   .level1 button[aria-pressed="true"] { background:var(--accent);
     border-color:var(--accent); color:var(--on-accent); }
+  .hint { margin:14px 0 0; color:var(--muted); font-size:14px; }
+  .group .theme { margin:24px 0 6px; font-size:16px; font-weight:600; }
+  .group .theme a { color:var(--fg); text-decoration:none; }
+  .group .theme a:hover { color:var(--accent); }
+  .theme-go { float:right; font-size:12px; font-weight:400; color:var(--accent); }
   .chips { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 0; }
   .chips button { appearance:none; font:inherit; font-size:14px; padding:7px 14px;
     border:1px solid var(--rule); border-radius:999px; background:transparent;
@@ -439,51 +444,69 @@ def particle_sections(groups, others, keys):
     return sections
 
 
+def scene_phrase_sections(themes, categories, numbers):
+    """场景话题：每个分类下列出全部短语，按主题分组，标题可进主题页。"""
+    sections = []
+    for cat in categories:
+        group = [t for t in themes if t.get("category") == cat["id"]]
+        if not group:
+            continue
+        body = []
+        for theme in group:
+            name = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
+            body.append(
+                f'<h3 class="theme"><a href="{name}">{html.escape(theme["title_zh"])}'
+                f' <span class="stage-en">{html.escape(theme["title_en"])}</span>'
+                f'<span class="theme-go">进入主题 ›</span></a></h3>'
+                f'<div class="list">'
+                + "".join(row_html(e, name) for e in theme["entries"])
+                + "</div>")
+        count = sum(len(t["entries"]) for t in group)
+        sections.append(
+            f'<section class="group" data-cat="{html.escape(cat["id"])}" '
+            f'id="cat-{html.escape(cat["id"])}">'
+            f'<p class="stage">{html.escape(cat["title_zh"])}'
+            f' <span class="stage-en">{html.escape(cat["title_en"])} · {count} 条</span></p>'
+            f'{"".join(body)}</section>')
+    return sections
+
+
 def build_index(themes):
     doc = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
     categories = doc.get("categories", [])
     numbers = {theme["id"]: index + 1 for index, theme in enumerate(themes)}
 
-    def card(theme):
-        name = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
-        return (
-            f'<a class="row" href="{name}">'
-            f'<span class="title"><span class="en">{html.escape(theme["title_en"])}</span>'
-            f'<span class="zh">{html.escape(theme["title_zh"])}</span></span>'
-            f'<span class="tag">›</span></a>'
-        )
-
-    scene_sections = []
-    scene_chips = ['<button type="button" data-cat="all" aria-pressed="true">全部</button>']
-    for cat in categories:
-        group = [t for t in themes if t.get("category") == cat["id"]]
-        if not group:
-            continue
-        scene_chips.append(
-            f'<button type="button" data-cat="{html.escape(cat["id"])}" '
-            f'aria-pressed="false">{html.escape(cat["title_zh"])}</button>')
-        scene_sections.append(
-            f'<section class="group" data-cat="{html.escape(cat["id"])}" '
-            f'id="cat-{html.escape(cat["id"])}">'
-            f'<p class="stage">{html.escape(cat["title_zh"])}'
-            f' <span class="stage-en">{html.escape(cat["title_en"])}</span></p>'
-            f'<div class="list">{"".join(card(t) for t in group)}</div></section>')
+    scene_sections = scene_phrase_sections(themes, categories, numbers)
     grouped_ids = {t["id"] for t in themes if t.get("category")}
     rest = [t for t in themes if t["id"] not in grouped_ids]
     if rest:
+        body = []
+        for theme in rest:
+            name = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
+            body.append(f'<h3 class="theme"><a href="{name}">'
+                        f'{html.escape(theme["title_zh"])}</a></h3>'
+                        f'<div class="list">'
+                        + "".join(row_html(e, name) for e in theme["entries"])
+                        + "</div>")
         scene_sections.append(
-            f'<div class="list">{"".join(card(t) for t in rest)}</div>')
+            f'<section class="group" data-cat="others">'
+            f'<p class="stage">其他</p>{"".join(body)}</section>')
+
+    scene_chips = ['<button type="button" data-cat="all">全部</button>']
+    for cat in categories:
+        if any(t.get("category") == cat["id"] for t in themes):
+            scene_chips.append(
+                f'<button type="button" data-cat="{html.escape(cat["id"])}">'
+                f'{html.escape(cat["title_zh"])}</button>')
 
     groups, others, keys = particle_groups(themes)
     part_sections = particle_sections(groups, others, keys)
-    part_chips = ['<button type="button" data-part="all" aria-pressed="true">全部</button>']
+    part_chips = ['<button type="button" data-part="all">全部</button>']
     for particle in keys:
-        part_chips.append(
-            f'<button type="button" data-part="{html.escape(particle)}" '
-            f'aria-pressed="false">{html.escape(particle)}</button>')
+        part_chips.append(f'<button type="button" data-part="{html.escape(particle)}">'
+                          f'{html.escape(particle)}</button>')
     if others:
-        part_chips.append('<button type="button" data-part="others" '
-                          'aria-pressed="false">其他</button>')
+        part_chips.append('<button type="button" data-part="others">其他</button>')
 
     total = sum(len(theme["entries"]) for theme in themes)
     page = (
@@ -493,46 +516,53 @@ def build_index(themes):
         f"<style>{INDEX_STYLE}</style>\n</head>\n<body>\n<div class=\"page\">\n"
         "<h1>短语动词</h1>\n"
         f'<p class="sub">{len(themes)} 个主题 · {total} 条 · 点词条或例句就出声</p>\n'
-        '<div class="level1" role="group" aria-label="筛选方式">'
-        '<button type="button" data-mode="scene" aria-pressed="true">场景话题</button>'
-        '<button type="button" data-mode="particle" aria-pressed="false">介词</button>'
+        '<div class="level1" role="group" aria-label="先选一种浏览方式">'
+        '<button type="button" data-mode="scene">场景话题</button>'
+        '<button type="button" data-mode="particle">介词</button>'
         '</div>\n'
-        f'<div class="chips" data-chips="scene">{"".join(scene_chips)}</div>\n'
+        '<div id="step2" hidden>\n'
+        f'<div class="chips" data-chips="scene" hidden>{"".join(scene_chips)}</div>\n'
         f'<div class="chips" data-chips="particle" hidden>{"".join(part_chips)}</div>\n'
-        f'<div id="view-scene">{"".join(scene_sections)}</div>\n'
+        '<p class="hint" data-hint hidden>选一个，下面直接列出短语</p>\n'
+        '</div>\n'
+        f'<div id="view-scene" hidden>{"".join(scene_sections)}</div>\n'
         f'<div id="view-particle" hidden>{"".join(part_sections)}</div>\n'
         '</div>\n<script>\n'
         "(function(){\n"
-        "var M='pv-mode',C='pv-cat',P='pv-part';\n"
+        "var step2=document.getElementById('step2');\n"
         "var viewScene=document.getElementById('view-scene');\n"
         "var viewPart=document.getElementById('view-particle');\n"
         "var rowScene=document.querySelector('[data-chips=\\\"scene\\\"]');\n"
         "var rowPart=document.querySelector('[data-chips=\\\"particle\\\"]');\n"
+        "var hint=document.querySelector('[data-hint]');\n"
         "var modeBtns=document.querySelectorAll('[data-mode]');\n"
         "var catBtns=document.querySelectorAll('[data-cat]');\n"
         "var partBtns=document.querySelectorAll('[data-part]');\n"
-        "var mode='scene',cat='all',part='all';\n"
+        "var mode=null,cat=null,part=null;\n"
         "function paintMode(){\n"
-        "  viewScene.hidden=(mode!=='scene');viewPart.hidden=(mode==='scene');\n"
-        "  rowScene.hidden=(mode!=='scene');rowPart.hidden=(mode==='scene');\n"
         "  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===mode?'true':'false');\n"
+        "  step2.hidden=!mode;\n"
+        "  rowScene.hidden=mode!=='scene';rowPart.hidden=mode!=='particle';\n"
+        "  viewScene.hidden=true;viewPart.hidden=true;hint.hidden=!mode;\n"
+        "  cat=null;part=null;\n"
+        "  for(var j=0;j<catBtns.length;j++)catBtns[j].removeAttribute('aria-pressed');\n"
+        "  for(var k=0;k<partBtns.length;k++)partBtns[k].removeAttribute('aria-pressed');\n"
         "}\n"
-        "function paintCat(){\n"
+        "function showCat(value){\n"
+        "  cat=value;hint.hidden=true;viewPart.hidden=true;viewScene.hidden=false;\n"
         "  var g=viewScene.querySelectorAll('.group');\n"
-        "  for(var i=0;i<g.length;i++)g[i].style.display=(cat==='all'||g[i].getAttribute('data-cat')===cat)?'':'none';\n"
-        "  for(var j=0;j<catBtns.length;j++)catBtns[j].setAttribute('aria-pressed',catBtns[j].getAttribute('data-cat')===cat?'true':'false');\n"
+        "  for(var i=0;i<g.length;i++)g[i].style.display=(value==='all'||g[i].getAttribute('data-cat')===value)?'':'none';\n"
+        "  for(var j=0;j<catBtns.length;j++)catBtns[j].setAttribute('aria-pressed',catBtns[j].getAttribute('data-cat')===value?'true':'false');\n"
         "}\n"
-        "function paintPart(){\n"
+        "function showPart(value){\n"
+        "  part=value;hint.hidden=true;viewScene.hidden=true;viewPart.hidden=false;\n"
         "  var g=viewPart.querySelectorAll('.group');\n"
-        "  for(var i=0;i<g.length;i++)g[i].style.display=(part==='all'||g[i].getAttribute('data-particle')===part)?'':'none';\n"
-        "  for(var j=0;j<partBtns.length;j++)partBtns[j].setAttribute('aria-pressed',partBtns[j].getAttribute('data-part')===part?'true':'false');\n"
+        "  for(var i=0;i<g.length;i++)g[i].style.display=(value==='all'||g[i].getAttribute('data-particle')===value)?'':'none';\n"
+        "  for(var j=0;j<partBtns.length;j++)partBtns[j].setAttribute('aria-pressed',partBtns[j].getAttribute('data-part')===value?'true':'false');\n"
         "}\n"
-        "function save(k,v){try{localStorage.setItem(k,v);}catch(e){}}\n"
-        "for(var a=0;a<modeBtns.length;a++)modeBtns[a].addEventListener('click',function(e){mode=e.currentTarget.getAttribute('data-mode');save(M,mode);paintMode();});\n"
-        "for(var b=0;b<catBtns.length;b++)catBtns[b].addEventListener('click',function(e){cat=e.currentTarget.getAttribute('data-cat');save(C,cat);paintCat();});\n"
-        "for(var c=0;c<partBtns.length;c++)partBtns[c].addEventListener('click',function(e){part=e.currentTarget.getAttribute('data-part');save(P,part);paintPart();});\n"
-        "try{mode=localStorage.getItem(M)||'scene';cat=localStorage.getItem(C)||'all';part=localStorage.getItem(P)||'all';}catch(e){}\n"
-        "paintMode();paintCat();paintPart();\n"
+        "for(var a=0;a<modeBtns.length;a++)modeBtns[a].addEventListener('click',function(e){mode=e.currentTarget.getAttribute('data-mode');paintMode();});\n"
+        "for(var b=0;b<catBtns.length;b++)catBtns[b].addEventListener('click',function(e){showCat(e.currentTarget.getAttribute('data-cat'));});\n"
+        "for(var c=0;c<partBtns.length;c++)partBtns[c].addEventListener('click',function(e){showPart(e.currentTarget.getAttribute('data-part'));});\n"
         "})();\n"
         "</script>\n</body>\n</html>\n"
     )
