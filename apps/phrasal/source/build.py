@@ -421,13 +421,14 @@ INDEX_STYLE = """
   .card .say.on .play::after { content:""; position:absolute; inset:-3px;
     border-radius:50%; border:1px solid var(--accent); pointer-events:none;
     animation:halo 1.6s ease-out infinite; }
-  /* 文字：播放时词条变成 chip 样式，例句文字变强调色 */
-  .card .say .w { display:inline-block; padding:2px 10px; margin-left:-10px;
-    border-radius:999px;
-    transition:background-color .18s ease, color .18s ease; }
+  /* 词条常驻胶囊：默认是未选中的描边态，播放时切换成选中态 */
+  .card .say .w { display:inline-block; padding:3px 12px; margin-left:-13px;
+    border:1px solid var(--rule); border-radius:999px; background:transparent;
+    transition:background-color .18s ease, color .18s ease, border-color .18s ease; }
   .card .say .txt { transition:color .18s ease; }
-  .card .head:hover .w { background:var(--surface-strong, var(--surface)); }
-  .card .say.on .w { background:var(--accent); color:var(--on-accent); }
+  .card .head:hover .w { background:var(--surface); }
+  .card .say.on .w { background:var(--accent); border-color:var(--accent);
+    color:var(--on-accent); }
   .card .say.on .txt { color:var(--accent); }
   @keyframes eq { 0%,100% { height:3px; } 50% { height:9px; } }
   @keyframes halo { 0% { transform:scale(.85); opacity:.4; }

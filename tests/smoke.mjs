@@ -841,6 +841,9 @@ const cases = [
         const w = head.querySelector('.w');
         const colorOff = getComputedStyle(w).color;
         const bgOff = getComputedStyle(w).backgroundColor;
+        const wCss = getComputedStyle(w);
+        const chipLook = parseFloat(wCss.borderTopWidth) >= 1
+          && parseFloat(wCss.borderTopLeftRadius) >= 100;
         head.classList.add('on');
         const bars = getComputedStyle(head.querySelector('.bars')).display;
         const svg = getComputedStyle(head.querySelector('svg')).display;
@@ -860,7 +863,7 @@ const cases = [
         } catch (e) { rules = ['err:' + e.message]; }
         const content = getComputedStyle(w, '::after').content;
         const textFx = colorOff !== colorOn && bgOn !== bgOff
-          && bgOn !== 'rgba(0, 0, 0, 0)' && afterContent === 'none';
+          && bgOn !== 'rgba(0, 0, 0, 0)' && afterContent === 'none' && chipLook;
         return t !== 'none' && badges && playFx && textFx ? 'ok'
           : 'transform=' + t + '/badges=' + badges + '/playFx=' + playFx + '/textFx=' + textFx
             + '/' + colorOff + '->' + colorOn + '/bg=' + bgOff + '->' + bgOn + '/after=' + afterContent;
@@ -916,7 +919,8 @@ const cases = [
         const w = wEl.getBoundingClientRect();
         const ex = card.querySelector('.ex').getBoundingClientRect();
         const badge = card.querySelector('.badge').getBoundingClientRect();
-        const wPad = parseFloat(getComputedStyle(wEl).paddingLeft) || 0;
+        const wCss = getComputedStyle(wEl);
+        const wPad = (parseFloat(wCss.paddingLeft) || 0) + (parseFloat(wCss.borderLeftWidth) || 0);
         const padLeft = Math.round(w.left + wPad - cr.left);
         const padRight = Math.round(cr.right - ex.right);
         const badgeDelta = Math.round(Math.abs((badge.top + badge.height / 2) - (w.top + w.height / 2)));
