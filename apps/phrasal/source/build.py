@@ -263,12 +263,12 @@ def entry_html(entry, audio):
 
     extra = []
     if entry.get("l1_note"):
-        extra.append(f'<p class="l1"><b>易错 / Common mistakes</b>{html.escape(entry["l1_note"])}</p>')
+        extra.append(f'<p class="l1"><b>易错</b>{html.escape(entry["l1_note"])}</p>')
     if entry.get("collocations"):
-        extra.append('<p class="colloc"><b>搭配 / Collocations</b>'
+        extra.append('<p class="colloc"><b>搭配</b>'
                      + html.escape(" · ".join(entry["collocations"])) + "</p>")
     if entry.get("confusables"):
-        extra.append('<p class="confuse"><b>易混 / Confusables</b>'
+        extra.append('<p class="confuse"><b>易混</b>'
                      + html.escape(" · ".join(entry["confusables"])) + "</p>")
     details = ('<div class="note-card">' + "".join(extra) + "</div>") if extra else ""
 
@@ -645,9 +645,9 @@ def build_index(themes):
         "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><div class=\"say-unit ex-unit\" data-unit=\"'+i+'-'+(s+1)+'\"><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><div class=\"ex-text\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></div></div></div>';\n"
         "  }\n"
         "  var notes='';\n"
-        "  if(e.l1)notes+='<p class=\"l1\"><b>易错 / Common mistakes</b>'+esc(e.l1)+'</p>';\n"
-        "  if(e.coll&&e.coll.length)notes+='<p class=\"colloc\"><b>搭配 / Collocations</b>'+e.coll.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';\n"
-        "  if(e.conf&&e.conf.length)notes+='<p class=\"confuse\"><b>易混 / Confusables</b>'+e.conf.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';\n"
+        "  if(e.l1)notes+='<p class=\"l1\"><b>易错</b>'+esc(e.l1)+'</p>';\n"
+        "  if(e.coll&&e.coll.length)notes+='<p class=\"colloc\"><b>搭配</b>'+e.coll.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';\n"
+        "  if(e.conf&&e.conf.length)notes+='<p class=\"confuse\"><b>易混</b>'+e.conf.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';\n"
         "  if(notes)out+='<div class=\"note-card\">'+notes+'</div>';\n"
         "  return out+'</div>';\n"
         "}\n"
