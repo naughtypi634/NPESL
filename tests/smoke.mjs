@@ -773,39 +773,61 @@ const cases = [
   {
     name: 'phrasal-index', path: '/phrasal/',
     async run() {
-      // 目录页先选一级，再在二级里点，直接出短语；两级不同时展示。
+      // 一级选完才出二级；二级是链接，指向场景页或介词锚点。
       const r = await evaluate(`(() => {
         const step2 = document.getElementById('step2');
         if (!step2 || !step2.hidden) return 'step2-visible-too-early';
         const modes = [...document.querySelectorAll('[data-mode]')];
-        const partMode = modes.find((b) => b.dataset.mode === 'particle');
-        if (!partMode) return 'no-mode';
-        partMode.click();
-        if (step2.hidden) return 'step2-hidden-after-mode';
-        const chips = [...document.querySelectorAll('[data-part]')];
-        const up = chips.find((b) => b.dataset.part === 'up');
-        if (!up) return 'no-chip';
-        up.click();
-        const pgroups = [...document.querySelectorAll('#view-particle .group')];
-        const shown = pgroups.filter((g) => g.style.display !== 'none');
-        const bad = shown.filter((g) => g.getAttribute('data-particle') !== 'up').length;
-        const sceneHidden = document.getElementById('view-scene').hidden;
-        const partShown = !document.getElementById('view-particle').hidden;
-        const sceneMode = modes.find((b) => b.dataset.mode === 'scene');
-        sceneMode.click();
-        const cat = [...document.querySelectorAll('[data-cat]')].find((b) => b.dataset.cat === 'daily');
-        if (!cat) return 'no-cat';
-        cat.click();
-        const sgroups = [...document.querySelectorAll('#view-scene .group')];
-        const sShown = sgroups.filter((g) => g.style.display !== 'none');
-        const sBad = sShown.filter((g) => g.getAttribute('data-cat') !== 'daily').length;
-        return bad === 0 && shown.length > 0 && sceneHidden && partShown
-          && sBad === 0 && sShown.length > 0
+        const scene = modes.find((b) => b.dataset.mode === 'scene');
+        const part = modes.find((b) => b.dataset.mode === 'particle');
+        if (!scene || !part) return 'no-mode';
+        scene.click();
+        if (step2.hidden) return 'step2-hidden-after-scene';
+        const sceneHref = [...document.querySelectorAll('[data-chips="scene"] a.chip')]
+          .map((a) => a.getAttribute('href'));
+        part.click();
+        const partHref = [...document.querySelectorAll('[data-chips="particle"] a.chip')]
+          .map((a) => a.getAttribute('href'));
+        const okScene = sceneHref.length > 0
+          && sceneHref.every((h) => /^scene-[a-z-]+\.html$/.test(h));
+        const okPart = partHref.length > 0
+          && partHref.every((h) => h.indexOf('particles.html#p-') === 0);
+        return okScene && okPart
           ? 'ok'
-          : 'bad=' + bad + '/shown=' + shown.length + '/sceneHidden=' + sceneHidden
-            + '/partShown=' + partShown + '/sBad=' + sBad + '/sShown=' + sShown.length;
+          : 'scene=' + sceneHref.length + '/part=' + partHref.length;
       })()`);
-      return { ok: r === 'ok', detail: `two-level=${r}` };
+      return { ok: r === 'ok', detail: `nav=${r}` };
+    },
+  },
+  {
+    name: 'phrasal-scene', path: '/phrasal/scene-daily.html',
+    async run() {
+      const r = await evaluate(`(() => {
+        const h1 = document.querySelector('h1');
+        const rows = document.querySelectorAll('.row');
+        const crumb = document.querySelector('.crumbs a');
+        if (!h1) return 'missing';
+        return {
+          title: h1.textContent.trim(),
+          rows: rows.length,
+          crumb: crumb ? crumb.getAttribute('href') : null,
+        };
+      })()`);
+      const ok = r && r.title === '日常生活' && r.rows > 100 && r.crumb === 'index.html';
+      return { ok, detail: `title=${r && r.title} rows=${r && r.rows} crumb=${r && r.crumb}` };
+    },
+  },
+  {
+    name: 'phrasal-particles', path: '/phrasal/particles.html#p-up',
+    async run() {
+      const r = await evaluate(`(() => {
+        const groups = [...document.querySelectorAll('.group')];
+        const shown = groups.filter((g) => g.style.display !== 'none');
+        return shown.length === 1 && shown[0].getAttribute('data-particle') === 'up'
+          ? 'ok'
+          : 'shown=' + shown.length + (shown[0] ? '/' + shown[0].getAttribute('data-particle') : '');
+      })()`);
+      return { ok: r === 'ok', detail: `hash=${r}` };
     },
   },
   {
