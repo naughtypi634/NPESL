@@ -90,6 +90,10 @@ def check_entries(entries, chapter, chips, seen_ids, seen_sentences, bad):
             bad(f"{where}: separable 应是 true/false")
         if not str(entry.get("l1_note", "")).strip():
             bad(f"{where}: 缺 l1_note（中文易错点）")
+        coll = entry.get("collocations") or []
+        coll_zh = entry.get("collocations_zh")
+        if coll_zh is not None and len(coll_zh) != len(coll):
+            bad(f"{where}: collocations_zh 数量 {len(coll_zh)} 与 collocations {len(coll)} 不一致")
 
         senses = entry.get("senses") or []
         if not senses:
