@@ -771,6 +771,33 @@ const cases = [
     },
   },
   {
+    name: 'phrasal-index', path: '/phrasal/',
+    async run() {
+      // 目录页两级筛选：切到「介词」→ 选 up → 只剩 up 分区，再点全部恢复。
+      const r = await evaluate(`(() => {
+        const modes = [...document.querySelectorAll('[data-mode]')];
+        const partMode = modes.find((b) => b.dataset.mode === 'particle');
+        if (!partMode) return 'no-mode';
+        partMode.click();
+        const chips = [...document.querySelectorAll('[data-part]')];
+        const up = chips.find((b) => b.dataset.part === 'up');
+        const all = chips.find((b) => b.dataset.part === 'all');
+        if (!up || !all) return 'no-chip';
+        up.click();
+        const groups = [...document.querySelectorAll('#view-particle .group')];
+        const shown = groups.filter((g) => g.style.display !== 'none');
+        const bad = shown.filter((g) => g.getAttribute('data-particle') !== 'up').length;
+        const sceneHidden = document.getElementById('view-scene').hidden;
+        all.click();
+        const restored = groups.every((g) => g.style.display !== 'none');
+        return bad === 0 && shown.length > 0 && sceneHidden && restored
+          ? 'ok'
+          : 'bad=' + bad + '/shown=' + shown.length + '/sceneHidden=' + sceneHidden + '/restored=' + restored;
+      })()`);
+      return { ok: r === 'ok', detail: `two-level=${r}` };
+    },
+  },
+  {
     name: 'phenomena', path: '/phenomena/01-your-stop-is-next.html',
     async run() {
       // 整章一条 sprite：点第二句，确认真的跳到了它的位置。
