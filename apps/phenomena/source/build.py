@@ -449,7 +449,6 @@ INDEX_STYLE = """
   .tag { flex:0 1 auto; min-width:0; max-width:44%; text-align:right;
     font-size:14px; color:var(--accent); font-weight:600;
     font-variant-numeric:tabular-nums; overflow-wrap:anywhere; line-height:1.35; }
-  .done { flex:none; width:20px; text-align:center; color:var(--accent); font-size:15px; }
   @media (max-width:560px) {
     .tag { display:none; }
     .row { gap:12px; padding:16px 14px; }
@@ -470,11 +469,10 @@ def build_index(lessons):
             name = f"{lesson['num']:02d}-{slug(lesson['title_en'])}"
             tag = " / ".join(target["spoken"] for target in lesson.get("targets", []))
             rows.append(
-                f'<a class="row" href="{name}" data-num="{lesson["num"]}">'
+                f'<a class="row" href="{name}">'
                 f'<span class="title"><span class="en">{html.escape(lesson["title_en"])}</span>'
                 f'<span class="zh">{html.escape(lesson["title_zh"])}</span></span>'
-                f'<span class="tag">{html.escape(tag)}</span>'
-                '<span class="done" aria-hidden="true"></span></a>'
+                f'<span class="tag">{html.escape(tag)}</span></a>'
             )
         if rows:
             groups.append(
@@ -516,10 +514,6 @@ def build_index(lessons):
         "}\n"
         "var saved='all';try{saved=localStorage.getItem(CHIP_KEY)||'all';}catch(e){}\n"
         "apply(saved);\n"
-        "var done=[];try{done=JSON.parse(localStorage.getItem('rs-done')||'[]');}catch(e){}\n"
-        "var rows=document.querySelectorAll('.row');\n"
-        "for(var i=0;i<rows.length;i++){var n=parseInt(rows[i].getAttribute('data-num'),10);\n"
-        "if(done.indexOf(n)>=0)rows[i].querySelector('.done').textContent='✓';}\n"
         "})();\n"
         "</script>\n</body>\n</html>\n"
     )

@@ -136,17 +136,13 @@
       <button class="line" type="button" data-start-f="23.592" data-end-f="25.704" data-start-m="22.464" data-end-m="24.336"><span class="txt">We <ruby>should have<rt>shoulda</rt></ruby> had a backup plan.</span><span class="zh">我们该留个备用方案的。</span></button>
   </section>
 
-  <div class="footer">
-    <button class="pill" type="button" data-done aria-pressed="false">标记已学</button>
-  </div>
   <p class="status" data-audio-status></p>
 </main>
 <script id="spriteMap" type="application/json">{"f":"sprites/26e83bd9e16a.mp3","m":"sprites/6cc588be80ed.mp3"}</script>
 <script>
 (function () {
   var KEY_VOICE = 'rs-voice';
-  var KEY_SPEED = 'rs-speed', KEY_ZH = 'rs-zh', KEY_DONE = 'rs-done';
-  var LESSON = parseInt(document.querySelector('.num').textContent, 10);
+  var KEY_SPEED = 'rs-speed', KEY_ZH = 'rs-zh';
   var DEFAULT_SPEED = 0.9;
   var voice = 'f', speed = DEFAULT_SPEED;
 
@@ -484,28 +480,6 @@
     if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
 
-  function isDone() {
-    try {
-      var list = JSON.parse(load(KEY_DONE) || '[]');
-      return list.indexOf(LESSON) >= 0;
-    } catch (e) { return false; }
-  }
-
-  function setDone(on) {
-    var list = [];
-    try { list = JSON.parse(load(KEY_DONE) || '[]'); } catch (e) {}
-    if (!Array.isArray(list)) list = [];
-    var has = list.indexOf(LESSON) >= 0;
-    if (on && !has) list.push(LESSON);
-    if (!on && has) list.splice(list.indexOf(LESSON), 1);
-    store(KEY_DONE, JSON.stringify(list));
-    var btn = document.querySelector('[data-done]');
-    if (btn) {
-      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      btn.textContent = on ? '已学' : '标记已学';
-    }
-  }
-
   var voiceButtons = document.querySelectorAll('[data-voice]');
   for (var j = 0; j < voiceButtons.length; j++) {
     voiceButtons[j].addEventListener('click', function (event) {
@@ -533,9 +507,6 @@
     setPlayAll(true);
     playItem(0);
   });
-  var doneBtn = document.querySelector('[data-done]');
-  if (doneBtn) doneBtn.addEventListener('click', function () { setDone(!isDone()); });
-
   document.addEventListener('click', function (event) {
     if (!event.target.closest) return;
     var el = event.target.closest('.line, .target .pill');
@@ -545,7 +516,6 @@
   setVoice(voice);
   setZh(load(KEY_ZH) !== 'off');
   setSpeed(speed, false);
-  setDone(isDone());
 
   if (window.requestIdleCallback) {
     requestIdleCallback(prefetch, { timeout: 2500 });
