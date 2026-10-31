@@ -790,6 +790,7 @@ const cases = [
         const sceneChips = [...document.querySelectorAll('[data-chips="scene"] button')];
         const partRow = document.querySelector('[data-chips="particle"]');
         if (!sceneChips.length || !partRow.hidden) return 'default-chips-wrong';
+        if (getComputedStyle(partRow).display !== 'none') return 'part-chips-visible';
         const sceneSections = [...document.querySelectorAll('#view .group[data-cat]')];
         if (!sceneSections.every((s) => s.style.display !== 'none')) return 'default-not-all';
         const daily = sceneChips.find((b) => b.dataset.scene === 'daily');
@@ -804,6 +805,8 @@ const cases = [
         const modes = [...document.querySelectorAll('[data-mode]')];
         modes.find((b) => b.dataset.mode === 'particle').click();
         if (partRow.hidden) return 'part-chips-hidden';
+        if (getComputedStyle(document.querySelector('[data-chips=\"scene\"]')).display !== 'none') return 'scene-chips-visible';
+        if (getComputedStyle(partRow).display === 'none') return 'part-chips-still-hidden';
         const up = [...document.querySelectorAll('[data-chips="particle"] button')]
           .find((b) => b.dataset.particle === 'up');
         if (!up) return 'no-up';
