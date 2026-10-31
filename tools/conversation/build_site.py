@@ -2130,6 +2130,11 @@ def toolbar_html() -> str:
     return (
         '<div class="toolbar">'
         '<div class="seg" role="group" aria-label="读音">'
+        '<span class="voice-ico" aria-hidden="true" '
+        'style="display:inline-flex;align-items:center;padding-left:10px;opacity:.55">'
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" '
+        'stroke="currentColor" stroke-width="2" stroke-linejoin="round">'
+        '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>'
         '<button type="button" data-voice="f" aria-pressed="true">女声</button>'
         '<button type="button" data-voice="m" aria-pressed="false">男声</button>'
         '</div>'
