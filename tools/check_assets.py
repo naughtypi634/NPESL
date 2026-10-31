@@ -64,14 +64,8 @@ def check_page(page: Path, site: Path, audio_site: Path | None) -> list[str]:
             continue
         if rel_page.startswith(("phenomena/", "phrasal/")):
             want("audio/" + rel, "页面自带 sprite")
-        elif rel_page.startswith("conversation/eslse/"):
-            # ESLSE 的音频就在页面同级的 audio/<voice>/ 下
-            voice_dir = VOICE_DIRS.get(voice, voice)
-            target = (page.parent / "audio" / voice_dir / rel).resolve()
-            if not target.exists():
-                problems.append(
-                    f"{rel_page}: 缺少 audio/{voice_dir}/{rel}（eslse sprite）")
         else:
+            # 对话（含 ESLSE）和音标表都指向独立音频站
             voice_dir = VOICE_DIRS.get(voice, voice)
             if audio_site is None:
                 continue

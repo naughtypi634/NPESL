@@ -19,7 +19,7 @@ build/     cloudflare-site/ cloudflare-audio/ npesl-offline/ …（gitignore）
 - Python 一律用本库 `.venv`。
 - **路径常量集中在 `tools/paths.py`**。要搬目录，只改它，然后重跑全部构建并用 `tools/audit_build.py --diff` 证明产物没变。
 - 站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`、`/phrasal/`），源目录不能直接当站点预览；预览走 `tools/build_cloudflare_site.py` 或 `tools/build_offline_package.py` 的暂存目录。
-- A1–C2 语音写 `https://npesl-audio.pages.dev/audio/`，ESLSE 写相对路径 `audio/`。离线包负责把前者改回相对路径。
+- 对话各级（A1–C2 与 ESLSE）的页面都指向独立音频站 `https://npesl-audio.pages.dev/audio/`，离线包统一改回相对路径 `../audio/`。`tools/check_assets.py` 按音频站校验，不要再给 ESLSE 单独开本地路径分支。
 
 ## 二 · 内容标准
 
