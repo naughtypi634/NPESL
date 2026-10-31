@@ -837,6 +837,64 @@ const cases = [
       })()`);
       if (afford !== 'ok') return { ok: false, detail: `affordance=${afford}` };
 
+      // 视觉对齐：默认主题和 glass 主题下都要准；点开时不能出现实心底色。
+      const metrics = await evaluate(`(() => {
+        const root = document.documentElement;
+        const old = root.getAttribute('data-theme');
+        function measure(){
+          const head = document.querySelector('.card .head');
+          const hb = head.querySelector('.play').getBoundingClientRect();
+          const hw = head.querySelector('.w').getBoundingClientRect();
+          const ex = document.querySelector('.card .ex');
+          const eb = ex.querySelector('.play').getBoundingClientRect();
+          const txt = ex.querySelector('.txt');
+          const et = txt.getBoundingClientRect();
+          const lh = parseFloat(getComputedStyle(txt).lineHeight) || et.height;
+          const line = { top: et.top, height: Math.min(lh, et.height) };
+          const d = (b, t) => Math.round(Math.abs((b.top + b.height / 2) - (t.top + t.height / 2)) * 10) / 10;
+          head.classList.add('on');
+          const bg = getComputedStyle(head).backgroundColor;
+          const cardBg = getComputedStyle(document.querySelector('.card')).backgroundColor;
+          const playBg = getComputedStyle(head.querySelector('.play')).backgroundColor;
+          head.classList.remove('on');
+          return { head: d(hb, hw), ex: d(eb, line), bg, cardBg, playBg };
+        }
+        const base = measure();
+        root.setAttribute('data-theme', 'glass');
+        const glass = measure();
+        root.setAttribute('data-theme', 'dark');
+        const dark = measure();
+        if (old === null) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', old);
+        return { base, glass, dark };
+      })()`);
+      const clean = (m) => m && m.head <= 2 && m.ex <= 2 && m.bg === 'rgba(0, 0, 0, 0)';
+      const alignOk = clean(metrics && metrics.base) && clean(metrics && metrics.glass)
+        && clean(metrics && metrics.dark);
+      if (!alignOk) return { ok: false, detail: `align=${JSON.stringify(metrics)}` };
+      // 版式一致性：音色右对齐、列表行等高、卡片内边距 16、徽章与词条垂直居中。
+      const layout = await evaluate(`(() => {
+        const page = document.querySelector('.page');
+        const pr = page.getBoundingClientRect();
+        const padR = parseFloat(getComputedStyle(page).paddingRight);
+        const voice = document.querySelector('.voice-seg').getBoundingClientRect();
+        const rightGap = Math.round((pr.right - padR) - voice.right);
+        const heights = [...new Set([...document.querySelectorAll('.prow')]
+          .slice(0, 40).map((r) => Math.round(r.getBoundingClientRect().height)))];
+        const card = document.querySelector('.card');
+        const cr = card.getBoundingClientRect();
+        const w = card.querySelector('.w').getBoundingClientRect();
+        const ex = card.querySelector('.ex').getBoundingClientRect();
+        const badge = card.querySelector('.badge').getBoundingClientRect();
+        const padLeft = Math.round(w.left - cr.left);
+        const padRight = Math.round(cr.right - ex.right);
+        const badgeDelta = Math.round(Math.abs((badge.top + badge.height / 2) - (w.top + w.height / 2)));
+        return { rightGap, heights, padLeft, padRight, badgeDelta };
+      })()`);
+      const layoutOk = layout && Math.abs(layout.rightGap) <= 1 && layout.heights.length === 1
+        && Math.abs(layout.padLeft - 17) <= 1 && Math.abs(layout.padRight - 17) <= 1
+        && layout.badgeDelta <= 2;
+      if (!layoutOk) return { ok: false, detail: `layout=${JSON.stringify(layout)}` };
+
       const close = await evaluate(`(() => {
         document.querySelector('.prow').click();
         return document.querySelector('.card') ? 'still-open' : 'ok';
@@ -852,8 +910,21 @@ const cases = [
       })()`);
       if (!marked) return { ok: false, detail: 'no-card-say' };
       const p = await playAndProbe('.card .say[data-smoke]');
-      const ok = p.started && p.mediaErrors.length === 0;
-      return { ok, detail: `card-audio start=${p.started} err=${JSON.stringify(p.mediaErrors)}` };
+      await waitFor('!!(window.__lastAudio && window.__lastAudio.paused)', 6000);
+      // 片段结束后必须停在终点附近：timeupdate 粒度太粗会漏出下一条的开头。
+      const tail = await evaluate(`(() => {
+        const a = window.__lastAudio;
+        if (!a) return null;
+        const b = document.querySelector('.card .say[data-smoke]');
+        const e = window.PHRASAL_INDEX.entries[+b.dataset.i];
+        const sp = e.au[+b.dataset.k];
+        const v = localStorage.getItem('pv-voice') === 'm' ? 'm' : 'f';
+        const end = v === 'm' ? sp[3] : sp[1];
+        return { end, t: +a.currentTime.toFixed(3), delta: +(a.currentTime - end).toFixed(3) };
+      })()`);
+      const ok = p.started && p.mediaErrors.length === 0
+        && tail && tail.delta <= 0.05 && tail.delta >= -0.3;
+      return { ok, detail: `card-audio start=${p.started} tail=${JSON.stringify(tail)} err=${JSON.stringify(p.mediaErrors)}` };
     },
   },
   {

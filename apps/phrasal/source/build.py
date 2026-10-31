@@ -244,7 +244,8 @@ def entry_html(entry, audio):
         f'<button class="head say" type="button" {audio.attrs(entry["head"])}>'
         f'<span class="w">{html.escape(entry["head"])}</span>'
         f'<span class="ipa">/{html.escape(entry["ipa"])}/</span>'
-        '<span class="play" aria-hidden="true">▶</span></button>'
+        '<span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" '
+        'fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></button>'
     )
 
     senses = []
@@ -393,21 +394,27 @@ INDEX_STYLE = """
   .prow[aria-expanded="true"] .arw { transform:rotate(90deg); }
   .card { margin:8px 0 16px; padding:16px; border:1px solid var(--rule);
     border-radius:16px; background:var(--surface); }
-  .card-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 12px; }
+  .card-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
   .card .head { appearance:none; border:0; background:transparent; color:inherit;
-    font:inherit; display:inline-flex; align-items:baseline; gap:8px;
+    font:inherit; display:inline-flex; align-items:center; gap:8px;
     padding:0; cursor:pointer; white-space:normal; }
   .card .head .w { font-size:20px; font-weight:700; }
   .card .head .ipa { color:var(--muted); font-size:13px; }
-  /* 可播放元素的统一提示：小圆 ▶ 徽标，桌面 hover 实心，手机常驻可见 */
+  /* 可播放元素的统一提示：小圆播放徽标，桌面 hover 实心，手机常驻可见 */
   .card .say .play { display:inline-flex; align-items:center; justify-content:center;
-    width:18px; height:18px; flex:none; border:1px solid var(--rule);
-    border-radius:50%; font-size:9px; line-height:1; color:var(--muted);
-    transition:background-color .12s ease, color .12s ease, border-color .12s ease; }
+    width:18px; height:18px; flex:none; border:0; border-radius:50%;
+    background:var(--surface-strong, var(--surface)); color:var(--muted);
+    transition:background-color .12s ease, color .12s ease; }
+  .card .say .play svg { display:block; width:8px; height:8px; margin-left:1px; }
   .card .say:hover .play, .card .say.on .play {
-    background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+    background:var(--accent); color:var(--on-accent); }
   .card .head:hover .w { color:var(--accent); }
-  .card .ex { display:flex; align-items:flex-start; gap:10px; }
+  .card .ex {
+    display:flex; align-items:flex-start; gap:10px; width:100%;
+    text-align:left; font:inherit; color:inherit; background:var(--bg);
+    border:1px solid var(--rule); border-radius:12px; padding:10px 12px;
+    cursor:pointer; white-space:normal; overflow-wrap:anywhere; }
+  .card .ex .play { margin-top:3px; }
   .card .ex-text { flex:1; min-width:0; }
   .card .badges { display:inline-flex; gap:6px; }
   .badge { font-size:12px; padding:2px 8px; border-radius:999px;
@@ -416,10 +423,6 @@ INDEX_STYLE = """
   .card .zh-line { margin:8px 0 0; color:var(--muted); font-size:14px; }
   .card .sense { margin-top:10px; }
   .card .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted); }
-  .card .ex { display:block; width:100%; text-align:left; font:inherit;
-    color:inherit; background:var(--bg); border:1px solid var(--rule);
-    border-radius:12px; padding:10px 12px; cursor:pointer;
-    white-space:normal; overflow-wrap:anywhere; }
   .card .ex:hover { background:var(--surface-strong, var(--surface)); }
   .card .ex .txt { display:block; font-size:16px; line-height:1.5; }
   .card .ex .zh { display:block; margin-top:3px; color:var(--muted); font-size:13px; }
@@ -429,7 +432,6 @@ INDEX_STYLE = """
   .card .note-card p { margin:6px 0 0; font-size:13px; line-height:1.6; }
   .card .note-card p b { display:inline-block; margin-right:6px; font-size:12px;
     color:var(--accent); font-weight:600; }
-  .say.on { background:var(--blue-tint, var(--surface)); }
   .back { display:inline-block; margin-bottom:14px; color:var(--muted);
     text-decoration:none; font-size:14px; }
   .back:hover { color:var(--accent); }
@@ -592,11 +594,11 @@ def build_index(themes):
         "function fmt(v){return (v==null?'':v.toFixed(3));}\n"
         "function card(i){\n"
         "  var e=D.entries[i];var out='<div class=\"card\" data-card=\"'+i+'\">';\n"
-        "  out+='<div class=\"card-head\"><button class=\"say head\" type=\"button\" data-i=\"'+i+'\" data-k=\"0\"><span class=\"w\">'+esc(e.h)+'</span><span class=\"ipa\">/'+esc(e.ipa)+'/</span><span class=\"play\">▶</span></button><span class=\"badges\"><span class=\"badge reg\">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class=\"badge split\">可分</span>':'')+'</span></div>';\n"
+        "  out+='<div class=\"card-head\"><button class=\"say head\" type=\"button\" data-i=\"'+i+'\" data-k=\"0\"><span class=\"w\">'+esc(e.h)+'</span><span class=\"ipa\">/'+esc(e.ipa)+'/</span><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg></span></button><span class=\"badges\"><span class=\"badge reg\">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class=\"badge split\">可分</span>':'')+'</span></div>';\n"
         "  out+='<p class=\"zh-line\">'+esc(e.zh)+'</p>';\n"
         "  for(var s=0;s<e.sen.length;s++){\n"
         "    var it=e.sen[s];\n"
-        "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><button class=\"say ex\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\"><span class=\"play\" aria-hidden=\"true\">▶</span><span class=\"ex-text\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></span></button></div>';\n"
+        "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><button class=\"say ex\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg></span><span class=\"ex-text\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></span></button></div>';\n"
         "  }\n"
         "  var notes='';\n"
         "  if(e.l1)notes+='<p class=\"l1\"><b>中文易错</b>'+esc(e.l1)+'</p>';\n"
@@ -660,19 +662,24 @@ def build_index(themes):
         "    .then(function(b){return URL.createObjectURL(b);}).catch(function(){return url;});\n"
         "  return srcCache[url];\n"
         "}\n"
-        "audio.addEventListener('timeupdate',function(){\n"
-        "  if(stopAt&&audio.currentTime>=stopAt-0.02){audio.pause();stopAt=0;if(onEl){onEl.classList.remove('on');onEl=null;}}\n"
-        "});\n"
+        "var raf=0;\n"
+        "function tick(){\n"
+        "  if(!stopAt)return;\n"
+        "  if(audio.currentTime>=stopAt-0.008){audio.pause();stopAt=0;if(onEl){onEl.classList.remove('on');onEl=null;}return;}\n"
+        "  raf=requestAnimationFrame(tick);\n"
+        "}\n"
         "function playSay(el){\n"
         "  var i=+el.getAttribute('data-i'),k=+el.getAttribute('data-k');\n"
         "  var e=D.entries[i];var span=e.au[k];\n"
         "  if(!span||!e.sp||!e.sp[voice])return;\n"
         "  var s=voice==='f'?span[0]:span[2],en=voice==='f'?span[1]:span[3];\n"
         "  if(s==null||en==null)return;\n"
+        "  if(raf)cancelAnimationFrame(raf);\n"
         "  srcFor('audio/'+e.sp[voice]).then(function(src){\n"
         "    if(audio.src!==src)audio.src=src;\n"
         "    stopAt=en;if(onEl)onEl.classList.remove('on');onEl=el;el.classList.add('on');\n"
-        "    var go=function(){try{audio.currentTime=s;}catch(err){}audio.play().catch(function(){});};\n"
+        "    var go=function(){try{audio.currentTime=s;}catch(err){}audio.play().catch(function(){});\n"
+        "      if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);};\n"
         "    if(audio.readyState>0)go();else audio.addEventListener('loadedmetadata',go,{once:true});\n"
         "  });\n"
         "}\n"
