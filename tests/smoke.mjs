@@ -827,6 +827,13 @@ const cases = [
       })()`);
       if (open !== 'ok') return { ok: false, detail: `expand=${open}` };
 
+      // 播放态样式是过渡动画，先加类、等过渡走完再量。
+      await evaluate(`(() => {
+        const head = document.querySelector('.card .head');
+        window.__phColorOff = getComputedStyle(head.querySelector('.w')).color;
+        head.classList.add('on');
+      })()`);
+      await sleep(350);
       const afford = await evaluate(`(() => {
         const row = document.querySelector('.prow[aria-expanded="true"]');
         if (!row) return 'no-expanded-row';
@@ -834,14 +841,19 @@ const cases = [
         const says = [...document.querySelectorAll('.card .say')];
         const badges = says.length > 0 && says.every((b) => b.querySelector('.play'));
         const head = document.querySelector('.card .head');
-        head.classList.add('on');
+        const w = head.querySelector('.w');
+        const colorOff = window.__phColorOff;
         const bars = getComputedStyle(head.querySelector('.bars')).display;
         const svg = getComputedStyle(head.querySelector('svg')).display;
         const halo = getComputedStyle(head.querySelector('.play'), '::after').animationName;
+        const colorOn = getComputedStyle(w).color;
+        const line = getComputedStyle(w, '::after').transform;
         head.classList.remove('on');
         const playFx = bars === 'flex' && svg === 'none' && halo === 'halo';
-        return t !== 'none' && badges && playFx ? 'ok'
-          : 'transform=' + t + '/badges=' + badges + '/playFx=' + playFx + '/' + bars + '/' + svg + '/' + halo;
+        const textFx = colorOff !== colorOn && line !== 'none' && !/matrix\\(0/.test(line);
+        return t !== 'none' && badges && playFx && textFx ? 'ok'
+          : 'transform=' + t + '/badges=' + badges + '/playFx=' + playFx + '/textFx=' + textFx
+            + '/' + colorOff + '->' + colorOn + '/' + line;
       })()`);
       if (afford !== 'ok') return { ok: false, detail: `affordance=${afford}` };
 

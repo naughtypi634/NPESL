@@ -421,6 +421,15 @@ INDEX_STYLE = """
   .card .say.on .play::after { content:""; position:absolute; inset:-3px;
     border-radius:50%; border:1px solid var(--accent); pointer-events:none;
     animation:halo 1.6s ease-out infinite; }
+  /* 文字：播放时变强调色，并从左展开一条下划线 */
+  .card .say .w, .card .say .txt { position:relative;
+    transition:color .18s ease; }
+  .card .say .w::after, .card .say .txt::after { content:""; position:absolute;
+    left:0; right:0; bottom:-2px; height:2px; border-radius:2px;
+    background:var(--accent); transform:scaleX(0); transform-origin:left;
+    transition:transform .25s ease; }
+  .card .say.on .w, .card .say.on .txt { color:var(--accent); }
+  .card .say.on .w::after, .card .say.on .txt::after { transform:scaleX(1); }
   @keyframes eq { 0%,100% { height:3px; } 50% { height:9px; } }
   @keyframes halo { 0% { transform:scale(.85); opacity:.4; }
     70% { transform:scale(1.3); opacity:0; } 100% { opacity:0; } }
@@ -428,6 +437,8 @@ INDEX_STYLE = """
     .card .say .bars i { animation:none; height:6px; }
     .card .say.on .play::after { display:none; }
     .card .say .play { transition:none; }
+    .card .say .w, .card .say .txt { transition:none; }
+    .card .say .w::after, .card .say .txt::after { transition:none; }
   }
   .card .head:hover .w { color:var(--accent); }
   .card .ex {
