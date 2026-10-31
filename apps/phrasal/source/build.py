@@ -389,7 +389,8 @@ INDEX_STYLE = """
   .prow .en { font-size:17px; font-weight:600; min-width:0; }
   .prow .zh { margin-left:auto; max-width:48%; text-align:right; color:var(--muted);
     font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .prow .arw { color:var(--muted); }
+  .prow .arw { color:var(--muted); transition:transform .15s ease; }
+  .prow[aria-expanded="true"] .arw { transform:rotate(90deg); }
   .card { margin:8px 0 16px; padding:16px; border:1px solid var(--rule);
     border-radius:16px; background:var(--surface); }
   .card-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 12px; }
@@ -398,7 +399,16 @@ INDEX_STYLE = """
     padding:0; cursor:pointer; white-space:normal; }
   .card .head .w { font-size:20px; font-weight:700; }
   .card .head .ipa { color:var(--muted); font-size:13px; }
-  .card .head .play, .card .ex .play { font-size:0.65em; color:var(--muted); }
+  /* 可播放元素的统一提示：小圆 ▶ 徽标，桌面 hover 实心，手机常驻可见 */
+  .card .say .play { display:inline-flex; align-items:center; justify-content:center;
+    width:18px; height:18px; flex:none; border:1px solid var(--rule);
+    border-radius:50%; font-size:9px; line-height:1; color:var(--muted);
+    transition:background-color .12s ease, color .12s ease, border-color .12s ease; }
+  .card .say:hover .play, .card .say.on .play {
+    background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .card .head:hover .w { color:var(--accent); }
+  .card .ex { display:flex; align-items:flex-start; gap:10px; }
+  .card .ex-text { flex:1; min-width:0; }
   .card .badges { display:inline-flex; gap:6px; }
   .badge { font-size:12px; padding:2px 8px; border-radius:999px;
     border:1px solid var(--rule); color:var(--muted); }
@@ -577,7 +587,7 @@ def build_index(themes):
         "function chip(attr,val,label){return '<button type=\"button\" data-'+attr+'=\"'+val+'\">'+esc(label)+'</button>';}\n"
         "function rowButton(i){\n"
         "  var e=D.entries[i];\n"
-        "  return '<button class=\"prow\" type=\"button\" data-i=\"'+i+'\"><span class=\"en\">'+esc(e.h)+'</span><span class=\"zh\">'+esc(e.zh)+'</span><span class=\"arw\">›</span></button>';\n"
+        "  return '<button class=\"prow\" type=\"button\" data-i=\"'+i+'\" aria-expanded=\"false\"><span class=\"en\">'+esc(e.h)+'</span><span class=\"zh\">'+esc(e.zh)+'</span><span class=\"arw\">›</span></button>';\n"
         "}\n"
         "function fmt(v){return (v==null?'':v.toFixed(3));}\n"
         "function card(i){\n"
@@ -586,7 +596,7 @@ def build_index(themes):
         "  out+='<p class=\"zh-line\">'+esc(e.zh)+'</p>';\n"
         "  for(var s=0;s<e.sen.length;s++){\n"
         "    var it=e.sen[s];\n"
-        "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><button class=\"say ex\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></button></div>';\n"
+        "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><button class=\"say ex\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\"><span class=\"play\" aria-hidden=\"true\">▶</span><span class=\"ex-text\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></span></button></div>';\n"
         "  }\n"
         "  var notes='';\n"
         "  if(e.l1)notes+='<p class=\"l1\"><b>中文易错</b>'+esc(e.l1)+'</p>';\n"
@@ -633,9 +643,11 @@ def build_index(themes):
         "function toggleCard(btn){\n"
         "  var i=+btn.getAttribute('data-i');\n"
         "  var existing=view.querySelector('.card');\n"
-        "  if(open===i){if(existing)existing.remove();open=null;return;}\n"
+        "  var prev=view.querySelector('.prow[aria-expanded=\"true\"]');\n"
+        "  if(open===i){if(existing)existing.remove();btn.setAttribute('aria-expanded','false');open=null;return;}\n"
         "  if(existing)existing.remove();\n"
-        "  open=i;btn.insertAdjacentHTML('afterend',card(i));\n"
+        "  if(prev)prev.setAttribute('aria-expanded','false');\n"
+        "  open=i;btn.setAttribute('aria-expanded','true');btn.insertAdjacentHTML('afterend',card(i));\n"
         "}\n"
         "var KEY_VOICE='pv-voice';var voice='f';\n"
         "try{var sv=localStorage.getItem(KEY_VOICE);if(sv==='f'||sv==='m')voice=sv;}catch(e){}\n"

@@ -827,6 +827,16 @@ const cases = [
       })()`);
       if (open !== 'ok') return { ok: false, detail: `expand=${open}` };
 
+      const afford = await evaluate(`(() => {
+        const row = document.querySelector('.prow[aria-expanded="true"]');
+        if (!row) return 'no-expanded-row';
+        const t = getComputedStyle(row.querySelector('.arw')).transform;
+        const says = [...document.querySelectorAll('.card .say')];
+        const badges = says.length > 0 && says.every((b) => b.querySelector('.play'));
+        return t !== 'none' && badges ? 'ok' : 'transform=' + t + '/badges=' + badges;
+      })()`);
+      if (afford !== 'ok') return { ok: false, detail: `affordance=${afford}` };
+
       const close = await evaluate(`(() => {
         document.querySelector('.prow').click();
         return document.querySelector('.card') ? 'still-open' : 'ok';
