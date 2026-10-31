@@ -827,33 +827,40 @@ const cases = [
       })()`);
       if (open !== 'ok') return { ok: false, detail: `expand=${open}` };
 
-      // 播放态样式是过渡动画，先加类、等过渡走完再量。
-      await evaluate(`(() => {
-        const head = document.querySelector('.card .head');
-        window.__phColorOff = getComputedStyle(head.querySelector('.w')).color;
-        head.classList.add('on');
-      })()`);
-      await sleep(350);
+      // 播放态样式带过渡：测试里临时禁用 transition，直接量最终态。
       const afford = await evaluate(`(() => {
+        const style = document.createElement('style');
+        style.textContent = '*,*::before,*::after{transition:none !important}';
+        document.head.appendChild(style);
         const row = document.querySelector('.prow[aria-expanded="true"]');
-        if (!row) return 'no-expanded-row';
+        if (!row) { style.remove(); return 'no-expanded-row'; }
         const t = getComputedStyle(row.querySelector('.arw')).transform;
         const says = [...document.querySelectorAll('.card .say')];
         const badges = says.length > 0 && says.every((b) => b.querySelector('.play'));
         const head = document.querySelector('.card .head');
         const w = head.querySelector('.w');
-        const colorOff = window.__phColorOff;
+        const colorOff = getComputedStyle(w).color;
+        head.classList.add('on');
         const bars = getComputedStyle(head.querySelector('.bars')).display;
         const svg = getComputedStyle(head.querySelector('svg')).display;
         const halo = getComputedStyle(head.querySelector('.play'), '::after').animationName;
         const colorOn = getComputedStyle(w).color;
         const line = getComputedStyle(w, '::after').transform;
         head.classList.remove('on');
+        style.remove();
         const playFx = bars === 'flex' && svg === 'none' && halo === 'halo';
-        const textFx = colorOff !== colorOn && line !== 'none' && !/matrix\\(0/.test(line);
+        let rules = [];
+        try {
+          const sheet = document.querySelector('style').sheet;
+          rules = [...sheet.cssRules].filter((r) => r.selectorText
+            && r.selectorText.indexOf('w::after') >= 0)
+            .map((r) => r.selectorText.slice(0, 60) + '=' + (r.style.transform || '-'));
+        } catch (e) { rules = ['err:' + e.message]; }
+        const content = getComputedStyle(w, '::after').content;
+        const textFx = colorOff !== colorOn && line !== 'none' && line.indexOf('matrix(0') !== 0;
         return t !== 'none' && badges && playFx && textFx ? 'ok'
           : 'transform=' + t + '/badges=' + badges + '/playFx=' + playFx + '/textFx=' + textFx
-            + '/' + colorOff + '->' + colorOn + '/' + line;
+            + '/' + colorOff + '->' + colorOn + '/' + line + '/rules=' + JSON.stringify(rules) + '/content=' + content;
       })()`);
       if (afford !== 'ok') return { ok: false, detail: `affordance=${afford}` };
 
