@@ -366,6 +366,52 @@ INDEX_STYLE = """
   .chips button:hover, .chips a:hover { background:var(--surface); }
   .chips button[aria-pressed="true"] { background:var(--accent);
     border-color:var(--accent); color:var(--on-accent); }
+  .voice-seg { display:inline-flex; margin:12px 0 0; border:1px solid var(--rule);
+    border-radius:999px; overflow:hidden; }
+  .voice-seg button { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:6px 14px; cursor:pointer; }
+  .voice-seg button + button { border-left:1px solid var(--rule); }
+  .voice-seg button[aria-pressed="true"] { background:var(--accent);
+    color:var(--on-accent); }
+  .prow { display:flex; align-items:baseline; gap:12px; width:100%;
+    text-align:left; font:inherit; color:inherit; background:var(--bg);
+    border:1px solid var(--rule); border-radius:14px; padding:12px 14px;
+    cursor:pointer; }
+  .prow:hover { background:var(--surface); }
+  .prow .en { font-size:17px; font-weight:600; min-width:0; }
+  .prow .zh { margin-left:auto; max-width:48%; text-align:right; color:var(--muted);
+    font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .prow .arw { color:var(--muted); }
+  .card { margin:8px 0 16px; padding:16px; border:1px solid var(--rule);
+    border-radius:16px; background:var(--surface); }
+  .card-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 12px; }
+  .card .head { appearance:none; border:0; background:transparent; color:inherit;
+    font:inherit; display:inline-flex; align-items:baseline; gap:8px;
+    padding:0; cursor:pointer; white-space:normal; }
+  .card .head .w { font-size:20px; font-weight:700; }
+  .card .head .ipa { color:var(--muted); font-size:13px; }
+  .card .head .play, .card .ex .play { font-size:0.65em; color:var(--muted); }
+  .card .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .card .zh-line { margin:8px 0 0; color:var(--muted); font-size:14px; }
+  .card .sense { margin-top:10px; }
+  .card .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted); }
+  .card .ex { display:block; width:100%; text-align:left; font:inherit;
+    color:inherit; background:var(--bg); border:1px solid var(--rule);
+    border-radius:12px; padding:10px 12px; cursor:pointer;
+    white-space:normal; overflow-wrap:anywhere; }
+  .card .ex:hover { background:var(--surface-strong, var(--surface)); }
+  .card .ex .txt { display:block; font-size:16px; line-height:1.5; }
+  .card .ex .zh { display:block; margin-top:3px; color:var(--muted); font-size:13px; }
+  .card .note-card { margin-top:12px; padding:12px 14px; border-radius:12px;
+    background:var(--surface-strong, var(--surface)); border:1px solid var(--rule);
+    border-left:3px solid var(--accent); }
+  .card .note-card p { margin:6px 0 0; font-size:13px; line-height:1.6; }
+  .card .note-card p b { display:inline-block; margin-right:6px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+  .say.on { background:var(--blue-tint, var(--surface)); }
   .back { display:inline-block; margin-bottom:14px; color:var(--muted);
     text-decoration:none; font-size:14px; }
   .back:hover { color:var(--accent); }
@@ -401,48 +447,80 @@ PARTICLE_EXTRA = ["through", "over", "back", "around", "into", "onto", "away",
 REAL_PARTICLES = set(PARTICLE_ORDER + PARTICLE_EXTRA)
 
 
+def page_audio(path):
+    """从已生成的章节页里取 sprite 地址和每个词条的时间轴。"""
+    text = path.read_text(encoding="utf-8")
+    match = re.search(r'<script id="spriteMap"[^>]*>(.*?)</script>', text, re.S)
+    sprites = json.loads(match.group(1)) if match else {}
+    spans = {}
+    for block in re.findall(r'<article class="entry"[^>]*>.*?</article>', text, re.S):
+        eid = re.search(r'id="([^"]+)"', block).group(1)
+        items = []
+        for button in re.findall(r'<button class="(?:head|ex) say"[^>]*>', block):
+            def num(name):
+                found = re.search(rf'data-{name}="([\d.]+)"', button)
+                return float(found.group(1)) if found else None
+            span = [num("start-f"), num("end-f"), num("start-m"), num("end-m")]
+            items.append(span if None not in span else None)
+        spans[eid] = items
+    return sprites, spans
+
+
 def index_data(themes):
-    """页面渲染用的数据：场景分组 + 介词分组，写成独立 js，首页保持很小。"""
+    """整站数据一次写进 data.js（离线包用 file://，不能靠 fetch）。"""
     doc = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
     categories = doc.get("categories", [])
     numbers = {theme["id"]: index + 1 for index, theme in enumerate(themes)}
+
+    entries = []
+    index_of = {}
+    theme_rows = {}
+    for theme in themes:
+        page = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
+        sprites, spans = page_audio(BASE / f"{page}.html")
+        rows = []
+        for entry in theme["entries"]:
+            index_of[(theme["id"], entry["id"])] = len(entries)
+            rows.append(len(entries))
+            entries.append({
+                "h": entry["head"], "zh": entry["zh"], "ipa": entry["ipa"],
+                "reg": entry["register"], "sep": entry["separable"],
+                "sen": [[s["zh"], s["example"]["en"], s["example"]["zh"]]
+                        for s in entry["senses"]],
+                "l1": entry.get("l1_note", ""),
+                "coll": entry.get("collocations", []),
+                "conf": entry.get("confusables", []),
+                "sp": sprites, "au": spans.get(entry["id"], []),
+            })
+        theme_rows[theme["id"]] = rows
 
     scene = []
     for cat in categories:
         group = [t for t in themes if t.get("category") == cat["id"]]
         if not group:
             continue
-        blocks = []
-        for theme in group:
-            page = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
-            blocks.append({
-                "page": page,
-                "zh": theme["title_zh"],
-                "en": theme["title_en"],
-                "rows": [[e["head"], e["zh"], e["id"]] for e in theme["entries"]],
-            })
         scene.append({
             "id": cat["id"], "zh": cat["title_zh"], "en": cat["title_en"],
-            "count": sum(len(t["entries"]) for t in group), "themes": blocks,
+            "themes": [{"zh": t["title_zh"], "en": t["title_en"],
+                        "rows": theme_rows[t["id"]]} for t in group],
         })
 
     bucketed: dict[str, list] = {}
     others: list = []
     for theme in themes:
-        page = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
         for entry in theme["entries"]:
-            item = [entry["head"], entry["zh"], page, entry["id"]]
+            idx = index_of[(theme["id"], entry["id"])]
             if entry["particle"] in REAL_PARTICLES:
-                bucketed.setdefault(entry["particle"], []).append(item)
+                bucketed.setdefault(entry["particle"], []).append(idx)
             else:
-                others.append(item)
+                others.append(idx)
     keys = [x for x in PARTICLE_ORDER if x in bucketed]
     keys += [x for x in PARTICLE_EXTRA if x in bucketed]
     particle = [{"p": x, "rows": bucketed[x]} for x in keys]
     if others:
         particle.append({"p": "others", "label": "其他", "rows": others})
 
-    return {"scene": scene, "particle": particle}
+    return {"scene": scene, "particle": particle, "entries": entries}
 
 
 def build_index(themes):
@@ -465,6 +543,10 @@ def build_index(themes):
         '<button type="button" data-mode="scene" aria-pressed="true">场景话题</button>'
         '<button type="button" data-mode="particle" aria-pressed="false">介词</button>'
         '</div>\n'
+        '<div class="voice-seg" role="group" aria-label="音色">'
+        '<button type="button" data-voice="f" aria-pressed="true">女</button>'
+        '<button type="button" data-voice="m" aria-pressed="false">男</button>'
+        '</div>\n'
         '<div class="chips" data-chips="scene"></div>\n'
         '<div class="chips" data-chips="particle" hidden></div>\n'
         '<div id="view"></div>\n'
@@ -477,60 +559,121 @@ def build_index(themes):
         "var rowScene=document.querySelector('[data-chips=\"scene\"]');\n"
         "var rowPart=document.querySelector('[data-chips=\"particle\"]');\n"
         "var modeBtns=document.querySelectorAll('[data-mode]');\n"
+        "var state={scene:'all',particle:'all'},mode='scene',open=null;\n"
         "function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}\n"
         "function chip(attr,val,label){return '<button type=\"button\" data-'+attr+'=\"'+val+'\">'+esc(label)+'</button>';}\n"
-        "function rowsHtml(rows,page,withPage){\n"
-        "  var out='';\n"
-        "  for(var i=0;i<rows.length;i++){\n"
-        "    var r=rows[i];var p=withPage?r[2]:page;var id=withPage?r[3]:r[2];\n"
-        "    out+='<a class=\"row\" href=\"'+p+'#'+id+'\"><span class=\"title\"><span class=\"en\">'+esc(r[0])+'</span><span class=\"zh\">'+esc(r[1])+'</span></span></a>';\n"
+        "function rowButton(i){\n"
+        "  var e=D.entries[i];\n"
+        "  return '<button class=\"prow\" type=\"button\" data-i=\"'+i+'\"><span class=\"en\">'+esc(e.h)+'</span><span class=\"zh\">'+esc(e.zh)+'</span><span class=\"arw\">›</span></button>';\n"
+        "}\n"
+        "function fmt(v){return (v==null?'':v.toFixed(3));}\n"
+        "function card(i){\n"
+        "  var e=D.entries[i];var out='<div class=\"card\" data-card=\"'+i+'\">';\n"
+        "  out+='<div class=\"card-head\"><button class=\"say head\" type=\"button\" data-i=\"'+i+'\" data-k=\"0\"><span class=\"w\">'+esc(e.h)+'</span><span class=\"ipa\">/'+esc(e.ipa)+'/</span><span class=\"play\">▶</span></button><span class=\"badges\"><span class=\"badge reg\">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class=\"badge split\">可分</span>':'')+'</span></div>';\n"
+        "  out+='<p class=\"zh-line\">'+esc(e.zh)+'</p>';\n"
+        "  for(var s=0;s<e.sen.length;s++){\n"
+        "    var it=e.sen[s];\n"
+        "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><button class=\"say ex\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></button></div>';\n"
         "  }\n"
+        "  var notes='';\n"
+        "  if(e.l1)notes+='<p class=\"l1\"><b>中文易错</b>'+esc(e.l1)+'</p>';\n"
+        "  if(e.coll&&e.coll.length)notes+='<p class=\"colloc\"><b>搭配</b>'+esc(e.coll.join(' · '))+'</p>';\n"
+        "  if(e.conf&&e.conf.length)notes+='<p class=\"confuse\"><b>易混</b>'+esc(e.conf.join(' · '))+'</p>';\n"
+        "  if(notes)out+='<div class=\"note-card\">'+notes+'</div>';\n"
+        "  return out+'</div>';\n"
+        "}\n"
+        "function sceneHtml(){\n"
+        "  var out='';\n"
+        "  D.scene.forEach(function(g){\n"
+        "    out+='<section class=\"group\" data-cat=\"'+g.id+'\">';\n"
+        "    g.themes.forEach(function(t){\n"
+        "      out+='<h3 class=\"theme\">'+esc(t.zh)+' <span class=\"stage-en\">'+esc(t.en)+'</span></h3>';\n"
+        "      out+='<div class=\"list\">'+t.rows.map(rowButton).join('')+'</div>';\n"
+        "    });\n"
+        "    out+='</section>';\n"
+        "  });\n"
         "  return out;\n"
         "}\n"
-        "function renderScene(){\n"
-        "  var html='';\n"
-        "  D.scene.forEach(function(g){\n"
-        "    html+='<section class=\"group\" data-cat=\"'+g.id+'\"><p class=\"stage\">'+esc(g.zh)+' <span class=\"stage-en\">'+esc(g.en)+' · '+g.count+' 条</span></p>';\n"
-        "    g.themes.forEach(function(t){\n"
-        "      html+='<h3 class=\"theme\"><a href=\"'+t.page+'\">'+esc(t.zh)+' <span class=\"stage-en\">'+esc(t.en)+'</span><span class=\"theme-go\">进入主题 ›</span></a></h3>';\n"
-        "      html+='<div class=\"list\">'+rowsHtml(t.rows,t.page,false)+'</div>';\n"
-        "    });\n"
-        "    html+='</section>';\n"
-        "  });\n"
-        "  return html;\n"
-        "}\n"
-        "function renderParticle(){\n"
-        "  var html='';\n"
+        "function partHtml(){\n"
+        "  var out='';\n"
         "  D.particle.forEach(function(g){\n"
-        "    var label=g.label||g.p;\n"
-        "    html+='<section class=\"group\" data-particle=\"'+g.p+'\"><p class=\"stage\">'+esc(label)+' <span class=\"stage-en\">'+g.rows.length+' 条</span></p>';\n"
-        "    html+='<div class=\"list\">'+rowsHtml(g.rows,'',true)+'</div></section>';\n"
+        "    out+='<section class=\"group\" data-particle=\"'+g.p+'\"><h3 class=\"theme\">'+esc(g.label||g.p)+'</h3><div class=\"list\">'+g.rows.map(rowButton).join('')+'</div></section>';\n"
         "  });\n"
-        "  return html;\n"
+        "  return out;\n"
         "}\n"
-        "var sceneHtml=renderScene(),partHtml=renderParticle();\n"
-        "rowScene.innerHTML=chip('cat','all','全部')+D.scene.map(function(g){return chip('cat',g.id,g.zh);}).join('');\n"
-        "rowPart.innerHTML=chip('part','all','全部')+D.particle.map(function(g){return chip('part',g.p,g.label||g.p);}).join('');\n"
-        "function paint(mode,key,value){\n"
-        "  view.innerHTML=(mode==='scene'?sceneHtml:partHtml);\n"
-        "  view.setAttribute('data-view',mode);\n"
-        "  rowScene.hidden=(mode!=='scene');rowPart.hidden=(mode==='scene');\n"
-        "  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===mode?'true':'false');\n"
-        "  var sec=(mode==='scene'?'cat':'particle'),chipAttr=(mode==='scene'?'cat':'part');\n"
+        "var html={scene:sceneHtml(),particle:partHtml()};\n"
+        "function setChips(m){\n"
+        "  rowScene.hidden=(m!=='scene');rowPart.hidden=(m==='scene');\n"
+        "  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===m?'true':'false');\n"
+        "  var chips=(m==='scene'?rowScene:rowPart).querySelectorAll('button');\n"
+        "  for(var c=0;c<chips.length;c++)chips[c].setAttribute('aria-pressed',chips[c].getAttribute('data-'+m)==='all'&&state[m]==='all'?'true':(chips[c].getAttribute('data-'+m)===state[m]?'true':'false'));\n"
+        "}\n"
+        "function paint(m,value,scroll){\n"
+        "  mode=m;if(value!==undefined)state[m]=value;\n"
+        "  view.innerHTML=html[m];open=null;\n"
+        "  var attr=(m==='scene'?'cat':'particle');\n"
         "  var groups=view.querySelectorAll('.group');\n"
-        "  for(var g=0;g<groups.length;g++)groups[g].style.display=(value==='all'||groups[g].getAttribute('data-'+sec)===value)?'':'none';\n"
-        "  var chips=(mode==='scene'?rowScene:rowPart).querySelectorAll('button');\n"
-        "  for(var c=0;c<chips.length;c++)chips[c].setAttribute('aria-pressed',chips[c].getAttribute('data-'+chipAttr)===value?'true':'false');\n"
+        "  for(var g=0;g<groups.length;g++)groups[g].style.display=(state[m]==='all'||groups[g].getAttribute('data-'+attr)===state[m])?'':'none';\n"
+        "  setChips(m);\n"
+        "  if(scroll)view.scrollIntoView({block:'start',behavior:'smooth'});\n"
         "}\n"
-        "function onClick(container,attr,key){container.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint(key,attr,b.getAttribute('data-'+attr));});}\n"
-        "for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var mode=e.currentTarget.getAttribute('data-mode');paint(mode,mode==='scene'?'cat':'part','all');});\n"
-        "onClick(rowScene,'cat','scene');onClick(rowPart,'part','particle');\n"
-        "paint('scene','cat','all');\n"
+        "function toggleCard(btn){\n"
+        "  var i=+btn.getAttribute('data-i');\n"
+        "  var existing=view.querySelector('.card');\n"
+        "  if(open===i){if(existing)existing.remove();open=null;return;}\n"
+        "  if(existing)existing.remove();\n"
+        "  open=i;btn.insertAdjacentHTML('afterend',card(i));\n"
+        "}\n"
+        "var KEY_VOICE='pv-voice';var voice='f';\n"
+        "try{var sv=localStorage.getItem(KEY_VOICE);if(sv==='f'||sv==='m')voice=sv;}catch(e){}\n"
+        "var audio=new Audio();audio.preload='auto';var srcCache={};var stopAt=0,onEl=null;\n"
+        "function srcFor(url){\n"
+        "  if(srcCache[url])return srcCache[url];\n"
+        "  var can=location.protocol!=='file:'&&window.fetch&&window.URL&&URL.createObjectURL;\n"
+        "  if(!can){srcCache[url]=Promise.resolve(url);return srcCache[url];}\n"
+        "  srcCache[url]=fetch(url).then(function(r){if(!r.ok)throw 0;return r.blob();})\n"
+        "    .then(function(b){return URL.createObjectURL(b);}).catch(function(){return url;});\n"
+        "  return srcCache[url];\n"
+        "}\n"
+        "audio.addEventListener('timeupdate',function(){\n"
+        "  if(stopAt&&audio.currentTime>=stopAt-0.02){audio.pause();stopAt=0;if(onEl){onEl.classList.remove('on');onEl=null;}}\n"
+        "});\n"
+        "function playSay(el){\n"
+        "  var i=+el.getAttribute('data-i'),k=+el.getAttribute('data-k');\n"
+        "  var e=D.entries[i];var span=e.au[k];\n"
+        "  if(!span||!e.sp||!e.sp[voice])return;\n"
+        "  var s=voice==='f'?span[0]:span[2],en=voice==='f'?span[1]:span[3];\n"
+        "  if(s==null||en==null)return;\n"
+        "  srcFor('audio/'+e.sp[voice]).then(function(src){\n"
+        "    if(audio.src!==src)audio.src=src;\n"
+        "    stopAt=en;if(onEl)onEl.classList.remove('on');onEl=el;el.classList.add('on');\n"
+        "    var go=function(){try{audio.currentTime=s;}catch(err){}audio.play().catch(function(){});};\n"
+        "    if(audio.readyState>0)go();else audio.addEventListener('loadedmetadata',go,{once:true});\n"
+        "  });\n"
+        "}\n"
+        "var voiceBtns=document.querySelectorAll('[data-voice]');\n"
+        "function paintVoice(){\n"
+        "  for(var v=0;v<voiceBtns.length;v++)voiceBtns[v].setAttribute('aria-pressed',voiceBtns[v].getAttribute('data-voice')===voice?'true':'false');\n"
+        "}\n"
+        "for(var vv=0;vv<voiceBtns.length;vv++)voiceBtns[vv].addEventListener('click',function(e){voice=e.currentTarget.getAttribute('data-voice');try{localStorage.setItem(KEY_VOICE,voice);}catch(err){}paintVoice();});\n"
+        "paintVoice();\n"
+        "rowScene.innerHTML=chip('scene','all','全部')+D.scene.map(function(g){return chip('scene',g.id,g.zh);}).join('');\n"
+        "rowPart.innerHTML=chip('particle','all','全部')+D.particle.map(function(g){return chip('particle',g.p,g.label||g.p);}).join('');\n"
+        "rowScene.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint('scene',b.getAttribute('data-scene'),true);});\n"
+        "rowPart.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint('particle',b.getAttribute('data-particle'),true);});\n"
+        "for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){paint(e.currentTarget.getAttribute('data-mode'),'all',true);});\n"
+        "view.addEventListener('click',function(e){\n"
+        "  var say=e.target.closest('.say');\n"
+        "  if(say){playSay(say);return;}\n"
+        "  var b=e.target.closest('.prow');\n"
+        "  if(b)toggleCard(b);\n"
+        "});\n"
+        "paint('scene','all',false);\n"
         "})();\n"
         "</script>\n</body>\n</html>\n"
     )
     (BASE / "index.html").write_text(page, encoding="utf-8")
-    total = sum(len(theme["entries"]) for theme in themes)
+    total = len(data["entries"])
     print(f"built index.html + data.{digest}.js ({len(themes)} themes, {total} entries)")
 
 

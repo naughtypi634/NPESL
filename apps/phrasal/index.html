@@ -52,6 +52,52 @@
   .chips button:hover, .chips a:hover { background:var(--surface); }
   .chips button[aria-pressed="true"] { background:var(--accent);
     border-color:var(--accent); color:var(--on-accent); }
+  .voice-seg { display:inline-flex; margin:12px 0 0; border:1px solid var(--rule);
+    border-radius:999px; overflow:hidden; }
+  .voice-seg button { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:6px 14px; cursor:pointer; }
+  .voice-seg button + button { border-left:1px solid var(--rule); }
+  .voice-seg button[aria-pressed="true"] { background:var(--accent);
+    color:var(--on-accent); }
+  .prow { display:flex; align-items:baseline; gap:12px; width:100%;
+    text-align:left; font:inherit; color:inherit; background:var(--bg);
+    border:1px solid var(--rule); border-radius:14px; padding:12px 14px;
+    cursor:pointer; }
+  .prow:hover { background:var(--surface); }
+  .prow .en { font-size:17px; font-weight:600; min-width:0; }
+  .prow .zh { margin-left:auto; max-width:48%; text-align:right; color:var(--muted);
+    font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .prow .arw { color:var(--muted); }
+  .card { margin:8px 0 16px; padding:16px; border:1px solid var(--rule);
+    border-radius:16px; background:var(--surface); }
+  .card-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 12px; }
+  .card .head { appearance:none; border:0; background:transparent; color:inherit;
+    font:inherit; display:inline-flex; align-items:baseline; gap:8px;
+    padding:0; cursor:pointer; white-space:normal; }
+  .card .head .w { font-size:20px; font-weight:700; }
+  .card .head .ipa { color:var(--muted); font-size:13px; }
+  .card .head .play, .card .ex .play { font-size:0.65em; color:var(--muted); }
+  .card .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .card .zh-line { margin:8px 0 0; color:var(--muted); font-size:14px; }
+  .card .sense { margin-top:10px; }
+  .card .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted); }
+  .card .ex { display:block; width:100%; text-align:left; font:inherit;
+    color:inherit; background:var(--bg); border:1px solid var(--rule);
+    border-radius:12px; padding:10px 12px; cursor:pointer;
+    white-space:normal; overflow-wrap:anywhere; }
+  .card .ex:hover { background:var(--surface-strong, var(--surface)); }
+  .card .ex .txt { display:block; font-size:16px; line-height:1.5; }
+  .card .ex .zh { display:block; margin-top:3px; color:var(--muted); font-size:13px; }
+  .card .note-card { margin-top:12px; padding:12px 14px; border-radius:12px;
+    background:var(--surface-strong, var(--surface)); border:1px solid var(--rule);
+    border-left:3px solid var(--accent); }
+  .card .note-card p { margin:6px 0 0; font-size:13px; line-height:1.6; }
+  .card .note-card p b { display:inline-block; margin-right:6px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+  .say.on { background:var(--blue-tint, var(--surface)); }
   .back { display:inline-block; margin-bottom:14px; color:var(--muted);
     text-decoration:none; font-size:14px; }
   .back:hover { color:var(--accent); }
@@ -83,11 +129,12 @@
 <div class="page">
 <h1>短语动词</h1>
 <div class="level1" role="group" aria-label="浏览方式"><button type="button" data-mode="scene" aria-pressed="true">场景话题</button><button type="button" data-mode="particle" aria-pressed="false">介词</button></div>
+<div class="voice-seg" role="group" aria-label="音色"><button type="button" data-voice="f" aria-pressed="true">女</button><button type="button" data-voice="m" aria-pressed="false">男</button></div>
 <div class="chips" data-chips="scene"></div>
 <div class="chips" data-chips="particle" hidden></div>
 <div id="view"></div>
 </div>
-<script src="data.451b503620.js"></script>
+<script src="data.8d1f8285e9.js"></script>
 <script>
 (function(){
 var D=window.PHRASAL_INDEX;
@@ -95,55 +142,116 @@ var view=document.getElementById('view');
 var rowScene=document.querySelector('[data-chips="scene"]');
 var rowPart=document.querySelector('[data-chips="particle"]');
 var modeBtns=document.querySelectorAll('[data-mode]');
+var state={scene:'all',particle:'all'},mode='scene',open=null;
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 function chip(attr,val,label){return '<button type="button" data-'+attr+'="'+val+'">'+esc(label)+'</button>';}
-function rowsHtml(rows,page,withPage){
-  var out='';
-  for(var i=0;i<rows.length;i++){
-    var r=rows[i];var p=withPage?r[2]:page;var id=withPage?r[3]:r[2];
-    out+='<a class="row" href="'+p+'#'+id+'"><span class="title"><span class="en">'+esc(r[0])+'</span><span class="zh">'+esc(r[1])+'</span></span></a>';
+function rowButton(i){
+  var e=D.entries[i];
+  return '<button class="prow" type="button" data-i="'+i+'"><span class="en">'+esc(e.h)+'</span><span class="zh">'+esc(e.zh)+'</span><span class="arw">›</span></button>';
+}
+function fmt(v){return (v==null?'':v.toFixed(3));}
+function card(i){
+  var e=D.entries[i];var out='<div class="card" data-card="'+i+'">';
+  out+='<div class="card-head"><button class="say head" type="button" data-i="'+i+'" data-k="0"><span class="w">'+esc(e.h)+'</span><span class="ipa">/'+esc(e.ipa)+'/</span><span class="play">▶</span></button><span class="badges"><span class="badge reg">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class="badge split">可分</span>':'')+'</span></div>';
+  out+='<p class="zh-line">'+esc(e.zh)+'</p>';
+  for(var s=0;s<e.sen.length;s++){
+    var it=e.sen[s];
+    out+='<div class="sense"><p class="sense-zh">'+esc(it[0])+'</p><button class="say ex" type="button" data-i="'+i+'" data-k="'+(s+1)+'"><span class="txt">'+esc(it[1])+'</span><span class="zh">'+esc(it[2])+'</span></button></div>';
   }
+  var notes='';
+  if(e.l1)notes+='<p class="l1"><b>中文易错</b>'+esc(e.l1)+'</p>';
+  if(e.coll&&e.coll.length)notes+='<p class="colloc"><b>搭配</b>'+esc(e.coll.join(' · '))+'</p>';
+  if(e.conf&&e.conf.length)notes+='<p class="confuse"><b>易混</b>'+esc(e.conf.join(' · '))+'</p>';
+  if(notes)out+='<div class="note-card">'+notes+'</div>';
+  return out+'</div>';
+}
+function sceneHtml(){
+  var out='';
+  D.scene.forEach(function(g){
+    out+='<section class="group" data-cat="'+g.id+'">';
+    g.themes.forEach(function(t){
+      out+='<h3 class="theme">'+esc(t.zh)+' <span class="stage-en">'+esc(t.en)+'</span></h3>';
+      out+='<div class="list">'+t.rows.map(rowButton).join('')+'</div>';
+    });
+    out+='</section>';
+  });
   return out;
 }
-function renderScene(){
-  var html='';
-  D.scene.forEach(function(g){
-    html+='<section class="group" data-cat="'+g.id+'"><p class="stage">'+esc(g.zh)+' <span class="stage-en">'+esc(g.en)+' · '+g.count+' 条</span></p>';
-    g.themes.forEach(function(t){
-      html+='<h3 class="theme"><a href="'+t.page+'">'+esc(t.zh)+' <span class="stage-en">'+esc(t.en)+'</span><span class="theme-go">进入主题 ›</span></a></h3>';
-      html+='<div class="list">'+rowsHtml(t.rows,t.page,false)+'</div>';
-    });
-    html+='</section>';
-  });
-  return html;
-}
-function renderParticle(){
-  var html='';
+function partHtml(){
+  var out='';
   D.particle.forEach(function(g){
-    var label=g.label||g.p;
-    html+='<section class="group" data-particle="'+g.p+'"><p class="stage">'+esc(label)+' <span class="stage-en">'+g.rows.length+' 条</span></p>';
-    html+='<div class="list">'+rowsHtml(g.rows,'',true)+'</div></section>';
+    out+='<section class="group" data-particle="'+g.p+'"><h3 class="theme">'+esc(g.label||g.p)+'</h3><div class="list">'+g.rows.map(rowButton).join('')+'</div></section>';
   });
-  return html;
+  return out;
 }
-var sceneHtml=renderScene(),partHtml=renderParticle();
-rowScene.innerHTML=chip('cat','all','全部')+D.scene.map(function(g){return chip('cat',g.id,g.zh);}).join('');
-rowPart.innerHTML=chip('part','all','全部')+D.particle.map(function(g){return chip('part',g.p,g.label||g.p);}).join('');
-function paint(mode,key,value){
-  view.innerHTML=(mode==='scene'?sceneHtml:partHtml);
-  view.setAttribute('data-view',mode);
-  rowScene.hidden=(mode!=='scene');rowPart.hidden=(mode==='scene');
-  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===mode?'true':'false');
-  var sec=(mode==='scene'?'cat':'particle'),chipAttr=(mode==='scene'?'cat':'part');
+var html={scene:sceneHtml(),particle:partHtml()};
+function setChips(m){
+  rowScene.hidden=(m!=='scene');rowPart.hidden=(m==='scene');
+  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===m?'true':'false');
+  var chips=(m==='scene'?rowScene:rowPart).querySelectorAll('button');
+  for(var c=0;c<chips.length;c++)chips[c].setAttribute('aria-pressed',chips[c].getAttribute('data-'+m)==='all'&&state[m]==='all'?'true':(chips[c].getAttribute('data-'+m)===state[m]?'true':'false'));
+}
+function paint(m,value,scroll){
+  mode=m;if(value!==undefined)state[m]=value;
+  view.innerHTML=html[m];open=null;
+  var attr=(m==='scene'?'cat':'particle');
   var groups=view.querySelectorAll('.group');
-  for(var g=0;g<groups.length;g++)groups[g].style.display=(value==='all'||groups[g].getAttribute('data-'+sec)===value)?'':'none';
-  var chips=(mode==='scene'?rowScene:rowPart).querySelectorAll('button');
-  for(var c=0;c<chips.length;c++)chips[c].setAttribute('aria-pressed',chips[c].getAttribute('data-'+chipAttr)===value?'true':'false');
+  for(var g=0;g<groups.length;g++)groups[g].style.display=(state[m]==='all'||groups[g].getAttribute('data-'+attr)===state[m])?'':'none';
+  setChips(m);
+  if(scroll)view.scrollIntoView({block:'start',behavior:'smooth'});
 }
-function onClick(container,attr,key){container.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint(key,attr,b.getAttribute('data-'+attr));});}
-for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var mode=e.currentTarget.getAttribute('data-mode');paint(mode,mode==='scene'?'cat':'part','all');});
-onClick(rowScene,'cat','scene');onClick(rowPart,'part','particle');
-paint('scene','cat','all');
+function toggleCard(btn){
+  var i=+btn.getAttribute('data-i');
+  var existing=view.querySelector('.card');
+  if(open===i){if(existing)existing.remove();open=null;return;}
+  if(existing)existing.remove();
+  open=i;btn.insertAdjacentHTML('afterend',card(i));
+}
+var KEY_VOICE='pv-voice';var voice='f';
+try{var sv=localStorage.getItem(KEY_VOICE);if(sv==='f'||sv==='m')voice=sv;}catch(e){}
+var audio=new Audio();audio.preload='auto';var srcCache={};var stopAt=0,onEl=null;
+function srcFor(url){
+  if(srcCache[url])return srcCache[url];
+  var can=location.protocol!=='file:'&&window.fetch&&window.URL&&URL.createObjectURL;
+  if(!can){srcCache[url]=Promise.resolve(url);return srcCache[url];}
+  srcCache[url]=fetch(url).then(function(r){if(!r.ok)throw 0;return r.blob();})
+    .then(function(b){return URL.createObjectURL(b);}).catch(function(){return url;});
+  return srcCache[url];
+}
+audio.addEventListener('timeupdate',function(){
+  if(stopAt&&audio.currentTime>=stopAt-0.02){audio.pause();stopAt=0;if(onEl){onEl.classList.remove('on');onEl=null;}}
+});
+function playSay(el){
+  var i=+el.getAttribute('data-i'),k=+el.getAttribute('data-k');
+  var e=D.entries[i];var span=e.au[k];
+  if(!span||!e.sp||!e.sp[voice])return;
+  var s=voice==='f'?span[0]:span[2],en=voice==='f'?span[1]:span[3];
+  if(s==null||en==null)return;
+  srcFor('audio/'+e.sp[voice]).then(function(src){
+    if(audio.src!==src)audio.src=src;
+    stopAt=en;if(onEl)onEl.classList.remove('on');onEl=el;el.classList.add('on');
+    var go=function(){try{audio.currentTime=s;}catch(err){}audio.play().catch(function(){});};
+    if(audio.readyState>0)go();else audio.addEventListener('loadedmetadata',go,{once:true});
+  });
+}
+var voiceBtns=document.querySelectorAll('[data-voice]');
+function paintVoice(){
+  for(var v=0;v<voiceBtns.length;v++)voiceBtns[v].setAttribute('aria-pressed',voiceBtns[v].getAttribute('data-voice')===voice?'true':'false');
+}
+for(var vv=0;vv<voiceBtns.length;vv++)voiceBtns[vv].addEventListener('click',function(e){voice=e.currentTarget.getAttribute('data-voice');try{localStorage.setItem(KEY_VOICE,voice);}catch(err){}paintVoice();});
+paintVoice();
+rowScene.innerHTML=chip('scene','all','全部')+D.scene.map(function(g){return chip('scene',g.id,g.zh);}).join('');
+rowPart.innerHTML=chip('particle','all','全部')+D.particle.map(function(g){return chip('particle',g.p,g.label||g.p);}).join('');
+rowScene.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint('scene',b.getAttribute('data-scene'),true);});
+rowPart.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint('particle',b.getAttribute('data-particle'),true);});
+for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){paint(e.currentTarget.getAttribute('data-mode'),'all',true);});
+view.addEventListener('click',function(e){
+  var say=e.target.closest('.say');
+  if(say){playSay(say);return;}
+  var b=e.target.closest('.prow');
+  if(b)toggleCard(b);
+});
+paint('scene','all',false);
 })();
 </script>
 </body>

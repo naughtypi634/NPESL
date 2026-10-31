@@ -781,43 +781,66 @@ const cases = [
   {
     name: 'phrasal-index', path: '/phrasal/',
     async run() {
-      // 默认场景话题 + 全部；切换二级只在当前页展开，不跳转；也不能有 meta 文案。
+      // 默认场景+全部；两个模式的「全部」各自独立；无计数、无主题链接；点词条就地展开。
       const r = await evaluate(`(() => {
-        const meta = document.querySelector('.sub');
         const path0 = location.pathname;
+        if (document.querySelector('.sub')) return 'meta-text';
+        if (/·\s*\d+\s*条/.test(document.body.innerText)) return 'count-text';
+        if (document.querySelector('.theme a')) return 'theme-link';
         const sceneChips = [...document.querySelectorAll('[data-chips="scene"] button')];
         const partRow = document.querySelector('[data-chips="particle"]');
-        if (meta) return 'meta-text';
         if (!sceneChips.length || !partRow.hidden) return 'default-chips-wrong';
         const sceneSections = [...document.querySelectorAll('#view .group[data-cat]')];
-        const allShown = sceneSections.length > 0
-          && sceneSections.every((s) => s.style.display !== 'none');
-        if (!allShown) return 'default-not-all';
-        const daily = sceneChips.find((b) => b.dataset.cat === 'daily');
+        if (!sceneSections.every((s) => s.style.display !== 'none')) return 'default-not-all';
+        const daily = sceneChips.find((b) => b.dataset.scene === 'daily');
         if (!daily) return 'no-daily';
         daily.click();
-        const afterCat = [...document.querySelectorAll('#view .group[data-cat]')];
-        const shownCat = afterCat.filter((s) => s.style.display !== 'none');
-        const catOk = shownCat.length === 1 && shownCat[0].dataset.cat === 'daily';
-        const noNav = location.pathname === path0;
-        const allBtn = sceneChips.find((b) => b.dataset.cat === 'all');
-        allBtn.click();
-        const restored = [...document.querySelectorAll('#view .group[data-cat]')]
-          .every((s) => s.style.display !== 'none');
+        const shownCat = [...document.querySelectorAll('#view .group[data-cat]')]
+          .filter((s) => s.style.display !== 'none');
+        if (!(shownCat.length === 1 && shownCat[0].dataset.cat === 'daily')) return 'cat-filter';
+        if (location.pathname !== path0) return 'navigated';
+        sceneChips.find((b) => b.dataset.scene === 'all').click();
+        if (![...document.querySelectorAll('#view .group[data-cat]')].every((s) => s.style.display !== 'none')) return 'all-restore';
         const modes = [...document.querySelectorAll('[data-mode]')];
         modes.find((b) => b.dataset.mode === 'particle').click();
         if (partRow.hidden) return 'part-chips-hidden';
-        const partChips = [...document.querySelectorAll('[data-chips="particle"] button')];
-        const up = partChips.find((b) => b.dataset.part === 'up');
+        const up = [...document.querySelectorAll('[data-chips="particle"] button')]
+          .find((b) => b.dataset.particle === 'up');
         if (!up) return 'no-up';
         up.click();
-        const pgroups = [...document.querySelectorAll('#view .group[data-particle]')];
-        const shownPart = pgroups.filter((s) => s.style.display !== 'none');
-        const partOk = shownPart.length === 1 && shownPart[0].dataset.particle === 'up';
-        return catOk && noNav && restored && partOk ? 'ok'
-          : 'cat=' + catOk + '/noNav=' + noNav + '/restored=' + restored + '/part=' + partOk;
+        const shownPart = [...document.querySelectorAll('#view .group[data-particle]')]
+          .filter((s) => s.style.display !== 'none');
+        if (!(shownPart.length === 1 && shownPart[0].dataset.particle === 'up')) return 'part-filter';
+        return 'ok';
       })()`);
-      return { ok: r === 'ok', detail: `index=${r}` };
+      if (r !== 'ok') return { ok: false, detail: `index=${r}` };
+
+      const open = await evaluate(`(() => {
+        const b = document.querySelector('.prow');
+        if (!b) return 'no-row';
+        b.click();
+        const c = document.querySelector('.card');
+        return c && c.querySelectorAll('.say').length > 0 ? 'ok' : 'no-card';
+      })()`);
+      if (open !== 'ok') return { ok: false, detail: `expand=${open}` };
+
+      const close = await evaluate(`(() => {
+        document.querySelector('.prow').click();
+        return document.querySelector('.card') ? 'still-open' : 'ok';
+      })()`);
+      if (close !== 'ok') return { ok: false, detail: `collapse=${close}` };
+
+      const marked = await evaluate(`(() => {
+        document.querySelector('.prow').click();
+        const b = document.querySelector('.card .say');
+        if (!b) return null;
+        b.setAttribute('data-smoke', '1');
+        return true;
+      })()`);
+      if (!marked) return { ok: false, detail: 'no-card-say' };
+      const p = await playAndProbe('.card .say[data-smoke]');
+      const ok = p.started && p.mediaErrors.length === 0;
+      return { ok, detail: `card-audio start=${p.started} err=${JSON.stringify(p.mediaErrors)}` };
     },
   },
   {
