@@ -469,8 +469,8 @@
     var map = JSON.parse(document.getElementById("audioMap").textContent);
     var VOICE_KEYS = ["f", "m"];
     var audios = {};
-    // 两条音轨是独立文件，preload=none：打开页面不下载音频，
-    // 点到哪句才取当前音色的那一条。
+    // 两条音轨是独立文件。Pages 不支持 Range，直接 seek 会被夹回 0 秒；
+    // 点读时先把整条音频取成 blob，换成 blob: 地址再跳。
     VOICE_KEYS.forEach(function (key) {
       var track = new Audio();
       track.preload = "none";
@@ -574,6 +574,40 @@
       audio.load();
     }
 
+    // Pages 不支持 Range，整条取进内存换成 blob: 地址后 seekable 才是全段。
+    var blobUrls = {};
+    var blobFetches = {};
+    function prepareSource(key, callback) {
+      if (blobUrls[key]) {
+        if ((audios[key].src || "").indexOf("blob:") !== 0) {
+          audios[key].src = blobUrls[key];
+        }
+        callback();
+        return;
+      }
+      if (!blobFetches[key]) {
+        var url = map[key];
+        var canFetch = location.protocol !== "file:" && window.fetch
+          && window.URL && URL.createObjectURL;
+        blobFetches[key] = canFetch ? fetch(url).then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.blob();
+        }).then(function (blob) {
+          blobUrls[key] = URL.createObjectURL(blob) + "#" + url.split("/").pop();
+          return true;
+        }).catch(function () {
+          return false;
+        }) : Promise.resolve(false);
+      }
+      blobFetches[key].then(function (ok) {
+        if (ok) {
+          audios[key].src = blobUrls[key];
+          try { audios[key].load(); } catch (e) {}
+        }
+        callback();
+      });
+    }
+
     function stamp(el, kind) {
       return parseFloat(el.dataset[kind + (voice === "f" ? "F" : "M")]);
     }
@@ -615,6 +649,8 @@
     function start(startTime, endTime, mode, el) {
       stop();
       var gen = generation;
+      var key = voice;
+      audio = audios[key];
       state = { raf: 0, stopAt: endTime, mode: mode, hlChunk: null, hlSection: null };
       if (mode === "chunk") {
         el.classList.add("is-playing");
@@ -625,59 +661,72 @@
         state.hlSection = el;
       }
       if (mode === "all") setPlayAll(true);
-      whenReady(function () {
+      prepareSource(key, function () {
         if (!state || gen !== generation) return;
-        // iOS Safari 的 seek 是异步的：设完 currentTime 立刻 play，
-        // 跳转可能还没落地就开始播，导致句子开头被吃掉。
-        // 留一点前置余量，并等 seeked 再播。
-        var LEAD = 0.12;
-        var from = Math.max(0, startTime - LEAD);
-        var started = false;
-        var play = function () {
-          if (started || !state || gen !== generation) return;
-          started = true;
-          // 音频换成外链后，load() 可能把 playbackRate 重置回 1。
-          audio.playbackRate = speed;
-          audio.onended = function () {
-            if (state) stop();
-          };
-          audio.play().then(function () {
-            var tick = function () {
-              if (!state || gen !== generation) return;
-              var time = audio.currentTime;
-              if (state.stopAt !== null && time >= state.stopAt - 0.006) {
-                stop();
-                return;
-              }
-              if (state.mode !== "chunk") highlight(time);
-              state.raf = requestAnimationFrame(tick);
+        whenReady(function () {
+          if (!state || gen !== generation) return;
+          // iOS Safari 的 seek 是异步的：设完 currentTime 立刻 play，
+          // 跳转可能还没落地就开始播，导致句子开头被吃掉。
+          // 留一点前置余量，并等 seeked 再播。
+          var LEAD = 0.12;
+          var from = Math.max(0, startTime - LEAD);
+          var started = false;
+          var play = function () {
+            if (started || !state || gen !== generation) return;
+            started = true;
+            // 音频换成外链后，load() 可能把 playbackRate 重置回 1。
+            audio.playbackRate = speed;
+            audio.onended = function () {
+              if (state) stop();
             };
-            tick();
-          }).catch(function (error) {
-            if (error && error.name === "AbortError") return;
-            fail();
-          });
-        };
-        if (Math.abs(audio.currentTime - from) < 0.02) {
-          play();
-          return;
-        }
-        var onSeeked = function () {
-          audio.removeEventListener("seeked", onSeeked);
-          clearTimeout(guard);
-          if (gen !== generation) return;
-          play();
-        };
-        // 网络音频的 seek 比内存 Blob 慢，guard 放宽到 600ms；
-        // 真没落到实处就再设一次，避免从上一句的位置开始播。
-        var guard = setTimeout(function () {
-          audio.removeEventListener("seeked", onSeeked);
-          if (gen !== generation) return;
-          if (Math.abs(audio.currentTime - from) > 0.05) audio.currentTime = from;
-          play();
-        }, 600);
-        audio.addEventListener("seeked", onSeeked);
-        audio.currentTime = from;
+            audio.play().then(function () {
+              var tick = function () {
+                if (!state || gen !== generation) return;
+                var time = audio.currentTime;
+                if (state.stopAt !== null && time >= state.stopAt - 0.006) {
+                  stop();
+                  return;
+                }
+                if (state.mode !== "chunk") highlight(time);
+                state.raf = requestAnimationFrame(tick);
+              };
+              tick();
+            }).catch(function (error) {
+              if (error && error.name === "AbortError") return;
+              fail();
+            });
+          };
+          var seek = function () {
+            if (!state || gen !== generation) return;
+            if (Math.abs(audio.currentTime - from) < 0.02) {
+              play();
+              return;
+            }
+            var onSeeked = function () {
+              audio.removeEventListener("seeked", onSeeked);
+              clearTimeout(guard);
+              if (gen !== generation) return;
+              play();
+            };
+            // 网络音频的 seek 比内存 Blob 慢，guard 放宽到 600ms；
+            // 真没落到实处就再设一次，避免从上一句的位置开始播。
+            var guard = setTimeout(function () {
+              audio.removeEventListener("seeked", onSeeked);
+              if (gen !== generation) return;
+              if (Math.abs(audio.currentTime - from) > 0.05) audio.currentTime = from;
+              play();
+            }, 600);
+            audio.addEventListener("seeked", onSeeked);
+            try {
+              audio.currentTime = from;
+            } catch (error) {
+              audio.removeEventListener("seeked", onSeeked);
+              clearTimeout(guard);
+              play();
+            }
+          };
+          seek();
+        });
       });
     }
 

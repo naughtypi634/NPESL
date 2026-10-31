@@ -468,8 +468,8 @@ async def main():
         help="要合成的音色：f,m（默认两套；页面始终内嵌两套）",
     )
     parser.add_argument(
-        "--tts", choices=("edge", "azure"), default="edge",
-        help="语音后端：edge（默认，免费）或 azure（F0）",
+        "--tts", choices=("edge", "azure"), default="azure",
+        help="语音后端：azure（默认，F0）或 edge（回退，免费）",
     )
     parser.add_argument(
         "--force", action="store_true",
