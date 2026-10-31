@@ -748,11 +748,25 @@ const cases = [
       const contrastOk = !contrast || contrast.ratio >= 4.5;
       // 主题切换按钮由 theme.js 生成；页面里误写主题文件名会让注入被跳过。
       const fab = await evaluate("!!document.querySelector('.npesl-theme-fab')");
+      // 小品词筛选：点 up 之后只能看到 up 词条，再点会话恢复全部。
+      const filter = await evaluate(`(() => {
+        const btns = [...document.querySelectorAll('[data-particle]')];
+        const up = btns.find((b) => b.getAttribute('data-particle') === 'up');
+        const all = btns.find((b) => b.getAttribute('data-particle') === 'all');
+        if (!up || !all) return 'no-btn';
+        up.click();
+        const cards = [...document.querySelectorAll('.entry')];
+        const shown = cards.filter((c) => c.style.display !== 'none');
+        const bad = shown.filter((c) => c.getAttribute('data-particle') !== 'up').length;
+        all.click();
+        const restored = cards.every((c) => c.style.display !== 'none');
+        return bad === 0 && shown.length > 0 && restored ? 'ok' : 'bad=' + bad + '/shown=' + shown.length + '/restored=' + restored;
+      })()`);
       return {
         ok: p.started && p.currentTime >= start - 0.1 && p.mediaErrors.length === 0
-          && overflow <= 1 && contrastOk && fab,
+          && overflow <= 1 && contrastOk && fab && filter === 'ok',
         detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start} `
-          + `overflow=${overflow} contrast=${contrast ? contrast.ratio : 'n/a'}`,
+          + `overflow=${overflow} contrast=${contrast ? contrast.ratio : 'n/a'} filter=${filter}`,
       };
     },
   },

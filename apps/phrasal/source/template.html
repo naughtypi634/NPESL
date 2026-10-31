@@ -36,6 +36,9 @@
   .back { display:inline-block; margin-bottom:22px; color:var(--muted);
     text-decoration:none; font-size:14px; }
   .back:hover { color:var(--accent); }
+  .crumbs { margin:0 0 8px; color:var(--muted); font-size:13px; }
+  .crumbs a { color:var(--muted); text-decoration:none; }
+  .crumbs a:hover { color:var(--accent); }
   .num { margin:0 0 6px; color:var(--muted); font-size:13px;
     font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
   h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
@@ -123,13 +126,23 @@
 <main class="page">
   <a class="back" href="index.html">短语动词</a>
   <header>
+    <p class="crumbs"><a href="index.html#cat-__CATEGORY_ID__">__CATEGORY_ZH__</a> › __TITLE_ZH__</p>
     <h1>__TITLE_EN__</h1>
     <p class="title-zh">__TITLE_ZH__</p>
     <p class="intro">__INTRO__</p>
-    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code><br>名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code></p>
   </header>
 
   <div class="toolbar">
+    <div class="seg" role="group" aria-label="小品词">
+      <button type="button" data-particle="all" aria-pressed="true">全部</button>
+      <button type="button" data-particle="up" aria-pressed="false">up</button>
+      <button type="button" data-particle="down" aria-pressed="false">down</button>
+      <button type="button" data-particle="out" aria-pressed="false">out</button>
+      <button type="button" data-particle="off" aria-pressed="false">off</button>
+      <button type="button" data-particle="on" aria-pressed="false">on</button>
+      <button type="button" data-particle="in" aria-pressed="false">in</button>
+    </div>
     <div class="seg" role="group" aria-label="音色">
       <button type="button" data-voice="f" aria-pressed="true">女</button>
       <button type="button" data-voice="m" aria-pressed="false">男</button>
@@ -502,12 +515,40 @@
   var playAllBtn = document.querySelector('[data-play-all]');
   if (playAllBtn) playAllBtn.addEventListener('click', function () {
     if (playlist) { stopPlaylist(); return; }
-    if (!allRows.length) return;
+    var rows = allRows.filter(function (el) {
+      var card = el.closest('.entry');
+      return !card || card.style.display !== 'none';
+    });
+    if (!rows.length) return;
     stopAudio();
-    playlist = { items: allRows, at: -1 };
+    playlist = { items: rows, at: -1 };
     setPlayAll(true);
     playItem(0);
   });
+
+  // 小品词筛选：只看 up / down / out 这类词条
+  var PARTICLE_KEY = 'pv-particle';
+  var particle = 'all';
+  var particleButtons = document.querySelectorAll('[data-particle]');
+  function applyParticle(next, save) {
+    particle = next;
+    var cards = document.querySelectorAll('.entry');
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].style.display =
+        (next === 'all' || cards[i].getAttribute('data-particle') === next) ? '' : 'none';
+    }
+    for (var j = 0; j < particleButtons.length; j++) {
+      particleButtons[j].setAttribute('aria-pressed',
+        particleButtons[j].getAttribute('data-particle') === next ? 'true' : 'false');
+    }
+    if (save) store(PARTICLE_KEY, next);
+  }
+  for (var q = 0; q < particleButtons.length; q++) {
+    particleButtons[q].addEventListener('click', function (event) {
+      applyParticle(event.currentTarget.getAttribute('data-particle'), true);
+    });
+  }
+  applyParticle(load(PARTICLE_KEY) || 'all', false);
 
   document.addEventListener('click', function (event) {
     if (!event.target.closest) return;
