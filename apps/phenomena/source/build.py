@@ -446,8 +446,9 @@ INDEX_STYLE = """
   .title { flex:1; min-width:0; }
   .en { display:block; font-size:18px; font-weight:600; letter-spacing:-0.01em; }
   .zh { display:block; margin-top:2px; font-size:15px; color:var(--muted); }
-  .tag { flex:none; font-size:14px; color:var(--accent); font-weight:600;
-    font-variant-numeric:tabular-nums; }
+  .tag { flex:0 1 auto; min-width:0; max-width:44%; text-align:right;
+    font-size:14px; color:var(--accent); font-weight:600;
+    font-variant-numeric:tabular-nums; overflow-wrap:anywhere; line-height:1.35; }
   .done { flex:none; width:20px; text-align:center; color:var(--accent); font-size:15px; }
   @media (max-width:560px) {
     .tag { display:none; }
@@ -470,7 +471,6 @@ def build_index(lessons):
             tag = " / ".join(target["spoken"] for target in lesson.get("targets", []))
             rows.append(
                 f'<a class="row" href="{name}" data-num="{lesson["num"]}">'
-                f'<span class="num">{lesson["num"]:02d}</span>'
                 f'<span class="title"><span class="en">{html.escape(lesson["title_en"])}</span>'
                 f'<span class="zh">{html.escape(lesson["title_zh"])}</span></span>'
                 f'<span class="tag">{html.escape(tag)}</span>'

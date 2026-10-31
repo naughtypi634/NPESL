@@ -364,8 +364,16 @@ async function probeConversationLevels() {
       // 页面里的 sprite 走音频站 CDN：每个级别第一次播要真的下载整条音频，
       // 网络抖一下就会超过 8 秒。这里只保证「最终能播、能高亮」，给足 20 秒。
       const shown = await waitFor("!document.querySelector('[data-kplayer]').hidden", 8000);
-      const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)', 20000);
-      const lit = await waitFor("!!document.querySelector('.story .s.ktv.playing .w.read')", 20000);
+      const startedExpr = '!!(window.__lastAudio && window.__lastAudio.currentTime > 0)';
+      const litExpr = "!!document.querySelector('.story .s.ktv.playing .w.read')";
+      let started = await waitFor(startedExpr, 20000);
+      let lit = started ? await waitFor(litExpr, 12000) : false;
+      // 并发跑时整条 sprite 要从 CDN 下载，rAF 也落后：允许重播一次再等。
+      if (!started || !lit) {
+        await evaluate("document.querySelector('.story .s.ktv').click()");
+        started = started || await waitFor(startedExpr, 20000);
+        if (started) lit = lit || await waitFor(litExpr, 12000);
+      }
       const rate = await evaluate('window.__lastAudio ? window.__lastAudio.playbackRate : -1');
       await evaluate("document.querySelector('[data-kp-close]').click()");
       const closed = await waitFor("document.querySelector('[data-kplayer]').hidden", 2000);
@@ -828,6 +836,20 @@ const cases = [
           : 'shown=' + shown.length + (shown[0] ? '/' + shown[0].getAttribute('data-particle') : '');
       })()`);
       return { ok: r === 'ok', detail: `hash=${r}` };
+    },
+  },
+  {
+    name: 'phenomena-index', path: '/phenomena/',
+    async run() {
+      // 第 24 课有一条超长 tag；卡片不能被撑宽，页面也不许横向溢出。
+      const r = await evaluate(`(() => {
+        const overflow = document.documentElement.scrollWidth - window.innerWidth;
+        const rows = [...document.querySelectorAll('.row')];
+        const widths = new Set(rows.map((x) => Math.round(x.getBoundingClientRect().width)));
+        return { overflow, rows: rows.length, widths: widths.size };
+      })()`);
+      const ok = r && r.overflow <= 1 && r.rows === 30 && r.widths === 1;
+      return { ok, detail: `overflow=${r && r.overflow} rows=${r && r.rows} widths=${r && r.widths}` };
     },
   },
   {
