@@ -34,7 +34,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import (CONVERSATION_OUT, DRILL_APP, IPA_APP, OFFLINE_OUT,
-                   PHENOMENA_APP, PHONICS_APP, SITE_APP)
+                   PHENOMENA_APP, PHONICS_APP, PHRASAL_APP, SITE_APP)
 from themes import theme_boot
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -43,6 +43,7 @@ PHONICS = PHONICS_APP
 IPA = IPA_APP
 DRILL = DRILL_APP
 PHENOMENA = PHENOMENA_APP
+PHRASAL = PHRASAL_APP
 CONVERSATION = CONVERSATION_OUT
 OUT = OFFLINE_OUT
 PACKAGE_NAME = "NPESL-offline"
@@ -164,6 +165,15 @@ def phenomena_ignore(directory, names):
     return skip
 
 
+def phrasal_ignore(directory, names):
+    """只要拼好的 sprite；逐条录音（audio/f、audio/m）不进部署包。"""
+    skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md")(
+        directory, names))
+    if Path(directory) == PHRASAL / "audio":
+        skip |= {"f", "m"}
+    return skip
+
+
 def ipa_ignore(directory, names):
     """部署只要拼好的 sprite，不搬逐词母版。"""
     if Path(directory).name == "audio":
@@ -185,6 +195,7 @@ def main() -> int:
         ('href="phonics/"', 'href="phonics/index.html"'),
         ('href="ipa/"', 'href="ipa/index.html"'),
         ('href="drill/"', 'href="drill/index.html"'),
+        ('href="phrasal/"', 'href="phrasal/index.html"'),
     ])
 
     # 自然拼读：目录页 + 48 课
@@ -220,6 +231,18 @@ def main() -> int:
                 continue
             inject_theme(page, "../")
             replace_back(page, "index.html", "常见发音现象")
+
+    # 短语动词：12 章 + 每章一条 sprite
+    if PHRASAL.exists():
+        phrasal_out = OUT / "phrasal"
+        shutil.copytree(PHRASAL, phrasal_out, ignore=phrasal_ignore)
+        inject_theme(phrasal_out / "index.html", "../")
+        replace_back(phrasal_out / "index.html", "../index.html", "NPESL")
+        for page in sorted(phrasal_out.glob("*.html")):
+            if page.name == "index.html":
+                continue
+            inject_theme(page, "../")
+            replace_back(page, "index.html", "短语动词")
 
     # Question Drill：目录页 + 男女音频
     drill_out = OUT / "drill"

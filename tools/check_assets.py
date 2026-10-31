@@ -62,8 +62,8 @@ def check_page(page: Path, site: Path, audio_site: Path | None) -> list[str]:
     for voice, rel in sprites.items():
         if not isinstance(rel, str):
             continue
-        if rel_page.startswith("phenomena/"):
-            want("audio/" + rel, "phenomena sprite")
+        if rel_page.startswith(("phenomena/", "phrasal/")):
+            want("audio/" + rel, "页面自带 sprite")
         elif rel_page.startswith("conversation/eslse/"):
             # ESLSE 的音频就在页面同级的 audio/<voice>/ 下
             voice_dir = VOICE_DIRS.get(voice, voice)

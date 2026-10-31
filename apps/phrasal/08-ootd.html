@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OOTD · 短语动词</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --on-accent:var(--on-blue, #ffffff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  /* 只有站点主题脚本没跑起来（没有 data-theme）时才按系统深色兜底。
+     一旦 data-theme 存在，配色全部交给站点主题样式表 —— 否则用户选了亮色主题，
+     这里的深色变量仍会生效，出现黑字压黑底。
+     注意：本文件不能出现站点主题文件的文件名，构建脚本靠这个字符串判断
+     “页面已经自带主题”，误判会整页跳过主题注入（切换按钮也会消失）。 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) { --bg:#000000; --fg:#f5f5f7; --muted:#98989d;
+      --rule:#2c2c2e; --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+  .intro { margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.6; }
+  .legend { margin:14px 0 0; padding:12px 14px; border-radius:14px;
+    background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7; }
+  .legend b { color:var(--fg); font-weight:600; }
+  .legend code { color:var(--accent); font-family:inherit; font-size:15px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:var(--on-accent); }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { width:118px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .entries { margin-top:6px; }
+  .entry, .senses, .sense { min-width:0; }
+  .entry { padding:26px 0 22px; border-bottom:1px solid var(--rule); }
+  .entry-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .head { display:inline-flex; align-items:baseline; gap:10px; appearance:none;
+    border:0; background:transparent; color:inherit; font:inherit; padding:2px 4px;
+    border-radius:10px; cursor:pointer; text-align:left; }
+  .head:hover { background:var(--surface); }
+  .head .w { font-size:24px; font-weight:700; letter-spacing:-0.02em; }
+  .head .ipa { color:var(--muted); font-size:14px; }
+  .head .play, .ex .play { font-size:0.62em; color:var(--muted); }
+  .head.playing { background:var(--tint); }
+  .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
+
+  .senses { margin-top:12px; display:grid; gap:10px; }
+  .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted);
+    letter-spacing:0.02em; }
+  /* button 的 UA 样式不换行，一句长例句会把整页撑宽 */
+  .head, .ex { white-space:normal; overflow-wrap:anywhere; }
+  .ex { display:block; width:100%; text-align:left; font:inherit; color:inherit;
+    background:var(--surface); border:0; border-radius:16px; padding:12px 14px;
+    cursor:pointer; transition:background-color .12s ease; }
+  .ex:hover { background:var(--tint); }
+  .ex.playing { background:var(--tint); }
+  .ex .txt { display:block; font-size:17px; line-height:1.55; }
+  .ex .zh { display:block; margin-top:4px; color:var(--muted); font-size:13px;
+    line-height:1.45; }
+
+  /* 背景只用主题自己的 surface 变量，文字用 --fg，任何主题都保证对比度 */
+  .note-card { margin-top:14px; padding:14px 16px; border-radius:16px;
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    border:1px solid var(--rule); border-left:3px solid var(--accent);
+    display:grid; gap:10px; }
+  .note-card p { margin:0; font-size:14px; line-height:1.65; color:var(--fg); }
+  .note-card p b { display:inline-block; margin-right:8px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+
+  body.zh-off .zh, body.zh-off .zh-line, body.zh-off .sense-zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .head .w { font-size:21px; }
+    .ex .txt { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">短语动词</a>
+  <header>
+    <h1>OOTD</h1>
+    <p class="title-zh">今日穿搭</p>
+    <p class="intro">穿什么、搭什么、显不显胖——出门前的最后五分钟。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="entries">
+      <article class="entry" id="put-on" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="0.000" data-end-f="1.104" data-start-m="0.000" data-end-m="0.768"><span class="w">put on</span><span class="ipa">/ˈpʊt ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">穿上、戴上</p><div class="senses"><div class="sense"><p class="sense-zh">把衣服穿到身上（动作）</p><button class="ex say" type="button" data-start-f="1.104" data-end-f="4.368" data-start-m="0.768" data-end-m="3.696"><span class="txt">Put on a jacket — the office AC is freezing.</span><span class="zh">穿件外套，办公室空调太冷了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“穿”有两个词：put on 是穿上的动作，wear 是穿着的状态。中文一个“穿”。</p><p class="colloc"><b>搭配</b>put on a coat · put on your shoes</p><p class="confuse"><b>易混</b>wear · take off</p></div></article>
+      <article class="entry" id="try-on" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="4.368" data-end-f="5.856" data-start-m="3.696" data-end-m="4.464"><span class="w">try on</span><span class="ipa">/ˈtraɪ ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">试穿</p><div class="senses"><div class="sense"><p class="sense-zh">在店里或家里试</p><button class="ex say" type="button" data-start-f="5.856" data-end-f="9.744" data-start-m="4.464" data-end-m="7.872"><span class="txt">Can I try this on? The fitting room is over there, right?</span><span class="zh">这件我可以试一下吗？试衣间在那边对吧？</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>试穿是 try on，不是 try it（少了 on）；代词夹中间：try it on。</p><p class="colloc"><b>搭配</b>try on a dress · try it on</p><p class="confuse"><b>易混</b>put on · pick out</p></div></article>
+      <article class="entry" id="dress-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="9.744" data-end-f="10.680" data-start-m="7.872" data-end-m="8.568"><span class="w">dress up</span><span class="ipa">/ˈdrɛs ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">打扮、穿正式</p><div class="senses"><div class="sense"><p class="sense-zh">为场合郑重打扮</p><button class="ex say" type="button" data-start-f="10.680" data-end-f="14.256" data-start-m="8.568" data-end-m="12.144"><span class="txt">Do we need to dress up for the dinner, or is jeans fine?</span><span class="zh">晚饭要穿正式点吗，还是牛仔裤就行？</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“打扮”不是 make up（那是化妆）；穿得好是 dress up。</p><p class="colloc"><b>搭配</b>dress up for a date · dress up for work</p><p class="confuse"><b>易混</b>dress down · put on</p></div></article>
+      <article class="entry" id="dress-down" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="14.256" data-end-f="15.264" data-start-m="12.144" data-end-m="13.320"><span class="w">dress down</span><span class="ipa">/ˈdrɛs daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">穿得随意</p><div class="senses"><div class="sense"><p class="sense-zh">比平时穿得休闲</p><button class="ex say" type="button" data-start-f="15.264" data-end-f="17.880" data-start-m="13.320" data-end-m="16.008"><span class="txt">The company lets us dress down on Fridays.</span><span class="zh">公司周五允许穿便装。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>dress down 还有“责备”的意思，看上下文。</p><p class="colloc"><b>搭配</b>dress down for work · dress-down Friday</p><p class="confuse"><b>易混</b>dress up · throw on</p></div></article>
+      <article class="entry" id="throw-on" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="17.880" data-end-f="19.704" data-start-m="16.008" data-end-m="16.872"><span class="w">throw on</span><span class="ipa">/ˈθroʊ ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">随手套上</p><div class="senses"><div class="sense"><p class="sense-zh">不挑不搭，随便穿上</p><button class="ex say" type="button" data-start-f="19.704" data-end-f="23.448" data-start-m="16.872" data-end-m="19.800"><span class="txt">I threw on a hoodie and ran downstairs for the delivery.</span><span class="zh">我随手套了件卫衣就下楼拿外卖。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“随手穿”不是 wear casually 才自然；throw on 有“随便一抓”的画面。</p><p class="colloc"><b>搭配</b>throw on a jacket · throw something on</p><p class="confuse"><b>易混</b>slip on · put on</p></div></article>
+      <article class="entry" id="slip-on" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="23.448" data-end-f="24.936" data-start-m="19.800" data-end-m="21.048"><span class="w">slip on</span><span class="ipa">/ˈslɪp ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">蹬上、套上（不系带的）</p><div class="senses"><div class="sense"><p class="sense-zh">快速穿进鞋或衣服</p><button class="ex say" type="button" data-start-f="24.936" data-end-f="28.440" data-start-m="21.048" data-end-m="23.664"><span class="txt">Slip on your sneakers — we&#x27;re leaving in two minutes.</span><span class="zh">把运动鞋蹬上，两分钟后走。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>slip on 暗示不用系带、一蹬就进；系带的鞋用 put on。</p><p class="colloc"><b>搭配</b>slip on shoes · slip on a hoodie</p><p class="confuse"><b>易混</b>throw on · lace up</p></div></article>
+      <article class="entry" id="zip-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="28.440" data-end-f="29.544" data-start-m="23.664" data-end-m="24.360"><span class="w">zip up</span><span class="ipa">/ˈzɪp ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">拉上拉链</p><div class="senses"><div class="sense"><p class="sense-zh">把外套拉链拉好</p><button class="ex say" type="button" data-start-f="29.544" data-end-f="34.248" data-start-m="24.360" data-end-m="27.288"><span class="txt">Zip up — it&#x27;s freezing outside and you&#x27;re wearing it open.</span><span class="zh">拉上拉链，外面冻死了，你还敞着穿。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“闭嘴”是 zip it，不是 zip up；zip up 只指拉链。</p><p class="colloc"><b>搭配</b>zip up your jacket · zip it up</p><p class="confuse"><b>易混</b>button up · unzip</p></div></article>
+      <article class="entry" id="button-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="34.248" data-end-f="71.256" data-start-m="27.288" data-end-m="27.984"><span class="w">button up</span><span class="ipa">/ˈbʌtən ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">扣上扣子</p><div class="senses"><div class="sense"><p class="sense-zh">把衬衫扣好</p><button class="ex say" type="button" data-start-f="71.256" data-end-f="74.040" data-start-m="27.984" data-end-m="30.360"><span class="txt">Button up your shirt before the interview starts.</span><span class="zh">面试开始前把衬衫扣好。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>扣扣子是 button up，不是 close the buttons（中式）。</p><p class="colloc"><b>搭配</b>button up a shirt · button it up</p><p class="confuse"><b>易混</b>zip up · tuck in</p></div></article>
+      <article class="entry" id="lace-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="74.040" data-end-f="75.048" data-start-m="30.360" data-end-m="30.984"><span class="w">lace up</span><span class="ipa">/ˈleɪs ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">系鞋带</p><div class="senses"><div class="sense"><p class="sense-zh">把鞋带系好</p><button class="ex say" type="button" data-start-f="75.048" data-end-f="79.272" data-start-m="30.984" data-end-m="33.768"><span class="txt">Lace up properly — the trail is slippery.</span><span class="zh">鞋带系好，山路很滑。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>系鞋带是 lace up / tie your shoes，不说 fasten the shoes。</p><p class="colloc"><b>搭配</b>lace up your boots · lace them up</p><p class="confuse"><b>易混</b>slip on · zip up</p></div></article>
+      <article class="entry" id="roll-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="79.272" data-end-f="80.616" data-start-m="33.768" data-end-m="34.704"><span class="w">roll up</span><span class="ipa">/ˈroʊl ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">卷起（袖口、裤脚）</p><div class="senses"><div class="sense"><p class="sense-zh">把袖子卷上去</p><button class="ex say" type="button" data-start-f="80.616" data-end-f="84.744" data-start-m="34.704" data-end-m="37.968"><span class="txt">Roll up your sleeves — the sink is clogged again.</span><span class="zh">把袖子卷起来，水槽又堵了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>roll up 也指“到场、陆续抵达”，比如 roll up to the party。</p><p class="colloc"><b>搭配</b>roll up your sleeves · roll up your jeans</p><p class="confuse"><b>易混</b>tuck in · roll down</p></div></article>
+      <article class="entry" id="tuck-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="84.744" data-end-f="85.608" data-start-m="37.968" data-end-m="38.664"><span class="w">tuck in</span><span class="ipa">/ˈtʌk ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">塞进（裤腰、被子）</p><div class="senses"><div class="sense"><p class="sense-zh">把衬衫塞进裤子</p><button class="ex say" type="button" data-start-f="85.608" data-end-f="89.736" data-start-m="38.664" data-end-m="42.240"><span class="txt">Tuck in your shirt — you look like you just got out of bed.</span><span class="zh">把衬衫塞进去，你这样像刚起床。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>英式里 tuck in 还可以是“开吃”，美式少用；这里只讲穿衣。</p><p class="colloc"><b>搭配</b>tuck in a shirt · tuck it in</p><p class="confuse"><b>易混</b>roll up · button up</p></div></article>
+      <article class="entry" id="go-with" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="89.736" data-end-f="90.840" data-start-m="42.240" data-end-m="42.864"><span class="w">go with</span><span class="ipa">/ˈɡoʊ wɪð/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">（颜色、款式）搭得上</p><div class="senses"><div class="sense"><p class="sense-zh">和别的衣服配</p><button class="ex say" type="button" data-start-f="90.840" data-end-f="95.208" data-start-m="42.864" data-end-m="46.200"><span class="txt">Do these shoes go with the dress, or is it too much?</span><span class="zh">这双鞋配这条裙子吗，会不会太夸张？</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“配”不是 match with 才常用；口语说 go with。</p><p class="colloc"><b>搭配</b>go with a dress · go together</p><p class="confuse"><b>易混</b>match up · set off</p></div></article>
+      <article class="entry" id="match-up" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="95.208" data-end-f="96.072" data-start-m="46.200" data-end-m="46.824"><span class="w">match up</span><span class="ipa">/ˈmætʃ ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">搭配得上、对得上</p><div class="senses"><div class="sense"><p class="sense-zh">颜色或风格一致</p><button class="ex say" type="button" data-start-f="96.072" data-end-f="99.336" data-start-m="46.824" data-end-m="49.200"><span class="txt">The bag doesn&#x27;t match up with the rest of the outfit.</span><span class="zh">这个包和整套搭配对不上。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>match up 强调“对得上”，go with 强调“配着好看”。</p><p class="colloc"><b>搭配</b>match up with · the colors match up</p><p class="confuse"><b>易混</b>go with · mix up</p></div></article>
+      <article class="entry" id="stand-out" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="99.336" data-end-f="100.920" data-start-m="49.200" data-end-m="49.896"><span class="w">stand out</span><span class="ipa">/ˈstænd aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">显眼、出众</p><div class="senses"><div class="sense"><p class="sense-zh">在人群里很突出</p><button class="ex say" type="button" data-start-f="100.920" data-end-f="106.176" data-start-m="49.896" data-end-m="52.680"><span class="txt">Wear something bright if you want to stand out in the photos.</span><span class="zh">想拍照显眼就穿亮色。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“显眼”不是 be obvious；stand out 是褒义居多。</p><p class="colloc"><b>搭配</b>stand out in a crowd · stand out from the rest</p><p class="confuse"><b>易混</b>show off · show through</p></div></article>
+      <article class="entry" id="cover-up" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="106.176" data-end-f="107.352" data-start-m="52.680" data-end-m="53.376"><span class="w">cover up</span><span class="ipa">/ˈkʌvər ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">遮住、盖住</p><div class="senses"><div class="sense"><p class="sense-zh">用衣服遮住不想露的地方</p><button class="ex say" type="button" data-start-f="107.352" data-end-f="111.408" data-start-m="53.376" data-end-m="56.160"><span class="txt">Bring a cardigan to cover up if the restaurant is cold.</span><span class="zh">餐厅冷的话带件开衫遮一下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>cover up 还有“掩盖（错误）”的意思，穿衣语境看宾语。</p><p class="colloc"><b>搭配</b>cover up your shoulders · cover it up</p><p class="confuse"><b>易混</b>put on · hide</p></div></article>
+      <article class="entry" id="strip-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="111.408" data-end-f="112.656" data-start-m="56.160" data-end-m="57.408"><span class="w">strip off</span><span class="ipa">/ˈstrɪp ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">脱掉（一身衣服）</p><div class="senses"><div class="sense"><p class="sense-zh">热了或要洗澡时脱掉</p><button class="ex say" type="button" data-start-f="112.656" data-end-f="116.640" data-start-m="57.408" data-end-m="60.744"><span class="txt">We stripped off our wet jackets the moment we got inside.</span><span class="zh">一进门我们就把湿外套脱了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>strip off 比较口语、常指整套；单件脱用 take off。</p><p class="colloc"><b>搭配</b>strip off wet clothes · strip down</p><p class="confuse"><b>易混</b>take off · change out of</p></div></article>
+      <article class="entry" id="change-into" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="116.640" data-end-f="118.128" data-start-m="60.744" data-end-m="63.912"><span class="w">change into</span><span class="ipa">/ˈtʃeɪndʒ ˈɪntu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">换上（另一套）</p><div class="senses"><div class="sense"><p class="sense-zh">从一套换成另一套</p><button class="ex say" type="button" data-start-f="118.128" data-end-f="121.536" data-start-m="63.912" data-end-m="66.528"><span class="txt">I need ten minutes to change into something nicer.</span><span class="zh">给我十分钟换身好点的。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“换衣服”不是 change clothes 才完整；换成某套用 change into。</p><p class="colloc"><b>搭配</b>change into a suit · change into pajamas</p><p class="confuse"><b>易混</b>change out of · put on</p></div></article>
+      <article class="entry" id="change-out-of" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="121.536" data-end-f="122.640" data-start-m="66.528" data-end-m="67.392"><span class="w">change out of</span><span class="ipa">/ˈtʃeɪndʒ aʊt əv/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">把……换下来</p><div class="senses"><div class="sense"><p class="sense-zh">脱掉某套换别的</p><button class="ex say" type="button" data-start-f="122.640" data-end-f="124.536" data-start-m="67.392" data-end-m="69.840"><span class="txt">Change out of your work clothes before dinner.</span><span class="zh">晚饭前把工作服换下来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>into 是换成什么，out of 是脱掉什么；方向别反。</p><p class="colloc"><b>搭配</b>change out of a uniform · change out of those shoes</p><p class="confuse"><b>易混</b>change into · take off</p></div></article>
+      <article class="entry" id="break-in" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="124.536" data-end-f="125.544" data-start-m="69.840" data-end-m="70.704"><span class="w">break in</span><span class="ipa">/ˈbreɪk ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">把新鞋穿服帖</p><div class="senses"><div class="sense"><p class="sense-zh">新鞋磨一阵后变合脚</p><button class="ex say" type="button" data-start-f="125.544" data-end-f="130.152" data-start-m="70.704" data-end-m="75.000"><span class="txt">These boots need a week to break in — my heels are destroyed.</span><span class="zh">这双靴子得穿一周才服帖，我脚后跟已经废了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>break in 还有“闯入”，鞋的语境才指“穿服帖”。</p><p class="colloc"><b>搭配</b>break in new shoes · break them in</p><p class="confuse"><b>易混</b>wear out · break out</p></div></article>
+      <article class="entry" id="take-in" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="130.152" data-end-f="131.160" data-start-m="75.000" data-end-m="75.696"><span class="w">take in</span><span class="ipa">/ˈteɪk ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">改小（衣服）</p><div class="senses"><div class="sense"><p class="sense-zh">裁缝把衣服收窄</p><button class="ex say" type="button" data-start-f="131.160" data-end-f="135.216" data-start-m="75.696" data-end-m="78.720"><span class="txt">I had the waist taken in — it fits perfectly now.</span><span class="zh">我让裁缝把腰收了一下，现在正合身。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>改小是 take in，放宽是 let out；take in 还有“吸收、理解”。</p><p class="colloc"><b>搭配</b>take in a dress · have it taken in</p><p class="confuse"><b>易混</b>let out · fit into</p></div></article>
+      <article class="entry" id="let-out" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="135.216" data-end-f="136.464" data-start-m="78.720" data-end-m="79.416"><span class="w">let out</span><span class="ipa">/ˈlɛt aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">放宽（衣服）</p><div class="senses"><div class="sense"><p class="sense-zh">裁缝把衣服放大</p><button class="ex say" type="button" data-start-f="136.464" data-end-f="138.912" data-start-m="79.416" data-end-m="82.440"><span class="txt">Can the tailor let out these pants a little?</span><span class="zh">裁缝能把这条裤子放宽一点吗？</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>let out 也指“放学、下课”和“发出声音”，看语境。</p><p class="colloc"><b>搭配</b>let out a waist · have it let out</p><p class="confuse"><b>易混</b>take in · loosen</p></div></article>
+      <article class="entry" id="pick-out" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="138.912" data-end-f="139.776" data-start-m="82.440" data-end-m="83.064"><span class="w">pick out</span><span class="ipa">/ˈpɪk aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">挑出、选出</p><div class="senses"><div class="sense"><p class="sense-zh">从一堆里挑</p><button class="ex say" type="button" data-start-f="139.776" data-end-f="142.704" data-start-m="83.064" data-end-m="85.512"><span class="txt">She picked out a coat for me in five minutes.</span><span class="zh">她五分钟就给我挑好了一件外套。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>挑衣服用 pick out；pick up 是拿起或接人。</p><p class="colloc"><b>搭配</b>pick out an outfit · pick it out</p><p class="confuse"><b>易混</b>pick up · try on</p></div></article>
+      <article class="entry" id="fit-into" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="142.704" data-end-f="143.640" data-start-m="85.512" data-end-m="86.208"><span class="w">fit into</span><span class="ipa">/ˈfɪt ˈɪntu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">穿得进</p><div class="senses"><div class="sense"><p class="sense-zh">尺寸够穿</p><button class="ex say" type="button" data-start-f="143.640" data-end-f="147.384" data-start-m="86.208" data-end-m="90.432"><span class="txt">I still can&#x27;t fit into my old jeans after the holidays.</span><span class="zh">过完节我还是穿不进那条旧牛仔裤。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“穿得下”不是 can wear it（也对但弱）；fit into 强调尺码。</p><p class="colloc"><b>搭配</b>fit into a dress · fit into old clothes</p><p class="confuse"><b>易混</b>try on · fit in</p></div></article>
+      <article class="entry" id="wear-out" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="147.384" data-end-f="148.800" data-start-m="90.432" data-end-m="91.128"><span class="w">wear out</span><span class="ipa">/ˈwɛr aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">穿坏、磨破</p><div class="senses"><div class="sense"><p class="sense-zh">衣服鞋子穿到坏</p><button class="ex say" type="button" data-start-f="148.800" data-end-f="152.688" data-start-m="91.128" data-end-m="93.744"><span class="txt">I wore out two pairs of sneakers this year.</span><span class="zh">我今年穿坏了两双球鞋。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>wear out 也指“累垮”，人做宾语时是精疲力尽。</p><p class="colloc"><b>搭配</b>wear out shoes · wear out a jacket</p><p class="confuse"><b>易混</b>break in · worn out</p></div></article>
+      <article class="entry" id="layer-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="152.688" data-end-f="153.864" data-start-m="93.744" data-end-m="94.680"><span class="w">layer up</span><span class="ipa">/ˈleɪər ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">叠穿、多套几层</p><div class="senses"><div class="sense"><p class="sense-zh">天冷时一层层加</p><button class="ex say" type="button" data-start-f="153.864" data-end-f="157.608" data-start-m="94.680" data-end-m="98.016"><span class="txt">Layer up — the temperature drops ten degrees after dark.</span><span class="zh">多叠几层，天黑后要降十度。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“多穿几层”现在是穿搭常用词，不是 fancy 说法。</p><p class="colloc"><b>搭配</b>layer up for winter · layer up with a vest</p><p class="confuse"><b>易混</b>bundle up · put on</p></div></article>
+      <article class="entry" id="show-off" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="157.608" data-end-f="158.952" data-start-m="98.016" data-end-m="98.784"><span class="w">show off</span><span class="ipa">/ˈʃoʊ ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">显摆、展示</p><div class="senses"><div class="sense"><p class="sense-zh">故意让人看</p><button class="ex say" type="button" data-start-f="158.952" data-end-f="162.456" data-start-m="98.784" data-end-m="101.568"><span class="txt">He wore the new watch to the party just to show it off.</span><span class="zh">他戴着新表去聚会，就是为了显摆。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“炫”不是 show people（太泛）；show off 才是显摆。</p><p class="colloc"><b>搭配</b>show off a new bag · show off in front of friends</p><p class="confuse"><b>易混</b>stand out · show up</p></div></article>
+      <article class="entry" id="set-off" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="162.456" data-end-f="163.392" data-start-m="101.568" data-end-m="102.192"><span class="w">set off</span><span class="ipa">/ˈsɛt ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">衬托出（颜色）</p><div class="senses"><div class="sense"><p class="sense-zh">让另一个颜色更好看</p><button class="ex say" type="button" data-start-f="163.392" data-end-f="167.280" data-start-m="102.192" data-end-m="105.360"><span class="txt">The black dress sets off the gold earrings really well.</span><span class="zh">黑裙子把金耳环衬得特别好看。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>set off 也指“出发”（set off for the airport），颜色语境才是衬托。</p><p class="colloc"><b>搭配</b>set off the color · set each other off</p><p class="confuse"><b>易混</b>go with · stand out</p></div></article>
+      <article class="entry" id="pull-off" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="167.280" data-end-f="168.384" data-start-m="105.360" data-end-m="106.296"><span class="w">pull off</span><span class="ipa">/ˈpʊl ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">驾驭住（造型）</p><div class="senses"><div class="sense"><p class="sense-zh">大胆的穿法也能穿好看</p><button class="ex say" type="button" data-start-f="168.384" data-end-f="172.440" data-start-m="106.296" data-end-m="109.632"><span class="txt">Not everyone can pull off neon green, but she does.</span><span class="zh">荧光绿不是谁都能驾驭，她就行。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>pull off 原义是“成功办成难事”，穿搭里指“穿得住”。</p><p class="colloc"><b>搭配</b>pull off a bold look · pull it off</p><p class="confuse"><b>易混</b>wear out · show off</p></div></article>
+      <article class="entry" id="suit-up" data-chip="interview"><header class="entry-head"><button class="head say" type="button" data-start-f="172.440" data-end-f="173.376" data-start-m="109.632" data-end-m="110.256"><span class="w">suit up</span><span class="ipa">/ˈsut ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">换上正装</p><div class="senses"><div class="sense"><p class="sense-zh">为了正式场合穿西装</p><button class="ex say" type="button" data-start-f="173.376" data-end-f="177.432" data-start-m="110.256" data-end-m="112.944"><span class="txt">Suit up — the client meeting moved up to nine.</span><span class="zh">穿正装，客户会提前到九点了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>suit up 偏口语、带点玩笑感；正式写作不用。</p><p class="colloc"><b>搭配</b>suit up for the interview · suit up for a wedding</p><p class="confuse"><b>易混</b>dress up · put on</p></div></article>
+      <article class="entry" id="show-through" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="177.432" data-end-f="178.608" data-start-m="112.944" data-end-m="113.712"><span class="w">show through</span><span class="ipa">/ˈʃoʊ θru/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">（内衣、颜色）透出来</p><div class="senses"><div class="sense"><p class="sense-zh">里面的东西透过外衣看得见</p><button class="ex say" type="button" data-start-f="178.608" data-end-f="182.976" data-start-m="113.712" data-end-m="117.360"><span class="txt">The white dress is cute, but everything shows through in sunlight.</span><span class="zh">白裙子好看是好看，太阳底下什么都透。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“透”不是 see inside；衣物透视用 show through。</p><p class="colloc"><b>搭配</b>the lining shows through · colors show through</p><p class="confuse"><b>易混</b>stand out · cover up</p></div></article>
+  </section>
+  <p class="status" data-audio-status></p>
+</main>
+<script id="spriteMap" type="application/json">{"f":"sprites/f9b9e3c9af77.mp3","m":"sprites/6d079370752b.mp3"}</script>
+<script>
+(function () {
+  var KEY_VOICE = 'pv-voice';
+  var KEY_SPEED = 'pv-speed', KEY_ZH = 'pv-zh';
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.say'));
+  var current = null, playlist = null, statusTimer = null;
+  var stickyStatus = false;
+  var raf = 0, loadedSrc = null;
+  var SOURCES = {}, READY = {};
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
+
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  function waitForData(el, seek, from, attempt) {
+    if (current !== el) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(el); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(el, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    var retries = 0;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      if (player.currentTime < from - 0.15) {
+        if (++retries > 3) { audioFailed(el); return; }
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      hideStatus();
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var onSeeked = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      }, 1500);
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  // Cloudflare Pages 的静态资源不支持 Range，媒体元素 seekable 只有 [0,0]，
+  // 点后面的句子会被夹回开头。先把整条 sprite 取进内存换成 blob 地址。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
+    }
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(el, onEnd) {
+    var span = spanFor(el);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === el) unmark();
+      showStatus('这一条暂无语音');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== el) return;
+      if (!src) { audioFailed(el); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(el, span, onEnd);
+    });
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    hideStatus();
+    unmark();
+  }
+
+  function showStatus(text, sticky) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    stickyStatus = !!sticky;
+    if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
+    statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    if (!spanFor(el)) { audioFailed(el); return; }
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var list = playlist;
+    begin(el, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    current = el;
+    el.classList.add('playing');
+    begin(el, null);
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+    if (document.readyState === 'complete') prefetch();
+  }
+
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.say');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
+  }
+})();
+</script>
+</body>
+</html>

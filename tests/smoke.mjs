@@ -402,7 +402,7 @@ const cases = [
     async run() {
       const links = await evaluate(
         "[...document.querySelectorAll('a')].map(a => new URL(a.getAttribute('href'), location.href).pathname)");
-      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/'];
+      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/phrasal/'];
       const missing = want.filter((w) => !links.some((h) => h && h.startsWith(w)));
       return { ok: missing.length === 0, detail: missing.length ? `缺少链接 ${missing}` : `${want.length} 个入口齐全` };
     },
@@ -705,6 +705,56 @@ const cases = [
   {
     name: 'conversation-levels', path: '/conversation/a1/01-01-family.html',
     run: probeConversationLevels,
+  },
+  {
+    name: 'phrasal', path: '/phrasal/01-getting-around.html',
+    async run() {
+      // 每章一条 sprite：点一条不是开头的例句，确认跳到了它的位置。
+      const start = await evaluate(`(() => {
+        const b = [...document.querySelectorAll('button.ex')]
+          .find((x) => parseFloat(x.getAttribute('data-start-f')) > 0.5);
+        if (!b) return null;
+        b.setAttribute('data-smoke', '1');
+        return parseFloat(b.getAttribute('data-start-f'));
+      })()`);
+      if (start === null) return { ok: false, detail: '没有中段例句可点' };
+      const p = await playAndProbe('button.ex[data-smoke]');
+      // 例句是 <button>，UA 样式默认不换行；一旦漏掉 white-space:normal，
+      // 一条长句就会把整页撑宽。这里顺手守住。
+      const overflow = await evaluate(
+        'document.documentElement.scrollWidth - window.innerWidth');
+      // 易错卡片在亮色主题下必须仍有对比度：系统深色 + 亮主题曾经黑字压黑底。
+      const contrast = await evaluate(`(() => {
+        const card = document.querySelector('.note-card');
+        if (!card) return null;
+        const root = document.documentElement;
+        const old = root.getAttribute('data-theme');
+        root.setAttribute('data-theme', 'bright');
+        const s = getComputedStyle(card);
+        const parse = (c) => (c.match(/[\\d.]+/g) || []).slice(0, 3).map(Number);
+        const lum = (c) => {
+          const [r, g, b] = parse(c).map((v) => {
+            v /= 255;
+            return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const a = lum(s.color), b = lum(s.backgroundColor);
+        const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        if (old === null) root.removeAttribute('data-theme');
+        else root.setAttribute('data-theme', old);
+        return { ratio: Math.round(ratio * 10) / 10, fg: s.color, bg: s.backgroundColor };
+      })()`);
+      const contrastOk = !contrast || contrast.ratio >= 4.5;
+      // 主题切换按钮由 theme.js 生成；页面里误写主题文件名会让注入被跳过。
+      const fab = await evaluate("!!document.querySelector('.npesl-theme-fab')");
+      return {
+        ok: p.started && p.currentTime >= start - 0.1 && p.mediaErrors.length === 0
+          && overflow <= 1 && contrastOk && fab,
+        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start} `
+          + `overflow=${overflow} contrast=${contrast ? contrast.ratio : 'n/a'}`,
+      };
+    },
   },
   {
     name: 'phenomena', path: '/phenomena/01-your-stop-is-next.html',

@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Make-up routine · 短语动词</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --on-accent:var(--on-blue, #ffffff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  /* 只有站点主题脚本没跑起来（没有 data-theme）时才按系统深色兜底。
+     一旦 data-theme 存在，配色全部交给站点主题样式表 —— 否则用户选了亮色主题，
+     这里的深色变量仍会生效，出现黑字压黑底。
+     注意：本文件不能出现站点主题文件的文件名，构建脚本靠这个字符串判断
+     “页面已经自带主题”，误判会整页跳过主题注入（切换按钮也会消失）。 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) { --bg:#000000; --fg:#f5f5f7; --muted:#98989d;
+      --rule:#2c2c2e; --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+  .intro { margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.6; }
+  .legend { margin:14px 0 0; padding:12px 14px; border-radius:14px;
+    background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7; }
+  .legend b { color:var(--fg); font-weight:600; }
+  .legend code { color:var(--accent); font-family:inherit; font-size:15px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:var(--on-accent); }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { width:118px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .entries { margin-top:6px; }
+  .entry, .senses, .sense { min-width:0; }
+  .entry { padding:26px 0 22px; border-bottom:1px solid var(--rule); }
+  .entry-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .head { display:inline-flex; align-items:baseline; gap:10px; appearance:none;
+    border:0; background:transparent; color:inherit; font:inherit; padding:2px 4px;
+    border-radius:10px; cursor:pointer; text-align:left; }
+  .head:hover { background:var(--surface); }
+  .head .w { font-size:24px; font-weight:700; letter-spacing:-0.02em; }
+  .head .ipa { color:var(--muted); font-size:14px; }
+  .head .play, .ex .play { font-size:0.62em; color:var(--muted); }
+  .head.playing { background:var(--tint); }
+  .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
+
+  .senses { margin-top:12px; display:grid; gap:10px; }
+  .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted);
+    letter-spacing:0.02em; }
+  /* button 的 UA 样式不换行，一句长例句会把整页撑宽 */
+  .head, .ex { white-space:normal; overflow-wrap:anywhere; }
+  .ex { display:block; width:100%; text-align:left; font:inherit; color:inherit;
+    background:var(--surface); border:0; border-radius:16px; padding:12px 14px;
+    cursor:pointer; transition:background-color .12s ease; }
+  .ex:hover { background:var(--tint); }
+  .ex.playing { background:var(--tint); }
+  .ex .txt { display:block; font-size:17px; line-height:1.55; }
+  .ex .zh { display:block; margin-top:4px; color:var(--muted); font-size:13px;
+    line-height:1.45; }
+
+  /* 背景只用主题自己的 surface 变量，文字用 --fg，任何主题都保证对比度 */
+  .note-card { margin-top:14px; padding:14px 16px; border-radius:16px;
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    border:1px solid var(--rule); border-left:3px solid var(--accent);
+    display:grid; gap:10px; }
+  .note-card p { margin:0; font-size:14px; line-height:1.65; color:var(--fg); }
+  .note-card p b { display:inline-block; margin-right:8px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+
+  body.zh-off .zh, body.zh-off .zh-line, body.zh-off .sense-zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .head .w { font-size:21px; }
+    .ex .txt { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">短语动词</a>
+  <header>
+    <h1>Make-up routine</h1>
+    <p class="title-zh">化妆流程</p>
+    <p class="intro">上妆、补妆、卸妆、脱妆，还有皮肤出状况。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="entries">
+      <article class="entry" id="touch-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="0.000" data-end-f="0.864" data-start-m="0.000" data-end-m="0.696"><span class="w">touch up</span><span class="ipa">/ˈtʌtʃ ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">补妆、修一下</p><div class="senses"><div class="sense"><p class="sense-zh">妆花了补一点</p><button class="ex say" type="button" data-start-f="0.864" data-end-f="3.720" data-start-m="0.696" data-end-m="3.144"><span class="txt">I need two minutes to touch up before the meeting.</span><span class="zh">开会前给我两分钟补个妆。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“补妆”不是 fix the makeup；touch up 也用于修照片、修细节。</p><p class="colloc"><b>搭配</b>touch up your lipstick · touch up in the bathroom</p><p class="confuse"><b>易混</b>freshen up · wipe off</p></div></article>
+      <article class="entry" id="wipe-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="3.720" data-end-f="4.824" data-start-m="3.144" data-end-m="3.768"><span class="w">wipe off</span><span class="ipa">/ˈwaɪp ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">擦掉</p><div class="senses"><div class="sense"><p class="sense-zh">把妆或脏东西擦掉</p><button class="ex say" type="button" data-start-f="4.824" data-end-f="9.768" data-start-m="3.768" data-end-m="6.144"><span class="txt">Wipe off that smudge under your eye before you go in.</span><span class="zh">进去之前把眼睛下面那块擦掉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>擦掉用 wipe off，不是 wipe out（那是消灭、累垮）。</p><p class="colloc"><b>搭配</b>wipe off mascara · wipe it off</p><p class="confuse"><b>易混</b>wash off · clean off</p></div></article>
+      <article class="entry" id="wash-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="9.768" data-end-f="10.776" data-start-m="6.144" data-end-m="6.912"><span class="w">wash off</span><span class="ipa">/ˈwɑʃ ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">洗掉</p><div class="senses"><div class="sense"><p class="sense-zh">用水洗掉</p><button class="ex say" type="button" data-start-f="10.776" data-end-f="14.520" data-start-m="6.912" data-end-m="9.696"><span class="txt">This cleanser washes off easily with warm water.</span><span class="zh">这个洁面用温水一冲就掉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>wash off 是洗掉表面；wash up 是洗手或洗碗（美式）。</p><p class="colloc"><b>搭配</b>wash off the mask · wash it off</p><p class="confuse"><b>易混</b>wipe off · clean off</p></div></article>
+      <article class="entry" id="blend-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="14.520" data-end-f="15.216" data-start-m="9.696" data-end-m="10.944"><span class="w">blend in</span><span class="ipa">/ˈblɛnd ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">晕开、融进去</p><div class="senses"><div class="sense"><p class="sense-zh">把眼影或修容边缘推开</p><button class="ex say" type="button" data-start-f="15.216" data-end-f="18.072" data-start-m="10.944" data-end-m="13.248"><span class="txt">Blend in the eyeshadow with a clean brush.</span><span class="zh">用干净刷子把眼影边缘晕开。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>blend in 也指“融入人群”，语境决定。</p><p class="colloc"><b>搭配</b>blend in the edges · blend it in</p><p class="confuse"><b>易混</b>smooth out · work in</p></div></article>
+      <article class="entry" id="fill-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="18.072" data-end-f="19.080" data-start-m="13.248" data-end-m="13.944"><span class="w">fill in</span><span class="ipa">/ˈfɪl ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">填补（眉毛、空隙）</p><div class="senses"><div class="sense"><p class="sense-zh">把眉毛的空缺画满</p><button class="ex say" type="button" data-start-f="19.080" data-end-f="23.784" data-start-m="13.944" data-end-m="17.280"><span class="txt">Fill in the ends of your brows — they look uneven.</span><span class="zh">把眉毛尾部填一下，看着不对称。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>美式填表是 fill out；fill in 在这里是“填补空白”。</p><p class="colloc"><b>搭配</b>fill in your brows · fill in the gaps</p><p class="confuse"><b>易混</b>fill out · draw on</p></div></article>
+      <article class="entry" id="rub-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="23.784" data-end-f="24.648" data-start-m="17.280" data-end-m="18.048"><span class="w">rub in</span><span class="ipa">/ˈrʌb ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">揉进去</p><div class="senses"><div class="sense"><p class="sense-zh">把护肤品揉到吸收</p><button class="ex say" type="button" data-start-f="24.648" data-end-f="28.536" data-start-m="18.048" data-end-m="20.736"><span class="txt">Rub in the moisturizer while your face is still damp.</span><span class="zh">趁脸还湿的时候把面霜揉进去。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>rub in 和 rub it in 还有一个习语义“反复揭人伤疤”，别误用。</p><p class="colloc"><b>搭配</b>rub in the cream · rub it in</p><p class="confuse"><b>易混</b>pat in · work in</p></div></article>
+      <article class="entry" id="pat-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="28.536" data-end-f="29.640" data-start-m="20.736" data-end-m="21.432"><span class="w">pat in</span><span class="ipa">/ˈpæt ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">轻拍进去</p><div class="senses"><div class="sense"><p class="sense-zh">用指腹轻拍帮助吸收</p><button class="ex say" type="button" data-start-f="29.640" data-end-f="33.768" data-start-m="21.432" data-end-m="23.976"><span class="txt">Pat in the eye cream — don&#x27;t drag the skin.</span><span class="zh">眼霜要轻拍进去，别拉扯皮肤。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>眼部护理动词是 pat，不是 rub（揉会拉扯）。</p><p class="colloc"><b>搭配</b>pat in eye cream · pat it in</p><p class="confuse"><b>易混</b>rub in · dab on</p></div></article>
+      <article class="entry" id="work-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="33.768" data-end-f="34.944" data-start-m="23.976" data-end-m="24.912"><span class="w">work in</span><span class="ipa">/ˈwɝrk ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">揉到吸收</p><div class="senses"><div class="sense"><p class="sense-zh">用手法把产品揉进皮肤</p><button class="ex say" type="button" data-start-f="34.944" data-end-f="37.872" data-start-m="24.912" data-end-m="27.120"><span class="txt">Work the serum in with small circles.</span><span class="zh">用打小圈的方式把精华揉进去。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>work in 还有“挤时间安排”，看宾语。</p><p class="colloc"><b>搭配</b>work in the serum · work it in</p><p class="confuse"><b>易混</b>rub in · blend in</p></div></article>
+      <article class="entry" id="clean-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="37.872" data-end-f="39.120" data-start-m="27.120" data-end-m="27.744"><span class="w">clean off</span><span class="ipa">/ˈklin ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">卸干净</p><div class="senses"><div class="sense"><p class="sense-zh">把妆彻底清掉</p><button class="ex say" type="button" data-start-f="39.120" data-end-f="42.528" data-start-m="27.744" data-end-m="31.320"><span class="txt">Clean off your makeup before bed — no exceptions.</span><span class="zh">睡前把妆卸干净，没有例外。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>卸妆不是 remove makeup 才自然；clean off 更口语。</p><p class="colloc"><b>搭配</b>clean off mascara · clean it off</p><p class="confuse"><b>易混</b>wash off · wipe off</p></div></article>
+      <article class="entry" id="freshen-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="42.528" data-end-f="43.392" data-start-m="31.320" data-end-m="32.016"><span class="w">freshen up</span><span class="ipa">/ˈfrɛʃən ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">补个妆、清爽一下</p><div class="senses"><div class="sense"><p class="sense-zh">洗把脸整理一下</p><button class="ex say" type="button" data-start-f="43.392" data-end-f="46.488" data-start-m="32.016" data-end-m="35.112"><span class="txt">I&#x27;ll freshen up and meet you downstairs in ten.</span><span class="zh">我补个妆，十分钟后楼下见。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>freshen up 是整体整理，不只是补妆。</p><p class="colloc"><b>搭配</b>freshen up before dinner · freshen up in the restroom</p><p class="confuse"><b>易混</b>touch up · clean off</p></div></article>
+      <article class="entry" id="even-out" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="46.488" data-end-f="47.736" data-start-m="35.112" data-end-m="35.880"><span class="w">even out</span><span class="ipa">/ˈivən aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">变得均匀</p><div class="senses"><div class="sense"><p class="sense-zh">肤色或粉底变均匀</p><button class="ex say" type="button" data-start-f="47.736" data-end-f="51.720" data-start-m="35.880" data-end-m="39.144"><span class="txt">The redness evened out after a week of using the cream.</span><span class="zh">用了一周那个霜，泛红均匀多了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“变均匀”不是 become even（也有点怪）；even out 强调过程。</p><p class="colloc"><b>搭配</b>skin tone evens out · even out the base</p><p class="confuse"><b>易混</b>smooth out · blend in</p></div></article>
+      <article class="entry" id="plump-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="51.720" data-end-f="52.656" data-start-m="39.144" data-end-m="39.912"><span class="w">plump up</span><span class="ipa">/ˈplʌmp ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">（皮肤）饱满起来</p><div class="senses"><div class="sense"><p class="sense-zh">皮肤显得饱满有水分</p><button class="ex say" type="button" data-start-f="52.656" data-end-f="55.920" data-start-m="39.912" data-end-m="42.600"><span class="txt">This serum plumps up fine lines around the eyes.</span><span class="zh">这个精华能让眼周细纹饱满起来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>plump up 也指把枕头拍松，语境不同。</p><p class="colloc"><b>搭配</b>plump up the skin · plump up fine lines</p><p class="confuse"><b>易混</b>puff up · firm up</p></div></article>
+      <article class="entry" id="puff-up" data-chip="doctor"><header class="entry-head"><button class="head say" type="button" data-start-f="55.920" data-end-f="56.856" data-start-m="42.600" data-end-m="43.536"><span class="w">puff up</span><span class="ipa">/ˈpʌf ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">肿起来</p><div class="senses"><div class="sense"><p class="sense-zh">眼睛或皮肤肿</p><button class="ex say" type="button" data-start-f="56.856" data-end-f="60.360" data-start-m="43.536" data-end-m="46.944"><span class="txt">My eyes puffed up after I slept in my contacts.</span><span class="zh">我戴着隐形睡了一觉，眼睛肿了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>肿是 puff up / swell up，不是 become big。</p><p class="colloc"><b>搭配</b>eyes puff up · puff up in the morning</p><p class="confuse"><b>易混</b>swell up · flare up</p></div></article>
+      <article class="entry" id="swell-up" data-chip="doctor"><header class="entry-head"><button class="head say" type="button" data-start-f="60.360" data-end-f="64.584" data-start-m="46.944" data-end-m="47.952"><span class="w">swell up</span><span class="ipa">/ˈswɛl ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">肿起来（更明显）</p><div class="senses"><div class="sense"><p class="sense-zh">过敏或受伤后肿</p><button class="ex say" type="button" data-start-f="64.584" data-end-f="68.400" data-start-m="47.952" data-end-m="50.400"><span class="txt">My lip swelled up after the new lip balm.</span><span class="zh">用了新润唇膏，我嘴唇肿了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>swell up 比 puff up 程度重，常跟过敏、受伤。</p><p class="colloc"><b>搭配</b>swell up after a bite · my face swelled up</p><p class="confuse"><b>易混</b>puff up · flare up</p></div></article>
+      <article class="entry" id="flare-up" data-chip="doctor"><header class="entry-head"><button class="head say" type="button" data-start-f="68.400" data-end-f="69.648" data-start-m="50.400" data-end-m="50.928"><span class="w">flare up</span><span class="ipa">/ˈflɛr ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">（皮肤问题）发作</p><div class="senses"><div class="sense"><p class="sense-zh">湿疹、痘痘突然加重</p><button class="ex say" type="button" data-start-f="69.648" data-end-f="74.352" data-start-m="50.928" data-end-m="54.672"><span class="txt">My eczema flares up every time the weather turns dry.</span><span class="zh">天一干我的湿疹就发作。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>flare up 也用于冲突、火势，皮肤语境很常见。</p><p class="colloc"><b>搭配</b>eczema flares up · a flare-up</p><p class="confuse"><b>易混</b>act up · break out</p></div></article>
+      <article class="entry" id="act-up" data-chip="doctor"><header class="entry-head"><button class="head say" type="button" data-start-f="74.352" data-end-f="75.216" data-start-m="54.672" data-end-m="55.680"><span class="w">act up</span><span class="ipa">/ˈækt ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">（皮肤、身体）闹毛病</p><div class="senses"><div class="sense"><p class="sense-zh">皮肤状态突然变差</p><button class="ex say" type="button" data-start-f="75.216" data-end-f="78.720" data-start-m="55.680" data-end-m="58.704"><span class="txt">My skin has been acting up since I changed cleansers.</span><span class="zh">换了洁面之后我的皮肤一直在闹。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>act up 也指机器故障、小孩闹；主语是“出问题的东西”。</p><p class="colloc"><b>搭配</b>my skin is acting up · the printer is acting up</p><p class="confuse"><b>易混</b>flare up · break out</p></div></article>
+      <article class="entry" id="come-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="78.720" data-end-f="79.824" data-start-m="58.704" data-end-m="59.808"><span class="w">come off</span><span class="ipa">/ˈkʌm ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">（妆）掉、脱落</p><div class="senses"><div class="sense"><p class="sense-zh">妆自己掉了</p><button class="ex say" type="button" data-start-f="79.824" data-end-f="82.752" data-start-m="59.808" data-end-m="62.664"><span class="txt">My foundation came off on the mask by noon.</span><span class="zh">中午粉底全蹭到口罩上了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>come off 也指“显得、成功”，看主语。</p><p class="colloc"><b>搭配</b>makeup comes off · it came off on my shirt</p><p class="confuse"><b>易混</b>stay on · wear off</p></div></article>
+      <article class="entry" id="stay-on" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="82.752" data-end-f="120.576" data-start-m="62.664" data-end-m="64.248"><span class="w">stay on</span><span class="ipa">/ˈsteɪ ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">（妆）持得住</p><div class="senses"><div class="sense"><p class="sense-zh">妆长时间不掉</p><button class="ex say" type="button" data-start-f="120.576" data-end-f="123.600" data-start-m="64.248" data-end-m="66.864"><span class="txt">This lipstick stays on through lunch and coffee.</span><span class="zh">这支口红吃完午饭喝完咖啡还在。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“持妆”不是 keep makeup；stay on 是妆自己待住。</p><p class="colloc"><b>搭配</b>makeup stays on all day · it stays on well</p><p class="confuse"><b>易混</b>come off · hold up</p></div></article>
+      <article class="entry" id="build-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="123.600" data-end-f="124.608" data-start-m="66.864" data-end-m="67.560"><span class="w">build up</span><span class="ipa">/ˈbɪld ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">一层层叠出来</p><div class="senses"><div class="sense"><p class="sense-zh">薄涂多次叠遮瑕力</p><button class="ex say" type="button" data-start-f="124.608" data-end-f="128.592" data-start-m="67.560" data-end-m="70.728"><span class="txt">Build up the coverage slowly — one layer at a time.</span><span class="zh">遮瑕要慢慢叠，一层一层来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>build up 也指“积累、增强”，护肤语境是叠涂。</p><p class="colloc"><b>搭配</b>build up coverage · build it up</p><p class="confuse"><b>易混</b>layer on · pile on</p></div></article>
+      <article class="entry" id="layer-on" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="128.592" data-end-f="129.936" data-start-m="70.728" data-end-m="71.832"><span class="w">layer on</span><span class="ipa">/ˈleɪər ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">一层层涂上</p><div class="senses"><div class="sense"><p class="sense-zh">把产品层层叠加</p><button class="ex say" type="button" data-start-f="129.936" data-end-f="136.080" data-start-m="71.832" data-end-m="76.128"><span class="txt">Don&#x27;t layer on three serums at once — your skin will hate it.</span><span class="zh">别一次叠三种精华，皮肤受不了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>layer on 是主动涂很多层；build up 强调逐渐增强效果。</p><p class="colloc"><b>搭配</b>layer on moisturizer · layer it on</p><p class="confuse"><b>易混</b>build up · put on</p></div></article>
+      <article class="entry" id="go-on" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="136.080" data-end-f="136.776" data-start-m="76.128" data-end-m="76.824"><span class="w">go on</span><span class="ipa">/ˈɡoʊ ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">（涂抹时）上得怎么样</p><div class="senses"><div class="sense"><p class="sense-zh">产品涂上去的手感</p><button class="ex say" type="button" data-start-f="136.776" data-end-f="141.384" data-start-m="76.824" data-end-m="79.848"><span class="txt">This foundation goes on smoothly and doesn&#x27;t cake.</span><span class="zh">这个粉底上脸很顺，不卡粉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>go on 也指“继续、发生”，这里主语是产品。</p><p class="colloc"><b>搭配</b>it goes on smoothly · goes on evenly</p><p class="confuse"><b>易混</b>come off · build up</p></div></article>
+      <article class="entry" id="soak-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="141.384" data-end-f="142.632" data-start-m="79.848" data-end-m="80.616"><span class="w">soak in</span><span class="ipa">/ˈsoʊk ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">吸收进去</p><div class="senses"><div class="sense"><p class="sense-zh">护肤品被皮肤吸收</p><button class="ex say" type="button" data-start-f="142.632" data-end-f="150.456" data-start-m="80.616" data-end-m="83.232"><span class="txt">Give the serum a minute to soak in before the next step.</span><span class="zh">让精华吸收一分钟再做下一步。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>吸收是 soak in / sink in，不是 be absorbed（太书面）。</p><p class="colloc"><b>搭配</b>let it soak in · soak in quickly</p><p class="confuse"><b>易混</b>sink in · dry out</p></div></article>
+      <article class="entry" id="dry-out" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="150.456" data-end-f="151.464" data-start-m="83.232" data-end-m="84.096"><span class="w">dry out</span><span class="ipa">/ˈdraɪ aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">（皮肤）变干</p><div class="senses"><div class="sense"><p class="sense-zh">皮肤缺水发干</p><button class="ex say" type="button" data-start-f="151.464" data-end-f="156.000" data-start-m="84.096" data-end-m="87.432"><span class="txt">My skin dries out every winter in the office AC.</span><span class="zh">每年冬天在办公室空调里我的皮肤都干。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>dry out 是变干；dry off 是擦干水。</p><p class="colloc"><b>搭配</b>skin dries out · dry out in winter</p><p class="confuse"><b>易混</b>dry off · dry up</p></div></article>
+      <article class="entry" id="break-out" data-chip="doctor"><header class="entry-head"><button class="head say" type="button" data-start-f="156.000" data-end-f="156.864" data-start-m="87.432" data-end-m="88.056"><span class="w">break out</span><span class="ipa">/ˈbreɪk aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">爆痘</p><div class="senses"><div class="sense"><p class="sense-zh">脸上突然长一片痘</p><button class="ex say" type="button" data-start-f="156.864" data-end-f="161.472" data-start-m="88.056" data-end-m="91.392"><span class="txt">I break out every time I try a new foundation.</span><span class="zh">我每次换新粉底都会爆痘。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>爆痘是 break out；break out in 后面要跟疹子、汗这类具体东西。</p><p class="colloc"><b>搭配</b>break out after a new product · break out on your chin</p><p class="confuse"><b>易混</b>break out in · flare up</p></div></article>
+      <article class="entry" id="smooth-out" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="161.472" data-end-f="162.648" data-start-m="91.392" data-end-m="92.568"><span class="w">smooth out</span><span class="ipa">/ˈsmuð aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">抹匀、抚平</p><div class="senses"><div class="sense"><p class="sense-zh">把粉底或纹理弄平</p><button class="ex say" type="button" data-start-f="162.648" data-end-f="166.536" data-start-m="92.568" data-end-m="95.832"><span class="txt">Smooth out the base around your nose — it&#x27;s patchy there.</span><span class="zh">把鼻子周围的底妆抹匀，那里斑驳了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>smooth out 也指解决问题、缓和关系。</p><p class="colloc"><b>搭配</b>smooth out foundation · smooth it out</p><p class="confuse"><b>易混</b>even out · blend in</p></div></article>
+      <article class="entry" id="dab-on" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="166.536" data-end-f="167.232" data-start-m="95.832" data-end-m="96.768"><span class="w">dab on</span><span class="ipa">/ˈdæb ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">点涂</p><div class="senses"><div class="sense"><p class="sense-zh">用点按的方式涂上去</p><button class="ex say" type="button" data-start-f="167.232" data-end-f="171.120" data-start-m="96.768" data-end-m="99.312"><span class="txt">Dab on a little concealer instead of rubbing it.</span><span class="zh">遮瑕点涂，别来回搓。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>点涂是小面积轻按，不是 smear（抹开）。</p><p class="colloc"><b>搭配</b>dab on concealer · dab it on</p><p class="confuse"><b>易混</b>pat in · slap on</p></div></article>
+      <article class="entry" id="slap-on" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="171.120" data-end-f="211.896" data-start-m="99.312" data-end-m="100.320"><span class="w">slap on</span><span class="ipa">/ˈslæp ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">随便糊上</p><div class="senses"><div class="sense"><p class="sense-zh">不讲究地快速涂</p><button class="ex say" type="button" data-start-f="211.896" data-end-f="217.872" data-start-m="100.320" data-end-m="103.176"><span class="txt">I slapped on some sunscreen and ran for the bus.</span><span class="zh">我胡乱抹了点防晒就冲去赶公交。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>slap on 带“随便一糊”的贬义或自嘲，别说别人 slap on。</p><p class="colloc"><b>搭配</b>slap on sunscreen · slap it on</p><p class="confuse"><b>易混</b>dab on · put on</p></div></article>
+      <article class="entry" id="peel-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="217.872" data-end-f="218.976" data-start-m="103.176" data-end-m="104.352"><span class="w">peel off</span><span class="ipa">/ˈpil ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">撕下来、揭掉</p><div class="senses"><div class="sense"><p class="sense-zh">撕下面膜或脱皮</p><button class="ex say" type="button" data-start-f="218.976" data-end-f="224.952" data-start-m="104.352" data-end-m="107.448"><span class="txt">Peel off the mask after fifteen minutes and pat in the rest.</span><span class="zh">十五分钟后把面膜揭掉，剩下的轻拍吸收。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>peel off 也指脱衣服、脱离车队，看宾语。</p><p class="colloc"><b>搭配</b>peel off a mask · peel it off</p><p class="confuse"><b>易混</b>take off · wipe off</p></div></article>
+      <article class="entry" id="hold-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="224.952" data-end-f="225.888" data-start-m="107.448" data-end-m="107.976"><span class="w">hold up</span><span class="ipa">/ˈhoʊld ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">（妆）扛得住</p><div class="senses"><div class="sense"><p class="sense-zh">经过一段时间还完好</p><button class="ex say" type="button" data-start-f="225.888" data-end-f="228.816" data-start-m="107.976" data-end-m="110.352"><span class="txt">The mascara held up through a workout and a nap.</span><span class="zh">这支睫毛膏扛过了健身和午睡。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>hold up 也指“耽搁、抢劫、站得住脚”，持妆是其中一义。</p><p class="colloc"><b>搭配</b>makeup holds up · hold up all day</p><p class="confuse"><b>易混</b>stay on · come off</p></div></article>
+      <article class="entry" id="melt-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="228.816" data-end-f="229.992" data-start-m="110.352" data-end-m="111.120"><span class="w">melt off</span><span class="ipa">/ˈmɛlt ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">（妆）热化了</p><div class="senses"><div class="sense"><p class="sense-zh">出汗出油后妆融掉</p><button class="ex say" type="button" data-start-f="229.992" data-end-f="234.456" data-start-m="111.120" data-end-m="113.904"><span class="txt">My foundation melted off on the subway platform.</span><span class="zh">在地铁站台上我的粉底全化了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“脱妆”口语常说 melt off / come off，不说 the makeup is gone。</p><p class="colloc"><b>搭配</b>makeup melts off · melt off in the heat</p><p class="confuse"><b>易混</b>come off · wear off</p></div></article>
+  </section>
+  <p class="status" data-audio-status></p>
+</main>
+<script id="spriteMap" type="application/json">{"f":"sprites/0f686113d0e8.mp3","m":"sprites/ada813074190.mp3"}</script>
+<script>
+(function () {
+  var KEY_VOICE = 'pv-voice';
+  var KEY_SPEED = 'pv-speed', KEY_ZH = 'pv-zh';
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.say'));
+  var current = null, playlist = null, statusTimer = null;
+  var stickyStatus = false;
+  var raf = 0, loadedSrc = null;
+  var SOURCES = {}, READY = {};
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
+
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  function waitForData(el, seek, from, attempt) {
+    if (current !== el) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(el); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(el, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    var retries = 0;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      if (player.currentTime < from - 0.15) {
+        if (++retries > 3) { audioFailed(el); return; }
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      hideStatus();
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var onSeeked = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      }, 1500);
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  // Cloudflare Pages 的静态资源不支持 Range，媒体元素 seekable 只有 [0,0]，
+  // 点后面的句子会被夹回开头。先把整条 sprite 取进内存换成 blob 地址。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
+    }
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(el, onEnd) {
+    var span = spanFor(el);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === el) unmark();
+      showStatus('这一条暂无语音');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== el) return;
+      if (!src) { audioFailed(el); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(el, span, onEnd);
+    });
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    hideStatus();
+    unmark();
+  }
+
+  function showStatus(text, sticky) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    stickyStatus = !!sticky;
+    if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
+    statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    if (!spanFor(el)) { audioFailed(el); return; }
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var list = playlist;
+    begin(el, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    current = el;
+    el.classList.add('playing');
+    begin(el, null);
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+    if (document.readyState === 'complete') prefetch();
+  }
+
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.say');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
+  }
+})();
+</script>
+</body>
+</html>

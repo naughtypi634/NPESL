@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shopping · 短语动词</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --on-accent:var(--on-blue, #ffffff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  /* 只有站点主题脚本没跑起来（没有 data-theme）时才按系统深色兜底。
+     一旦 data-theme 存在，配色全部交给站点主题样式表 —— 否则用户选了亮色主题，
+     这里的深色变量仍会生效，出现黑字压黑底。
+     注意：本文件不能出现站点主题文件的文件名，构建脚本靠这个字符串判断
+     “页面已经自带主题”，误判会整页跳过主题注入（切换按钮也会消失）。 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) { --bg:#000000; --fg:#f5f5f7; --muted:#98989d;
+      --rule:#2c2c2e; --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+  .intro { margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.6; }
+  .legend { margin:14px 0 0; padding:12px 14px; border-radius:14px;
+    background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7; }
+  .legend b { color:var(--fg); font-weight:600; }
+  .legend code { color:var(--accent); font-family:inherit; font-size:15px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:var(--on-accent); }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { width:118px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .entries { margin-top:6px; }
+  .entry, .senses, .sense { min-width:0; }
+  .entry { padding:26px 0 22px; border-bottom:1px solid var(--rule); }
+  .entry-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .head { display:inline-flex; align-items:baseline; gap:10px; appearance:none;
+    border:0; background:transparent; color:inherit; font:inherit; padding:2px 4px;
+    border-radius:10px; cursor:pointer; text-align:left; }
+  .head:hover { background:var(--surface); }
+  .head .w { font-size:24px; font-weight:700; letter-spacing:-0.02em; }
+  .head .ipa { color:var(--muted); font-size:14px; }
+  .head .play, .ex .play { font-size:0.62em; color:var(--muted); }
+  .head.playing { background:var(--tint); }
+  .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
+
+  .senses { margin-top:12px; display:grid; gap:10px; }
+  .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted);
+    letter-spacing:0.02em; }
+  /* button 的 UA 样式不换行，一句长例句会把整页撑宽 */
+  .head, .ex { white-space:normal; overflow-wrap:anywhere; }
+  .ex { display:block; width:100%; text-align:left; font:inherit; color:inherit;
+    background:var(--surface); border:0; border-radius:16px; padding:12px 14px;
+    cursor:pointer; transition:background-color .12s ease; }
+  .ex:hover { background:var(--tint); }
+  .ex.playing { background:var(--tint); }
+  .ex .txt { display:block; font-size:17px; line-height:1.55; }
+  .ex .zh { display:block; margin-top:4px; color:var(--muted); font-size:13px;
+    line-height:1.45; }
+
+  /* 背景只用主题自己的 surface 变量，文字用 --fg，任何主题都保证对比度 */
+  .note-card { margin-top:14px; padding:14px 16px; border-radius:16px;
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    border:1px solid var(--rule); border-left:3px solid var(--accent);
+    display:grid; gap:10px; }
+  .note-card p { margin:0; font-size:14px; line-height:1.65; color:var(--fg); }
+  .note-card p b { display:inline-block; margin-right:8px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+
+  body.zh-off .zh, body.zh-off .zh-line, body.zh-off .sense-zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .head .w { font-size:21px; }
+    .ex .txt { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">短语动词</a>
+  <header>
+    <h1>Shopping</h1>
+    <p class="title-zh">购物</p>
+    <p class="intro">挑、试、砍价、退货、被宰。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="entries">
+      <article class="entry" id="shell-out" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="0.000" data-end-f="1.488" data-start-m="0.000" data-end-m="1.176"><span class="w">shell out</span><span class="ipa">/ˈʃɛl aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">（不情愿地）掏一大笔钱</p><div class="senses"><div class="sense"><p class="sense-zh">被迫花大钱</p><button class="ex say" type="button" data-start-f="1.488" data-end-f="5.376" data-start-m="1.176" data-end-m="5.400"><span class="txt">I had to shell out 800 yuan for a new phone screen.</span><span class="zh">换个手机屏我不得不掏了八百块。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>不情愿掏大钱；shell out for 后面接东西。</p><p class="colloc"><b>搭配</b>shell out for a repair · shell out a fortune</p><p class="confuse"><b>易混</b>fork over · spend</p></div></article>
+      <article class="entry" id="rip-off" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="5.376" data-end-f="6.792" data-start-m="5.400" data-end-m="6.504"><span class="w">rip off</span><span class="ipa">/ˈrɪp ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">宰客、坑钱</p><div class="senses"><div class="sense"><p class="sense-zh">收不合理的价钱</p><button class="ex say" type="button" data-start-f="6.792" data-end-f="10.608" data-start-m="6.504" data-end-m="10.320"><span class="txt">That taxi driver ripped me off — the meter was rigged.</span><span class="zh">那个出租车司机宰了我，计价器被动过。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“被坑”是 I got ripped off，不是 I was cheated money。</p><p class="colloc"><b>搭配</b>rip off tourists · get ripped off</p><p class="confuse"><b>易混</b>scam · overcharge</p></div></article>
+      <article class="entry" id="throw-in" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="10.608" data-end-f="11.952" data-start-m="10.320" data-end-m="11.424"><span class="w">throw in</span><span class="ipa">/ˈθroʊ ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">附赠、加送</p><div class="senses"><div class="sense"><p class="sense-zh">买卖里额外送东西</p><button class="ex say" type="button" data-start-f="11.952" data-end-f="15.528" data-start-m="11.424" data-end-m="13.632"><span class="txt">The seller threw in a phone case and a charger.</span><span class="zh">卖家额外送了手机壳和充电器。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>附赠；throw in 也有“插一句”的意思。</p><p class="colloc"><b>搭配</b>throw in a free gift · throw in delivery</p><p class="confuse"><b>易混</b>give away · include</p></div></article>
+      <article class="entry" id="save-up" data-chip="errands"><header class="entry-head"><button class="head say" type="button" data-start-f="15.528" data-end-f="16.152" data-start-m="13.632" data-end-m="14.256"><span class="w">save up</span><span class="ipa">/ˈseɪv ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">攒钱</p><div class="senses"><div class="sense"><p class="sense-zh">一点点存钱</p><button class="ex say" type="button" data-start-f="16.152" data-end-f="19.488" data-start-m="14.256" data-end-m="17.424"><span class="txt">I&#x27;m saving up for a trip to Japan next spring.</span><span class="zh">我在攒钱，明年春天去日本。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“攒钱”是 save up (for)，不是 save money up 的顺序问题；save money 是省钱。</p><p class="colloc"><b>搭配</b>save up for a car · save up enough</p><p class="confuse"><b>易混</b>save · put aside</p></div></article>
+      <article class="entry" id="cut-back" data-chip="errands"><header class="entry-head"><button class="head say" type="button" data-start-f="19.488" data-end-f="20.424" data-start-m="17.424" data-end-m="18.120"><span class="w">cut back</span><span class="ipa">/ˈkʌt bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">削减开支</p><div class="senses"><div class="sense"><p class="sense-zh">减少花销</p><button class="ex say" type="button" data-start-f="20.424" data-end-f="23.208" data-start-m="18.120" data-end-m="20.016"><span class="txt">We cut back after the rent went up.</span><span class="zh">房租涨了之后我们开始省着花。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>削减开支；cut back on 后面接具体项。</p><p class="colloc"><b>搭配</b>cut back on spending · cut back on eating out</p><p class="confuse"><b>易混</b>cut down on · cut out</p></div></article>
+      <article class="entry" id="settle-up" data-chip="dining"><header class="entry-head"><button class="head say" type="button" data-start-f="23.208" data-end-f="24.216" data-start-m="20.016" data-end-m="20.880"><span class="w">settle up</span><span class="ipa">/ˈsɛtəl ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">把账结清</p><div class="senses"><div class="sense"><p class="sense-zh">把这顿饭或这趟账结掉</p><button class="ex say" type="button" data-start-f="24.216" data-end-f="27.552" data-start-m="20.880" data-end-m="23.976"><span class="txt">Let&#x27;s settle up before we leave — I&#x27;ll send you the split.</span><span class="zh">走之前把账结了吧，我把分摊金额发你。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>结清账；settle 是解决、安顿。</p><p class="colloc"><b>搭配</b>settle up the bill · settle up with friends</p><p class="confuse"><b>易混</b>pay up · pay off</p></div></article>
+      <article class="entry" id="chip-in" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="27.552" data-end-f="28.488" data-start-m="23.976" data-end-m="24.672"><span class="w">chip in</span><span class="ipa">/ˈtʃɪp ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">凑钱、AA 出一份</p><div class="senses"><div class="sense"><p class="sense-zh">大家一起出钱</p><button class="ex say" type="button" data-start-f="28.488" data-end-f="31.752" data-start-m="24.672" data-end-m="26.880"><span class="txt">We all chipped in for a gift for the boss.</span><span class="zh">我们凑钱给老板买了个礼物。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“AA”不是 AA in English；各付各的是 split the bill，一起凑钱是 chip in。</p><p class="colloc"><b>搭配</b>chip in for a gift · chip in ten yuan each</p><p class="confuse"><b>易混</b>split the bill · pitch in</p></div></article>
+      <article class="entry" id="fork-over" data-chip="errands"><header class="entry-head"><button class="head say" type="button" data-start-f="31.752" data-end-f="33.960" data-start-m="26.880" data-end-m="27.888"><span class="w">fork over</span><span class="ipa">/ˈfɔrk ˈoʊvər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">（不情愿地）交出钱</p><div class="senses"><div class="sense"><p class="sense-zh">被迫付钱</p><button class="ex say" type="button" data-start-f="33.960" data-end-f="37.296" data-start-m="27.888" data-end-m="30.576"><span class="txt">He forked over 200 yuan for parking.</span><span class="zh">他停车不情愿地掏了两百块。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>不情愿交钱，比 shell out 更口语。</p><p class="colloc"><b>搭配</b>fork over the cash · fork over a fee</p><p class="confuse"><b>易混</b>shell out · hand over</p></div></article>
+      <article class="entry" id="pay-back" data-chip="errands"><header class="entry-head"><button class="head say" type="button" data-start-f="37.296" data-end-f="38.472" data-start-m="30.576" data-end-m="31.344"><span class="w">pay back</span><span class="ipa">/ˈpeɪ bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">还钱给某人</p><div class="senses"><div class="sense"><p class="sense-zh">把借的钱还给对方</p><button class="ex say" type="button" data-start-f="38.472" data-end-f="43.416" data-start-m="31.344" data-end-m="33.720"><span class="txt">I&#x27;ll pay you back as soon as I get my salary.</span><span class="zh">我一发工资就还你。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“还钱”不是 return money 才自然；pay someone back 更常用。代词夹中间：pay me back。</p><p class="colloc"><b>搭配</b>pay back a loan · pay someone back</p><p class="confuse"><b>易混</b>pay off · return</p></div></article>
+      <article class="entry" id="put-down" data-chip="housing"><header class="entry-head"><button class="head say" type="button" data-start-f="43.416" data-end-f="44.424" data-start-m="33.720" data-end-m="34.656"><span class="w">put down</span><span class="ipa">/ˈpʊt daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">付定金；放下</p><div class="senses"><div class="sense"><p class="sense-zh">先付一笔定金</p><button class="ex say" type="button" data-start-f="44.424" data-end-f="48.312" data-start-m="34.656" data-end-m="37.104"><span class="txt">We put down a deposit on the apartment yesterday.</span><span class="zh">我们昨天给公寓交了定金。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>付定金；put down 也指贬低、放下。</p><p class="colloc"><b>搭配</b>put down a deposit · put down 20 percent</p><p class="confuse"><b>易混</b>pay off · put away</p></div></article>
+      <article class="entry" id="run-up" data-chip="errands"><header class="entry-head"><button class="head say" type="button" data-start-f="48.312" data-end-f="49.320" data-start-m="37.104" data-end-m="37.728"><span class="w">run up</span><span class="ipa">/ˈrʌn ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">欠下（账单、债务）</p><div class="senses"><div class="sense"><p class="sense-zh">累积出一笔欠款</p><button class="ex say" type="button" data-start-f="49.320" data-end-f="52.416" data-start-m="37.728" data-end-m="40.344"><span class="txt">He ran up a huge bill on his credit card.</span><span class="zh">他信用卡刷出了一大笔欠款。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>欠下账单；run up against 是遇到困难。</p><p class="colloc"><b>搭配</b>run up a bill · run up debts</p><p class="confuse"><b>易混</b>build up · run out</p></div></article>
+      <article class="entry" id="shop-around" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="52.416" data-end-f="53.664" data-start-m="40.344" data-end-m="41.448"><span class="w">shop around</span><span class="ipa">/ˈʃɑp əˈraʊnd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">货比三家</p><div class="senses"><div class="sense"><p class="sense-zh">多问几家再买</p><button class="ex say" type="button" data-start-f="53.664" data-end-f="59.568" data-start-m="41.448" data-end-m="45.816"><span class="txt">Shop around before you buy — the same laptop is 800 cheaper online.</span><span class="zh">买之前多比比，同款笔记本网上便宜八百。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>货比三家是 shop around，不是 compare shops（中式）。</p><p class="colloc"><b>搭配</b>shop around for a deal · shop around first</p><p class="confuse"><b>易混</b>look around · shop for</p></div></article>
+      <article class="entry" id="pay-up" data-chip="errands"><header class="entry-head"><button class="head say" type="button" data-start-f="59.568" data-end-f="60.672" data-start-m="45.816" data-end-m="46.344"><span class="w">pay up</span><span class="ipa">/ˈpeɪ ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">（不情愿地）付清</p><div class="senses"><div class="sense"><p class="sense-zh">被催着结清</p><button class="ex say" type="button" data-start-f="60.672" data-end-f="64.008" data-start-m="46.344" data-end-m="48.960"><span class="txt">He finally paid up after three reminders.</span><span class="zh">催了三次他才把钱付了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>pay up 带“被催着”的意味；pay 是中性。</p><p class="colloc"><b>搭配</b>pay up or leave · pay up the balance</p><p class="confuse"><b>易混</b>settle up · pay off</p></div></article>
+      <article class="entry" id="cough-up" data-chip="errands"><header class="entry-head"><button class="head say" type="button" data-start-f="64.008" data-end-f="65.112" data-start-m="48.960" data-end-m="49.584"><span class="w">cough up</span><span class="ipa">/ˈkɔf ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">掏钱（不情愿）</p><div class="senses"><div class="sense"><p class="sense-zh">被迫拿出钱</p><button class="ex say" type="button" data-start-f="65.112" data-end-f="70.608" data-start-m="49.584" data-end-m="52.752"><span class="txt">The landlord finally coughed up for the broken heater.</span><span class="zh">房东最后才掏钱修暖气。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>cough up 很口语，等于“挤出钱来”。</p><p class="colloc"><b>搭配</b>cough up the cash · cough it up</p><p class="confuse"><b>易混</b>fork over · shell out</p></div></article>
+      <article class="entry" id="total-up" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="70.608" data-end-f="71.616" data-start-m="52.752" data-end-m="53.616"><span class="w">total up</span><span class="ipa">/ˈtoʊtəl ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">合计</p><div class="senses"><div class="sense"><p class="sense-zh">把账算总</p><button class="ex say" type="button" data-start-f="71.616" data-end-f="73.824" data-start-m="53.616" data-end-m="55.680"><span class="txt">Total up the receipt before you split it.</span><span class="zh">分摊前先把小票合计一下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>合计是 total up / add up，不是 count together（中式）。</p><p class="colloc"><b>搭配</b>total up the bill · total it up</p><p class="confuse"><b>易混</b>add up · tally up</p></div></article>
+      <article class="entry" id="add-up-shopping" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="73.824" data-end-f="74.592" data-start-m="55.680" data-end-m="57.408"><span class="w">add up</span><span class="ipa">/ˈæd ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">加起来</p><div class="senses"><div class="sense"><p class="sense-zh">金额累加</p><button class="ex say" type="button" data-start-f="74.592" data-end-f="78.000" data-start-m="57.408" data-end-m="60.096"><span class="txt">The small purchases add up faster than you think.</span><span class="zh">小钱加起来比你想象的快。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>add up 是加起来；说得通也是 add up。</p><p class="colloc"><b>搭配</b>the costs add up · add it up</p><p class="confuse"><b>易混</b>total up · tot up</p></div></article>
+      <article class="entry" id="mark-down" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="78.000" data-end-f="79.248" data-start-m="60.096" data-end-m="61.200"><span class="w">mark down</span><span class="ipa">/ˈmɑrk daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">降价</p><div class="senses"><div class="sense"><p class="sense-zh">把标价调低</p><button class="ex say" type="button" data-start-f="79.248" data-end-f="82.416" data-start-m="61.200" data-end-m="63.576"><span class="txt">They marked down the winter coats after New Year.</span><span class="zh">过完年他们把冬装降价了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>降价是 mark down；mark up 是涨价。</p><p class="colloc"><b>搭配</b>mark down the price · marked down to 199</p><p class="confuse"><b>易混</b>mark up · knock off</p></div></article>
+      <article class="entry" id="mark-up" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="82.416" data-end-f="83.184" data-start-m="63.576" data-end-m="64.200"><span class="w">mark up</span><span class="ipa">/ˈmɑrk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">提价</p><div class="senses"><div class="sense"><p class="sense-zh">把标价调高</p><button class="ex say" type="button" data-start-f="83.184" data-end-f="87.240" data-start-m="64.200" data-end-m="66.744"><span class="txt">Some sellers mark up the price before a sale.</span><span class="zh">有些卖家促销前先把价提上去。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>mark up 是提价；名词 markup 是加价幅度。</p><p class="colloc"><b>搭配</b>mark up the price · marked up by 30 percent</p><p class="confuse"><b>易混</b>mark down · jack up</p></div></article>
+      <article class="entry" id="knock-off" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="87.240" data-end-f="88.416" data-start-m="66.744" data-end-m="67.368"><span class="w">knock off</span><span class="ipa">/ˈnɑk ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">减掉（零头）；下班</p><div class="senses"><div class="sense"><p class="sense-zh">便宜一点</p><button class="ex say" type="button" data-start-f="88.416" data-end-f="91.344" data-start-m="67.368" data-end-m="69.576"><span class="txt">Can you knock off twenty if I take two?</span><span class="zh">我买两个能便宜二十吗？</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>knock off 也指收工、仿冒品（knockoff），看语境。</p><p class="colloc"><b>搭配</b>knock off a few yuan · knock it off</p><p class="confuse"><b>易混</b>mark down · take off</p></div></article>
+      <article class="entry" id="sell-off" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="91.344" data-end-f="92.688" data-start-m="69.576" data-end-m="70.440"><span class="w">sell off</span><span class="ipa">/ˈsɛl ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">清仓甩卖</p><div class="senses"><div class="sense"><p class="sense-zh">低价清掉库存</p><button class="ex say" type="button" data-start-f="92.688" data-end-f="95.712" data-start-m="70.440" data-end-m="73.464"><span class="txt">The store is selling off last season&#x27;s stock.</span><span class="zh">店里在清上一季的货。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>清仓是 sell off；卖光是 sell out，出卖也是 sell out。</p><p class="colloc"><b>搭配</b>sell off old stock · sell it off</p><p class="confuse"><b>易混</b>sell out · clear out</p></div></article>
+      <article class="entry" id="stock-up" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="95.712" data-end-f="97.128" data-start-m="73.464" data-end-m="74.232"><span class="w">stock up</span><span class="ipa">/ˈstɑk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">囤货</p><div class="senses"><div class="sense"><p class="sense-zh">趁便宜多买点</p><button class="ex say" type="button" data-start-f="97.128" data-end-f="100.776" data-start-m="74.232" data-end-m="76.440"><span class="txt">Stock up on noodles before the holiday.</span><span class="zh">节前多囤点面。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>囤货是 stock up (on)，不是 store up（也可但少）。</p><p class="colloc"><b>搭配</b>stock up on snacks · stock up for winter</p><p class="confuse"><b>易混</b>save up · pile up</p></div></article>
+      <article class="entry" id="take-back" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="100.776" data-end-f="101.640" data-start-m="76.440" data-end-m="77.064"><span class="w">take back</span><span class="ipa">/ˈteɪk bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">退货；收回（话）</p><div class="senses"><div class="sense"><p class="sense-zh">把买的东西退回去</p><button class="ex say" type="button" data-start-f="101.640" data-end-f="104.256" data-start-m="77.064" data-end-m="79.512"><span class="txt">Can I take back this shirt without the receipt?</span><span class="zh">这件衬衫没小票能退吗？</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>退货是 take back；退款是 get a refund。</p><p class="colloc"><b>搭配</b>take back a purchase · take it back</p><p class="confuse"><b>易混</b>send back · bring back</p></div></article>
+      <article class="entry" id="send-back" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="104.256" data-end-f="105.360" data-start-m="79.512" data-end-m="80.520"><span class="w">send back</span><span class="ipa">/ˈsɛnd bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">寄回、退回</p><div class="senses"><div class="sense"><p class="sense-zh">把东西寄回去</p><button class="ex say" type="button" data-start-f="105.360" data-end-f="110.304" data-start-m="80.520" data-end-m="82.824"><span class="txt">I sent back the wrong size and they refunded me.</span><span class="zh">我把尺码不对的寄回去了，他们退了款。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>寄回是 send back；send off 是寄出。</p><p class="colloc"><b>搭配</b>send back an order · send it back</p><p class="confuse"><b>易混</b>take back · return</p></div></article>
+      <article class="entry" id="bring-back" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="110.304" data-end-f="111.168" data-start-m="82.824" data-end-m="83.592"><span class="w">bring back</span><span class="ipa">/ˈbrɪŋ bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">带回；（东西）带回来</p><div class="senses"><div class="sense"><p class="sense-zh">买回来或带回来</p><button class="ex say" type="button" data-start-f="111.168" data-end-f="113.712" data-start-m="83.592" data-end-m="85.968"><span class="txt">Bring back a receipt in case it doesn&#x27;t fit.</span><span class="zh">把小票带回来，万一不合身。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>带回是 bring back；带回记忆也是 bring back。</p><p class="colloc"><b>搭配</b>bring back souvenirs · bring it back</p><p class="confuse"><b>易混</b>take back · bring along</p></div></article>
+      <article class="entry" id="try-out" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="113.712" data-end-f="114.720" data-start-m="85.968" data-end-m="86.832"><span class="w">try out</span><span class="ipa">/ˈtraɪ aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">试用</p><div class="senses"><div class="sense"><p class="sense-zh">试一段时间看合不合适</p><button class="ex say" type="button" data-start-f="114.720" data-end-f="117.576" data-start-m="86.832" data-end-m="89.208"><span class="txt">You can try out the app for a week for free.</span><span class="zh">这个 App 可以免费试用一周。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>试用是 try out；试穿是 try on，别混。</p><p class="colloc"><b>搭配</b>try out a new product · try it out</p><p class="confuse"><b>易混</b>try on · test out</p></div></article>
+      <article class="entry" id="put-aside" data-chip="errands"><header class="entry-head"><button class="head say" type="button" data-start-f="117.576" data-end-f="118.512" data-start-m="89.208" data-end-m="89.976"><span class="w">put aside</span><span class="ipa">/ˈpʊt əˈsaɪd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">存下（钱）</p><div class="senses"><div class="sense"><p class="sense-zh">专门留一笔钱</p><button class="ex say" type="button" data-start-f="118.512" data-end-f="125.376" data-start-m="89.976" data-end-m="93.000"><span class="txt">She puts aside 500 a month for travel.</span><span class="zh">她每月存五百块旅行基金。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>存钱是 put aside / set aside；save up 是攒够某数。</p><p class="colloc"><b>搭配</b>put aside money · put it aside</p><p class="confuse"><b>易混</b>save up · set aside</p></div></article>
+      <article class="entry" id="go-for" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="125.376" data-end-f="126.240" data-start-m="93.000" data-end-m="93.624"><span class="w">go for</span><span class="ipa">/ˈɡoʊ fɔr/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">选（某款）</p><div class="senses"><div class="sense"><p class="sense-zh">在选项里挑</p><button class="ex say" type="button" data-start-f="126.240" data-end-f="130.056" data-start-m="93.624" data-end-m="96.408"><span class="txt">I went for the cheaper model and regret it a bit.</span><span class="zh">我选了便宜那款，有点后悔。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>选是 go for；不是 choose for（中式）。</p><p class="colloc"><b>搭配</b>go for the black one · go for quality</p><p class="confuse"><b>易混</b>opt for · settle on</p></div></article>
+      <article class="entry" id="settle-on" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="130.056" data-end-f="131.160" data-start-m="96.408" data-end-m="97.416"><span class="w">settle on</span><span class="ipa">/ˈsɛtəl ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">决定选（某样）</p><div class="senses"><div class="sense"><p class="sense-zh">比较后定下来</p><button class="ex say" type="button" data-start-f="131.160" data-end-f="134.424" data-start-m="97.416" data-end-m="100.344"><span class="txt">We settled on the blue sofa after two weeks.</span><span class="zh">比较两周后我们定了蓝色沙发。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>决定选是 settle on；settle for 是退而求其次。</p><p class="colloc"><b>搭配</b>settle on a design · settle on the price</p><p class="confuse"><b>易混</b>settle for · decide on</p></div></article>
+      <article class="entry" id="shop-for" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="134.424" data-end-f="135.432" data-start-m="100.344" data-end-m="101.280"><span class="w">shop for</span><span class="ipa">/ˈʃɑp fɔr/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">选购（某类东西）</p><div class="senses"><div class="sense"><p class="sense-zh">为某样东西逛店</p><button class="ex say" type="button" data-start-f="135.432" data-end-f="138.696" data-start-m="101.280" data-end-m="103.248"><span class="txt">I&#x27;m shopping for a gift for my mom.</span><span class="zh">我在给我妈挑礼物。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>选购是 shop for；买东西是 go shopping。</p><p class="colloc"><b>搭配</b>shop for gifts · shop for a laptop</p><p class="confuse"><b>易混</b>shop around · look for</p></div></article>
+      <article class="entry" id="snap-up" data-chip="shopping"><header class="entry-head"><button class="head say" type="button" data-start-f="138.696" data-end-f="139.392" data-start-m="103.248" data-end-m="104.184"><span class="w">snap up</span><span class="ipa">/ˈsnæp ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">抢购</p><div class="senses"><div class="sense"><p class="sense-zh">看到便宜立刻买</p><button class="ex say" type="button" data-start-f="139.392" data-end-f="142.320" data-start-m="104.184" data-end-m="106.320"><span class="txt">The tickets were snapped up in ten minutes.</span><span class="zh">票十分钟就被抢光了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>抢购是 snap up，不是 rob buying（中式）。</p><p class="colloc"><b>搭配</b>snap up a bargain · snap it up</p><p class="confuse"><b>易混</b>sell out · pick up</p></div></article>
+  </section>
+  <p class="status" data-audio-status></p>
+</main>
+<script id="spriteMap" type="application/json">{"f":"sprites/688c3d4d31b1.mp3","m":"sprites/0fe0c8feb747.mp3"}</script>
+<script>
+(function () {
+  var KEY_VOICE = 'pv-voice';
+  var KEY_SPEED = 'pv-speed', KEY_ZH = 'pv-zh';
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.say'));
+  var current = null, playlist = null, statusTimer = null;
+  var stickyStatus = false;
+  var raf = 0, loadedSrc = null;
+  var SOURCES = {}, READY = {};
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
+
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  function waitForData(el, seek, from, attempt) {
+    if (current !== el) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(el); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(el, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    var retries = 0;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      if (player.currentTime < from - 0.15) {
+        if (++retries > 3) { audioFailed(el); return; }
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      hideStatus();
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var onSeeked = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      }, 1500);
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  // Cloudflare Pages 的静态资源不支持 Range，媒体元素 seekable 只有 [0,0]，
+  // 点后面的句子会被夹回开头。先把整条 sprite 取进内存换成 blob 地址。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
+    }
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(el, onEnd) {
+    var span = spanFor(el);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === el) unmark();
+      showStatus('这一条暂无语音');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== el) return;
+      if (!src) { audioFailed(el); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(el, span, onEnd);
+    });
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    hideStatus();
+    unmark();
+  }
+
+  function showStatus(text, sticky) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    stickyStatus = !!sticky;
+    if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
+    statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    if (!spanFor(el)) { audioFailed(el); return; }
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var list = playlist;
+    begin(el, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    current = el;
+    el.classList.add('playing');
+    begin(el, null);
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+    if (document.readyState === 'complete') prefetch();
+  }
+
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.say');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
+  }
+})();
+</script>
+</body>
+</html>

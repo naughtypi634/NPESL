@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Feelings and emotions · 短语动词</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --on-accent:var(--on-blue, #ffffff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  /* 只有站点主题脚本没跑起来（没有 data-theme）时才按系统深色兜底。
+     一旦 data-theme 存在，配色全部交给站点主题样式表 —— 否则用户选了亮色主题，
+     这里的深色变量仍会生效，出现黑字压黑底。
+     注意：本文件不能出现站点主题文件的文件名，构建脚本靠这个字符串判断
+     “页面已经自带主题”，误判会整页跳过主题注入（切换按钮也会消失）。 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) { --bg:#000000; --fg:#f5f5f7; --muted:#98989d;
+      --rule:#2c2c2e; --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+  .intro { margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.6; }
+  .legend { margin:14px 0 0; padding:12px 14px; border-radius:14px;
+    background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7; }
+  .legend b { color:var(--fg); font-weight:600; }
+  .legend code { color:var(--accent); font-family:inherit; font-size:15px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:var(--on-accent); }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { width:118px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .entries { margin-top:6px; }
+  .entry, .senses, .sense { min-width:0; }
+  .entry { padding:26px 0 22px; border-bottom:1px solid var(--rule); }
+  .entry-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .head { display:inline-flex; align-items:baseline; gap:10px; appearance:none;
+    border:0; background:transparent; color:inherit; font:inherit; padding:2px 4px;
+    border-radius:10px; cursor:pointer; text-align:left; }
+  .head:hover { background:var(--surface); }
+  .head .w { font-size:24px; font-weight:700; letter-spacing:-0.02em; }
+  .head .ipa { color:var(--muted); font-size:14px; }
+  .head .play, .ex .play { font-size:0.62em; color:var(--muted); }
+  .head.playing { background:var(--tint); }
+  .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
+
+  .senses { margin-top:12px; display:grid; gap:10px; }
+  .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted);
+    letter-spacing:0.02em; }
+  /* button 的 UA 样式不换行，一句长例句会把整页撑宽 */
+  .head, .ex { white-space:normal; overflow-wrap:anywhere; }
+  .ex { display:block; width:100%; text-align:left; font:inherit; color:inherit;
+    background:var(--surface); border:0; border-radius:16px; padding:12px 14px;
+    cursor:pointer; transition:background-color .12s ease; }
+  .ex:hover { background:var(--tint); }
+  .ex.playing { background:var(--tint); }
+  .ex .txt { display:block; font-size:17px; line-height:1.55; }
+  .ex .zh { display:block; margin-top:4px; color:var(--muted); font-size:13px;
+    line-height:1.45; }
+
+  /* 背景只用主题自己的 surface 变量，文字用 --fg，任何主题都保证对比度 */
+  .note-card { margin-top:14px; padding:14px 16px; border-radius:16px;
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    border:1px solid var(--rule); border-left:3px solid var(--accent);
+    display:grid; gap:10px; }
+  .note-card p { margin:0; font-size:14px; line-height:1.65; color:var(--fg); }
+  .note-card p b { display:inline-block; margin-right:8px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+
+  body.zh-off .zh, body.zh-off .zh-line, body.zh-off .sense-zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .head .w { font-size:21px; }
+    .ex .txt { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">短语动词</a>
+  <header>
+    <h1>Feelings and emotions</h1>
+    <p class="title-zh">情绪感受</p>
+    <p class="intro">开心、焦虑、崩溃、缓过来。说自己状态时最常用的那批。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="entries">
+      <article class="entry" id="calm-down" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="0.000" data-end-f="1.248" data-start-m="0.000" data-end-m="0.936"><span class="w">calm down</span><span class="ipa">/ˈkɑm daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">冷静下来</p><div class="senses"><div class="sense"><p class="sense-zh">从激动或生气里平复</p><button class="ex say" type="button" data-start-f="1.248" data-end-f="5.616" data-start-m="0.936" data-end-m="4.512"><span class="txt">Calm down — we can still fix this before Friday.</span><span class="zh">冷静点，周五前我们还来得及补救。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“冷静”对别人说 calm down，对自己说 take a breath；中文一句“冷静”，英语分对象。</p><p class="colloc"><b>搭配</b>calm down a bit · calm someone down</p><p class="confuse"><b>易混</b>chill out · wind down</p></div></article>
+      <article class="entry" id="freak-out" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="5.616" data-end-f="6.720" data-start-m="4.512" data-end-m="5.280"><span class="w">freak out</span><span class="ipa">/ˈfrik aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">抓狂、吓坏</p><div class="senses"><div class="sense"><p class="sense-zh">情绪突然失控</p><button class="ex say" type="button" data-start-f="6.720" data-end-f="9.504" data-start-m="5.280" data-end-m="8.376"><span class="txt">I freaked out when I saw the deadline was today.</span><span class="zh">看到截止日期是今天，我直接抓狂了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“我慌了”不是 I am panic；口语是 I freaked out。</p><p class="colloc"><b>搭配</b>freak out about a test · freak someone out</p><p class="confuse"><b>易混</b>stress out · panic</p></div></article>
+      <article class="entry" id="fall-apart" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="9.504" data-end-f="10.848" data-start-m="8.376" data-end-m="9.072"><span class="w">fall apart</span><span class="ipa">/ˈfɔl əˈpɑrt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">崩溃、散架</p><div class="senses"><div class="sense"><p class="sense-zh">情绪或计划垮掉</p><button class="ex say" type="button" data-start-f="10.848" data-end-f="13.776" data-start-m="9.072" data-end-m="12.240"><span class="txt">Everything fell apart the week my dad got sick.</span><span class="zh">我爸生病那一周，所有事都垮了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“垮掉”不只用 break down；fall apart 指整体崩掉，人和计划都行。</p><p class="colloc"><b>搭配</b>fall apart under pressure · the plan fell apart</p><p class="confuse"><b>易混</b>break down · come apart</p></div></article>
+      <article class="entry" id="cheer-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="13.776" data-end-f="14.784" data-start-m="12.240" data-end-m="12.864"><span class="w">cheer up</span><span class="ipa">/ˈtʃɪr ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">振作起来；让……开心</p><div class="senses"><div class="sense"><p class="sense-zh">从低落里振作</p><button class="ex say" type="button" data-start-f="14.784" data-end-f="17.880" data-start-m="12.864" data-end-m="15.648"><span class="txt">Cheer up — the interview went better than you think.</span><span class="zh">振作点，面试比你想象的好。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“开心一点”不是 be happy一点；口语劝人是 cheer up。</p><p class="colloc"><b>搭配</b>cheer up a friend · cheer someone up</p><p class="confuse"><b>易混</b>light up · calm down</p></div></article>
+      <article class="entry" id="wind-down" data-chip="leisure"><header class="entry-head"><button class="head say" type="button" data-start-f="17.880" data-end-f="19.056" data-start-m="15.648" data-end-m="16.656"><span class="w">wind down</span><span class="ipa">/ˈwaɪnd daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">放松下来、慢慢收尾</p><div class="senses"><div class="sense"><p class="sense-zh">睡前或下班后放松</p><button class="ex say" type="button" data-start-f="19.056" data-end-f="22.152" data-start-m="16.656" data-end-m="19.104"><span class="txt">I wind down with a podcast after work.</span><span class="zh">我下班后用播客放松。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>放松收尾；wind up 是结束、最终落得，方向相反。</p><p class="colloc"><b>搭配</b>wind down before bed · wind down after work</p><p class="confuse"><b>易混</b>calm down · chill out</p></div></article>
+      <article class="entry" id="chill-out" data-chip="leisure"><header class="entry-head"><button class="head say" type="button" data-start-f="22.152" data-end-f="23.808" data-start-m="19.104" data-end-m="19.800"><span class="w">chill out</span><span class="ipa">/ˈtʃɪl aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">放松、别紧张</p><div class="senses"><div class="sense"><p class="sense-zh">随便放松一下</p><button class="ex say" type="button" data-start-f="23.808" data-end-f="26.976" data-start-m="19.800" data-end-m="21.864"><span class="txt">We just chilled out at home all weekend.</span><span class="zh">整个周末我们就在家放松。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“放松”不是 relax yourself（怪）；chill out / take it easy 更口语。</p><p class="colloc"><b>搭配</b>chill out at home · chill out with friends</p><p class="confuse"><b>易混</b>wind down · hang out</p></div></article>
+      <article class="entry" id="stress-out" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="26.976" data-end-f="28.392" data-start-m="21.864" data-end-m="22.728"><span class="w">stress out</span><span class="ipa">/ˈstrɛs aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">压力大到崩溃</p><div class="senses"><div class="sense"><p class="sense-zh">被事情压得焦虑</p><button class="ex say" type="button" data-start-f="28.392" data-end-f="31.800" data-start-m="22.728" data-end-m="25.344"><span class="txt">I&#x27;m stressed out about the presentation on Monday.</span><span class="zh">周一那个汇报让我压力很大。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“我有压力”不是 I have pressure；是 I&#x27;m stressed out / under a lot of pressure。</p><p class="colloc"><b>搭配</b>stress out about work · stress someone out</p><p class="confuse"><b>易混</b>freak out · burn out</p></div></article>
+      <article class="entry" id="blow-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="31.800" data-end-f="32.664" data-start-m="25.344" data-end-m="26.448"><span class="w">blow up</span><span class="ipa">/ˈbloʊ ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">发火；爆炸</p><div class="senses"><div class="sense"><p class="sense-zh">突然发火</p><button class="ex say" type="button" data-start-f="32.664" data-end-f="35.280" data-start-m="26.448" data-end-m="28.104"><span class="txt">He blew up when he saw the bill.</span><span class="zh">他看到账单就炸了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>发火是 blow up (at)；blow up 也指爆炸、放大照片。</p><p class="colloc"><b>搭配</b>blow up at someone · blow up over nothing</p><p class="confuse"><b>易混</b>blow off · freak out</p></div></article>
+      <article class="entry" id="tone-down" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="35.280" data-end-f="36.528" data-start-m="28.104" data-end-m="28.728"><span class="w">tone down</span><span class="ipa">/ˈtoʊn daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">把话说软一点</p><div class="senses"><div class="sense"><p class="sense-zh">缓和语气或强度</p><button class="ex say" type="button" data-start-f="36.528" data-end-f="39.936" data-start-m="28.728" data-end-m="31.416"><span class="txt">You might want to tone down that email before you send it.</span><span class="zh">那封邮件发之前你也许该把话放软点。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>把话放软；不是 make the tone low（中式）。</p><p class="colloc"><b>搭配</b>tone down the criticism · tone down your language</p><p class="confuse"><b>易混</b>calm down · soften</p></div></article>
+      <article class="entry" id="get-down" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="39.936" data-end-f="41.040" data-start-m="31.416" data-end-m="32.184"><span class="w">get down</span><span class="ipa">/ˈɡɛt daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">让……低落</p><div class="senses"><div class="sense"><p class="sense-zh">某事让人心情变差</p><button class="ex say" type="button" data-start-f="41.040" data-end-f="43.728" data-start-m="32.184" data-end-m="34.392"><span class="txt">The gray weather really gets me down.</span><span class="zh">这种阴天真的让我心情很差。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>让人低落；get down 也指蹲下、记下。</p><p class="colloc"><b>搭配</b>get someone down · feel down</p><p class="confuse"><b>易混</b>let down · cheer up</p></div></article>
+      <article class="entry" id="let-go-of" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="43.728" data-end-f="45.312" data-start-m="34.392" data-end-m="35.160"><span class="w">let go of</span><span class="ipa">/ˈlɛt ɡoʊ əv/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">放下、松手</p><div class="senses"><div class="sense"><p class="sense-zh">情绪上放下</p><button class="ex say" type="button" data-start-f="45.312" data-end-f="48.096" data-start-m="35.160" data-end-m="37.464"><span class="txt">It took me a year to let go of that mistake.</span><span class="zh">那个错误我花了一年才放下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“放下”不是 put down（那是把东西放下）；情绪上的放下是 let go of。</p><p class="colloc"><b>搭配</b>let go of the past · let go of a grudge</p><p class="confuse"><b>易混</b>put down · move on</p></div></article>
+      <article class="entry" id="face-up-to" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="48.096" data-end-f="49.992" data-start-m="37.464" data-end-m="38.400"><span class="w">face up to</span><span class="ipa">/ˈfeɪs ʌp tu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">正视、勇敢面对</p><div class="senses"><div class="sense"><p class="sense-zh">接受不愿面对的现实</p><button class="ex say" type="button" data-start-f="49.992" data-end-f="53.328" data-start-m="38.400" data-end-m="41.568"><span class="txt">I finally faced up to the fact that the job wasn&#x27;t working.</span><span class="zh">我终于承认这份工作不适合我。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>face 是面对，face up to 强调承认不愿承认的事。</p><p class="colloc"><b>搭配</b>face up to reality · face up to a problem</p><p class="confuse"><b>易混</b>deal with · face</p></div></article>
+      <article class="entry" id="hang-in" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="53.328" data-end-f="54.336" data-start-m="41.568" data-end-m="42.192"><span class="w">hang in</span><span class="ipa">/ˈhæŋ ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">撑住、再坚持一下</p><div class="senses"><div class="sense"><p class="sense-zh">难的时候不放弃</p><button class="ex say" type="button" data-start-f="54.336" data-end-f="57.984" data-start-m="42.192" data-end-m="44.736"><span class="txt">Hang in there — the semester ends in three weeks.</span><span class="zh">再撑撑，三周就放假了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>撑住用 hang in (there)；hang on 是等一下。</p><p class="colloc"><b>搭配</b>hang in there · hang in for a bit</p><p class="confuse"><b>易混</b>hang on · hold on</p></div></article>
+      <article class="entry" id="light-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="57.984" data-end-f="58.992" data-start-m="44.736" data-end-m="45.600"><span class="w">light up</span><span class="ipa">/ˈlaɪt ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">（脸）亮起来</p><div class="senses"><div class="sense"><p class="sense-zh">人突然显得很高兴</p><button class="ex say" type="button" data-start-f="58.992" data-end-f="61.128" data-start-m="45.600" data-end-m="47.736"><span class="txt">Her face lit up when she saw the cake.</span><span class="zh">她一看到蛋糕，脸就亮了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>脸亮起来；light up 也指点烟、点亮。</p><p class="colloc"><b>搭配</b>someone&#x27;s face lights up · light up the room</p><p class="confuse"><b>易混</b>cheer up · brighten</p></div></article>
+      <article class="entry" id="perk-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="61.128" data-end-f="62.232" data-start-m="47.736" data-end-m="48.504"><span class="w">perk up</span><span class="ipa">/ˈpɝk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">精神起来</p><div class="senses"><div class="sense"><p class="sense-zh">从疲惫中振作</p><button class="ex say" type="button" data-start-f="62.232" data-end-f="65.016" data-start-m="48.504" data-end-m="51.432"><span class="txt">A coffee and ten minutes outside will perk you up.</span><span class="zh">一杯咖啡加出门十分钟你就精神了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>精神起来是 perk up；不是“往上翘”。</p><p class="colloc"><b>搭配</b>perk up after coffee · perk someone up</p><p class="confuse"><b>易混</b>cheer up · liven up</p></div></article>
+      <article class="entry" id="liven-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="65.016" data-end-f="66.432" data-start-m="51.432" data-end-m="52.128"><span class="w">liven up</span><span class="ipa">/ˈlaɪvən ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">活跃起来、让……热闹</p><div class="senses"><div class="sense"><p class="sense-zh">气氛变热闹</p><button class="ex say" type="button" data-start-f="66.432" data-end-f="69.528" data-start-m="52.128" data-end-m="54.504"><span class="txt">The party livened up once the music changed.</span><span class="zh">换了音乐以后聚会才热闹起来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>热闹起来是 liven up；不是 become lively（也对但书面）。</p><p class="colloc"><b>搭配</b>the room livened up · liven up the party</p><p class="confuse"><b>易混</b>perk up · lighten up</p></div></article>
+      <article class="entry" id="snap-out-of" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="69.528" data-end-f="70.776" data-start-m="54.504" data-end-m="55.920"><span class="w">snap out of</span><span class="ipa">/ˈsnæp aʊt əv/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">从（低落）中振作</p><div class="senses"><div class="sense"><p class="sense-zh">摆脱坏情绪</p><button class="ex say" type="button" data-start-f="70.776" data-end-f="73.704" data-start-m="55.920" data-end-m="58.536"><span class="txt">You need to snap out of it — it&#x27;s been a week.</span><span class="zh">你得振作起来，都一周了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>snap out of it 是固定说法，带点催促。</p><p class="colloc"><b>搭配</b>snap out of a bad mood · snap out of it</p><p class="confuse"><b>易混</b>get over · cheer up</p></div></article>
+      <article class="entry" id="come-around" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="73.704" data-end-f="74.952" data-start-m="58.536" data-end-m="59.472"><span class="w">come around</span><span class="ipa">/ˈkʌm əˈraʊnd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">想通了、回心转意</p><div class="senses"><div class="sense"><p class="sense-zh">态度转变</p><button class="ex say" type="button" data-start-f="74.952" data-end-f="78.936" data-start-m="59.472" data-end-m="62.088"><span class="txt">He came around after we showed him the numbers.</span><span class="zh">我们给他看了数据他才想通。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>想通是 come around；也是“过来串门”。</p><p class="colloc"><b>搭配</b>come around to the idea · eventually come around</p><p class="confuse"><b>易混</b>warm up to · come over</p></div></article>
+      <article class="entry" id="settle-down" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="78.936" data-end-f="80.280" data-start-m="62.088" data-end-m="63.024"><span class="w">settle down</span><span class="ipa">/ˈsɛtəl daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">平静下来；安定下来</p><div class="senses"><div class="sense"><p class="sense-zh">情绪安静下来</p><button class="ex say" type="button" data-start-f="80.280" data-end-f="82.656" data-start-m="63.024" data-end-m="65.160"><span class="txt">Settle down and tell me what happened.</span><span class="zh">先冷静下来，跟我说发生了什么。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>settle down 既指安静也指定居、结婚；settle in 是适应新环境。</p><p class="colloc"><b>搭配</b>settle down and talk · the class settled down</p><p class="confuse"><b>易混</b>calm down · settle in</p></div></article>
+      <article class="entry" id="cool-off" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="82.656" data-end-f="83.424" data-start-m="65.160" data-end-m="66.264"><span class="w">cool off</span><span class="ipa">/ˈkul ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">冷静一下</p><div class="senses"><div class="sense"><p class="sense-zh">从火气里降温</p><button class="ex say" type="button" data-start-f="83.424" data-end-f="86.112" data-start-m="66.264" data-end-m="68.712"><span class="txt">Go cool off before you send that message.</span><span class="zh">发那条消息前先去冷静一下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>冷静是 cool off / calm down；cool down 多指温度。</p><p class="colloc"><b>搭配</b>cool off after an argument · go cool off</p><p class="confuse"><b>易混</b>calm down · simmer down</p></div></article>
+      <article class="entry" id="simmer-down" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="86.112" data-end-f="87.360" data-start-m="68.712" data-end-m="69.888"><span class="w">simmer down</span><span class="ipa">/ˈsɪmər daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">怒气慢慢平息</p><div class="senses"><div class="sense"><p class="sense-zh">火气渐消</p><button class="ex say" type="button" data-start-f="87.360" data-end-f="89.328" data-start-m="69.888" data-end-m="71.712"><span class="txt">Give him a day to simmer down.</span><span class="zh">给他一天消消气。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>simmer down 是慢慢平息，像小火炖着。</p><p class="colloc"><b>搭配</b>simmer down after a fight · let things simmer down</p><p class="confuse"><b>易混</b>cool off · calm down</p></div></article>
+      <article class="entry" id="well-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="89.328" data-end-f="90.336" data-start-m="71.712" data-end-m="72.408"><span class="w">well up</span><span class="ipa">/ˈwɛl ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">（眼泪）涌上来</p><div class="senses"><div class="sense"><p class="sense-zh">忍不住要哭</p><button class="ex say" type="button" data-start-f="90.336" data-end-f="93.840" data-start-m="72.408" data-end-m="75.192"><span class="txt">My eyes welled up when she started singing.</span><span class="zh">她一开口唱我眼泪就上来了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>眼泪涌上是 well up；不是 eyes become water（中式）。</p><p class="colloc"><b>搭配</b>eyes well up · tears well up</p><p class="confuse"><b>易混</b>choke up · tear up</p></div></article>
+      <article class="entry" id="choke-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="93.840" data-end-f="94.536" data-start-m="75.192" data-end-m="75.816"><span class="w">choke up</span><span class="ipa">/ˈtʃoʊk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">哽咽</p><div class="senses"><div class="sense"><p class="sense-zh">情绪上来声音卡住</p><button class="ex say" type="button" data-start-f="94.536" data-end-f="97.080" data-start-m="75.816" data-end-m="77.952"><span class="txt">He choked up reading the letter aloud.</span><span class="zh">他把信读出声时哽咽了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>哽咽是 choke up；choke 单独是噎住。</p><p class="colloc"><b>搭配</b>choke up during a speech · get choked up</p><p class="confuse"><b>易混</b>well up · tear up</p></div></article>
+      <article class="entry" id="crack-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="97.080" data-end-f="97.848" data-start-m="77.952" data-end-m="78.648"><span class="w">crack up</span><span class="ipa">/ˈkræk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">笑到不行</p><div class="senses"><div class="sense"><p class="sense-zh">控制不住地笑</p><button class="ex say" type="button" data-start-f="97.848" data-end-f="101.592" data-start-m="78.648" data-end-m="80.952"><span class="txt">We cracked up at his impression of the boss.</span><span class="zh">他模仿老板我们笑崩了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>笑崩是 crack up；crack up 也指精神崩溃，看语境。</p><p class="colloc"><b>搭配</b>crack up at a joke · everyone cracked up</p><p class="confuse"><b>易混</b>laugh off · break up</p></div></article>
+      <article class="entry" id="mellow-out" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="101.592" data-end-f="102.840" data-start-m="80.952" data-end-m="81.888"><span class="w">mellow out</span><span class="ipa">/ˈmɛloʊ aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">变得随和、放松</p><div class="senses"><div class="sense"><p class="sense-zh">不那么紧绷</p><button class="ex say" type="button" data-start-f="102.840" data-end-f="105.624" data-start-m="81.888" data-end-m="84.576"><span class="txt">He&#x27;s mellowed out a lot since college.</span><span class="zh">他上大学以后随和多了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>mellow out 是性格或情绪变柔和。</p><p class="colloc"><b>搭配</b>mellow out with age · mellow out a bit</p><p class="confuse"><b>易混</b>loosen up · calm down</p></div></article>
+      <article class="entry" id="veg-out" data-chip="leisure"><header class="entry-head"><button class="head say" type="button" data-start-f="105.624" data-end-f="106.632" data-start-m="84.576" data-end-m="85.680"><span class="w">veg out</span><span class="ipa">/ˈvɛdʒ aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">瘫着不动</p><div class="senses"><div class="sense"><p class="sense-zh">什么都不干地休息</p><button class="ex say" type="button" data-start-f="106.632" data-end-f="109.896" data-start-m="85.680" data-end-m="87.576"><span class="txt">I vegged out on the sofa all Sunday.</span><span class="zh">我整个周日都瘫在沙发上。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>veg out 是很口语的说法，正式场合别用。</p><p class="colloc"><b>搭配</b>veg out in front of the TV · veg out all day</p><p class="confuse"><b>易混</b>chill out · zone out</p></div></article>
+      <article class="entry" id="psych-up" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="109.896" data-end-f="111.000" data-start-m="87.576" data-end-m="88.824"><span class="w">psych up</span><span class="ipa">/ˈsaɪk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">给自己打气</p><div class="senses"><div class="sense"><p class="sense-zh">做好心理准备</p><button class="ex say" type="button" data-start-f="111.000" data-end-f="114.024" data-start-m="88.824" data-end-m="90.888"><span class="txt">I psyched myself up before the interview.</span><span class="zh">面试前我给自己做了心理建设。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>打气是 psych up；不是 cheer myself（那是让自己开心）。</p><p class="colloc"><b>搭配</b>psych yourself up · psych up the team</p><p class="confuse"><b>易混</b>pump up · fire up</p></div></article>
+      <article class="entry" id="pump-up" data-chip="leisure"><header class="entry-head"><button class="head say" type="button" data-start-f="114.024" data-end-f="114.792" data-start-m="90.888" data-end-m="91.512"><span class="w">pump up</span><span class="ipa">/ˈpʌmp ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">鼓舞、调动起来</p><div class="senses"><div class="sense"><p class="sense-zh">把气氛或斗志拉起来</p><button class="ex say" type="button" data-start-f="114.792" data-end-f="117.720" data-start-m="91.512" data-end-m="93.888"><span class="txt">The coach pumped up the team before the final.</span><span class="zh">决赛前教练把队伍士气鼓起来了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>pump up 是鼓舞；pump up a tire 是打气。</p><p class="colloc"><b>搭配</b>pump up the crowd · pump someone up</p><p class="confuse"><b>易混</b>psych up · hype up</p></div></article>
+      <article class="entry" id="shake-off" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="117.720" data-end-f="119.136" data-start-m="93.888" data-end-m="94.584"><span class="w">shake off</span><span class="ipa">/ˈʃeɪk ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">摆脱（情绪、追踪）</p><div class="senses"><div class="sense"><p class="sense-zh">把坏情绪甩掉</p><button class="ex say" type="button" data-start-f="119.136" data-end-f="123.360" data-start-m="94.584" data-end-m="97.848"><span class="txt">I can&#x27;t shake off this feeling that I forgot something.</span><span class="zh">我总有种忘了什么的感觉甩不掉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>shake off 是甩掉，不是摇一摇（shake）。</p><p class="colloc"><b>搭配</b>shake off a bad mood · shake it off</p><p class="confuse"><b>易混</b>get over · brush off</p></div></article>
+      <article class="entry" id="weigh-on" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="123.360" data-end-f="124.608" data-start-m="97.848" data-end-m="99.192"><span class="w">weigh on</span><span class="ipa">/ˈweɪ ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">压在心上</p><div class="senses"><div class="sense"><p class="sense-zh">心事让人沉重</p><button class="ex say" type="button" data-start-f="124.608" data-end-f="127.464" data-start-m="99.192" data-end-m="101.736"><span class="txt">The debt has been weighing on him for months.</span><span class="zh">这笔债压了他好几个月。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>压在心上的是 weigh on；不是 heavy on the heart（中式）。</p><p class="colloc"><b>搭配</b>weigh on someone&#x27;s mind · the worry weighed on her</p><p class="confuse"><b>易混</b>get down · eat at</p></div></article>
+  </section>
+  <p class="status" data-audio-status></p>
+</main>
+<script id="spriteMap" type="application/json">{"f":"sprites/59c9069ccb30.mp3","m":"sprites/fc21e166f9f5.mp3"}</script>
+<script>
+(function () {
+  var KEY_VOICE = 'pv-voice';
+  var KEY_SPEED = 'pv-speed', KEY_ZH = 'pv-zh';
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.say'));
+  var current = null, playlist = null, statusTimer = null;
+  var stickyStatus = false;
+  var raf = 0, loadedSrc = null;
+  var SOURCES = {}, READY = {};
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
+
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  function waitForData(el, seek, from, attempt) {
+    if (current !== el) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(el); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(el, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    var retries = 0;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      if (player.currentTime < from - 0.15) {
+        if (++retries > 3) { audioFailed(el); return; }
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      hideStatus();
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var onSeeked = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      }, 1500);
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  // Cloudflare Pages 的静态资源不支持 Range，媒体元素 seekable 只有 [0,0]，
+  // 点后面的句子会被夹回开头。先把整条 sprite 取进内存换成 blob 地址。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
+    }
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(el, onEnd) {
+    var span = spanFor(el);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === el) unmark();
+      showStatus('这一条暂无语音');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== el) return;
+      if (!src) { audioFailed(el); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(el, span, onEnd);
+    });
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    hideStatus();
+    unmark();
+  }
+
+  function showStatus(text, sticky) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    stickyStatus = !!sticky;
+    if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
+    statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    if (!spanFor(el)) { audioFailed(el); return; }
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var list = playlist;
+    begin(el, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    current = el;
+    el.classList.add('playing');
+    begin(el, null);
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+    if (document.readyState === 'complete') prefetch();
+  }
+
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.say');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
+  }
+})();
+</script>
+</body>
+</html>

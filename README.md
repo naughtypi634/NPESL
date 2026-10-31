@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站。五个应用共用一个入口：
+成人英语练习网站。六个应用共用一个入口：
 
 | 应用 | 线上 | 源 |
 |---|---|---|
@@ -9,6 +9,7 @@
 | Question Drill 中译英随机练习 | https://npesl.pages.dev/drill/ | `apps/drill/` |
 | Conversation Starters A1–C2 + ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `build/conversation-site/` |
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
+| 短语动词 Phrasal Verbs 12 章 | https://npesl.pages.dev/phrasal/ | `content/phrasal/` → `apps/phrasal/` |
 
 另有一个微信小程序（自然拼读 48 课 + Question Drill）：`apps/phonics/miniprogram/`。
 
@@ -21,11 +22,13 @@
 | `content/phonetics/` | 音标表 Markdown 源 + 成品 PDF（网页从 PDF 抽内嵌录音） |
 | `content/conversation/` | Conversation Starters 分级 `content.py`、逐段中文翻译、发音标注 |
 | `content/drill/` | Question Drill 题库：`raw/` `reviewed/` `final/` 批次、`questions.json`、翻译与修订表 |
+| `content/phrasal/` | 短语动词：`chapters.json` + 每章一个词条 JSON（内容源） |
 | `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Bright / Dark / Sepia / Auto） |
 | `apps/phonics/` | 48 课网页、`source/`（内容与构建器）、`audio/`、微信小程序 |
 | `apps/ipa/` | 音标表网页（`index.html` + `audio/`），40 个音标 × 10 个单词 |
 | `apps/drill/` | 中译英练习网页（`index.html` + `audio/f,m/`）与独立单文件 HTML |
 | `apps/phenomena/` | 30 章发音现象课，逐词音素标注 + 男女声 |
+| `apps/phrasal/` | 短语动词章节页（`source/` 构建器 + `audio/`），每章一条 sprite |
 | `tools/` | 构建、部署、校验脚本；`tools/paths.py` 是路径的唯一来源 |
 | `tools/audio_sprite.py` | 把逐条录音拼成每页/每课/每题一条（不改码率，音质不变） |
 | `tools/conversation/` | Conversation Starters 页面与语音构建器 |
@@ -55,6 +58,10 @@ cd apps\phonics\source
 # 常见发音现象 30 章
 cd apps\phenomena\source
 ..\..\..\.venv\Scripts\python.exe -I -X utf8 build.py
+
+# 短语动词：校验内容，再合成音频并出章节页
+.venv\Scripts\python.exe -I apps\phrasal\source\validate.py
+.venv\Scripts\python.exe -I apps\phrasal\source\build.py
 
 # Conversation Starters：页面 + 全部级别男女两套语音（缓存命中就不重新合成）
 .venv\Scripts\python.exe -I tools\conversation\build_site.py
@@ -107,7 +114,7 @@ npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npe
 .venv\Scripts\python.exe -I tools\audit_build.py --label before
 .venv\Scripts\python.exe -I tools\audit_build.py --diff before now
 
-# 五个应用的无头浏览器冒烟测试
+# 六个应用的无头浏览器冒烟测试
 node tests\smoke.mjs
 
 # 英式英语检查
@@ -117,5 +124,5 @@ node tests\smoke.mjs
 ## 路径约定
 
 - **构建都从库根目录运行**；`tools/paths.py` 集中了所有路径常量，搬目录只改它。
-- 页面里的站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`），源目录本身不是可直接预览的站点；要看效果先跑 `build_cloudflare_site.py` 或 `build_offline_package.py`。
+- 页面里的站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`、`/phrasal/`），源目录本身不是可直接预览的站点；要看效果先跑 `build_cloudflare_site.py` 或 `build_offline_package.py`。
 - 语音地址：A1–C2 用 `https://npesl-audio.pages.dev/audio/`，ESLSE 用相对的 `audio/`。离线包会把音频站地址改回相对路径。

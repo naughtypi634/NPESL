@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Asking for directions · 短语动词</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --on-accent:var(--on-blue, #ffffff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  /* 只有站点主题脚本没跑起来（没有 data-theme）时才按系统深色兜底。
+     一旦 data-theme 存在，配色全部交给站点主题样式表 —— 否则用户选了亮色主题，
+     这里的深色变量仍会生效，出现黑字压黑底。
+     注意：本文件不能出现站点主题文件的文件名，构建脚本靠这个字符串判断
+     “页面已经自带主题”，误判会整页跳过主题注入（切换按钮也会消失）。 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) { --bg:#000000; --fg:#f5f5f7; --muted:#98989d;
+      --rule:#2c2c2e; --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+  .intro { margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.6; }
+  .legend { margin:14px 0 0; padding:12px 14px; border-radius:14px;
+    background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7; }
+  .legend b { color:var(--fg); font-weight:600; }
+  .legend code { color:var(--accent); font-family:inherit; font-size:15px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:var(--on-accent); }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { width:118px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .entries { margin-top:6px; }
+  .entry, .senses, .sense { min-width:0; }
+  .entry { padding:26px 0 22px; border-bottom:1px solid var(--rule); }
+  .entry-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .head { display:inline-flex; align-items:baseline; gap:10px; appearance:none;
+    border:0; background:transparent; color:inherit; font:inherit; padding:2px 4px;
+    border-radius:10px; cursor:pointer; text-align:left; }
+  .head:hover { background:var(--surface); }
+  .head .w { font-size:24px; font-weight:700; letter-spacing:-0.02em; }
+  .head .ipa { color:var(--muted); font-size:14px; }
+  .head .play, .ex .play { font-size:0.62em; color:var(--muted); }
+  .head.playing { background:var(--tint); }
+  .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
+
+  .senses { margin-top:12px; display:grid; gap:10px; }
+  .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted);
+    letter-spacing:0.02em; }
+  /* button 的 UA 样式不换行，一句长例句会把整页撑宽 */
+  .head, .ex { white-space:normal; overflow-wrap:anywhere; }
+  .ex { display:block; width:100%; text-align:left; font:inherit; color:inherit;
+    background:var(--surface); border:0; border-radius:16px; padding:12px 14px;
+    cursor:pointer; transition:background-color .12s ease; }
+  .ex:hover { background:var(--tint); }
+  .ex.playing { background:var(--tint); }
+  .ex .txt { display:block; font-size:17px; line-height:1.55; }
+  .ex .zh { display:block; margin-top:4px; color:var(--muted); font-size:13px;
+    line-height:1.45; }
+
+  /* 背景只用主题自己的 surface 变量，文字用 --fg，任何主题都保证对比度 */
+  .note-card { margin-top:14px; padding:14px 16px; border-radius:16px;
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    border:1px solid var(--rule); border-left:3px solid var(--accent);
+    display:grid; gap:10px; }
+  .note-card p { margin:0; font-size:14px; line-height:1.65; color:var(--fg); }
+  .note-card p b { display:inline-block; margin-right:8px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+
+  body.zh-off .zh, body.zh-off .zh-line, body.zh-off .sense-zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .head .w { font-size:21px; }
+    .ex .txt { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">短语动词</a>
+  <header>
+    <h1>Asking for directions</h1>
+    <p class="title-zh">问路</p>
+    <p class="intro">怎么走、往哪拐、走错了怎么退回来。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="entries">
+      <article class="entry" id="head-for" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="0.000" data-end-f="1.248" data-start-m="0.000" data-end-m="0.768"><span class="w">head for</span><span class="ipa">/ˈhɛd fɔr/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">朝……去、前往</p><div class="senses"><div class="sense"><p class="sense-zh">往某个方向走</p><button class="ex say" type="button" data-start-f="1.248" data-end-f="5.376" data-start-m="0.768" data-end-m="3.792"><span class="txt">Let&#x27;s head for the gate — boarding starts in ten minutes.</span><span class="zh">我们去登机口吧，十分钟后开始登机。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>中文“去机场”直译成 go to the airport 没错，但口语里 head for 更像“出发往那边走”。</p><p class="colloc"><b>搭配</b>head for the exit · head for home · head downtown</p><p class="confuse"><b>易混</b>head to · leave for</p></div></article>
+      <article class="entry" id="end-up" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="5.376" data-end-f="14.400" data-start-m="3.792" data-end-m="4.320"><span class="w">end up</span><span class="ipa">/ˈɛnd ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">最后落到、结果变成</p><div class="senses"><div class="sense"><p class="sense-zh">意外到了某处</p><button class="ex say" type="button" data-start-f="14.400" data-end-f="17.568" data-start-m="4.320" data-end-m="7.488"><span class="txt">We took the wrong exit and ended up in a parking lot.</span><span class="zh">我们出错了口，最后开进了一个停车场。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>中文“结果”常被译成 as a result，口语里 end up 更自然，而且后面直接跟地点或 doing。</p><p class="colloc"><b>搭配</b>end up doing something · end up in the wrong place</p><p class="confuse"><b>易混</b>turn out · wind up</p></div></article>
+      <article class="entry" id="turn-around" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="17.568" data-end-f="18.744" data-start-m="7.488" data-end-m="8.664"><span class="w">turn around</span><span class="ipa">/ˈtɝn əˈraʊnd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">掉头；扭转局面</p><div class="senses"><div class="sense"><p class="sense-zh">车掉头</p><button class="ex say" type="button" data-start-f="18.744" data-end-f="22.488" data-start-m="8.664" data-end-m="11.928"><span class="txt">You missed the turn — just turn around at the next light.</span><span class="zh">你错过路口了，下个红绿灯掉头就行。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>掉头是 turn around；turn back 是折返不去了。</p><p class="colloc"><b>搭配</b>turn around the car · turn things around</p><p class="confuse"><b>易混</b>turn back · turn over</p></div></article>
+      <article class="entry" id="turn-onto" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="22.488" data-end-f="24.552" data-start-m="11.928" data-end-m="13.344"><span class="w">turn onto</span><span class="ipa">/ˈtɝn ˈɑntu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">拐上（某条路）</p><div class="senses"><div class="sense"><p class="sense-zh">转进另一条街</p><button class="ex say" type="button" data-start-f="24.552" data-end-f="29.400" data-start-m="13.344" data-end-m="16.512"><span class="txt">Turn onto the side street after the bank and you&#x27;ll see the gate.</span><span class="zh">过了银行拐进小路就能看到大门。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>拐上某条路是 turn onto，不是 turn to（转向某人）。</p><p class="colloc"><b>搭配</b>turn onto a side street · turn onto the highway</p><p class="confuse"><b>易混</b>turn off · turn into</p></div></article>
+      <article class="entry" id="veer-off" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="29.400" data-end-f="31.056" data-start-m="16.512" data-end-m="17.208"><span class="w">veer off</span><span class="ipa">/ˈvɪr ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">偏离、岔出去</p><div class="senses"><div class="sense"><p class="sense-zh">突然偏离路线</p><button class="ex say" type="button" data-start-f="31.056" data-end-f="33.984" data-start-m="17.208" data-end-m="20.136"><span class="txt">The bike veered off the path and into the grass.</span><span class="zh">自行车一下偏离小路冲进草地。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>veer off 是突然偏离，不是慢慢转（turn）。</p><p class="colloc"><b>搭配</b>veer off the road · veer off course</p><p class="confuse"><b>易混</b>turn off · go off</p></div></article>
+      <article class="entry" id="get-to" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="33.984" data-end-f="35.088" data-start-m="20.136" data-end-m="20.664"><span class="w">get to</span><span class="ipa">/ˈɡɛt tu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">到达</p><div class="senses"><div class="sense"><p class="sense-zh">抵达某地</p><button class="ex say" type="button" data-start-f="35.088" data-end-f="37.944" data-start-m="20.664" data-end-m="22.968"><span class="txt">How do I get to the nearest subway station?</span><span class="zh">最近的地铁站怎么走？</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>到达是 get to，不是 get（少了 to）；home 例外：get home。</p><p class="colloc"><b>搭配</b>get to the station · get to work</p><p class="confuse"><b>易混</b>arrive at · reach</p></div></article>
+      <article class="entry" id="get-lost" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="37.944" data-end-f="39.048" data-start-m="22.968" data-end-m="23.904"><span class="w">get lost</span><span class="ipa">/ˈɡɛt lɔst/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">迷路</p><div class="senses"><div class="sense"><p class="sense-zh">找不到方向</p><button class="ex say" type="button" data-start-f="39.048" data-end-f="42.456" data-start-m="23.904" data-end-m="27.552"><span class="txt">We got lost three times before we found the hotel.</span><span class="zh">我们迷路三次才找到酒店。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>迷路是 get lost，不是 lose the way（中式）。</p><p class="colloc"><b>搭配</b>get lost on the way · get completely lost</p><p class="confuse"><b>易混</b>lose track · go wrong</p></div></article>
+      <article class="entry" id="double-back" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="42.456" data-end-f="43.224" data-start-m="27.552" data-end-m="28.320"><span class="w">double back</span><span class="ipa">/ˈdʌbəl bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">原路折返</p><div class="senses"><div class="sense"><p class="sense-zh">沿原路往回走</p><button class="ex say" type="button" data-start-f="43.224" data-end-f="46.560" data-start-m="28.320" data-end-m="30.864"><span class="txt">We doubled back to the corner where we saw the sign.</span><span class="zh">我们原路折回看到指示牌的那个路口。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>double back 是原路返回找东西，不是 turn around（掉头）。</p><p class="colloc"><b>搭配</b>double back to the corner · double back on the same road</p><p class="confuse"><b>易混</b>turn back · turn around</p></div></article>
+      <article class="entry" id="cut-through" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="46.560" data-end-f="47.808" data-start-m="30.864" data-end-m="31.968"><span class="w">cut through</span><span class="ipa">/ˈkʌt θru/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">穿过（抄近路）</p><div class="senses"><div class="sense"><p class="sense-zh">从中间穿过去</p><button class="ex say" type="button" data-start-f="47.808" data-end-f="51.144" data-start-m="31.968" data-end-m="34.824"><span class="txt">Let&#x27;s cut through the mall — it&#x27;s faster than the crosswalk.</span><span class="zh">从商场穿过去吧，比走人行横道快。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>抄近路穿过是 cut through，不是 cut across（横穿）。</p><p class="colloc"><b>搭配</b>cut through the park · cut through the alley</p><p class="confuse"><b>易混</b>cut across · go through</p></div></article>
+      <article class="entry" id="cut-across" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="51.144" data-end-f="52.632" data-start-m="34.824" data-end-m="35.832"><span class="w">cut across</span><span class="ipa">/ˈkʌt əˈkrɔs/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">横穿（空地）</p><div class="senses"><div class="sense"><p class="sense-zh">从一片区域斜穿过去</p><button class="ex say" type="button" data-start-f="52.632" data-end-f="56.616" data-start-m="35.832" data-end-m="38.688"><span class="txt">Don&#x27;t cut across the lawn — there&#x27;s a path on the left.</span><span class="zh">别横穿草坪，左边有路。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>cut across 是横穿一片区域；穿建筑走近路是 cut through。</p><p class="colloc"><b>搭配</b>cut across the field · cut across the parking lot</p><p class="confuse"><b>易混</b>cut through · cross over</p></div></article>
+      <article class="entry" id="walk-down" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="56.616" data-end-f="57.792" data-start-m="38.688" data-end-m="39.552"><span class="w">walk down</span><span class="ipa">/ˈwɔk daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">沿着……走</p><div class="senses"><div class="sense"><p class="sense-zh">沿街往前走</p><button class="ex say" type="button" data-start-f="57.792" data-end-f="62.736" data-start-m="39.552" data-end-m="42.336"><span class="txt">Walk down this street for two blocks and turn right.</span><span class="zh">沿这条街走两个路口再右转。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>沿着街走是 walk down / walk along，不是 walk on。</p><p class="colloc"><b>搭配</b>walk down the street · walk down the hall</p><p class="confuse"><b>易混</b>go along · walk up</p></div></article>
+      <article class="entry" id="go-past" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="62.736" data-end-f="63.504" data-start-m="42.336" data-end-m="43.104"><span class="w">go past</span><span class="ipa">/ˈɡoʊ pæst/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">经过、走过</p><div class="senses"><div class="sense"><p class="sense-zh">路过某处</p><button class="ex say" type="button" data-start-f="63.504" data-end-f="67.872" data-start-m="43.104" data-end-m="45.792"><span class="txt">Go past the pharmacy and the building is on your left.</span><span class="zh">走过药店，楼就在你左手边。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>经过是 go past，不是 pass by 才能用；两个都常见。</p><p class="colloc"><b>搭配</b>go past the bank · go past the lights</p><p class="confuse"><b>易混</b>pass by · go by</p></div></article>
+      <article class="entry" id="go-along" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="67.872" data-end-f="68.976" data-start-m="45.792" data-end-m="46.560"><span class="w">go along</span><span class="ipa">/ˈɡoʊ əˈlɔŋ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">沿着……走</p><div class="senses"><div class="sense"><p class="sense-zh">顺着一条路前进</p><button class="ex say" type="button" data-start-f="68.976" data-end-f="72.072" data-start-m="46.560" data-end-m="49.104"><span class="txt">Go along this road until you hit the river.</span><span class="zh">沿这条路一直走到河边。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>go along 是沿路走；go along with 是同意、配合。</p><p class="colloc"><b>搭配</b>go along the river · go along this road</p><p class="confuse"><b>易混</b>walk down · go along with</p></div></article>
+      <article class="entry" id="come-to" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="72.072" data-end-f="73.080" data-start-m="49.104" data-end-m="49.728"><span class="w">come to</span><span class="ipa">/ˈkʌm tu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">走到（路口、岔口）</p><div class="senses"><div class="sense"><p class="sense-zh">行进中到达某处</p><button class="ex say" type="button" data-start-f="73.080" data-end-f="75.864" data-start-m="49.728" data-end-m="52.272"><span class="txt">When you come to a fork, keep left.</span><span class="zh">走到岔路口时走左边。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>come to 是走到；come to 还有“醒来、合计”的意思。</p><p class="colloc"><b>搭配</b>come to a junction · come to a stop</p><p class="confuse"><b>易混</b>get to · come up to</p></div></article>
+      <article class="entry" id="cross-over" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="75.864" data-end-f="77.112" data-start-m="52.272" data-end-m="53.928"><span class="w">cross over</span><span class="ipa">/ˈkrɔs ˈoʊvər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">走到对面</p><div class="senses"><div class="sense"><p class="sense-zh">过马路到另一边</p><button class="ex say" type="button" data-start-f="77.112" data-end-f="80.760" data-start-m="53.928" data-end-m="57.096"><span class="txt">Cross over at the lights and the exit is right there.</span><span class="zh">在红绿灯过到对面就是出口。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>过到对面是 cross over；cross 单独也可，但 over 更明确。</p><p class="colloc"><b>搭配</b>cross over the street · cross over at the lights</p><p class="confuse"><b>易混</b>cross · go across</p></div></article>
+      <article class="entry" id="point-out" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="80.760" data-end-f="81.696" data-start-m="57.096" data-end-m="58.272"><span class="w">point out</span><span class="ipa">/ˈpɔɪnt aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">指出来（方向、地标）</p><div class="senses"><div class="sense"><p class="sense-zh">指着告诉别人</p><button class="ex say" type="button" data-start-f="81.696" data-end-f="84.240" data-start-m="58.272" data-end-m="60.576"><span class="txt">He pointed out the building behind the trees.</span><span class="zh">他指了指树后面的那栋楼。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>指出是 point out，不是 point（指一下）。</p><p class="colloc"><b>搭配</b>point out the exit · point it out</p><p class="confuse"><b>易混</b>show · call out</p></div></article>
+      <article class="entry" id="look-for" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="84.240" data-end-f="85.176" data-start-m="60.576" data-end-m="61.992"><span class="w">look for</span><span class="ipa">/ˈlʊk fɔr/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">寻找</p><div class="senses"><div class="sense"><p class="sense-zh">找路或找地方</p><button class="ex say" type="button" data-start-f="85.176" data-end-f="87.792" data-start-m="61.992" data-end-m="64.368"><span class="txt">I&#x27;m looking for the entrance to the parking lot.</span><span class="zh">我在找停车场的入口。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>找东西是 look for；找到是 find。中文一个“找”对应两个词。</p><p class="colloc"><b>搭配</b>look for the exit · look for a sign</p><p class="confuse"><b>易混</b>find · search for</p></div></article>
+      <article class="entry" id="ask-for" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="87.792" data-end-f="88.896" data-start-m="64.368" data-end-m="65.136"><span class="w">ask for</span><span class="ipa">/ˈæsk fɔr/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">询问（要某物）</p><div class="senses"><div class="sense"><p class="sense-zh">开口问路或要东西</p><button class="ex say" type="button" data-start-f="88.896" data-end-f="92.544" data-start-m="65.136" data-end-m="68.160"><span class="txt">Ask for the north exit — the south one is closed.</span><span class="zh">问北出口，南边那个关了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>问路是 ask for directions；ask about 是问情况。</p><p class="colloc"><b>搭配</b>ask for directions · ask for the way</p><p class="confuse"><b>易混</b>ask about · ask around</p></div></article>
+      <article class="entry" id="ask-around" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="92.544" data-end-f="94.200" data-start-m="68.160" data-end-m="69.096"><span class="w">ask around</span><span class="ipa">/ˈæsk əˈraʊnd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">四处打听</p><div class="senses"><div class="sense"><p class="sense-zh">问几个人</p><button class="ex say" type="button" data-start-f="94.200" data-end-f="100.008" data-start-m="69.096" data-end-m="74.184"><span class="txt">I asked around and someone said the bus stops behind the mall.</span><span class="zh">我问了几个人，有人说公交站在商场后面。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>四处打听是 ask around，不是 ask everywhere（中式）。</p><p class="colloc"><b>搭配</b>ask around for directions · ask around the neighborhood</p><p class="confuse"><b>易混</b>ask for · find out</p></div></article>
+      <article class="entry" id="work-out" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="100.008" data-end-f="101.256" data-start-m="74.184" data-end-m="74.808"><span class="w">work out</span><span class="ipa">/ˈwɝrk aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">搞清楚（路线、办法）</p><div class="senses"><div class="sense"><p class="sense-zh">想明白怎么走</p><button class="ex say" type="button" data-start-f="101.256" data-end-f="104.352" data-start-m="74.808" data-end-m="77.352"><span class="txt">We finally worked out which exit to take.</span><span class="zh">我们终于搞清楚该走哪个出口。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>work out 也指健身；这里是“想明白”。</p><p class="colloc"><b>搭配</b>work out the route · work it out</p><p class="confuse"><b>易混</b>figure out · work on</p></div></article>
+      <article class="entry" id="wind-up" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="104.352" data-end-f="105.216" data-start-m="77.352" data-end-m="78.288"><span class="w">wind up</span><span class="ipa">/ˈwaɪnd ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">最终走到（某处）</p><div class="senses"><div class="sense"><p class="sense-zh">绕来绕去最后到了</p><button class="ex say" type="button" data-start-f="105.216" data-end-f="109.584" data-start-m="78.288" data-end-m="81.456"><span class="txt">We took three wrong turns and wound up at the airport.</span><span class="zh">我们走错三次，最后绕到了机场。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>wind up 是“最后落在”，和 end up 同义；wind up 也指结束。</p><p class="colloc"><b>搭配</b>wind up somewhere · wind up at the wrong place</p><p class="confuse"><b>易混</b>end up · turn up</p></div></article>
+      <article class="entry" id="lead-to" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="109.584" data-end-f="111.168" data-start-m="81.456" data-end-m="82.320"><span class="w">lead to</span><span class="ipa">/ˈlid tu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">通向</p><div class="senses"><div class="sense"><p class="sense-zh">一条路通往某处</p><button class="ex say" type="button" data-start-f="111.168" data-end-f="114.192" data-start-m="82.320" data-end-m="84.864"><span class="txt">This corridor leads to the east exit.</span><span class="zh">这条走廊通向东西出口。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>lead to 是通向，也指导致结果；lead on 是误导。</p><p class="colloc"><b>搭配</b>lead to the exit · lead to the platform</p><p class="confuse"><b>易混</b>open onto · go to</p></div></article>
+      <article class="entry" id="open-onto" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="114.192" data-end-f="115.368" data-start-m="84.864" data-end-m="85.872"><span class="w">open onto</span><span class="ipa">/ˈoʊpən ˈɑntu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">（门、窗）通向</p><div class="senses"><div class="sense"><p class="sense-zh">一开门就是某处</p><button class="ex say" type="button" data-start-f="115.368" data-end-f="119.736" data-start-m="85.872" data-end-m="88.488"><span class="txt">The back door opens onto a small courtyard.</span><span class="zh">后门一开就是个小院子。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>门通向某处是 open onto，不是 open to（那是“对……开放”）。</p><p class="colloc"><b>搭配</b>open onto a courtyard · open onto the street</p><p class="confuse"><b>易混</b>lead to · open up</p></div></article>
+      <article class="entry" id="head-back" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="119.736" data-end-f="120.600" data-start-m="88.488" data-end-m="89.184"><span class="w">head back</span><span class="ipa">/ˈhɛd bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">往回走</p><div class="senses"><div class="sense"><p class="sense-zh">掉头回原处</p><button class="ex say" type="button" data-start-f="120.600" data-end-f="123.624" data-start-m="89.184" data-end-m="92.592"><span class="txt">We missed the turn, so we headed back to the intersection.</span><span class="zh">我们错过路口，只好往回走到十字路口。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>往回走是 head back；head for 是前往。</p><p class="colloc"><b>搭配</b>head back home · head back to the station</p><p class="confuse"><b>易混</b>head for · turn back</p></div></article>
+      <article class="entry" id="turn-back" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="123.624" data-end-f="124.728" data-start-m="92.592" data-end-m="93.456"><span class="w">turn back</span><span class="ipa">/ˈtɝn bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">折返（不去了）</p><div class="senses"><div class="sense"><p class="sense-zh">中途返回</p><button class="ex say" type="button" data-start-f="124.728" data-end-f="127.512" data-start-m="93.456" data-end-m="95.664"><span class="txt">The road was flooded, so we turned back.</span><span class="zh">路被淹了，我们就折返了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>turn back 是放弃前进往回走；turn around 是掉头后继续走。</p><p class="colloc"><b>搭配</b>turn back halfway · turn back at the bridge</p><p class="confuse"><b>易混</b>turn around · head back</p></div></article>
+      <article class="entry" id="pull-in" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="127.512" data-end-f="128.448" data-start-m="95.664" data-end-m="96.432"><span class="w">pull in</span><span class="ipa">/ˈpʊl ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">拐进（车位、路边）</p><div class="senses"><div class="sense"><p class="sense-zh">把车开进某处</p><button class="ex say" type="button" data-start-f="128.448" data-end-f="132.912" data-start-m="96.432" data-end-m="99.216"><span class="txt">Pull in at the next gas station — I need a bathroom.</span><span class="zh">下个加油站拐进去，我要上厕所。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>pull in 是拐进去停；pull over 是靠边停。</p><p class="colloc"><b>搭配</b>pull in to the parking lot · pull in at the station</p><p class="confuse"><b>易混</b>pull over · pull up</p></div></article>
+      <article class="entry" id="pull-out" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="132.912" data-end-f="134.256" data-start-m="99.216" data-end-m="99.744"><span class="w">pull out</span><span class="ipa">/ˈpʊl aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">驶出、开出</p><div class="senses"><div class="sense"><p class="sense-zh">从车位或路口开出来</p><button class="ex say" type="button" data-start-f="134.256" data-end-f="137.040" data-start-m="99.744" data-end-m="101.952"><span class="txt">A car pulled out right in front of me.</span><span class="zh">一辆车突然从我前面开出来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>pull out 是驶出；pull out of 也指退出（交易）。</p><p class="colloc"><b>搭配</b>pull out of the driveway · pull out into traffic</p><p class="confuse"><b>易混</b>pull in · back out</p></div></article>
+      <article class="entry" id="go-by" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="137.040" data-end-f="138.288" data-start-m="101.952" data-end-m="102.648"><span class="w">go by</span><span class="ipa">/ˈɡoʊ baɪ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">路过</p><div class="senses"><div class="sense"><p class="sense-zh">从旁边经过</p><button class="ex say" type="button" data-start-f="138.288" data-end-f="141.216" data-start-m="102.648" data-end-m="104.784"><span class="txt">We went by the old market on the way here.</span><span class="zh">来的路上我们路过了老市场。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>go by 也指“按……判断”，比如 go by the map。</p><p class="colloc"><b>搭配</b>go by the bank · go by the park</p><p class="confuse"><b>易混</b>pass by · go past</p></div></article>
+      <article class="entry" id="pass-by" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="141.216" data-end-f="142.632" data-start-m="104.784" data-end-m="106.368"><span class="w">pass by</span><span class="ipa">/ˈpæs baɪ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">从旁边经过</p><div class="senses"><div class="sense"><p class="sense-zh">走过某处</p><button class="ex say" type="button" data-start-f="142.632" data-end-f="145.416" data-start-m="106.368" data-end-m="108.984"><span class="txt">You&#x27;ll pass by a school before you see the bridge.</span><span class="zh">你会先经过一所学校，然后才看到桥。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>pass by 是经过；pass by 也可指时间流逝。</p><p class="colloc"><b>搭配</b>pass by the school · pass by the river</p><p class="confuse"><b>易混</b>go by · go past</p></div></article>
+      <article class="entry" id="come-up-to" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="145.416" data-end-f="146.592" data-start-m="108.984" data-end-m="109.920"><span class="w">come up to</span><span class="ipa">/ˈkʌm ʌp tu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">走到跟前</p><div class="senses"><div class="sense"><p class="sense-zh">靠近某人或某处</p><button class="ex say" type="button" data-start-f="146.592" data-end-f="151.776" data-start-m="109.920" data-end-m="112.536"><span class="txt">A guy came up to me and asked if I was lost.</span><span class="zh">一个小伙子走过来问我是不是迷路了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>走到跟前是 come up to；come up 是出现、临近。</p><p class="colloc"><b>搭配</b>come up to someone · come up to the counter</p><p class="confuse"><b>易混</b>come to · come across</p></div></article>
+  </section>
+  <p class="status" data-audio-status></p>
+</main>
+<script id="spriteMap" type="application/json">{"f":"sprites/abe1c851f49b.mp3","m":"sprites/639f06556892.mp3"}</script>
+<script>
+(function () {
+  var KEY_VOICE = 'pv-voice';
+  var KEY_SPEED = 'pv-speed', KEY_ZH = 'pv-zh';
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.say'));
+  var current = null, playlist = null, statusTimer = null;
+  var stickyStatus = false;
+  var raf = 0, loadedSrc = null;
+  var SOURCES = {}, READY = {};
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
+
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  function waitForData(el, seek, from, attempt) {
+    if (current !== el) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(el); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(el, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    var retries = 0;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      if (player.currentTime < from - 0.15) {
+        if (++retries > 3) { audioFailed(el); return; }
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      hideStatus();
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var onSeeked = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      }, 1500);
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  // Cloudflare Pages 的静态资源不支持 Range，媒体元素 seekable 只有 [0,0]，
+  // 点后面的句子会被夹回开头。先把整条 sprite 取进内存换成 blob 地址。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
+    }
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(el, onEnd) {
+    var span = spanFor(el);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === el) unmark();
+      showStatus('这一条暂无语音');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== el) return;
+      if (!src) { audioFailed(el); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(el, span, onEnd);
+    });
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    hideStatus();
+    unmark();
+  }
+
+  function showStatus(text, sticky) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    stickyStatus = !!sticky;
+    if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
+    statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    if (!spanFor(el)) { audioFailed(el); return; }
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var list = playlist;
+    begin(el, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    current = el;
+    el.classList.add('playing');
+    begin(el, null);
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+    if (document.readyState === 'complete') prefetch();
+  }
+
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.say');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
+  }
+})();
+</script>
+</body>
+</html>

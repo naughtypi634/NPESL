@@ -3,7 +3,7 @@
 
     NPESL/
       content/   内容源（Markdown、题库批次 JSON）
-      apps/      五个应用（页面、音频、源、小程序）
+      apps/      六个应用（页面、音频、源、小程序）
       tools/     构建、部署、校验脚本
       build/     暂存产物（gitignore）
 
@@ -29,6 +29,7 @@ PHONETICS_MD = CONTENT / "phonetics" / "Pronunciation音标表.md"
 PHONETICS_PDF = CONTENT / "phonetics" / "Pronunciation音标表.pdf"
 CONVERSATION_CONTENT = CONTENT / "conversation"
 DRILL_CONTENT = CONTENT / "drill"
+PHRASAL_CONTENT = CONTENT / "phrasal"
 
 # ---- 应用 ----
 SITE_APP = APPS / "site"
@@ -36,6 +37,7 @@ PHONICS_APP = APPS / "phonics"
 IPA_APP = APPS / "ipa"
 DRILL_APP = APPS / "drill"
 PHENOMENA_APP = APPS / "phenomena"
+PHRASAL_APP = APPS / "phrasal"
 
 # ---- 暂存产物（gitignore）----
 SITE_OUT = BUILD / "cloudflare-site"

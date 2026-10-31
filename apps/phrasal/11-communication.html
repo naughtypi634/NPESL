@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Communication · 短语动词</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --on-accent:var(--on-blue, #ffffff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  /* 只有站点主题脚本没跑起来（没有 data-theme）时才按系统深色兜底。
+     一旦 data-theme 存在，配色全部交给站点主题样式表 —— 否则用户选了亮色主题，
+     这里的深色变量仍会生效，出现黑字压黑底。
+     注意：本文件不能出现站点主题文件的文件名，构建脚本靠这个字符串判断
+     “页面已经自带主题”，误判会整页跳过主题注入（切换按钮也会消失）。 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) { --bg:#000000; --fg:#f5f5f7; --muted:#98989d;
+      --rule:#2c2c2e; --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+  .intro { margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.6; }
+  .legend { margin:14px 0 0; padding:12px 14px; border-radius:14px;
+    background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7; }
+  .legend b { color:var(--fg); font-weight:600; }
+  .legend code { color:var(--accent); font-family:inherit; font-size:15px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:var(--on-accent); }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { width:118px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .entries { margin-top:6px; }
+  .entry, .senses, .sense { min-width:0; }
+  .entry { padding:26px 0 22px; border-bottom:1px solid var(--rule); }
+  .entry-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .head { display:inline-flex; align-items:baseline; gap:10px; appearance:none;
+    border:0; background:transparent; color:inherit; font:inherit; padding:2px 4px;
+    border-radius:10px; cursor:pointer; text-align:left; }
+  .head:hover { background:var(--surface); }
+  .head .w { font-size:24px; font-weight:700; letter-spacing:-0.02em; }
+  .head .ipa { color:var(--muted); font-size:14px; }
+  .head .play, .ex .play { font-size:0.62em; color:var(--muted); }
+  .head.playing { background:var(--tint); }
+  .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
+
+  .senses { margin-top:12px; display:grid; gap:10px; }
+  .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted);
+    letter-spacing:0.02em; }
+  /* button 的 UA 样式不换行，一句长例句会把整页撑宽 */
+  .head, .ex { white-space:normal; overflow-wrap:anywhere; }
+  .ex { display:block; width:100%; text-align:left; font:inherit; color:inherit;
+    background:var(--surface); border:0; border-radius:16px; padding:12px 14px;
+    cursor:pointer; transition:background-color .12s ease; }
+  .ex:hover { background:var(--tint); }
+  .ex.playing { background:var(--tint); }
+  .ex .txt { display:block; font-size:17px; line-height:1.55; }
+  .ex .zh { display:block; margin-top:4px; color:var(--muted); font-size:13px;
+    line-height:1.45; }
+
+  /* 背景只用主题自己的 surface 变量，文字用 --fg，任何主题都保证对比度 */
+  .note-card { margin-top:14px; padding:14px 16px; border-radius:16px;
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    border:1px solid var(--rule); border-left:3px solid var(--accent);
+    display:grid; gap:10px; }
+  .note-card p { margin:0; font-size:14px; line-height:1.65; color:var(--fg); }
+  .note-card p b { display:inline-block; margin-right:8px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+
+  body.zh-off .zh, body.zh-off .zh-line, body.zh-off .sense-zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .head .w { font-size:21px; }
+    .ex .txt { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">短语动词</a>
+  <header>
+    <h1>Communication</h1>
+    <p class="title-zh">沟通</p>
+    <p class="intro">把话说清楚、把事交代下去、把误会解开。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="entries">
+      <article class="entry" id="follow-up" data-chip="clients"><header class="entry-head"><button class="head say" type="button" data-start-f="0.000" data-end-f="0.768" data-start-m="0.000" data-end-m="0.624"><span class="w">follow up</span><span class="ipa">/ˈfɑloʊ ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">跟进、后续联系</p><div class="senses"><div class="sense"><p class="sense-zh">过一段时间再联系推进</p><button class="ex say" type="button" data-start-f="0.768" data-end-f="3.144" data-start-m="0.624" data-end-m="2.832"><span class="txt">I&#x27;ll follow up with the client on Monday.</span><span class="zh">我周一再跟客户联系。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“跟进”不是 follow（跟着走）；商务场景必须 follow up。</p><p class="colloc"><b>搭配</b>follow up on an email · follow up with a client</p><p class="confuse"><b>易混</b>keep up with · get back to</p></div></article>
+      <article class="entry" id="put-forward" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="3.144" data-end-f="4.728" data-start-m="2.832" data-end-m="3.528"><span class="w">put forward</span><span class="ipa">/ˈpʊt ˈfɔrwərd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">提出（建议、方案）</p><div class="senses"><div class="sense"><p class="sense-zh">在会上提出想法</p><button class="ex say" type="button" data-start-f="4.728" data-end-f="10.632" data-start-m="3.528" data-end-m="6.624"><span class="txt">I put forward a plan for working from home two days a week.</span><span class="zh">我提了个一周两天远程的方案。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“提出”不是 put out（那是熄灭、拿出）；提建议用 put forward。</p><p class="colloc"><b>搭配</b>put forward a proposal · put forward an idea</p><p class="confuse"><b>易混</b>come up with · bring up</p></div></article>
+      <article class="entry" id="reach-out" data-chip="clients"><header class="entry-head"><button class="head say" type="button" data-start-f="10.632" data-end-f="11.880" data-start-m="6.624" data-end-m="7.392"><span class="w">reach out</span><span class="ipa">/ˈritʃ aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">主动联系</p><div class="senses"><div class="sense"><p class="sense-zh">给别人发消息或打电话</p><button class="ex say" type="button" data-start-f="11.880" data-end-f="14.664" data-start-m="7.392" data-end-m="9.528"><span class="txt">Feel free to reach out if you have any questions.</span><span class="zh">有问题随时联系我。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>商务邮件里“联系我”不是 contact with me（错），是 reach out to me / contact me。</p><p class="colloc"><b>搭配</b>reach out to a client · reach out for help</p><p class="confuse"><b>易混</b>get in touch · follow up</p></div></article>
+      <article class="entry" id="touch-base" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="14.664" data-end-f="15.600" data-start-m="9.528" data-end-m="10.224"><span class="w">touch base</span><span class="ipa">/ˈtʌtʃ beɪs/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">简单碰一下、同步一下</p><div class="senses"><div class="sense"><p class="sense-zh">短时间沟通一下近况</p><button class="ex say" type="button" data-start-f="15.600" data-end-f="18.864" data-start-m="10.224" data-end-m="13.320"><span class="txt">Let&#x27;s touch base on Friday before the client meeting.</span><span class="zh">周五见客户前我们先碰一下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>商务口头语，不是“接触基地”；中文没有对应词，别逐字翻。</p><p class="colloc"><b>搭配</b>touch base with the team · touch base next week</p><p class="confuse"><b>易混</b>check in · catch up</p></div></article>
+      <article class="entry" id="run-by" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="18.864" data-end-f="19.728" data-start-m="13.320" data-end-m="14.256"><span class="w">run by</span><span class="ipa">/ˈrʌn baɪ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">先给某人过目、征求同意</p><div class="senses"><div class="sense"><p class="sense-zh">把想法先说给某人听</p><button class="ex say" type="button" data-start-f="19.728" data-end-f="22.584" data-start-m="14.256" data-end-m="16.944"><span class="txt">Let me run this by my manager before we commit.</span><span class="zh">正式定下来之前我先跟经理过一下这个想法。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“跟领导说一下”不是 tell my boss 就完事；run it by someone 是征求同意。代词夹中间。</p><p class="colloc"><b>搭配</b>run it by someone · run an idea by the team</p><p class="confuse"><b>易混</b>put forward · check with</p></div></article>
+      <article class="entry" id="wrap-up" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="22.584" data-end-f="23.448" data-start-m="16.944" data-end-m="17.568"><span class="w">wrap up</span><span class="ipa">/ˈræp ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">收尾、结束</p><div class="senses"><div class="sense"><p class="sense-zh">把会议或工作收尾</p><button class="ex say" type="button" data-start-f="23.448" data-end-f="30.864" data-start-m="17.568" data-end-m="20.736"><span class="txt">Let&#x27;s wrap up in five minutes — I have another call.</span><span class="zh">我们五分钟内收尾吧，我还有个电话会。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“收尾”不是 close the meeting 才地道；wrap up 更口语。</p><p class="colloc"><b>搭配</b>wrap up a meeting · wrap things up</p><p class="confuse"><b>易混</b>wind up · finish up</p></div></article>
+      <article class="entry" id="hand-over" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="30.864" data-end-f="33.240" data-start-m="20.736" data-end-m="21.744"><span class="w">hand over</span><span class="ipa">/ˈhænd ˈoʊvər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">移交、交接</p><div class="senses"><div class="sense"><p class="sense-zh">把工作交给别人</p><button class="ex say" type="button" data-start-f="33.240" data-end-f="36.168" data-start-m="21.744" data-end-m="24.600"><span class="txt">I&#x27;ll hand over the files before I leave on Friday.</span><span class="zh">我周五走之前把文件交接好。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>移交是 hand over；hand in 是交作业，别混。</p><p class="colloc"><b>搭配</b>hand over a project · hand over to the new manager</p><p class="confuse"><b>易混</b>take over · hand in</p></div></article>
+      <article class="entry" id="take-over" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="36.168" data-end-f="37.272" data-start-m="24.600" data-end-m="25.296"><span class="w">take over</span><span class="ipa">/ˈteɪk ˈoʊvər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">接管、接手</p><div class="senses"><div class="sense"><p class="sense-zh">接手别人的工作或职位</p><button class="ex say" type="button" data-start-f="37.272" data-end-f="40.296" data-start-m="25.296" data-end-m="27.744"><span class="txt">She&#x27;s taking over the account while he&#x27;s on leave.</span><span class="zh">他休假期间她接手这个客户。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>接手工作不是 take the work over 才自然；take over 后直接跟宾语即可。</p><p class="colloc"><b>搭配</b>take over a project · take over from someone</p><p class="confuse"><b>易混</b>take on · hand over</p></div></article>
+      <article class="entry" id="look-into" data-chip="admin"><header class="entry-head"><button class="head say" type="button" data-start-f="40.296" data-end-f="41.544" data-start-m="27.744" data-end-m="28.752"><span class="w">look into</span><span class="ipa">/ˈlʊk ˈɪntu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">调查、了解一下</p><div class="senses"><div class="sense"><p class="sense-zh">去查清楚一件事</p><button class="ex say" type="button" data-start-f="41.544" data-end-f="44.328" data-start-m="28.752" data-end-m="31.296"><span class="txt">Thanks for the report — I&#x27;ll look into it today.</span><span class="zh">谢谢反馈，我今天就去查一下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“调查”不是 look for（那是找东西）；look into 才是查原因。</p><p class="colloc"><b>搭配</b>look into a complaint · look into the issue</p><p class="confuse"><b>易混</b>look for · look up</p></div></article>
+      <article class="entry" id="go-over" data-chip="study"><header class="entry-head"><button class="head say" type="button" data-start-f="44.328" data-end-f="45.264" data-start-m="31.296" data-end-m="31.992"><span class="w">go over</span><span class="ipa">/ˈɡoʊ ˈoʊvər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">过一遍、检查</p><div class="senses"><div class="sense"><p class="sense-zh">把内容从头看一遍</p><button class="ex say" type="button" data-start-f="45.264" data-end-f="47.640" data-start-m="31.992" data-end-m="34.056"><span class="txt">Let&#x27;s go over the answers before the test.</span><span class="zh">考试前我们把答案过一遍。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“复习”不是 review it again and again 才自然；go over 更口语。</p><p class="colloc"><b>搭配</b>go over the notes · go over a mistake</p><p class="confuse"><b>易混</b>run through · look over</p></div></article>
+      <article class="entry" id="run-through" data-chip="study"><header class="entry-head"><button class="head say" type="button" data-start-f="47.640" data-end-f="48.816" data-start-m="34.056" data-end-m="34.992"><span class="w">run through</span><span class="ipa">/ˈrʌn θru/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">快速过一遍、演练</p><div class="senses"><div class="sense"><p class="sense-zh">正式场合前快速演练</p><button class="ex say" type="button" data-start-f="48.816" data-end-f="53.592" data-start-m="34.992" data-end-m="37.920"><span class="txt">Let&#x27;s run through the slides once before we present.</span><span class="zh">上讲台前我们把幻灯片过一遍。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>演练是 run through；run over 是碾过，别混。</p><p class="colloc"><b>搭配</b>run through the plan · run through a presentation</p><p class="confuse"><b>易混</b>go over · walk through</p></div></article>
+      <article class="entry" id="come-up-with" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="53.592" data-end-f="54.528" data-start-m="37.920" data-end-m="38.544"><span class="w">come up with</span><span class="ipa">/ˈkʌm ʌp wɪð/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">想出（主意、办法）</p><div class="senses"><div class="sense"><p class="sense-zh">提出一个新的想法</p><button class="ex say" type="button" data-start-f="54.528" data-end-f="58.032" data-start-m="38.544" data-end-m="42.048"><span class="txt">Nobody could come up with a better name for the app.</span><span class="zh">没人能想出一个更好的 App 名字。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“想出”不是 think out / think up（也可以但少）；come up with 后直接跟想出的东西。</p><p class="colloc"><b>搭配</b>come up with an idea · come up with a plan</p><p class="confuse"><b>易混</b>put forward · think up</p></div></article>
+      <article class="entry" id="go-ahead" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="58.032" data-end-f="61.056" data-start-m="42.048" data-end-m="42.576"><span class="w">go ahead</span><span class="ipa">/ˈɡoʊ əˈhɛd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">继续；你请便</p><div class="senses"><div class="sense"><p class="sense-zh">得到许可可以开始</p><button class="ex say" type="button" data-start-f="61.056" data-end-f="65.112" data-start-m="42.576" data-end-m="44.952"><span class="txt">If you&#x27;re ready, go ahead and send the email.</span><span class="zh">准备好了就把邮件发出去吧。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“你先来”不是 you first 才地道；go ahead 是许可也是让对方先做。</p><p class="colloc"><b>搭配</b>go ahead with the plan · go ahead and ask</p><p class="confuse"><b>易混</b>go on · carry on</p></div></article>
+      <article class="entry" id="make-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="65.112" data-end-f="66.048" data-start-m="44.952" data-end-m="45.720"><span class="w">make up</span><span class="ipa">/ˈmeɪk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">和好；编造；化妆</p><div class="senses"><div class="sense"><p class="sense-zh">吵架后和好</p><button class="ex say" type="button" data-start-f="66.048" data-end-f="69.216" data-start-m="45.720" data-end-m="48.504"><span class="txt">They argued for an hour and made up before dessert.</span><span class="zh">他们吵了一小时，甜点还没上就和好了。</span></button></div><div class="sense"><p class="sense-zh">编造一个说法</p><button class="ex say" type="button" data-start-f="69.216" data-end-f="71.760" data-start-m="48.504" data-end-m="50.880"><span class="txt">He made up some excuse about traffic.</span><span class="zh">他编了个堵车的借口。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>和好用 make up 或 make up with someone；编故事也是 make up，靠上下文区分。</p><p class="colloc"><b>搭配</b>make up with a friend · make up an excuse</p><p class="confuse"><b>易混</b>make up for · make out</p></div></article>
+      <article class="entry" id="keep-up-with" data-chip="study"><header class="entry-head"><button class="head say" type="button" data-start-f="71.760" data-end-f="72.864" data-start-m="50.880" data-end-m="51.504"><span class="w">keep up with</span><span class="ipa">/ˈkip ʌp wɪð/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">跟得上</p><div class="senses"><div class="sense"><p class="sense-zh">跟上进度、人、新闻</p><button class="ex say" type="button" data-start-f="72.864" data-end-f="76.200" data-start-m="51.504" data-end-m="53.712"><span class="txt">I can&#x27;t keep up with the reading list this semester.</span><span class="zh">这学期书单我跟不上了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“跟上”不是 follow up（那是后续跟进）；进度用 keep up with。</p><p class="colloc"><b>搭配</b>keep up with the class · keep up with the news</p><p class="confuse"><b>易混</b>follow up · catch up on</p></div></article>
+      <article class="entry" id="spell-out" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="76.200" data-end-f="77.688" data-start-m="53.712" data-end-m="55.056"><span class="w">spell out</span><span class="ipa">/ˈspɛl aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">一条条讲清楚</p><div class="senses"><div class="sense"><p class="sense-zh">把要求说明白</p><button class="ex say" type="button" data-start-f="77.688" data-end-f="81.096" data-start-m="55.056" data-end-m="58.320"><span class="txt">Let me spell out what the client actually needs.</span><span class="zh">我把客户到底要什么讲清楚。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>讲清楚是 spell out，不是 say clearly（太泛）。</p><p class="colloc"><b>搭配</b>spell out the rules · spell it out</p><p class="confuse"><b>易混</b>lay out · talk through</p></div></article>
+      <article class="entry" id="lay-out" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="81.096" data-end-f="83.640" data-start-m="58.320" data-end-m="58.848"><span class="w">lay out</span><span class="ipa">/ˈleɪ aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">摆出来说明</p><div class="senses"><div class="sense"><p class="sense-zh">把选项或计划摊开讲</p><button class="ex say" type="button" data-start-f="83.640" data-end-f="86.328" data-start-m="58.848" data-end-m="60.984"><span class="txt">She laid out three options for the launch.</span><span class="zh">她把上线的三个方案摆出来讲。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>lay out 是摊开讲；layout 名词是布局。</p><p class="colloc"><b>搭配</b>lay out a plan · lay it out</p><p class="confuse"><b>易混</b>spell out · set out</p></div></article>
+      <article class="entry" id="touch-on" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="86.328" data-end-f="87.264" data-start-m="60.984" data-end-m="62.328"><span class="w">touch on</span><span class="ipa">/ˈtʌtʃ ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">简单提到</p><div class="senses"><div class="sense"><p class="sense-zh">顺带说一句</p><button class="ex say" type="button" data-start-f="87.264" data-end-f="90.192" data-start-m="62.328" data-end-m="64.944"><span class="txt">He touched on the budget but didn&#x27;t give numbers.</span><span class="zh">他提到了预算但没给数字。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>简单提到是 touch on，不是 touch（摸）。</p><p class="colloc"><b>搭配</b>touch on a topic · briefly touch on</p><p class="confuse"><b>易混</b>bring up · go into</p></div></article>
+      <article class="entry" id="sum-up" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="90.192" data-end-f="91.296" data-start-m="64.944" data-end-m="65.472"><span class="w">sum up</span><span class="ipa">/ˈsʌm ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">总结</p><div class="senses"><div class="sense"><p class="sense-zh">把要点收拢</p><button class="ex say" type="button" data-start-f="91.296" data-end-f="93.120" data-start-m="65.472" data-end-m="67.440"><span class="txt">Let me sum up before we vote.</span><span class="zh">投票前我先总结一下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>总结是 sum up；不是 summarize up（重复）。</p><p class="colloc"><b>搭配</b>sum up the meeting · sum it up</p><p class="confuse"><b>易混</b>wrap up · recap</p></div></article>
+      <article class="entry" id="follow-through" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="93.120" data-end-f="94.704" data-start-m="67.440" data-end-m="68.208"><span class="w">follow through</span><span class="ipa">/ˈfɑloʊ θru/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">落实到底</p><div class="senses"><div class="sense"><p class="sense-zh">答应的事做完</p><button class="ex say" type="button" data-start-f="94.704" data-end-f="98.112" data-start-m="68.208" data-end-m="70.992"><span class="txt">He never follows through on anything he says.</span><span class="zh">他说的话从来没有落实过。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>落实是 follow through (on)；follow up 是跟进联系。</p><p class="colloc"><b>搭配</b>follow through on a promise · follow through with the plan</p><p class="confuse"><b>易混</b>follow up · carry out</p></div></article>
+      <article class="entry" id="carry-out" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="98.112" data-end-f="99.840" data-start-m="70.992" data-end-m="80.256"><span class="w">carry out</span><span class="ipa">/ˈkæri aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">执行、实施</p><div class="senses"><div class="sense"><p class="sense-zh">把决定做出来</p><button class="ex say" type="button" data-start-f="99.840" data-end-f="103.344" data-start-m="80.256" data-end-m="82.464"><span class="txt">We carried out the survey over two weeks.</span><span class="zh">我们用两周完成了这项调查。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>执行是 carry out；carry on 是继续。</p><p class="colloc"><b>搭配</b>carry out a plan · carry out research</p><p class="confuse"><b>易混</b>carry on · follow through</p></div></article>
+      <article class="entry" id="loop-in" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="103.344" data-end-f="104.592" data-start-m="82.464" data-end-m="83.160"><span class="w">loop in</span><span class="ipa">/ˈlup ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">把（某人）拉进沟通</p><div class="senses"><div class="sense"><p class="sense-zh">抄送或拉群</p><button class="ex say" type="button" data-start-f="104.592" data-end-f="107.448" data-start-m="83.160" data-end-m="86.184"><span class="txt">Loop in legal before you reply to the client.</span><span class="zh">回复客户前把法务拉进来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>拉进沟通是 loop in；不是 add to the email（太具体）。</p><p class="colloc"><b>搭配</b>loop in the manager · loop me in</p><p class="confuse"><b>易混</b>copy in · bring in</p></div></article>
+      <article class="entry" id="call-back" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="107.448" data-end-f="109.032" data-start-m="86.184" data-end-m="86.880"><span class="w">call back</span><span class="ipa">/ˈkɔl bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">回电话</p><div class="senses"><div class="sense"><p class="sense-zh">过会儿再打过去</p><button class="ex say" type="button" data-start-f="109.032" data-end-f="112.200" data-start-m="86.880" data-end-m="88.704"><span class="txt">I&#x27;ll call you back after this meeting.</span><span class="zh">开完这个会我给你回电话。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>回电是 call back；不是 return a call（也行但正式）。</p><p class="colloc"><b>搭配</b>call someone back · call back later</p><p class="confuse"><b>易混</b>get back to · ring back</p></div></article>
+      <article class="entry" id="hear-back" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="112.200" data-end-f="113.064" data-start-m="88.704" data-end-m="89.328"><span class="w">hear back</span><span class="ipa">/ˈhɪr bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">收到回复</p><div class="senses"><div class="sense"><p class="sense-zh">等对方回信</p><button class="ex say" type="button" data-start-f="113.064" data-end-f="116.568" data-start-m="89.328" data-end-m="92.736"><span class="txt">I applied last week and still haven&#x27;t heard back.</span><span class="zh">我上周投的，到现在没回音。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>收到回复是 hear back (from)，不是 receive back（中式）。</p><p class="colloc"><b>搭配</b>hear back from HR · hear back soon</p><p class="confuse"><b>易混</b>get back to · follow up</p></div></article>
+      <article class="entry" id="check-with" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="116.568" data-end-f="119.904" data-start-m="92.736" data-end-m="93.264"><span class="w">check with</span><span class="ipa">/ˈtʃɛk wɪð/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">问一下（某人）</p><div class="senses"><div class="sense"><p class="sense-zh">先请示或确认</p><button class="ex say" type="button" data-start-f="119.904" data-end-f="122.928" data-start-m="93.264" data-end-m="95.712"><span class="txt">Check with your manager before you promise a date.</span><span class="zh">答应日期前先问下经理。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>问一下是 check with；check 单独是检查。</p><p class="colloc"><b>搭配</b>check with the client · check with me first</p><p class="confuse"><b>易混</b>run by · check in</p></div></article>
+      <article class="entry" id="run-past" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="122.928" data-end-f="123.936" data-start-m="95.712" data-end-m="96.648"><span class="w">run past</span><span class="ipa">/ˈrʌn pæst/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">先给某人过目</p><div class="senses"><div class="sense"><p class="sense-zh">把想法说给人听</p><button class="ex say" type="button" data-start-f="123.936" data-end-f="127.344" data-start-m="96.648" data-end-m="99.096"><span class="txt">Run it past the design lead before you build it.</span><span class="zh">做之前先给设计负责人过一下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>过目征求意见是 run it past someone；代词夹中间。</p><p class="colloc"><b>搭配</b>run it past the boss · run an idea past someone</p><p class="confuse"><b>易混</b>run by · check with</p></div></article>
+      <article class="entry" id="sign-off" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="127.344" data-end-f="128.208" data-start-m="99.096" data-end-m="99.624"><span class="w">sign off</span><span class="ipa">/ˈsaɪn ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">批准、签字放行</p><div class="senses"><div class="sense"><p class="sense-zh">正式同意</p><button class="ex say" type="button" data-start-f="128.208" data-end-f="132.912" data-start-m="99.624" data-end-m="103.128"><span class="txt">Finance has to sign off on anything over 10,000.</span><span class="zh">超过一万的都要财务批。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>批准是 sign off (on)；签字≠签名（sign）。</p><p class="colloc"><b>搭配</b>sign off on a budget · sign off the plan</p><p class="confuse"><b>易混</b>approve · green-light</p></div></article>
+      <article class="entry" id="iron-out" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="132.912" data-end-f="133.848" data-start-m="103.128" data-end-m="103.824"><span class="w">iron out</span><span class="ipa">/ˈaɪərn aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">摆平（细节问题）</p><div class="senses"><div class="sense"><p class="sense-zh">把剩下的问题解决</p><button class="ex say" type="button" data-start-f="133.848" data-end-f="138.312" data-start-m="103.824" data-end-m="106.848"><span class="txt">We ironed out the last few issues before launch.</span><span class="zh">上线前我们摆平了最后几个问题。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>摆平细节是 iron out，画面是熨平。</p><p class="colloc"><b>搭配</b>iron out the details · iron out problems</p><p class="confuse"><b>易混</b>sort out · hammer out</p></div></article>
+      <article class="entry" id="hammer-out" data-chip="meetings"><header class="entry-head"><button class="head say" type="button" data-start-f="138.312" data-end-f="139.320" data-start-m="106.848" data-end-m="107.544"><span class="w">hammer out</span><span class="ipa">/ˈhæmər aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">反复谈定</p><div class="senses"><div class="sense"><p class="sense-zh">争论后定下</p><button class="ex say" type="button" data-start-f="139.320" data-end-f="142.008" data-start-m="107.544" data-end-m="109.680"><span class="txt">They hammered out a deal after midnight.</span><span class="zh">过了午夜他们才谈成协议。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>谈定是 hammer out，带“反复敲”的意味。</p><p class="colloc"><b>搭配</b>hammer out a deal · hammer out the terms</p><p class="confuse"><b>易混</b>iron out · hash out</p></div></article>
+      <article class="entry" id="pass-on" data-chip="office"><header class="entry-head"><button class="head say" type="button" data-start-f="142.008" data-end-f="143.112" data-start-m="109.680" data-end-m="110.448"><span class="w">pass on</span><span class="ipa">/ˈpæs ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">转达、转交</p><div class="senses"><div class="sense"><p class="sense-zh">把消息带给别人</p><button class="ex say" type="button" data-start-f="143.112" data-end-f="145.560" data-start-m="110.448" data-end-m="112.656"><span class="txt">Could you pass on the message to the night shift?</span><span class="zh">能把这个消息带给夜班吗？</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>转达是 pass on；pass 是递过去。</p><p class="colloc"><b>搭配</b>pass on a message · pass it on</p><p class="confuse"><b>易混</b>hand over · relay</p></div></article>
+  </section>
+  <p class="status" data-audio-status></p>
+</main>
+<script id="spriteMap" type="application/json">{"f":"sprites/16b332f05284.mp3","m":"sprites/e128aac73e62.mp3"}</script>
+<script>
+(function () {
+  var KEY_VOICE = 'pv-voice';
+  var KEY_SPEED = 'pv-speed', KEY_ZH = 'pv-zh';
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.say'));
+  var current = null, playlist = null, statusTimer = null;
+  var stickyStatus = false;
+  var raf = 0, loadedSrc = null;
+  var SOURCES = {}, READY = {};
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
+
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  function waitForData(el, seek, from, attempt) {
+    if (current !== el) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(el); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(el, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    var retries = 0;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      if (player.currentTime < from - 0.15) {
+        if (++retries > 3) { audioFailed(el); return; }
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      hideStatus();
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var onSeeked = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      }, 1500);
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  // Cloudflare Pages 的静态资源不支持 Range，媒体元素 seekable 只有 [0,0]，
+  // 点后面的句子会被夹回开头。先把整条 sprite 取进内存换成 blob 地址。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
+    }
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(el, onEnd) {
+    var span = spanFor(el);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === el) unmark();
+      showStatus('这一条暂无语音');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== el) return;
+      if (!src) { audioFailed(el); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(el, span, onEnd);
+    });
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    hideStatus();
+    unmark();
+  }
+
+  function showStatus(text, sticky) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    stickyStatus = !!sticky;
+    if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
+    statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    if (!spanFor(el)) { audioFailed(el); return; }
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var list = playlist;
+    begin(el, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    current = el;
+    el.classList.add('playing');
+    begin(el, null);
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+    if (document.readyState === 'complete') prefetch();
+  }
+
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.say');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
+  }
+})();
+</script>
+</body>
+</html>

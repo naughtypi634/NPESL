@@ -36,7 +36,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import (AUDIO_OUT, CONVERSATION_OUT, DRILL_APP,
-                   IPA_APP, PHENOMENA_APP, PHONICS_APP, SITE_APP, SITE_OUT)
+                   IPA_APP, PHENOMENA_APP, PHONICS_APP, PHRASAL_APP,
+                   SITE_APP, SITE_OUT)
 from themes import theme_boot
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -44,6 +45,7 @@ SITE_SRC = SITE_APP
 PHONICS = PHONICS_APP
 IPA = IPA_APP
 PHENOMENA = PHENOMENA_APP
+PHRASAL = PHRASAL_APP
 DRILL = DRILL_APP
 CONVERSATION = CONVERSATION_OUT
 OUT = SITE_OUT
@@ -65,6 +67,9 @@ HEADERS = """/phonics/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /phenomena/audio/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/phrasal/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /conversation/eslse/audio/*
@@ -182,6 +187,15 @@ def phenomena_ignore(directory, names):
     return skip
 
 
+def phrasal_ignore(directory, names):
+    """只要拼好的 sprite；逐条录音（audio/f、audio/m）不进部署包。"""
+    skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md")(
+        directory, names))
+    if Path(directory) == PHRASAL / "audio":
+        skip |= {"f", "m"}
+    return skip
+
+
 def ipa_ignore(directory, names):
     """部署只要拼好的 sprite，不搬逐词母版。"""
     if Path(directory).name == "audio":
@@ -258,6 +272,24 @@ def main() -> int:
     else:
         print("警告：常见发音现象 目录不存在，未包含")
 
+    # 短语动词：章节页 + 每章一条 sprite，自带样式
+    if PHRASAL.exists():
+        phrasal_out = OUT / "phrasal"
+        shutil.copytree(PHRASAL, phrasal_out, ignore=phrasal_ignore)
+        index_page = phrasal_out / "index.html"
+        inject_head(index_page, "phrasal/", "短语动词 Phrasal Verbs · 12 章")
+        inject_theme(index_page)
+        replace_back(index_page, "/", "NPESL")
+        for page in sorted(phrasal_out.glob("*.html")):
+            if page.name == "index.html":
+                continue
+            inject_head(page, f"phrasal/{page.name}", "短语动词 Phrasal Verbs")
+            inject_theme(page)
+            replace_back(page, "/phrasal/", "短语动词")
+        print("  短语动词：已包含")
+    else:
+        print("警告：短语动词目录不存在，未包含")
+
     # Question Drill：目录页 + 男女音频
     drill_out = OUT / "drill"
     drill_out.mkdir()
@@ -315,6 +347,7 @@ def main() -> int:
     print(f"  美式英语音标表：{SITE_URL}/ipa/")
     print(f"  Question Drill：{SITE_URL}/drill/")
     print(f"  常见发音现象：{SITE_URL}/phenomena/")
+    print(f"  短语动词：{SITE_URL}/phrasal/")
     if AUDIO_OUT.exists():
         afiles, asize = stats(AUDIO_OUT)
         print(f"音频站：{AUDIO_OUT.relative_to(ROOT)}")

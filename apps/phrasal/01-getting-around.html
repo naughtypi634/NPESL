@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Getting around · 短语动词</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --on-accent:var(--on-blue, #ffffff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  /* 只有站点主题脚本没跑起来（没有 data-theme）时才按系统深色兜底。
+     一旦 data-theme 存在，配色全部交给站点主题样式表 —— 否则用户选了亮色主题，
+     这里的深色变量仍会生效，出现黑字压黑底。
+     注意：本文件不能出现站点主题文件的文件名，构建脚本靠这个字符串判断
+     “页面已经自带主题”，误判会整页跳过主题注入（切换按钮也会消失）。 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) { --bg:#000000; --fg:#f5f5f7; --muted:#98989d;
+      --rule:#2c2c2e; --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+  .intro { margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.6; }
+  .legend { margin:14px 0 0; padding:12px 14px; border-radius:14px;
+    background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7; }
+  .legend b { color:var(--fg); font-weight:600; }
+  .legend code { color:var(--accent); font-family:inherit; font-size:15px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:var(--on-accent); }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { width:118px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .entries { margin-top:6px; }
+  .entry, .senses, .sense { min-width:0; }
+  .entry { padding:26px 0 22px; border-bottom:1px solid var(--rule); }
+  .entry-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .head { display:inline-flex; align-items:baseline; gap:10px; appearance:none;
+    border:0; background:transparent; color:inherit; font:inherit; padding:2px 4px;
+    border-radius:10px; cursor:pointer; text-align:left; }
+  .head:hover { background:var(--surface); }
+  .head .w { font-size:24px; font-weight:700; letter-spacing:-0.02em; }
+  .head .ipa { color:var(--muted); font-size:14px; }
+  .head .play, .ex .play { font-size:0.62em; color:var(--muted); }
+  .head.playing { background:var(--tint); }
+  .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
+
+  .senses { margin-top:12px; display:grid; gap:10px; }
+  .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted);
+    letter-spacing:0.02em; }
+  /* button 的 UA 样式不换行，一句长例句会把整页撑宽 */
+  .head, .ex { white-space:normal; overflow-wrap:anywhere; }
+  .ex { display:block; width:100%; text-align:left; font:inherit; color:inherit;
+    background:var(--surface); border:0; border-radius:16px; padding:12px 14px;
+    cursor:pointer; transition:background-color .12s ease; }
+  .ex:hover { background:var(--tint); }
+  .ex.playing { background:var(--tint); }
+  .ex .txt { display:block; font-size:17px; line-height:1.55; }
+  .ex .zh { display:block; margin-top:4px; color:var(--muted); font-size:13px;
+    line-height:1.45; }
+
+  /* 背景只用主题自己的 surface 变量，文字用 --fg，任何主题都保证对比度 */
+  .note-card { margin-top:14px; padding:14px 16px; border-radius:16px;
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    border:1px solid var(--rule); border-left:3px solid var(--accent);
+    display:grid; gap:10px; }
+  .note-card p { margin:0; font-size:14px; line-height:1.65; color:var(--fg); }
+  .note-card p b { display:inline-block; margin-right:8px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+
+  body.zh-off .zh, body.zh-off .zh-line, body.zh-off .sense-zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .head .w { font-size:21px; }
+    .ex .txt { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">短语动词</a>
+  <header>
+    <h1>Getting around</h1>
+    <p class="title-zh">出行</p>
+    <p class="intro">从出门到落地：接人送人、值机入住、临时改路线。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="entries">
+      <article class="entry" id="pick-up" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="0.000" data-end-f="0.768" data-start-m="0.000" data-end-m="0.936"><span class="w">pick up</span><span class="ipa">/ˈpɪk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">开车接（人）；顺路取（东西）</p><div class="senses"><div class="sense"><p class="sense-zh">开车接人</p><button class="ex say" type="button" data-start-f="0.768" data-end-f="4.992" data-start-m="0.936" data-end-m="5.160"><span class="txt">Can you pick me up at Exit C? The taxi line is insane.</span><span class="zh">你能在 C 口接我吗？打车的队排得离谱。</span></button></div><div class="sense"><p class="sense-zh">顺路取东西</p><button class="ex say" type="button" data-start-f="4.992" data-end-f="8.400" data-start-m="5.160" data-end-m="7.776"><span class="txt">I&#x27;ll pick up the package at the front desk after work.</span><span class="zh">我下班后去前台取快递。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>代词必须夹在中间：pick me up。说 pick up me 是中文语序硬套。</p><p class="colloc"><b>搭配</b>pick up the phone · pick up a package · pick up the tab</p><p class="confuse"><b>易混</b>drop off · take up</p></div></article>
+      <article class="entry" id="drop-off" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="8.400" data-end-f="9.408" data-start-m="7.776" data-end-m="8.472"><span class="w">drop off</span><span class="ipa">/ˈdrɑp ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">送到某处放下；捎一段</p><div class="senses"><div class="sense"><p class="sense-zh">开车送到某处</p><button class="ex say" type="button" data-start-f="9.408" data-end-f="12.912" data-start-m="8.472" data-end-m="11.160"><span class="txt">Just drop me off at the corner — I&#x27;ll walk the rest.</span><span class="zh">在路口把我放下就行，剩下的路我走过去。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>和 pick up 是一对：pick up 是接，drop off 是送。别都翻成“拿”。</p><p class="colloc"><b>搭配</b>drop off a package · drop off the kids · drop-off point</p><p class="confuse"><b>易混</b>pick up</p></div></article>
+      <article class="entry" id="check-in" data-chip="airport"><header class="entry-head"><button class="head say" type="button" data-start-f="12.912" data-end-f="13.680" data-start-m="11.160" data-end-m="11.856"><span class="w">check in</span><span class="ipa">/ˈtʃɛk ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">值机；办入住；打卡报到</p><div class="senses"><div class="sense"><p class="sense-zh">机场值机</p><button class="ex say" type="button" data-start-f="13.680" data-end-f="17.736" data-start-m="11.856" data-end-m="14.880"><span class="txt">You can check in online 24 hours before the flight.</span><span class="zh">起飞前 24 小时可以在线值机。</span></button></div><div class="sense"><p class="sense-zh">酒店办入住</p><button class="ex say" type="button" data-start-f="17.736" data-end-f="20.520" data-start-m="14.880" data-end-m="17.736"><span class="txt">We checked in around ten and went straight to bed.</span><span class="zh">我们十点左右办了入住，直接睡了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>check in 不带宾语；带酒店名要说 check into the hotel。</p><p class="colloc"><b>搭配</b>check in online · check-in counter · check in at the front desk</p><p class="confuse"><b>易混</b>check into · check out</p></div></article>
+      <article class="entry" id="check-out" data-chip="hotel"><header class="entry-head"><button class="head say" type="button" data-start-f="20.520" data-end-f="21.528" data-start-m="17.736" data-end-m="18.360"><span class="w">check out</span><span class="ipa">/ˈtʃɛk aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">退房；看一眼</p><div class="senses"><div class="sense"><p class="sense-zh">酒店退房</p><button class="ex say" type="button" data-start-f="21.528" data-end-f="26.064" data-start-m="18.360" data-end-m="21.864"><span class="txt">We have to check out by noon, so let&#x27;s eat breakfast early.</span><span class="zh">中午前要退房，我们早点吃早饭吧。</span></button></div><div class="sense"><p class="sense-zh">去看看、试一下</p><button class="ex say" type="button" data-start-f="26.064" data-end-f="30.288" data-start-m="21.864" data-end-m="25.128"><span class="txt">That new noodle place looks good — let&#x27;s check it out.</span><span class="zh">那家新开的面馆看着不错，去试试。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“退房”不是 leave the room。前台只会问 What time are you checking out?</p><p class="colloc"><b>搭配</b>check out of the hotel · checkout time</p><p class="confuse"><b>易混</b>check in · check out of</p></div></article>
+      <article class="entry" id="check-into" data-chip="hotel"><header class="entry-head"><button class="head say" type="button" data-start-f="30.288" data-end-f="31.776" data-start-m="25.128" data-end-m="26.376"><span class="w">check into</span><span class="ipa">/ˈtʃɛk ˈɪntu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">入住（某家酒店）</p><div class="senses"><div class="sense"><p class="sense-zh">办入住并住进去</p><button class="ex say" type="button" data-start-f="31.776" data-end-f="35.280" data-start-m="26.376" data-end-m="29.712"><span class="txt">We checked into the hotel and crashed immediately.</span><span class="zh">我们办了入住，然后倒头就睡。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>入住某家酒店用 check into；check in 不带宾语。</p><p class="colloc"><b>搭配</b>check into a hotel · check into the hospital</p><p class="confuse"><b>易混</b>check in · check out of</p></div></article>
+      <article class="entry" id="put-up" data-chip="hotel"><header class="entry-head"><button class="head say" type="button" data-start-f="35.280" data-end-f="37.008" data-start-m="29.712" data-end-m="30.408"><span class="w">put up</span><span class="ipa">/ˈpʊt ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">留宿；张贴；搭建</p><div class="senses"><div class="sense"><p class="sense-zh">让某人住一晚</p><button class="ex say" type="button" data-start-f="37.008" data-end-f="40.512" data-start-m="30.408" data-end-m="33.984"><span class="txt">My cousin put us up for two nights when we missed the last train.</span><span class="zh">我们错过末班车，表姐让我们在她家住了两晚。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“住朋友家”不是 live in my friend&#x27;s home，短期借住是 put someone up。</p><p class="colloc"><b>搭配</b>put someone up for the night · put up a poster</p><p class="confuse"><b>易混</b>put on · put away</p></div></article>
+      <article class="entry" id="drop-by" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="40.512" data-end-f="41.760" data-start-m="33.984" data-end-m="34.848"><span class="w">drop by</span><span class="ipa">/ˈdrɑp baɪ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">顺路来一下</p><div class="senses"><div class="sense"><p class="sense-zh">短时间拜访</p><button class="ex say" type="button" data-start-f="41.760" data-end-f="44.208" data-start-m="34.848" data-end-m="36.912"><span class="txt">I&#x27;ll drop by your hotel around seven.</span><span class="zh">我七点左右顺路去你酒店一趟。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>顺路来一下；drop off 是放下人或物。</p><p class="colloc"><b>搭配</b>drop by the office · drop by for a coffee</p><p class="confuse"><b>易混</b>drop in · drop off</p></div></article>
+      <article class="entry" id="get-away" data-chip="sights"><header class="entry-head"><button class="head say" type="button" data-start-f="44.208" data-end-f="45.216" data-start-m="36.912" data-end-m="37.608"><span class="w">get away</span><span class="ipa">/ˈɡɛt əˈweɪ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">脱身；出去短途玩一趟</p><div class="senses"><div class="sense"><p class="sense-zh">离开、抽身</p><button class="ex say" type="button" data-start-f="45.216" data-end-f="49.200" data-start-m="37.608" data-end-m="41.592"><span class="txt">I need to get away for a weekend — work is driving me crazy.</span><span class="zh">我得出去过个周末，工作快把我逼疯了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>抽身或短途出游；get away from 是逃离。</p><p class="colloc"><b>搭配</b>get away for the weekend · get away from it all</p><p class="confuse"><b>易混</b>get out · take off</p></div></article>
+      <article class="entry" id="get-back" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="49.200" data-end-f="50.208" data-start-m="41.592" data-end-m="42.120"><span class="w">get back</span><span class="ipa">/ˈɡɛt bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">回来；取回；回复</p><div class="senses"><div class="sense"><p class="sense-zh">回到某处</p><button class="ex say" type="button" data-start-f="50.208" data-end-f="53.064" data-start-m="42.120" data-end-m="43.776"><span class="txt">What time do you think we&#x27;ll get back tonight?</span><span class="zh">你觉得我们今晚几点能回来？</span></button></div><div class="sense"><p class="sense-zh">回复某人</p><button class="ex say" type="button" data-start-f="53.064" data-end-f="55.368" data-start-m="43.776" data-end-m="45.504"><span class="txt">I&#x27;ll get back to you by Friday.</span><span class="zh">我周五前回复你。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>“回复你”不是 reply you（错），是 get back to you 或 reply to you。</p><p class="colloc"><b>搭配</b>get back home · get back to me · get back on track</p><p class="confuse"><b>易混</b>go back · come back</p></div></article>
+      <article class="entry" id="wait-around" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="55.368" data-end-f="56.952" data-start-m="45.504" data-end-m="46.920"><span class="w">wait around</span><span class="ipa">/ˈweɪt əˈraʊnd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">干等、白等</p><div class="senses"><div class="sense"><p class="sense-zh">无所事事地等</p><button class="ex say" type="button" data-start-f="56.952" data-end-f="61.896" data-start-m="46.920" data-end-m="50.256"><span class="txt">We waited around for an hour before the bus finally came.</span><span class="zh">我们干等了一个小时，公交才来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>无所事事地等；wait for 是等具体的人或物。</p><p class="colloc"><b>搭配</b>wait around for hours · keep someone waiting</p><p class="confuse"><b>易混</b>wait for · hang around</p></div></article>
+      <article class="entry" id="look-out-for" data-chip="sights"><header class="entry-head"><button class="head say" type="button" data-start-f="61.896" data-end-f="63.072" data-start-m="50.256" data-end-m="52.464"><span class="w">look out for</span><span class="ipa">/ˈlʊk aʊt fɔr/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">留意、盯着找</p><div class="senses"><div class="sense"><p class="sense-zh">留意某个标志或人</p><button class="ex say" type="button" data-start-f="63.072" data-end-f="66.168" data-start-m="52.464" data-end-m="55.248"><span class="txt">Look out for the green sign that says Arrivals.</span><span class="zh">留意写着“到达”的绿色牌子。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>留意找某物；watch out 是小心危险。</p><p class="colloc"><b>搭配</b>look out for the exit · look out for each other</p><p class="confuse"><b>易混</b>watch out · look for</p></div></article>
+      <article class="entry" id="take-off" data-chip="airport"><header class="entry-head"><button class="head say" type="button" data-start-f="66.168" data-end-f="67.104" data-start-m="55.248" data-end-m="55.944"><span class="w">take off</span><span class="ipa">/ˈteɪk ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">起飞；脱掉；突然走红</p><div class="senses"><div class="sense"><p class="sense-zh">飞机起飞</p><button class="ex say" type="button" data-start-f="67.104" data-end-f="71.568" data-start-m="55.944" data-end-m="58.872"><span class="txt">The plane took off two hours late because of the storm.</span><span class="zh">因为暴雨，飞机晚了两小时才起飞。</span></button></div><div class="sense"><p class="sense-zh">脱掉（衣物）</p><button class="ex say" type="button" data-start-f="71.568" data-end-f="74.352" data-start-m="58.872" data-end-m="61.008"><span class="txt">Take off your jacket — it&#x27;s warm in here.</span><span class="zh">把外套脱了吧，里面挺暖和的。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>脱衣服是 take off，不是 put off；put off 是推迟。</p><p class="colloc"><b>搭配</b>take off your shoes · the plane takes off · takeoff time</p><p class="confuse"><b>易混</b>put off · take out</p></div></article>
+      <article class="entry" id="set-out" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="74.352" data-end-f="75.696" data-start-m="61.008" data-end-m="61.632"><span class="w">set out</span><span class="ipa">/ˈsɛt aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">出发（上路）</p><div class="senses"><div class="sense"><p class="sense-zh">开始一段行程</p><button class="ex say" type="button" data-start-f="75.696" data-end-f="79.920" data-start-m="61.632" data-end-m="63.840"><span class="txt">We set out at six to beat the traffic.</span><span class="zh">我们六点出发躲堵车。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>出发是 set out / set off；set out 更偏“踏上行程”。</p><p class="colloc"><b>搭配</b>set out for the airport · set out early</p><p class="confuse"><b>易混</b>set off · head off</p></div></article>
+      <article class="entry" id="head-off" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="79.920" data-end-f="80.784" data-start-m="63.840" data-end-m="64.368"><span class="w">head off</span><span class="ipa">/ˈhɛd ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">动身、先走一步</p><div class="senses"><div class="sense"><p class="sense-zh">提前离开去某处</p><button class="ex say" type="button" data-start-f="80.784" data-end-f="84.288" data-start-m="64.368" data-end-m="67.224"><span class="txt">I should head off now or I&#x27;ll miss the last train.</span><span class="zh">我得走了，不然赶不上末班车。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>先走一步是 head off；head for 是前往，方向感不同。</p><p class="colloc"><b>搭配</b>head off early · head off to the station</p><p class="confuse"><b>易混</b>head for · set out</p></div></article>
+      <article class="entry" id="check-out-of" data-chip="hotel"><header class="entry-head"><button class="head say" type="button" data-start-f="84.288" data-end-f="85.872" data-start-m="67.224" data-end-m="68.232"><span class="w">check out of</span><span class="ipa">/ˈtʃɛk aʊt əv/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">从（酒店）退房</p><div class="senses"><div class="sense"><p class="sense-zh">办完手续离开酒店</p><button class="ex say" type="button" data-start-f="85.872" data-end-f="90.240" data-start-m="68.232" data-end-m="71.736"><span class="txt">We checked out of the hotel at noon and left our bags.</span><span class="zh">我们中午退房，把行李寄存了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>退房是 check out of，带宾语；check out 单独是退房或去看。</p><p class="colloc"><b>搭配</b>check out of the hotel · check out of the room</p><p class="confuse"><b>易混</b>check out · check in</p></div></article>
+      <article class="entry" id="see-off" data-chip="airport"><header class="entry-head"><button class="head say" type="button" data-start-f="90.240" data-end-f="91.104" data-start-m="71.736" data-end-m="72.360"><span class="w">see off</span><span class="ipa">/ˈsi ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">送行</p><div class="senses"><div class="sense"><p class="sense-zh">到机场车站送人</p><button class="ex say" type="button" data-start-f="91.104" data-end-f="94.032" data-start-m="72.360" data-end-m="74.256"><span class="txt">My parents saw me off at the airport.</span><span class="zh">我爸妈到机场送我。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>送行是 see someone off，不是 send someone（那是寄送）。</p><p class="colloc"><b>搭配</b>see someone off at the airport · see a friend off</p><p class="confuse"><b>易混</b>send off · wave off</p></div></article>
+      <article class="entry" id="come-back" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="94.032" data-end-f="94.896" data-start-m="74.256" data-end-m="74.784"><span class="w">come back</span><span class="ipa">/ˈkʌm bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">回来</p><div class="senses"><div class="sense"><p class="sense-zh">回到原来的地方</p><button class="ex say" type="button" data-start-f="94.896" data-end-f="96.720" data-start-m="74.784" data-end-m="76.368"><span class="txt">What time are you coming back tonight?</span><span class="zh">你今晚几点回来？</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>回来是 come back；回去是 go back，方向靠说话人。</p><p class="colloc"><b>搭配</b>come back home · come back soon</p><p class="confuse"><b>易混</b>go back · get back</p></div></article>
+      <article class="entry" id="go-back" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="96.720" data-end-f="97.416" data-start-m="76.368" data-end-m="76.896"><span class="w">go back</span><span class="ipa">/ˈɡoʊ bæk/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">回去</p><div class="senses"><div class="sense"><p class="sense-zh">返回原处</p><button class="ex say" type="button" data-start-f="97.416" data-end-f="100.824" data-start-m="76.896" data-end-m="79.824"><span class="txt">I left my charger at the hotel — I have to go back.</span><span class="zh">充电器落酒店了，我得回去一趟。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>回去是 go back（离开说话人所在地）；回来是 come back。</p><p class="colloc"><b>搭配</b>go back to the hotel · go back for something</p><p class="confuse"><b>易混</b>come back · get back</p></div></article>
+      <article class="entry" id="stay-over" data-chip="hotel"><header class="entry-head"><button class="head say" type="button" data-start-f="100.824" data-end-f="102.480" data-start-m="79.824" data-end-m="80.688"><span class="w">stay over</span><span class="ipa">/ˈsteɪ ˈoʊvər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">过夜、住一晚</p><div class="senses"><div class="sense"><p class="sense-zh">在别人家或酒店住一晚</p><button class="ex say" type="button" data-start-f="102.480" data-end-f="105.984" data-start-m="80.688" data-end-m="83.616"><span class="txt">Do you want to stay over? The last train is gone.</span><span class="zh">你要住一晚吗？末班车没了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>过夜是 stay over；stay 单独是待着。</p><p class="colloc"><b>搭配</b>stay over at a friend&#x27;s · stay over for the night</p><p class="confuse"><b>易混</b>stop over · put up</p></div></article>
+      <article class="entry" id="send-off" data-chip="airport"><header class="entry-head"><button class="head say" type="button" data-start-f="105.984" data-end-f="107.400" data-start-m="83.616" data-end-m="84.384"><span class="w">send off</span><span class="ipa">/ˈsɛnd ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">寄出；送别</p><div class="senses"><div class="sense"><p class="sense-zh">把包裹寄出去</p><button class="ex say" type="button" data-start-f="107.400" data-end-f="110.664" data-start-m="84.384" data-end-m="86.448"><span class="txt">I sent off the documents this morning.</span><span class="zh">我今早把材料寄出去了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>寄出是 send off；送行是 see off，别混。</p><p class="colloc"><b>搭配</b>send off a package · send it off</p><p class="confuse"><b>易混</b>see off · ship out</p></div></article>
+      <article class="entry" id="turn-up" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="110.664" data-end-f="111.528" data-start-m="86.448" data-end-m="87.144"><span class="w">turn up</span><span class="ipa">/ˈtɝn ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">出现、到场</p><div class="senses"><div class="sense"><p class="sense-zh">人到某处露面</p><button class="ex say" type="button" data-start-f="111.528" data-end-f="114.864" data-start-m="87.144" data-end-m="89.352"><span class="txt">He turned up at the gate with no ticket.</span><span class="zh">他没票就出现在检票口。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>出现是 turn up / show up；不是 appear at（太书面）。</p><p class="colloc"><b>搭配</b>turn up late · turn up out of nowhere</p><p class="confuse"><b>易混</b>show up · turn out</p></div></article>
+      <article class="entry" id="stop-off" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="114.864" data-end-f="115.968" data-start-m="89.352" data-end-m="90.120"><span class="w">stop off</span><span class="ipa">/ˈstɑp ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">中途停一下</p><div class="senses"><div class="sense"><p class="sense-zh">路上顺便停一站</p><button class="ex say" type="button" data-start-f="115.968" data-end-f="119.544" data-start-m="90.120" data-end-m="92.496"><span class="txt">We stopped off at a service area for lunch.</span><span class="zh">我们中途在服务区停下来吃午饭。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>中途停是 stop off (at)；stop over 是过夜停留。</p><p class="colloc"><b>搭配</b>stop off for coffee · stop off at the mall</p><p class="confuse"><b>易混</b>stop over · stop by</p></div></article>
+      <article class="entry" id="stop-by" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="119.544" data-end-f="121.032" data-start-m="92.496" data-end-m="93.264"><span class="w">stop by</span><span class="ipa">/ˈstɑp baɪ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">顺路来一下</p><div class="senses"><div class="sense"><p class="sense-zh">短暂拜访</p><button class="ex say" type="button" data-start-f="121.032" data-end-f="124.128" data-start-m="93.264" data-end-m="95.160"><span class="txt">Stop by the front desk on your way out.</span><span class="zh">出去的时候顺路去趟前台。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>stop by 和 drop by 同义，美式都常用。</p><p class="colloc"><b>搭配</b>stop by the office · stop by for a minute</p><p class="confuse"><b>易混</b>drop by · stop off</p></div></article>
+      <article class="entry" id="come-along" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="124.128" data-end-f="125.616" data-start-m="95.160" data-end-m="95.928"><span class="w">come along</span><span class="ipa">/ˈkʌm əˈlɔŋ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">一起来、跟着来</p><div class="senses"><div class="sense"><p class="sense-zh">同行</p><button class="ex say" type="button" data-start-f="125.616" data-end-f="128.232" data-start-m="95.928" data-end-m="98.376"><span class="txt">Come along — we&#x27;re leaving in five minutes.</span><span class="zh">一起来吧，五分钟后走。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>一起来是 come along；come with me 也很自然。</p><p class="colloc"><b>搭配</b>come along with us · come along for the ride</p><p class="confuse"><b>易混</b>tag along · bring along</p></div></article>
+      <article class="entry" id="bring-along" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="128.232" data-end-f="133.008" data-start-m="98.376" data-end-m="99.312"><span class="w">bring along</span><span class="ipa">/ˈbrɪŋ əˈlɔŋ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">带上（人、东西）</p><div class="senses"><div class="sense"><p class="sense-zh">带着同行</p><button class="ex say" type="button" data-start-f="133.008" data-end-f="136.272" data-start-m="99.312" data-end-m="103.056"><span class="txt">Bring along your passport — they check at the gate.</span><span class="zh">带上护照，门口要查。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>带上是 bring along；带来是 bring over。</p><p class="colloc"><b>搭配</b>bring along a friend · bring it along</p><p class="confuse"><b>易混</b>take along · bring over</p></div></article>
+      <article class="entry" id="pack-up" data-chip="hotel"><header class="entry-head"><button class="head say" type="button" data-start-f="136.272" data-end-f="136.968" data-start-m="103.056" data-end-m="103.584"><span class="w">pack up</span><span class="ipa">/ˈpæk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">收拾打包（行李）</p><div class="senses"><div class="sense"><p class="sense-zh">把东西收进箱子</p><button class="ex say" type="button" data-start-f="136.968" data-end-f="139.656" data-start-m="103.584" data-end-m="105.960"><span class="txt">We packed up the room in twenty minutes.</span><span class="zh">我们二十分钟就把房间收拾好了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>收行李是 pack up；pack 单独是装包。</p><p class="colloc"><b>搭配</b>pack up your bags · pack it up</p><p class="confuse"><b>易混</b>pack in · clear out</p></div></article>
+      <article class="entry" id="fly-out" data-chip="airport"><header class="entry-head"><button class="head say" type="button" data-start-f="139.656" data-end-f="141.000" data-start-m="105.960" data-end-m="106.656"><span class="w">fly out</span><span class="ipa">/ˈflaɪ aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">飞出去、出境</p><div class="senses"><div class="sense"><p class="sense-zh">坐飞机离开</p><button class="ex say" type="button" data-start-f="141.000" data-end-f="143.544" data-start-m="106.656" data-end-m="108.864"><span class="txt">They fly out to Shanghai on Monday.</span><span class="zh">他们周一的飞机去上海。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>飞出去是 fly out；fly back 是飞回来。</p><p class="colloc"><b>搭配</b>fly out on Monday · fly out of the country</p><p class="confuse"><b>易混</b>fly back · take off</p></div></article>
+      <article class="entry" id="drive-off" data-chip="transit"><header class="entry-head"><button class="head say" type="button" data-start-f="143.544" data-end-f="144.888" data-start-m="108.864" data-end-m="109.632"><span class="w">drive off</span><span class="ipa">/ˈdraɪv ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">开车离开</p><div class="senses"><div class="sense"><p class="sense-zh">车开走</p><button class="ex say" type="button" data-start-f="144.888" data-end-f="147.984" data-start-m="109.632" data-end-m="112.416"><span class="txt">The taxi drove off before I could check the meter.</span><span class="zh">我还没看计价器，出租车就开走了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>开走是 drive off；pull away 更强调从停靠处启动。</p><p class="colloc"><b>搭配</b>the taxi drove off · drive off in a hurry</p><p class="confuse"><b>易混</b>pull away · drive away</p></div></article>
+      <article class="entry" id="look-around" data-chip="sights"><header class="entry-head"><button class="head say" type="button" data-start-f="147.984" data-end-f="149.328" data-start-m="112.416" data-end-m="113.184"><span class="w">look around</span><span class="ipa">/ˈlʊk əˈraʊnd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">四处看看</p><div class="senses"><div class="sense"><p class="sense-zh">逛逛、参观</p><button class="ex say" type="button" data-start-f="149.328" data-end-f="152.664" data-start-m="113.184" data-end-m="115.488"><span class="txt">We looked around the old town for an hour.</span><span class="zh">我们在老城逛了一小时。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>四处看看是 look around；look for 是找东西。</p><p class="colloc"><b>搭配</b>look around the market · look around town</p><p class="confuse"><b>易混</b>look for · wander around</p></div></article>
+      <article class="entry" id="show-around" data-chip="sights"><header class="entry-head"><button class="head say" type="button" data-start-f="152.664" data-end-f="154.152" data-start-m="115.488" data-end-m="116.256"><span class="w">show around</span><span class="ipa">/ˈʃoʊ əˈraʊnd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">带人参观</p><div class="senses"><div class="sense"><p class="sense-zh">领着看一遍</p><button class="ex say" type="button" data-start-f="154.152" data-end-f="156.936" data-start-m="116.256" data-end-m="118.224"><span class="txt">My cousin showed us around the campus.</span><span class="zh">我表弟带我们逛了校园。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>带人参观是 show someone around，代词夹中间。</p><p class="colloc"><b>搭配</b>show someone around town · show them around</p><p class="confuse"><b>易混</b>look around · show off</p></div></article>
+  </section>
+  <p class="status" data-audio-status></p>
+</main>
+<script id="spriteMap" type="application/json">{"f":"sprites/9c01da0e0586.mp3","m":"sprites/e39c6e0185f4.mp3"}</script>
+<script>
+(function () {
+  var KEY_VOICE = 'pv-voice';
+  var KEY_SPEED = 'pv-speed', KEY_ZH = 'pv-zh';
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.say'));
+  var current = null, playlist = null, statusTimer = null;
+  var stickyStatus = false;
+  var raf = 0, loadedSrc = null;
+  var SOURCES = {}, READY = {};
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
+
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  function waitForData(el, seek, from, attempt) {
+    if (current !== el) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(el); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(el, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    var retries = 0;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      if (player.currentTime < from - 0.15) {
+        if (++retries > 3) { audioFailed(el); return; }
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      hideStatus();
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var onSeeked = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      }, 1500);
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  // Cloudflare Pages 的静态资源不支持 Range，媒体元素 seekable 只有 [0,0]，
+  // 点后面的句子会被夹回开头。先把整条 sprite 取进内存换成 blob 地址。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
+    }
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(el, onEnd) {
+    var span = spanFor(el);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === el) unmark();
+      showStatus('这一条暂无语音');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== el) return;
+      if (!src) { audioFailed(el); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(el, span, onEnd);
+    });
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    hideStatus();
+    unmark();
+  }
+
+  function showStatus(text, sticky) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    stickyStatus = !!sticky;
+    if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
+    statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    if (!spanFor(el)) { audioFailed(el); return; }
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var list = playlist;
+    begin(el, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    current = el;
+    el.classList.add('playing');
+    begin(el, null);
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+    if (document.readyState === 'complete') prefetch();
+  }
+
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.say');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
+  }
+})();
+</script>
+</body>
+</html>
