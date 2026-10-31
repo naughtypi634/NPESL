@@ -105,8 +105,12 @@ def build_sprites(bank: list[dict]) -> None:
             if not picks:
                 continue
             blob, spans = audio_sprite.concat([chunk for _, _, chunk in picks])
-            name = audio_sprite.name_for(
-                [f"{answer_id}:{voice}" for _, answer_id, _ in picks])
+            # 名字带音频摘要：重录同一句会改变字节，纯文本名字会让
+            # immutable 缓存继续发旧录音。
+            name = audio_sprite.name_for([
+                f"{answer_id}:{voice}:{hashlib.sha1(data).hexdigest()[:10]}"
+                for _, answer_id, data in picks
+            ])
             (sprite_dir / f"{name}-{voice}.mp3").write_bytes(blob)
             made[voice] = name
             for (index, _, _), span in zip(picks, spans):

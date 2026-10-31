@@ -303,7 +303,12 @@ def build_sprites(plan: ClipPlan) -> tuple[ClipCursor, dict]:
         if not picks:
             continue
         blob, offsets = audio_sprite.concat([chunk for _, _, chunk in picks])
-        name = audio_sprite.name_for([rel for _, rel, _ in picks])
+        # 名字带音频摘要：重录同一文本会改变字节，纯文本名字会让
+        # immutable 缓存继续发旧录音。
+        name = audio_sprite.name_for([
+            f"{rel}:{hashlib.sha1(data).hexdigest()[:10]}"
+            for _, rel, data in picks
+        ])
         rel = f"sprites/{name}.mp3"
         dst = AUDIO_DIR / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
