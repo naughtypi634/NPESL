@@ -394,7 +394,6 @@ INDEX_STYLE = """
 """
 
 PARTICLE_ORDER = ["up", "down", "out", "off", "on", "in"]
-# 其余真小品词照样分组；`base / hold / way / it` 这类是固定说法里的名词，归到“其他”。
 PARTICLE_EXTRA = ["through", "over", "back", "around", "into", "onto", "away",
                   "along", "by", "for", "with", "at", "ahead", "together",
                   "after", "apart", "across", "forward", "behind", "past",
@@ -402,191 +401,137 @@ PARTICLE_EXTRA = ["through", "over", "back", "around", "into", "onto", "away",
 REAL_PARTICLES = set(PARTICLE_ORDER + PARTICLE_EXTRA)
 
 
-def particle_groups(themes):
-    """{particle: [(entry, theme, page)]} + 其他固定说法，按常用顺序排。"""
+def index_data(themes):
+    """页面渲染用的数据：场景分组 + 介词分组，写成独立 js，首页保持很小。"""
+    doc = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
+    categories = doc.get("categories", [])
     numbers = {theme["id"]: index + 1 for index, theme in enumerate(themes)}
-    groups: dict[str, list] = {}
+
+    scene = []
+    for cat in categories:
+        group = [t for t in themes if t.get("category") == cat["id"]]
+        if not group:
+            continue
+        blocks = []
+        for theme in group:
+            page = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
+            blocks.append({
+                "page": page,
+                "zh": theme["title_zh"],
+                "en": theme["title_en"],
+                "rows": [[e["head"], e["zh"], e["id"]] for e in theme["entries"]],
+            })
+        scene.append({
+            "id": cat["id"], "zh": cat["title_zh"], "en": cat["title_en"],
+            "count": sum(len(t["entries"]) for t in group), "themes": blocks,
+        })
+
+    bucketed: dict[str, list] = {}
     others: list = []
     for theme in themes:
-        name = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
+        page = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
         for entry in theme["entries"]:
-            item = (entry, theme, name)
+            item = [entry["head"], entry["zh"], page, entry["id"]]
             if entry["particle"] in REAL_PARTICLES:
-                groups.setdefault(entry["particle"], []).append(item)
+                bucketed.setdefault(entry["particle"], []).append(item)
             else:
                 others.append(item)
-    keys = [x for x in PARTICLE_ORDER if x in groups]
-    keys += [x for x in PARTICLE_EXTRA if x in groups]
-    return groups, others, keys
-
-
-def row_html(entry, name):
-    return (
-        f'<a class="row" href="{name}#{html.escape(entry["id"])}">'
-        f'<span class="title"><span class="en">{html.escape(entry["head"])}</span>'
-        f'<span class="zh">{html.escape(entry["zh"])}</span></span></a>'
-    )
-
-
-def theme_block(theme, name):
-    rows = "".join(row_html(e, name) for e in theme["entries"])
-    return (
-        f'<h3 class="theme"><a href="{name}">{html.escape(theme["title_zh"])}'
-        f' <span class="stage-en">{html.escape(theme["title_en"])}</span>'
-        f'<span class="theme-go">进入主题 ›</span></a></h3>'
-        f'<div class="list">{rows}</div>'
-    )
-
-
-def particle_sections(groups, others, keys):
-    sections = []
-    for particle in keys:
-        rows = "".join(row_html(e, n) for e, _, n in groups[particle])
-        sections.append(
-            f'<section class="group" data-particle="{html.escape(particle)}" '
-            f'id="p-{html.escape(particle)}">'
-            f'<p class="stage">{html.escape(particle)} '
-            f'<span class="stage-en">{len(groups[particle])} 条</span></p>'
-            f'<div class="list">{rows}</div></section>'
-        )
+    keys = [x for x in PARTICLE_ORDER if x in bucketed]
+    keys += [x for x in PARTICLE_EXTRA if x in bucketed]
+    particle = [{"p": x, "rows": bucketed[x]} for x in keys]
     if others:
-        rows = "".join(row_html(e, n) for e, _, n in others)
-        sections.append(
-            '<section class="group" data-particle="others" id="p-others">'
-            f'<p class="stage">其他 <span class="stage-en">{len(others)} 条固定说法</span></p>'
-            f'<div class="list">{rows}</div></section>'
-        )
-    return sections
+        particle.append({"p": "others", "label": "其他", "rows": others})
+
+    return {"scene": scene, "particle": particle}
 
 
 def build_index(themes):
-    """首页只做导航：一级选浏览方式，二级是链接，不放短语列表。"""
-    doc = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
-    categories = doc.get("categories", [])
+    data = index_data(themes)
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:10]
+    for old in BASE.glob("data.*.js"):
+        if old.name != f"data.{digest}.js":
+            old.unlink()
+    (BASE / f"data.{digest}.js").write_text(
+        "window.PHRASAL_INDEX=" + payload + ";\n", encoding="utf-8")
 
-    scene_chips = []
-    for cat in categories:
-        if any(t.get("category") == cat["id"] for t in themes):
-            scene_chips.append(
-                f'<a class="chip" href="scene-{html.escape(cat["id"])}.html">'
-                f'{html.escape(cat["title_zh"])}</a>')
-
-    groups, others, keys = particle_groups(themes)
-    part_chips = []
-    for particle in keys:
-        part_chips.append(
-            f'<a class="chip" href="particles.html#p-{html.escape(particle)}">'
-            f'{html.escape(particle)}</a>')
-    if others:
-        part_chips.append('<a class="chip" href="particles.html#p-others">其他</a>')
-
-    total = sum(len(theme["entries"]) for theme in themes)
     page = (
         '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
         "<title>短语动词 Phrasal Verbs</title>\n"
         f"<style>{INDEX_STYLE}</style>\n</head>\n<body>\n<div class=\"page\">\n"
         "<h1>短语动词</h1>\n"
-        f'<p class="sub">{len(themes)} 个主题 · {total} 条 · 点词条或例句就出声</p>\n'
-        '<div class="level1" role="group" aria-label="先选一种浏览方式">'
-        '<button type="button" data-mode="scene">场景话题</button>'
-        '<button type="button" data-mode="particle">介词</button>'
+        '<div class="level1" role="group" aria-label="浏览方式">'
+        '<button type="button" data-mode="scene" aria-pressed="true">场景话题</button>'
+        '<button type="button" data-mode="particle" aria-pressed="false">介词</button>'
         '</div>\n'
-        '<div id="step2" hidden>\n'
-        f'<div class="chips" data-chips="scene" hidden>{"".join(scene_chips)}</div>\n'
-        f'<div class="chips" data-chips="particle" hidden>{"".join(part_chips)}</div>\n'
+        '<div class="chips" data-chips="scene"></div>\n'
+        '<div class="chips" data-chips="particle" hidden></div>\n'
+        '<div id="view"></div>\n'
         '</div>\n'
-        '</div>\n<script>\n'
+        f'<script src="data.{digest}.js"></script>\n'
+        "<script>\n"
         "(function(){\n"
-        "var step2=document.getElementById('step2');\n"
-        "var rowScene=document.querySelector('[data-chips=\\\"scene\\\"]');\n"
-        "var rowPart=document.querySelector('[data-chips=\\\"particle\\\"]');\n"
+        "var D=window.PHRASAL_INDEX;\n"
+        "var view=document.getElementById('view');\n"
+        "var rowScene=document.querySelector('[data-chips=\"scene\"]');\n"
+        "var rowPart=document.querySelector('[data-chips=\"particle\"]');\n"
         "var modeBtns=document.querySelectorAll('[data-mode]');\n"
-        "function paintMode(mode){\n"
-        "  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===mode?'true':'false');\n"
-        "  step2.hidden=!mode;\n"
-        "  rowScene.hidden=mode!=='scene';rowPart.hidden=mode!=='particle';\n"
+        "function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}\n"
+        "function chip(attr,val,label){return '<button type=\"button\" data-'+attr+'=\"'+val+'\">'+esc(label)+'</button>';}\n"
+        "function rowsHtml(rows,page,withPage){\n"
+        "  var out='';\n"
+        "  for(var i=0;i<rows.length;i++){\n"
+        "    var r=rows[i];var p=withPage?r[2]:page;var id=withPage?r[3]:r[2];\n"
+        "    out+='<a class=\"row\" href=\"'+p+'#'+id+'\"><span class=\"title\"><span class=\"en\">'+esc(r[0])+'</span><span class=\"zh\">'+esc(r[1])+'</span></span></a>';\n"
+        "  }\n"
+        "  return out;\n"
         "}\n"
-        "for(var k=0;k<modeBtns.length;k++)modeBtns[k].addEventListener('click',function(e){paintMode(e.currentTarget.getAttribute('data-mode'));});\n"
+        "function renderScene(){\n"
+        "  var html='';\n"
+        "  D.scene.forEach(function(g){\n"
+        "    html+='<section class=\"group\" data-cat=\"'+g.id+'\"><p class=\"stage\">'+esc(g.zh)+' <span class=\"stage-en\">'+esc(g.en)+' · '+g.count+' 条</span></p>';\n"
+        "    g.themes.forEach(function(t){\n"
+        "      html+='<h3 class=\"theme\"><a href=\"'+t.page+'\">'+esc(t.zh)+' <span class=\"stage-en\">'+esc(t.en)+'</span><span class=\"theme-go\">进入主题 ›</span></a></h3>';\n"
+        "      html+='<div class=\"list\">'+rowsHtml(t.rows,t.page,false)+'</div>';\n"
+        "    });\n"
+        "    html+='</section>';\n"
+        "  });\n"
+        "  return html;\n"
+        "}\n"
+        "function renderParticle(){\n"
+        "  var html='';\n"
+        "  D.particle.forEach(function(g){\n"
+        "    var label=g.label||g.p;\n"
+        "    html+='<section class=\"group\" data-particle=\"'+g.p+'\"><p class=\"stage\">'+esc(label)+' <span class=\"stage-en\">'+g.rows.length+' 条</span></p>';\n"
+        "    html+='<div class=\"list\">'+rowsHtml(g.rows,'',true)+'</div></section>';\n"
+        "  });\n"
+        "  return html;\n"
+        "}\n"
+        "var sceneHtml=renderScene(),partHtml=renderParticle();\n"
+        "rowScene.innerHTML=chip('cat','all','全部')+D.scene.map(function(g){return chip('cat',g.id,g.zh);}).join('');\n"
+        "rowPart.innerHTML=chip('part','all','全部')+D.particle.map(function(g){return chip('part',g.p,g.label||g.p);}).join('');\n"
+        "function paint(mode,key,value){\n"
+        "  view.innerHTML=(mode==='scene'?sceneHtml:partHtml);\n"
+        "  view.setAttribute('data-view',mode);\n"
+        "  rowScene.hidden=(mode!=='scene');rowPart.hidden=(mode==='scene');\n"
+        "  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===mode?'true':'false');\n"
+        "  var sec=(mode==='scene'?'cat':'particle'),chipAttr=(mode==='scene'?'cat':'part');\n"
+        "  var groups=view.querySelectorAll('.group');\n"
+        "  for(var g=0;g<groups.length;g++)groups[g].style.display=(value==='all'||groups[g].getAttribute('data-'+sec)===value)?'':'none';\n"
+        "  var chips=(mode==='scene'?rowScene:rowPart).querySelectorAll('button');\n"
+        "  for(var c=0;c<chips.length;c++)chips[c].setAttribute('aria-pressed',chips[c].getAttribute('data-'+chipAttr)===value?'true':'false');\n"
+        "}\n"
+        "function onClick(container,attr,key){container.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint(key,attr,b.getAttribute('data-'+attr));});}\n"
+        "for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var mode=e.currentTarget.getAttribute('data-mode');paint(mode,mode==='scene'?'cat':'part','all');});\n"
+        "onClick(rowScene,'cat','scene');onClick(rowPart,'part','particle');\n"
+        "paint('scene','cat','all');\n"
         "})();\n"
         "</script>\n</body>\n</html>\n"
     )
     (BASE / "index.html").write_text(page, encoding="utf-8")
-    print(f"built index.html ({len(themes)} themes, {total} entries)")
-
-
-def build_scene_pages(themes, numbers):
-    """每个场景一个页面，只含该场景的短语，按主题分组。"""
-    doc = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
-    categories = doc.get("categories", [])
-    for cat in categories:
-        group = [t for t in themes if t.get("category") == cat["id"]]
-        if not group:
-            continue
-        body = "".join(
-            theme_block(t, f"{numbers[t['id']]:02d}-{slug(t['title_en'])}")
-            for t in group)
-        count = sum(len(t["entries"]) for t in group)
-        page = (
-            '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n'
-            '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-            f"<title>{html.escape(cat['title_zh'])} · 短语动词</title>\n"
-            f"<style>{INDEX_STYLE}</style>\n</head>\n<body>\n<div class=\"page\">\n"
-            f'<a class="back" href="index.html">短语动词</a>\n'
-            f'<p class="crumbs"><a href="index.html">短语动词</a> › '
-            f"{html.escape(cat['title_zh'])}</p>\n"
-            f"<h1>{html.escape(cat['title_zh'])}</h1>\n"
-            f'<p class="sub">{html.escape(cat["title_en"])} · {len(group)} 个主题 · {count} 条</p>\n'
-            f'{body}\n</div>\n</body>\n</html>\n'
-        )
-        name = f"scene-{cat['id']}.html"
-        (BASE / name).write_text(page, encoding="utf-8")
-        print(f"built {name} ({len(group)} themes, {count} entries)")
-
-
-def build_particles(themes):
-    """按小品词索引：独立页，锚点直接定位到某个介词。"""
-    groups, others, keys = particle_groups(themes)
-    sections = particle_sections(groups, others, keys)
-
-    chips = ['<button type="button" data-particle="all" aria-pressed="true">全部</button>']
-    for particle in keys:
-        chips.append(f'<button type="button" data-particle="{html.escape(particle)}" '
-                     f'aria-pressed="false">{html.escape(particle)}</button>')
-    if others:
-        chips.append('<button type="button" data-particle="others" '
-                     'aria-pressed="false">其他</button>')
-
-    total = sum(len(v) for v in groups.values()) + len(others)
-    page = (
-        '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n'
-        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-        "<title>按小品词浏览 · 短语动词</title>\n"
-        f"<style>{INDEX_STYLE}</style>\n</head>\n<body>\n<div class=\"page\">\n"
-        '<p class="crumbs"><a href="index.html">短语动词</a> › 按小品词浏览</p>\n'
-        "<h1>按小品词浏览</h1>\n"
-        f'<p class="sub">共 {total} 条 · 点一条跳到所在主题</p>\n'
-        f'<div class="chips" role="group" aria-label="小品词">{"".join(chips)}</div>\n'
-        f'{"".join(sections)}\n</div>\n<script>\n'
-        "(function(){\n"
-        "var btns=document.querySelectorAll('.chips button');\n"
-        "var groups=document.querySelectorAll('.group');\n"
-        "function apply(p){\n"
-        "  for(var i=0;i<groups.length;i++)groups[i].style.display=(p==='all'||groups[i].getAttribute('data-particle')===p)?'':'none';\n"
-        "  for(var j=0;j<btns.length;j++)btns[j].setAttribute('aria-pressed',btns[j].getAttribute('data-particle')===p?'true':'false');\n"
-        "  try{history.replaceState(null,'',p==='all'?location.pathname:'#p-'+p);}catch(e){}\n"
-        "}\n"
-        "function fromHash(){\n"
-        "  var h=(location.hash||'').replace('#p-','');\n"
-        "  return h && document.getElementById('p-'+h) ? h : 'all';\n"
-        "}\n"
-        "for(var k=0;k<btns.length;k++)btns[k].addEventListener('click',function(e){apply(e.currentTarget.getAttribute('data-particle'));});\n"
-        "apply(fromHash());\n"
-        "})();\n"
-        "</script>\n</body>\n</html>\n"
-    )
-    (BASE / "particles.html").write_text(page, encoding="utf-8")
-    print(f"built particles.html ({len(sections)} groups, {total} entries)")
+    total = sum(len(theme["entries"]) for theme in themes)
+    print(f"built index.html + data.{digest}.js ({len(themes)} themes, {total} entries)")
 
 
 async def main():
@@ -608,8 +553,6 @@ async def main():
 
     if args.index_only:
         build_index(themes)
-        build_scene_pages(themes, numbers)
-        build_particles(themes)
         return 0
 
     selected = themes
@@ -642,8 +585,6 @@ async def main():
     if not args.only and built == len(selected):
         all_themes = load_themes()
         build_index(all_themes)
-        build_scene_pages(all_themes, {t['id']: i + 1 for i, t in enumerate(all_themes)})
-        build_particles(all_themes)
     return 1 if failed else 0
 
 

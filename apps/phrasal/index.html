@@ -82,25 +82,68 @@
 <body>
 <div class="page">
 <h1>短语动词</h1>
-<p class="sub">30 个主题 · 900 条 · 点词条或例句就出声</p>
-<div class="level1" role="group" aria-label="先选一种浏览方式"><button type="button" data-mode="scene">场景话题</button><button type="button" data-mode="particle">介词</button></div>
-<div id="step2" hidden>
-<div class="chips" data-chips="scene" hidden><a class="chip" href="scene-daily.html">日常生活</a><a class="chip" href="scene-travel-money.html">出行与金钱</a><a class="chip" href="scene-health.html">身体与健康</a><a class="chip" href="scene-people.html">人际与情绪</a><a class="chip" href="scene-work-study.html">工作与学习</a><a class="chip" href="scene-functions.html">沟通与思考</a></div>
-<div class="chips" data-chips="particle" hidden><a class="chip" href="particles.html#p-up">up</a><a class="chip" href="particles.html#p-down">down</a><a class="chip" href="particles.html#p-out">out</a><a class="chip" href="particles.html#p-off">off</a><a class="chip" href="particles.html#p-on">on</a><a class="chip" href="particles.html#p-in">in</a><a class="chip" href="particles.html#p-through">through</a><a class="chip" href="particles.html#p-over">over</a><a class="chip" href="particles.html#p-back">back</a><a class="chip" href="particles.html#p-around">around</a><a class="chip" href="particles.html#p-into">into</a><a class="chip" href="particles.html#p-onto">onto</a><a class="chip" href="particles.html#p-away">away</a><a class="chip" href="particles.html#p-along">along</a><a class="chip" href="particles.html#p-by">by</a><a class="chip" href="particles.html#p-for">for</a><a class="chip" href="particles.html#p-with">with</a><a class="chip" href="particles.html#p-at">at</a><a class="chip" href="particles.html#p-ahead">ahead</a><a class="chip" href="particles.html#p-together">together</a><a class="chip" href="particles.html#p-after">after</a><a class="chip" href="particles.html#p-apart">apart</a><a class="chip" href="particles.html#p-across">across</a><a class="chip" href="particles.html#p-forward">forward</a><a class="chip" href="particles.html#p-behind">behind</a><a class="chip" href="particles.html#p-past">past</a><a class="chip" href="particles.html#p-against">against</a><a class="chip" href="particles.html#p-about">about</a><a class="chip" href="particles.html#p-of">of</a><a class="chip" href="particles.html#p-aside">aside</a><a class="chip" href="particles.html#p-under">under</a><a class="chip" href="particles.html#p-round">round</a><a class="chip" href="particles.html#p-from">from</a><a class="chip" href="particles.html#p-to">to</a><a class="chip" href="particles.html#p-others">其他</a></div>
+<div class="level1" role="group" aria-label="浏览方式"><button type="button" data-mode="scene" aria-pressed="true">场景话题</button><button type="button" data-mode="particle" aria-pressed="false">介词</button></div>
+<div class="chips" data-chips="scene"></div>
+<div class="chips" data-chips="particle" hidden></div>
+<div id="view"></div>
 </div>
-</div>
+<script src="data.451b503620.js"></script>
 <script>
 (function(){
-var step2=document.getElementById('step2');
-var rowScene=document.querySelector('[data-chips=\"scene\"]');
-var rowPart=document.querySelector('[data-chips=\"particle\"]');
+var D=window.PHRASAL_INDEX;
+var view=document.getElementById('view');
+var rowScene=document.querySelector('[data-chips="scene"]');
+var rowPart=document.querySelector('[data-chips="particle"]');
 var modeBtns=document.querySelectorAll('[data-mode]');
-function paintMode(mode){
-  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===mode?'true':'false');
-  step2.hidden=!mode;
-  rowScene.hidden=mode!=='scene';rowPart.hidden=mode!=='particle';
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function chip(attr,val,label){return '<button type="button" data-'+attr+'="'+val+'">'+esc(label)+'</button>';}
+function rowsHtml(rows,page,withPage){
+  var out='';
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i];var p=withPage?r[2]:page;var id=withPage?r[3]:r[2];
+    out+='<a class="row" href="'+p+'#'+id+'"><span class="title"><span class="en">'+esc(r[0])+'</span><span class="zh">'+esc(r[1])+'</span></span></a>';
+  }
+  return out;
 }
-for(var k=0;k<modeBtns.length;k++)modeBtns[k].addEventListener('click',function(e){paintMode(e.currentTarget.getAttribute('data-mode'));});
+function renderScene(){
+  var html='';
+  D.scene.forEach(function(g){
+    html+='<section class="group" data-cat="'+g.id+'"><p class="stage">'+esc(g.zh)+' <span class="stage-en">'+esc(g.en)+' · '+g.count+' 条</span></p>';
+    g.themes.forEach(function(t){
+      html+='<h3 class="theme"><a href="'+t.page+'">'+esc(t.zh)+' <span class="stage-en">'+esc(t.en)+'</span><span class="theme-go">进入主题 ›</span></a></h3>';
+      html+='<div class="list">'+rowsHtml(t.rows,t.page,false)+'</div>';
+    });
+    html+='</section>';
+  });
+  return html;
+}
+function renderParticle(){
+  var html='';
+  D.particle.forEach(function(g){
+    var label=g.label||g.p;
+    html+='<section class="group" data-particle="'+g.p+'"><p class="stage">'+esc(label)+' <span class="stage-en">'+g.rows.length+' 条</span></p>';
+    html+='<div class="list">'+rowsHtml(g.rows,'',true)+'</div></section>';
+  });
+  return html;
+}
+var sceneHtml=renderScene(),partHtml=renderParticle();
+rowScene.innerHTML=chip('cat','all','全部')+D.scene.map(function(g){return chip('cat',g.id,g.zh);}).join('');
+rowPart.innerHTML=chip('part','all','全部')+D.particle.map(function(g){return chip('part',g.p,g.label||g.p);}).join('');
+function paint(mode,key,value){
+  view.innerHTML=(mode==='scene'?sceneHtml:partHtml);
+  view.setAttribute('data-view',mode);
+  rowScene.hidden=(mode!=='scene');rowPart.hidden=(mode==='scene');
+  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===mode?'true':'false');
+  var sec=(mode==='scene'?'cat':'particle'),chipAttr=(mode==='scene'?'cat':'part');
+  var groups=view.querySelectorAll('.group');
+  for(var g=0;g<groups.length;g++)groups[g].style.display=(value==='all'||groups[g].getAttribute('data-'+sec)===value)?'':'none';
+  var chips=(mode==='scene'?rowScene:rowPart).querySelectorAll('button');
+  for(var c=0;c<chips.length;c++)chips[c].setAttribute('aria-pressed',chips[c].getAttribute('data-'+chipAttr)===value?'true':'false');
+}
+function onClick(container,attr,key){container.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint(key,attr,b.getAttribute('data-'+attr));});}
+for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var mode=e.currentTarget.getAttribute('data-mode');paint(mode,mode==='scene'?'cat':'part','all');});
+onClick(rowScene,'cat','scene');onClick(rowPart,'part','particle');
+paint('scene','cat','all');
 })();
 </script>
 </body>

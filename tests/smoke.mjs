@@ -781,61 +781,43 @@ const cases = [
   {
     name: 'phrasal-index', path: '/phrasal/',
     async run() {
-      // 一级选完才出二级；二级是链接，指向场景页或介词锚点。
+      // 默认场景话题 + 全部；切换二级只在当前页展开，不跳转；也不能有 meta 文案。
       const r = await evaluate(`(() => {
-        const step2 = document.getElementById('step2');
-        if (!step2 || !step2.hidden) return 'step2-visible-too-early';
+        const meta = document.querySelector('.sub');
+        const path0 = location.pathname;
+        const sceneChips = [...document.querySelectorAll('[data-chips="scene"] button')];
+        const partRow = document.querySelector('[data-chips="particle"]');
+        if (meta) return 'meta-text';
+        if (!sceneChips.length || !partRow.hidden) return 'default-chips-wrong';
+        const sceneSections = [...document.querySelectorAll('#view .group[data-cat]')];
+        const allShown = sceneSections.length > 0
+          && sceneSections.every((s) => s.style.display !== 'none');
+        if (!allShown) return 'default-not-all';
+        const daily = sceneChips.find((b) => b.dataset.cat === 'daily');
+        if (!daily) return 'no-daily';
+        daily.click();
+        const afterCat = [...document.querySelectorAll('#view .group[data-cat]')];
+        const shownCat = afterCat.filter((s) => s.style.display !== 'none');
+        const catOk = shownCat.length === 1 && shownCat[0].dataset.cat === 'daily';
+        const noNav = location.pathname === path0;
+        const allBtn = sceneChips.find((b) => b.dataset.cat === 'all');
+        allBtn.click();
+        const restored = [...document.querySelectorAll('#view .group[data-cat]')]
+          .every((s) => s.style.display !== 'none');
         const modes = [...document.querySelectorAll('[data-mode]')];
-        const scene = modes.find((b) => b.dataset.mode === 'scene');
-        const part = modes.find((b) => b.dataset.mode === 'particle');
-        if (!scene || !part) return 'no-mode';
-        scene.click();
-        if (step2.hidden) return 'step2-hidden-after-scene';
-        const sceneHref = [...document.querySelectorAll('[data-chips="scene"] a.chip')]
-          .map((a) => a.getAttribute('href'));
-        part.click();
-        const partHref = [...document.querySelectorAll('[data-chips="particle"] a.chip')]
-          .map((a) => a.getAttribute('href'));
-        const okScene = sceneHref.length > 0
-          && sceneHref.every((h) => /^scene-[a-z-]+\.html$/.test(h));
-        const okPart = partHref.length > 0
-          && partHref.every((h) => h.indexOf('particles.html#p-') === 0);
-        return okScene && okPart
-          ? 'ok'
-          : 'scene=' + sceneHref.length + '/part=' + partHref.length;
+        modes.find((b) => b.dataset.mode === 'particle').click();
+        if (partRow.hidden) return 'part-chips-hidden';
+        const partChips = [...document.querySelectorAll('[data-chips="particle"] button')];
+        const up = partChips.find((b) => b.dataset.part === 'up');
+        if (!up) return 'no-up';
+        up.click();
+        const pgroups = [...document.querySelectorAll('#view .group[data-particle]')];
+        const shownPart = pgroups.filter((s) => s.style.display !== 'none');
+        const partOk = shownPart.length === 1 && shownPart[0].dataset.particle === 'up';
+        return catOk && noNav && restored && partOk ? 'ok'
+          : 'cat=' + catOk + '/noNav=' + noNav + '/restored=' + restored + '/part=' + partOk;
       })()`);
-      return { ok: r === 'ok', detail: `nav=${r}` };
-    },
-  },
-  {
-    name: 'phrasal-scene', path: '/phrasal/scene-daily.html',
-    async run() {
-      const r = await evaluate(`(() => {
-        const h1 = document.querySelector('h1');
-        const rows = document.querySelectorAll('.row');
-        const crumb = document.querySelector('.crumbs a');
-        if (!h1) return 'missing';
-        return {
-          title: h1.textContent.trim(),
-          rows: rows.length,
-          crumb: crumb ? crumb.getAttribute('href') : null,
-        };
-      })()`);
-      const ok = r && r.title === '日常生活' && r.rows > 100 && r.crumb === 'index.html';
-      return { ok, detail: `title=${r && r.title} rows=${r && r.rows} crumb=${r && r.crumb}` };
-    },
-  },
-  {
-    name: 'phrasal-particles', path: '/phrasal/particles.html#p-up',
-    async run() {
-      const r = await evaluate(`(() => {
-        const groups = [...document.querySelectorAll('.group')];
-        const shown = groups.filter((g) => g.style.display !== 'none');
-        return shown.length === 1 && shown[0].getAttribute('data-particle') === 'up'
-          ? 'ok'
-          : 'shown=' + shown.length + (shown[0] ? '/' + shown[0].getAttribute('data-particle') : '');
-      })()`);
-      return { ok: r === 'ok', detail: `hash=${r}` };
+      return { ok: r === 'ok', detail: `index=${r}` };
     },
   },
   {
