@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Relationships and family · 短语动词</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --on-accent:var(--on-blue, #ffffff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  /* 只有站点主题脚本没跑起来（没有 data-theme）时才按系统深色兜底。
+     一旦 data-theme 存在，配色全部交给站点主题样式表 —— 否则用户选了亮色主题，
+     这里的深色变量仍会生效，出现黑字压黑底。
+     注意：本文件不能出现站点主题文件的文件名，构建脚本靠这个字符串判断
+     “页面已经自带主题”，误判会整页跳过主题注入（切换按钮也会消失）。 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) { --bg:#000000; --fg:#f5f5f7; --muted:#98989d;
+      --rule:#2c2c2e; --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+  .intro { margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.6; }
+  .legend { margin:14px 0 0; padding:12px 14px; border-radius:14px;
+    background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7; }
+  .legend b { color:var(--fg); font-weight:600; }
+  .legend code { color:var(--accent); font-family:inherit; font-size:15px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:var(--on-accent); }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { width:118px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .entries { margin-top:6px; }
+  .entry, .senses, .sense { min-width:0; }
+  .entry { padding:26px 0 22px; border-bottom:1px solid var(--rule); }
+  .entry-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .head { display:inline-flex; align-items:baseline; gap:10px; appearance:none;
+    border:0; background:transparent; color:inherit; font:inherit; padding:2px 4px;
+    border-radius:10px; cursor:pointer; text-align:left; }
+  .head:hover { background:var(--surface); }
+  .head .w { font-size:24px; font-weight:700; letter-spacing:-0.02em; }
+  .head .ipa { color:var(--muted); font-size:14px; }
+  .head .play, .ex .play { font-size:0.62em; color:var(--muted); }
+  .head.playing { background:var(--tint); }
+  .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
+
+  .senses { margin-top:12px; display:grid; gap:10px; }
+  .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted);
+    letter-spacing:0.02em; }
+  /* button 的 UA 样式不换行，一句长例句会把整页撑宽 */
+  .head, .ex { white-space:normal; overflow-wrap:anywhere; }
+  .ex { display:block; width:100%; text-align:left; font:inherit; color:inherit;
+    background:var(--surface); border:0; border-radius:16px; padding:12px 14px;
+    cursor:pointer; transition:background-color .12s ease; }
+  .ex:hover { background:var(--tint); }
+  .ex.playing { background:var(--tint); }
+  .ex .txt { display:block; font-size:17px; line-height:1.55; }
+  .ex .zh { display:block; margin-top:4px; color:var(--muted); font-size:13px;
+    line-height:1.45; }
+
+  /* 背景只用主题自己的 surface 变量，文字用 --fg，任何主题都保证对比度 */
+  .note-card { margin-top:14px; padding:14px 16px; border-radius:16px;
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    border:1px solid var(--rule); border-left:3px solid var(--accent);
+    display:grid; gap:10px; }
+  .note-card p { margin:0; font-size:14px; line-height:1.65; color:var(--fg); }
+  .note-card p b { display:inline-block; margin-right:8px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+
+  body.zh-off .zh, body.zh-off .zh-line, body.zh-off .sense-zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .head .w { font-size:21px; }
+    .ex .txt { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">短语动词</a>
+  <header>
+    <h1>Relationships and family</h1>
+    <p class="title-zh">恋爱与家庭</p>
+    <p class="intro">约会、相处、疏远、分手，还有跟家里人。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="entries">
+      <article class="entry" id="ask-out" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="w">ask out</span><span class="ipa">/ˈæsk aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">约（人）出去</p><div class="senses"><div class="sense"><p class="sense-zh">开口约约会</p><button class="ex say" type="button" data-start-f="1.872" data-end-f="4.728" data-start-m="1.872" data-end-m="4.368"><span class="txt">He asked her out after three weeks of chatting.</span><span class="zh">聊了三周他终于约她出去了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>约出去是 ask someone out，代词夹中间。</p><p class="colloc"><b>搭配</b>ask someone out · ask her out</p><p class="confuse"><b>易混</b>go out with · ask for</p></div></article>
+      <article class="entry" id="go-out-with" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="4.728" data-end-f="6.600" data-start-m="4.368" data-end-m="6.240"><span class="w">go out with</span><span class="ipa">/ˈɡoʊ aʊt wɪð/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">和……交往</p><div class="senses"><div class="sense"><p class="sense-zh">在谈恋爱</p><button class="ex say" type="button" data-start-f="6.600" data-end-f="9.096" data-start-m="6.240" data-end-m="8.400"><span class="txt">They&#x27;ve been going out with each other for a year.</span><span class="zh">他们在一起一年了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>交往是 go out with；出门玩是 go out。</p><p class="colloc"><b>搭配</b>go out with someone · go out together</p><p class="confuse"><b>易混</b>see someone · go out</p></div></article>
+      <article class="entry" id="fall-for" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="9.096" data-end-f="10.968" data-start-m="8.400" data-end-m="10.272"><span class="w">fall for</span><span class="ipa">/ˈfɔl fɔr/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">爱上；上当</p><div class="senses"><div class="sense"><p class="sense-zh">喜欢上一个人</p><button class="ex say" type="button" data-start-f="10.968" data-end-f="13.608" data-start-m="10.272" data-end-m="12.312"><span class="txt">I fell for her the first time we met.</span><span class="zh">第一次见面我就喜欢上她了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>爱上 是 fall for；也指“上当”。</p><p class="colloc"><b>搭配</b>fall for someone · fall for a scam</p><p class="confuse"><b>易混</b>fall in love · be into</p></div></article>
+      <article class="entry" id="drift-apart" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="13.608" data-end-f="15.480" data-start-m="12.312" data-end-m="14.184"><span class="w">drift apart</span><span class="ipa">/ˈdrɪft əˈpɑrt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">渐渐疏远</p><div class="senses"><div class="sense"><p class="sense-zh">关系慢慢变淡</p><button class="ex say" type="button" data-start-f="15.480" data-end-f="18.576" data-start-m="14.184" data-end-m="17.064"><span class="txt">We drifted apart after he moved to Beijing.</span><span class="zh">他去北京之后我们就慢慢淡了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>疏远是 drift apart，画面是两条船漂开。</p><p class="colloc"><b>搭配</b>drift apart over time · drift apart from friends</p><p class="confuse"><b>易混</b>grow apart · fall out</p></div></article>
+      <article class="entry" id="cheat-on" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="18.576" data-end-f="20.448" data-start-m="17.064" data-end-m="18.936"><span class="w">cheat on</span><span class="ipa">/ˈtʃit ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">对……不忠</p><div class="senses"><div class="sense"><p class="sense-zh">感情上背叛</p><button class="ex say" type="button" data-start-f="20.448" data-end-f="22.824" data-start-m="18.936" data-end-m="21.048"><span class="txt">She found out he&#x27;d been cheating on her.</span><span class="zh">她发现他一直出轨。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>出轨是 cheat on someone；cheat at 是考试作弊。</p><p class="colloc"><b>搭配</b>cheat on a partner · cheat on someone</p><p class="confuse"><b>易混</b>cheat at · mess around</p></div></article>
+      <article class="entry" id="fool-around" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="22.824" data-end-f="24.696" data-start-m="21.048" data-end-m="22.920"><span class="w">fool around</span><span class="ipa">/ˈful əˈraʊnd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">乱来、玩玩而已</p><div class="senses"><div class="sense"><p class="sense-zh">感情上不认真</p><button class="ex say" type="button" data-start-f="24.696" data-end-f="28.416" data-start-m="22.920" data-end-m="26.064"><span class="txt">He&#x27;s not ready to commit — he&#x27;s still fooling around.</span><span class="zh">他还不想认真，还在玩。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>fool around 也指瞎闹、浪费时间。</p><p class="colloc"><b>搭配</b>fool around with someone · fool around at work</p><p class="confuse"><b>易混</b>mess around · play around</p></div></article>
+      <article class="entry" id="grow-on" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="28.416" data-end-f="30.288" data-start-m="26.064" data-end-m="27.936"><span class="w">grow on</span><span class="ipa">/ˈɡroʊ ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">越来越喜欢</p><div class="senses"><div class="sense"><p class="sense-zh">一开始一般，后来越来越顺眼</p><button class="ex say" type="button" data-start-f="30.288" data-end-f="33.672" data-start-m="27.936" data-end-m="31.032"><span class="txt">He was a bit quiet at first, but he grows on you.</span><span class="zh">他一开始有点闷，但越处越喜欢。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>越来越喜欢是 grow on you；不是“长在你身上”。</p><p class="colloc"><b>搭配</b>grow on someone · it grows on you</p><p class="confuse"><b>易混</b>warm to · get into</p></div></article>
+      <article class="entry" id="warm-to" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="33.672" data-end-f="35.544" data-start-m="31.032" data-end-m="32.904"><span class="w">warm to</span><span class="ipa">/ˈwɔrm tu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">开始喜欢</p><div class="senses"><div class="sense"><p class="sense-zh">态度转暖</p><button class="ex say" type="button" data-start-f="35.544" data-end-f="38.088" data-start-m="32.904" data-end-m="35.232"><span class="txt">Her parents slowly warmed to him.</span><span class="zh">她爸妈慢慢接受了他。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>开始喜欢是 warm to；warm up to 同义但更口语。</p><p class="colloc"><b>搭配</b>warm to an idea · warm to someone</p><p class="confuse"><b>易混</b>grow on · warm up to</p></div></article>
+      <article class="entry" id="lean-on" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="38.088" data-end-f="39.960" data-start-m="35.232" data-end-m="37.104"><span class="w">lean on</span><span class="ipa">/ˈlin ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">依靠</p><div class="senses"><div class="sense"><p class="sense-zh">情感上依赖</p><button class="ex say" type="button" data-start-f="39.960" data-end-f="42.768" data-start-m="37.104" data-end-m="39.576"><span class="txt">She leaned on her sister during the divorce.</span><span class="zh">离婚那段时间她靠姐姐撑着。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>依靠是 lean on；lean 单独是倾斜。</p><p class="colloc"><b>搭配</b>lean on family · lean on a friend</p><p class="confuse"><b>易混</b>count on · rely on</p></div></article>
+      <article class="entry" id="check-in-on" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="42.768" data-end-f="44.640" data-start-m="39.576" data-end-m="41.448"><span class="w">check in on</span><span class="ipa">/ˈtʃɛk ɪn ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">关心一下</p><div class="senses"><div class="sense"><p class="sense-zh">看看对方怎么样</p><button class="ex say" type="button" data-start-f="44.640" data-end-f="46.752" data-start-m="41.448" data-end-m="43.320"><span class="txt">I called to check in on my grandma.</span><span class="zh">我打电话问问我奶奶怎么样。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>关心是 check in on；check on 也可以。</p><p class="colloc"><b>搭配</b>check in on a friend · check in on your parents</p><p class="confuse"><b>易混</b>look in on · check up on</p></div></article>
+      <article class="entry" id="look-in-on" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="46.752" data-end-f="48.624" data-start-m="43.320" data-end-m="45.192"><span class="w">look in on</span><span class="ipa">/ˈlʊk ɪn ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">探望一下</p><div class="senses"><div class="sense"><p class="sense-zh">顺路看看</p><button class="ex say" type="button" data-start-f="48.624" data-end-f="50.712" data-start-m="45.192" data-end-m="47.064"><span class="txt">I&#x27;ll look in on him after work.</span><span class="zh">下班后我去看看他。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>探望是 look in on；look into 是调查。</p><p class="colloc"><b>搭配</b>look in on a neighbor · look in on the kids</p><p class="confuse"><b>易混</b>check in on · drop in</p></div></article>
+      <article class="entry" id="ask-after" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="50.712" data-end-f="52.584" data-start-m="47.064" data-end-m="48.936"><span class="w">ask after</span><span class="ipa">/ˈæsk ˈæftər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">问起（近况）</p><div class="senses"><div class="sense"><p class="sense-zh">打听某人好不好</p><button class="ex say" type="button" data-start-f="52.584" data-end-f="54.936" data-start-m="48.936" data-end-m="51.384"><span class="txt">She asked after your mom when we met.</span><span class="zh">见面时她问起你妈。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>问起是 ask after；ask for 是要求。</p><p class="colloc"><b>搭配</b>ask after someone · ask after your family</p><p class="confuse"><b>易混</b>ask for · ask about</p></div></article>
+      <article class="entry" id="hear-from" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="54.936" data-end-f="56.808" data-start-m="51.384" data-end-m="53.256"><span class="w">hear from</span><span class="ipa">/ˈhɪr frɑm/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">收到（某人）消息</p><div class="senses"><div class="sense"><p class="sense-zh">对方联系你</p><button class="ex say" type="button" data-start-f="56.808" data-end-f="59.304" data-start-m="53.256" data-end-m="55.296"><span class="txt">I haven&#x27;t heard from him since the wedding.</span><span class="zh">婚礼之后就没他消息了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>收到消息是 hear from；hear about 是听说某事。</p><p class="colloc"><b>搭配</b>hear from a friend · hear from you soon</p><p class="confuse"><b>易混</b>hear about · hear back</p></div></article>
+      <article class="entry" id="hold-together" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="59.304" data-end-f="61.176" data-start-m="55.296" data-end-m="57.168"><span class="w">hold together</span><span class="ipa">/ˈhoʊld təˈɡɛðər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">维系住</p><div class="senses"><div class="sense"><p class="sense-zh">关系或局面没散</p><button class="ex say" type="button" data-start-f="61.176" data-end-f="64.128" data-start-m="57.168" data-end-m="59.520"><span class="txt">The family held together through the hard year.</span><span class="zh">那艰难的一年一家人没散。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>维系是 hold together；hold on 是坚持住。</p><p class="colloc"><b>搭配</b>hold a family together · hold it together</p><p class="confuse"><b>易混</b>hold on · keep together</p></div></article>
+      <article class="entry" id="work-at" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="64.128" data-end-f="66.000" data-start-m="59.520" data-end-m="61.392"><span class="w">work at</span><span class="ipa">/ˈwɝrk æt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">用心经营（关系）</p><div class="senses"><div class="sense"><p class="sense-zh">持续投入</p><button class="ex say" type="button" data-start-f="66.000" data-end-f="68.928" data-start-m="61.392" data-end-m="64.056"><span class="txt">A marriage takes work — you have to work at it.</span><span class="zh">婚姻要经营，得一直用心。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>经营是 work at；work on 是改进某事。</p><p class="colloc"><b>搭配</b>work at a relationship · work at it</p><p class="confuse"><b>易混</b>work on · put into</p></div></article>
+      <article class="entry" id="put-behind" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="68.928" data-end-f="70.800" data-start-m="64.056" data-end-m="65.928"><span class="w">put behind</span><span class="ipa">/ˈpʊt bɪˈhaɪnd/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">放下（过去）</p><div class="senses"><div class="sense"><p class="sense-zh">不再纠结</p><button class="ex say" type="button" data-start-f="70.800" data-end-f="74.112" data-start-m="65.928" data-end-m="68.928"><span class="txt">She put the breakup behind her and moved cities.</span><span class="zh">她把分手放下了，搬去了别的城市。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>放下过去是 put behind you；不是 forget it（太绝对）。</p><p class="colloc"><b>搭配</b>put the past behind you · put it behind</p><p class="confuse"><b>易混</b>move on · get over</p></div></article>
+      <article class="entry" id="move-on" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="74.112" data-end-f="75.984" data-start-m="68.928" data-end-m="70.800"><span class="w">move on</span><span class="ipa">/ˈmuv ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">往前走</p><div class="senses"><div class="sense"><p class="sense-zh">从一段关系里走出来</p><button class="ex say" type="button" data-start-f="75.984" data-end-f="78.192" data-start-m="70.800" data-end-m="72.744"><span class="txt">It took her a year to move on.</span><span class="zh">她花了一年才走出来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>move on 是继续往前；move in 是搬进去。</p><p class="colloc"><b>搭配</b>move on after a breakup · move on with life</p><p class="confuse"><b>易混</b>get over · put behind</p></div></article>
+      <article class="entry" id="make-it-up-to" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="78.192" data-end-f="80.064" data-start-m="72.744" data-end-m="74.616"><span class="w">make it up to</span><span class="ipa">/ˈmeɪk ɪt ʌp tu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">补偿（某人）</p><div class="senses"><div class="sense"><p class="sense-zh">用行动弥补</p><button class="ex say" type="button" data-start-f="80.064" data-end-f="83.136" data-start-m="74.616" data-end-m="77.400"><span class="txt">I forgot our anniversary — I&#x27;ll make it up to you.</span><span class="zh">我忘了纪念日，我会补偿你的。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>补偿某人是 make it up to someone；it 固定不能省。</p><p class="colloc"><b>搭配</b>make it up to someone · make it up to her</p><p class="confuse"><b>易混</b>make up for · pay back</p></div></article>
+      <article class="entry" id="talk-out" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="83.136" data-end-f="85.008" data-start-m="77.400" data-end-m="79.272"><span class="w">talk out</span><span class="ipa">/ˈtɔk aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">把话说开</p><div class="senses"><div class="sense"><p class="sense-zh">当面讲清楚</p><button class="ex say" type="button" data-start-f="85.008" data-end-f="87.672" data-start-m="79.272" data-end-m="81.792"><span class="txt">We talked it out and decided to try again.</span><span class="zh">我们把话说开，决定再试一次。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>说开是 talk out；talk over 是商量。</p><p class="colloc"><b>搭配</b>talk things out · talk it out</p><p class="confuse"><b>易混</b>have it out · talk over</p></div></article>
+      <article class="entry" id="stick-together" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="87.672" data-end-f="89.544" data-start-m="81.792" data-end-m="83.664"><span class="w">stick together</span><span class="ipa">/ˈstɪk təˈɡɛðər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">互相扶持</p><div class="senses"><div class="sense"><p class="sense-zh">不分开、互相撑着</p><button class="ex say" type="button" data-start-f="89.544" data-end-f="92.256" data-start-m="83.664" data-end-m="85.992"><span class="txt">Whatever happens, we stick together.</span><span class="zh">不管怎样，我们得互相撑着。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>互相扶持是 stick together；stick with 是坚持不换。</p><p class="colloc"><b>搭配</b>stick together as a family · stick together through hard times</p><p class="confuse"><b>易混</b>hold together · stand by</p></div></article>
+      <article class="entry" id="stand-by" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="92.256" data-end-f="94.128" data-start-m="85.992" data-end-m="87.864"><span class="w">stand by</span><span class="ipa">/ˈstænd baɪ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">支持、不离不弃</p><div class="senses"><div class="sense"><p class="sense-zh">站在某人一边</p><button class="ex say" type="button" data-start-f="94.128" data-end-f="97.056" data-start-m="87.864" data-end-m="90.312"><span class="txt">Her friends stood by her through the whole thing.</span><span class="zh">整件事里朋友一直站在她这边。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>支持是 stand by someone；stand in 是代替。</p><p class="colloc"><b>搭配</b>stand by a friend · stand by someone</p><p class="confuse"><b>易混</b>stand up for · back up</p></div></article>
+      <article class="entry" id="put-down-roots" data-chip="housing"><header class="entry-head"><button class="head say" type="button" data-start-f="97.056" data-end-f="98.928" data-start-m="90.312" data-end-m="92.184"><span class="w">put down roots</span><span class="ipa">/ˈpʊt daʊn ruts/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">扎根、定居</p><div class="senses"><div class="sense"><p class="sense-zh">在一个地方安定下来</p><button class="ex say" type="button" data-start-f="98.928" data-end-f="102.192" data-start-m="92.184" data-end-m="95.256"><span class="txt">They put down roots in Chengdu after the baby came.</span><span class="zh">孩子出生后他们在成都扎了根。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>扎根是 put down roots；不是“放下根”。</p><p class="colloc"><b>搭配</b>put down roots in a city · put down roots here</p><p class="confuse"><b>易混</b>settle down · settle in</p></div></article>
+      <article class="entry" id="look-up-to" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="102.192" data-end-f="104.064" data-start-m="95.256" data-end-m="97.128"><span class="w">look up to</span><span class="ipa">/ˈlʊk ʌp tu/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">敬重</p><div class="senses"><div class="sense"><p class="sense-zh">把某人当榜样</p><button class="ex say" type="button" data-start-f="104.064" data-end-f="106.296" data-start-m="97.128" data-end-m="99.000"><span class="txt">The younger kids look up to him.</span><span class="zh">小一点的孩子都敬重他。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>敬重是 look up to；look down on 是看不起。</p><p class="colloc"><b>搭配</b>look up to a mentor · look up to someone</p><p class="confuse"><b>易混</b>look down on · admire</p></div></article>
+      <article class="entry" id="grow-up" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="106.296" data-end-f="108.168" data-start-m="99.000" data-end-m="99.840"><span class="w">grow up</span><span class="ipa">/ˈɡroʊ ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">长大</p><div class="senses"><div class="sense"><p class="sense-zh">从孩子长成大人</p><button class="ex say" type="button" data-start-f="108.168" data-end-f="111.096" data-start-m="99.840" data-end-m="102.240"><span class="txt">She grew up in a small town near Harbin.</span><span class="zh">她在哈尔滨附近的小镇长大。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>长大是 grow up；grow into 是长成某种样子。</p><p class="colloc"><b>搭配</b>grow up abroad · grow up fast</p><p class="confuse"><b>易混</b>bring up · grow into</p></div></article>
+      <article class="entry" id="bring-together" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="111.096" data-end-f="112.968" data-start-m="102.240" data-end-m="104.112"><span class="w">bring together</span><span class="ipa">/ˈbrɪŋ təˈɡɛðər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">撮合、聚到一起</p><div class="senses"><div class="sense"><p class="sense-zh">让两个人或群体靠近</p><button class="ex say" type="button" data-start-f="112.968" data-end-f="115.608" data-start-m="104.112" data-end-m="106.512"><span class="txt">The wedding brought the two families together.</span><span class="zh">婚礼把两家人聚到了一起。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>撮合是 bring together；bring up 是养大。</p><p class="colloc"><b>搭配</b>bring people together · bring them together</p><p class="confuse"><b>易混</b>bring up · set up</p></div></article>
+      <article class="entry" id="pair-off" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="115.608" data-end-f="117.480" data-start-m="106.512" data-end-m="108.384"><span class="w">pair off</span><span class="ipa">/ˈpɛr ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">两两配对</p><div class="senses"><div class="sense"><p class="sense-zh">聚会里各自成对</p><button class="ex say" type="button" data-start-f="117.480" data-end-f="120.240" data-start-m="108.384" data-end-m="111.000"><span class="txt">By the end of the night everyone had paired off.</span><span class="zh">到散场时大家都各自成对了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>配对是 pair off；pair up 是合作配对。</p><p class="colloc"><b>搭配</b>pair off at a party · pair off with someone</p><p class="confuse"><b>易混</b>pair up · match up</p></div></article>
+      <article class="entry" id="break-away" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="120.240" data-end-f="122.112" data-start-m="111.000" data-end-m="112.872"><span class="w">break away</span><span class="ipa">/ˈbreɪk əˈweɪ/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">脱离</p><div class="senses"><div class="sense"><p class="sense-zh">从关系或群体里抽身</p><button class="ex say" type="button" data-start-f="122.112" data-end-f="125.304" data-start-m="112.872" data-end-m="115.512"><span class="txt">He broke away from the family business at thirty.</span><span class="zh">他三十岁时脱离了家族生意。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>脱离是 break away (from)；break up 是分手。</p><p class="colloc"><b>搭配</b>break away from family · break away from the group</p><p class="confuse"><b>易混</b>break up · pull away</p></div></article>
+      <article class="entry" id="walk-out-on" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="125.304" data-end-f="127.176" data-start-m="115.512" data-end-m="117.384"><span class="w">walk out on</span><span class="ipa">/ˈwɔk aʊt ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">抛下（某人）</p><div class="senses"><div class="sense"><p class="sense-zh">一走了之</p><button class="ex say" type="button" data-start-f="127.176" data-end-f="130.392" data-start-m="117.384" data-end-m="120.216"><span class="txt">He walked out on his family and never came back.</span><span class="zh">他抛下家人再没回来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>抛下是 walk out on；walk out 是退场。</p><p class="colloc"><b>搭配</b>walk out on someone · walk out on a marriage</p><p class="confuse"><b>易混</b>walk away · walk out</p></div></article>
+      <article class="entry" id="run-off-with" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="130.392" data-end-f="132.264" data-start-m="120.216" data-end-m="122.088"><span class="w">run off with</span><span class="ipa">/ˈrʌn ɔf wɪð/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">跟人跑了</p><div class="senses"><div class="sense"><p class="sense-zh">私奔或卷走</p><button class="ex say" type="button" data-start-f="132.264" data-end-f="134.904" data-start-m="122.088" data-end-m="124.224"><span class="txt">She ran off with her business partner.</span><span class="zh">她跟生意伙伴跑了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>跟人跑是 run off with；run away 是逃走。</p><p class="colloc"><b>搭配</b>run off with someone · run off with the money</p><p class="confuse"><b>易混</b>run away from · take off with</p></div></article>
+      <article class="entry" id="take-after" data-chip="social"><header class="entry-head"><button class="head say" type="button" data-start-f="134.904" data-end-f="136.776" data-start-m="124.224" data-end-m="126.096"><span class="w">take after</span><span class="ipa">/ˈteɪk ˈæftər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">长得像（家人）</p><div class="senses"><div class="sense"><p class="sense-zh">外貌或性格像</p><button class="ex say" type="button" data-start-f="136.776" data-end-f="140.472" data-start-m="126.096" data-end-m="129.768"><span class="txt">She takes after her dad — same laugh and same temper.</span><span class="zh">她像她爸，笑声和脾气都一样。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>像家人是 take after；look like 只指外貌。</p><p class="colloc"><b>搭配</b>take after your mother · take after someone</p><p class="confuse"><b>易混</b>look like · take to</p></div></article>
+  </section>
+  <p class="status" data-audio-status></p>
+</main>
+<script id="spriteMap" type="application/json">{"f":"sprites/75b1bbf76d7b.mp3","m":"sprites/f5d45751fdb1.mp3"}</script>
+<script>
+(function () {
+  var KEY_VOICE = 'pv-voice';
+  var KEY_SPEED = 'pv-speed', KEY_ZH = 'pv-zh';
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.say'));
+  var current = null, playlist = null, statusTimer = null;
+  var stickyStatus = false;
+  var raf = 0, loadedSrc = null;
+  var SOURCES = {}, READY = {};
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
+
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  function waitForData(el, seek, from, attempt) {
+    if (current !== el) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(el); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(el, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    var retries = 0;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      if (player.currentTime < from - 0.15) {
+        if (++retries > 3) { audioFailed(el); return; }
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      hideStatus();
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var onSeeked = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      }, 1500);
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  // Cloudflare Pages 的静态资源不支持 Range，媒体元素 seekable 只有 [0,0]，
+  // 点后面的句子会被夹回开头。先把整条 sprite 取进内存换成 blob 地址。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
+    }
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(el, onEnd) {
+    var span = spanFor(el);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === el) unmark();
+      showStatus('这一条暂无语音');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== el) return;
+      if (!src) { audioFailed(el); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(el, span, onEnd);
+    });
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    hideStatus();
+    unmark();
+  }
+
+  function showStatus(text, sticky) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    stickyStatus = !!sticky;
+    if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
+    statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    if (!spanFor(el)) { audioFailed(el); return; }
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var list = playlist;
+    begin(el, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    current = el;
+    el.classList.add('playing');
+    begin(el, null);
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+    if (document.readyState === 'complete') prefetch();
+  }
+
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.say');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
+  }
+})();
+</script>
+</body>
+</html>

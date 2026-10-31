@@ -30,6 +30,15 @@ MODEL = os.environ.get(
     r"F:\AIProject\tts-lab\models\Qwen3-TTS-12Hz-1.7B-CustomVoice")
 SPEAKERS = {"f": "vivian", "m": "aiden"}
 
+# 语气要求：正常、自然、别夸张，断句按标点走。男女同一套。
+INSTRUCT = (
+    "Read the sentence as a native American English speaker in an everyday "
+    "conversational voice. Keep the tone calm, neutral and natural: not "
+    "dramatic, not sharp, not low or heavy. Use an ordinary speaking pitch "
+    "and a moderate, steady pace. Pause briefly and logically where the "
+    "punctuation calls for it, and end each sentence with a clear, gentle stop."
+)
+
 ENCODE = ["-ac", "1", "-ar", "24000", "-c:a", "libmp3lame", "-b:a", "48k",
           "-write_xing", "0", "-id3v2_version", "0"]
 
@@ -65,7 +74,7 @@ def main() -> int:
             out.parent.mkdir(parents=True, exist_ok=True)
             wavs, sr = model.generate_custom_voice(
                 text=job["text"], language="English",
-                speaker=SPEAKERS[job["voice"]])
+                speaker=SPEAKERS[job["voice"]], instruct=INSTRUCT)
             sf.write(wav_path, wavs[0], sr)
             subprocess.run(
                 [ffmpeg, "-y", "-loglevel", "error", "-i", str(wav_path)]

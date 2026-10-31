@@ -9,7 +9,7 @@
 | Question Drill 中译英随机练习 | https://npesl.pages.dev/drill/ | `apps/drill/` |
 | Conversation Starters A1–C2 + ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `build/conversation-site/` |
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
-| 短语动词 Phrasal Verbs 18 章 | https://npesl.pages.dev/phrasal/ | `content/phrasal/` → `apps/phrasal/` |
+| 短语动词 Phrasal Verbs 30 主题 | https://npesl.pages.dev/phrasal/ | `content/phrasal/` → `apps/phrasal/` |
 
 另有一个微信小程序（自然拼读 48 课 + Question Drill）：`apps/phonics/miniprogram/`。
 

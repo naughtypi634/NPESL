@@ -6,28 +6,59 @@
 「可分」在页面顶部有全局说明（代词放中间，名词两边都行）。
 
 ```
-themes.json          18 个主题：英文标题、中文标题、简介、对应 chip
-getting-around.json  出行            30 条
-transportation.json  交通            30 条
-directions.json      问路            30 条
-weather.json         天气            30 条
-technology.json      科技数码        30 条
-feelings.json        情绪感受        30 条
-shopping.json        购物            30 条
-ootd.json            今日穿搭        30 条
-makeup.json          化妆流程        30 条
-weekend-plan.json    周末计划        30 条
-communication.json   沟通            30 条
-home.json            居家            30 条
-eating-out.json      外出吃饭        30 条
-gossip.json          八卦            30 条
-feeling-off.json     身体不适        30 条
-conflicts.json       冲突            30 条
-frustrations.json    日常糟心事      30 条
-chatting.json        跟人聊天        30 条
+themes.json          30 个主题：分类、英文标题、中文标题、简介、对应 chip
+【出行与金钱】
+getting-around.json       出行          30 条
+transportation.json       交通          30 条
+directions.json           问路          30 条
+travel.json               旅行住宿        30 条
+money-banking.json        金钱银行        30 条
+errands.json              办事跑腿        30 条
+
+【日常起居】
+cooking.json              做饭采购        30 条
+weather.json              天气          30 条
+technology.json           科技数码        30 条
+
+【人际与情绪】
+feelings.json             情绪感受        30 条
+
+【日常起居】
+shopping.json             购物          30 条
+ootd.json                 今日穿搭        30 条
+makeup.json               化妆流程        30 条
+
+【语言功能】
+weekend-plan.json         周末计划        30 条
+decisions.json            想法与决定       30 条
+communication.json        沟通          30 条
+
+【日常起居】
+home.json                 居家          30 条
+eating-out.json           外出吃饭        30 条
+
+【人际与情绪】
+gossip.json               八卦          30 条
+
+【身体与健康】
+feeling-off.json          身体不适        30 条
+doctor.json               看病拿药        30 条
+fitness.json              运动与饮食       30 条
+
+【人际与情绪】
+conflicts.json            冲突          30 条
+frustrations.json         日常糟心事       30 条
+relationships.json        恋爱与家庭       30 条
+chatting.json             跟人聊天        30 条
+
+【工作与学习】
+office.json               办公室         30 条
+meetings.json             会议与项目       30 条
+job-hunting.json          求职面试        30 条
+study.json                学习考试        30 条
 ```
 
-共 540 条（18 个主题 × 30 条）。`tier` / `level` 是可选字段，早期条目填了，
+共 900 条（30 个主题 × 30 条，分 6 大类）。`tier` / `level` 是可选字段，早期条目填了，
 后来补的条目没填。写内容的规矩见 `apps/phrasal/source/AUTHORING.md`。
 
 ## 来源与取舍

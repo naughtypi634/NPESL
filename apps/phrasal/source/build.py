@@ -336,8 +336,10 @@ INDEX_STYLE = """
   h1 { margin:0; font-size:clamp(2rem,6vw,2.8rem); font-weight:700;
     letter-spacing:-0.03em; line-height:1.08; }
   .sub { margin:10px 0 0; color:var(--muted); font-size:16px; }
-  .stage { margin:34px 0 4px; font-size:14px; font-weight:600;
-    color:var(--muted); letter-spacing:0.04em; }
+  .stage { margin:34px 0 4px; font-size:15px; font-weight:600;
+    color:var(--fg); letter-spacing:0.02em; }
+  .stage-en { font-weight:400; color:var(--muted); font-size:13px;
+    letter-spacing:0.04em; }
   .list { display:flex; flex-direction:column; gap:14px; margin-top:12px; }
   .row { display:flex; align-items:baseline; gap:16px; padding:16px 18px;
     border:1px solid var(--rule); border-radius:var(--radius-card, 24px);
@@ -359,26 +361,46 @@ INDEX_STYLE = """
 """
 
 def build_index(themes):
-    rows = []
-    for number, theme in enumerate(themes, 1):
-        name = f"{number:02d}-{slug(theme['title_en'])}"
-        rows.append(
+    doc = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
+    categories = doc.get("categories", [])
+    numbers = {theme["id"]: index + 1 for index, theme in enumerate(themes)}
+
+    def row(theme):
+        name = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
+        return (
             f'<a class="row" href="{name}">'
             f'<span class="title"><span class="en">{html.escape(theme["title_en"])}</span>'
             f'<span class="zh">{html.escape(theme["title_zh"])}</span></span>'
             f'<span class="tag">›</span></a>'
         )
+
+    sections = []
+    for cat in categories:
+        group = [t for t in themes if t.get("category") == cat["id"]]
+        if not group:
+            continue
+        sections.append(
+            f'<p class="stage">{html.escape(cat["title_zh"])}'
+            f' <span class="stage-en">{html.escape(cat["title_en"])}</span></p>'
+            f'<div class="list">{"".join(row(t) for t in group)}</div>'
+        )
+    grouped = {t["id"] for t in themes if t.get("category")}
+    rest = [t for t in themes if t["id"] not in grouped]
+    if rest:
+        sections.append(f'<div class="list">{"".join(row(t) for t in rest)}</div>')
+
+    total = sum(len(theme["entries"]) for theme in themes)
     page = (
         '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
         "<title>短语动词 Phrasal Verbs</title>\n"
         f"<style>{INDEX_STYLE}</style>\n</head>\n<body>\n<div class=\"page\">\n"
         "<h1>短语动词</h1>\n"
-        '<p class="sub">按主题分类 · 点词条或例句就出声</p>\n'
-        f'<div class="list">{"".join(rows)}</div>\n</div>\n</body>\n</html>\n'
+        f'<p class="sub">{len(themes)} 个主题 · {total} 条 · '
+        "点词条或例句就出声</p>\n"
+        f'{"".join(sections)}\n</div>\n</body>\n</html>\n'
     )
     (BASE / "index.html").write_text(page, encoding="utf-8")
-    total = sum(len(theme["entries"]) for theme in themes)
     print(f"built index.html ({len(themes)} themes, {total} entries)")
 
 

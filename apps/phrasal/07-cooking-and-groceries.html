@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooking and groceries · 短语动词</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7;
+    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
+    --on-accent:var(--on-blue, #ffffff);
+    --mark:var(--blue, #0071e3);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  /* 只有站点主题脚本没跑起来（没有 data-theme）时才按系统深色兜底。
+     一旦 data-theme 存在，配色全部交给站点主题样式表 —— 否则用户选了亮色主题，
+     这里的深色变量仍会生效，出现黑字压黑底。
+     注意：本文件不能出现站点主题文件的文件名，构建脚本靠这个字符串判断
+     “页面已经自带主题”，误判会整页跳过主题注入（切换按钮也会消失）。 */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) { --bg:#000000; --fg:#f5f5f7; --muted:#98989d;
+      --rule:#2c2c2e; --surface:#1c1c1e;
+      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
+      --mark:var(--blue, #4da3ff);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:720px; margin:0 auto;
+    padding:clamp(28px,5vh,48px) 20px 96px; }
+
+  .back { display:inline-block; margin-bottom:22px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--accent); }
+  .num { margin:0 0 6px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; letter-spacing:0.08em; }
+  h1 { margin:0; font-size:clamp(1.8rem,5.4vw,2.5rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+  .title-zh { margin:8px 0 0; color:var(--muted); font-size:17px; }
+  .intro { margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.6; }
+  .legend { margin:14px 0 0; padding:12px 14px; border-radius:14px;
+    background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7; }
+  .legend b { color:var(--fg); font-weight:600; }
+  .legend code { color:var(--accent); font-family:inherit; font-size:15px; }
+
+  .toolbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap;
+    align-items:center; gap:8px 10px; margin-top:22px; padding:12px 0;
+    background:var(--bg); border-bottom:1px solid var(--rule); }
+  .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
+    overflow:hidden; }
+  .seg button, .pill { appearance:none; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
+    cursor:pointer; white-space:nowrap; }
+  .pill { border:1px solid var(--rule); border-radius:999px; }
+  .seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--accent); color:var(--on-accent); }
+  .seg button + button { border-left:1px solid var(--rule); }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { width:118px; accent-color:var(--accent); }
+  .speed span { min-width:38px; color:var(--muted); font-size:13px;
+    font-variant-numeric:tabular-nums; }
+
+  .entries { margin-top:6px; }
+  .entry, .senses, .sense { min-width:0; }
+  .entry { padding:26px 0 22px; border-bottom:1px solid var(--rule); }
+  .entry-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .head { display:inline-flex; align-items:baseline; gap:10px; appearance:none;
+    border:0; background:transparent; color:inherit; font:inherit; padding:2px 4px;
+    border-radius:10px; cursor:pointer; text-align:left; }
+  .head:hover { background:var(--surface); }
+  .head .w { font-size:24px; font-weight:700; letter-spacing:-0.02em; }
+  .head .ipa { color:var(--muted); font-size:14px; }
+  .head .play, .ex .play { font-size:0.62em; color:var(--muted); }
+  .head.playing { background:var(--tint); }
+  .badges { display:inline-flex; gap:6px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--rule); color:var(--muted); }
+  .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
+
+  .senses { margin-top:12px; display:grid; gap:10px; }
+  .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted);
+    letter-spacing:0.02em; }
+  /* button 的 UA 样式不换行，一句长例句会把整页撑宽 */
+  .head, .ex { white-space:normal; overflow-wrap:anywhere; }
+  .ex { display:block; width:100%; text-align:left; font:inherit; color:inherit;
+    background:var(--surface); border:0; border-radius:16px; padding:12px 14px;
+    cursor:pointer; transition:background-color .12s ease; }
+  .ex:hover { background:var(--tint); }
+  .ex.playing { background:var(--tint); }
+  .ex .txt { display:block; font-size:17px; line-height:1.55; }
+  .ex .zh { display:block; margin-top:4px; color:var(--muted); font-size:13px;
+    line-height:1.45; }
+
+  /* 背景只用主题自己的 surface 变量，文字用 --fg，任何主题都保证对比度 */
+  .note-card { margin-top:14px; padding:14px 16px; border-radius:16px;
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    border:1px solid var(--rule); border-left:3px solid var(--accent);
+    display:grid; gap:10px; }
+  .note-card p { margin:0; font-size:14px; line-height:1.65; color:var(--fg); }
+  .note-card p b { display:inline-block; margin-right:8px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+
+  body.zh-off .zh, body.zh-off .zh-line, body.zh-off .sense-zh { display:none; }
+
+  .status { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    margin:0; max-width:calc(100vw - 40px); padding:9px 16px; border-radius:999px;
+    background:rgba(0,0,0,.82); color:#fff; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .2s ease; }
+  .status.show { opacity:1; }
+
+  @media (max-width:560px) {
+    .head .w { font-size:21px; }
+    .ex .txt { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html">短语动词</a>
+  <header>
+    <h1>Cooking and groceries</h1>
+    <p class="title-zh">做饭采购</p>
+    <p class="intro">买菜、备菜、开火、收尾：厨房里的动词。</p>
+    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="音色">
+      <button type="button" data-voice="f" aria-pressed="true">女</button>
+      <button type="button" data-voice="m" aria-pressed="false">男</button>
+    </div>
+    <div class="speed">
+      <input type="range" data-speed min="0.6" max="1.5" step="0.05" value="0.9" aria-label="语速">
+      <span data-speed-label>0.9×</span>
+      <button class="pill" type="button" data-speed-reset>默认</button>
+    </div>
+    <button class="pill" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    <button class="pill" type="button" data-play-all aria-pressed="false"><span data-play-label>连播</span></button>
+  </div>
+
+  <section class="entries">
+      <article class="entry" id="rustle-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="w">rustle up</span><span class="ipa">/ˈrʌsəl ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">凑出一顿饭</p><div class="senses"><div class="sense"><p class="sense-zh">用现有材料快速做</p><button class="ex say" type="button" data-start-f="1.872" data-end-f="4.440" data-start-m="1.872" data-end-m="4.176"><span class="txt">I can rustle up some noodles if you&#x27;re hungry.</span><span class="zh">你饿的话我能凑碗面。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>凑一顿是 rustle up，不是 make something random（中式）。</p><p class="colloc"><b>搭配</b>rustle up dinner · rustle something up</p><p class="confuse"><b>易混</b>whip up · throw together</p></div></article>
+      <article class="entry" id="cook-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="4.440" data-end-f="6.312" data-start-m="4.176" data-end-m="4.992"><span class="w">cook up</span><span class="ipa">/ˈkʊk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">做一顿；编造</p><div class="senses"><div class="sense"><p class="sense-zh">做点吃的</p><button class="ex say" type="button" data-start-f="6.312" data-end-f="9.120" data-start-m="4.992" data-end-m="7.560"><span class="txt">He cooked up a huge breakfast for everyone.</span><span class="zh">他给大家做了一大桌早饭。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>cook up 也指“编个说法”，看宾语是不是食物。</p><p class="colloc"><b>搭配</b>cook up a meal · cook up an excuse</p><p class="confuse"><b>易混</b>whip up · make up</p></div></article>
+      <article class="entry" id="stir-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="9.120" data-end-f="10.992" data-start-m="7.560" data-end-m="9.432"><span class="w">stir in</span><span class="ipa">/ˈstɝ ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">拌进去</p><div class="senses"><div class="sense"><p class="sense-zh">把材料搅进面糊</p><button class="ex say" type="button" data-start-f="10.992" data-end-f="13.608" data-start-m="9.432" data-end-m="11.712"><span class="txt">Stir in the flour a little at a time.</span><span class="zh">面粉分次拌进去。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>拌入是 stir in；stir up 是煽动。</p><p class="colloc"><b>搭配</b>stir in the sugar · stir it in</p><p class="confuse"><b>易混</b>mix in · fold in</p></div></article>
+      <article class="entry" id="mix-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="13.608" data-end-f="15.480" data-start-m="11.712" data-end-m="12.576"><span class="w">mix in</span><span class="ipa">/ˈmɪks ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">混进去</p><div class="senses"><div class="sense"><p class="sense-zh">把一样东西混进另一样</p><button class="ex say" type="button" data-start-f="15.480" data-end-f="17.496" data-start-m="12.576" data-end-m="14.520"><span class="txt">Mix in the eggs one by one.</span><span class="zh">鸡蛋一个一个混进去。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>混入是 mix in；mix up 是弄混。</p><p class="colloc"><b>搭配</b>mix in the sauce · mix it in</p><p class="confuse"><b>易混</b>stir in · mix up</p></div></article>
+      <article class="entry" id="fold-in" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="17.496" data-end-f="19.368" data-start-m="14.520" data-end-m="16.392"><span class="w">fold in</span><span class="ipa">/ˈfoʊld ɪn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">翻拌进去</p><div class="senses"><div class="sense"><p class="sense-zh">轻柔地拌入蛋白</p><button class="ex say" type="button" data-start-f="19.368" data-end-f="21.984" data-start-m="16.392" data-end-m="18.816"><span class="txt">Fold in the egg whites with a spatula.</span><span class="zh">用刮刀把蛋白翻拌进去。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>翻拌是 fold in，动作轻，别用 stir。</p><p class="colloc"><b>搭配</b>fold in the cream · fold it in</p><p class="confuse"><b>易混</b>stir in · mix in</p></div></article>
+      <article class="entry" id="boil-over" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="21.984" data-end-f="23.856" data-start-m="18.816" data-end-m="20.688"><span class="w">boil over</span><span class="ipa">/ˈbɔɪl ˈoʊvər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span></span></header><p class="zh-line">煮沸溢出</p><div class="senses"><div class="sense"><p class="sense-zh">锅开了冒出来</p><button class="ex say" type="button" data-start-f="23.856" data-end-f="26.712" data-start-m="20.688" data-end-m="23.568"><span class="txt">Turn the heat down before the soup boils over.</span><span class="zh">汤扑出来之前把火关小。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>扑锅是 boil over；也指情绪爆发。</p><p class="colloc"><b>搭配</b>the pot boiled over · boil over on the stove</p><p class="confuse"><b>易混</b>spill over · boil down</p></div></article>
+      <article class="entry" id="boil-down" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="26.712" data-end-f="28.584" data-start-m="23.568" data-end-m="25.440"><span class="w">boil down</span><span class="ipa">/ˈbɔɪl daʊn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">收汁、熬浓</p><div class="senses"><div class="sense"><p class="sense-zh">把汤汁煮少</p><button class="ex say" type="button" data-start-f="28.584" data-end-f="31.320" data-start-m="25.440" data-end-m="27.912"><span class="txt">Let the sauce boil down for ten minutes.</span><span class="zh">让酱汁收十分钟。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>收汁是 boil down；归结为是 boil down to。</p><p class="colloc"><b>搭配</b>boil down the sauce · boil it down</p><p class="confuse"><b>易混</b>reduce · boil over</p></div></article>
+      <article class="entry" id="fry-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="31.320" data-end-f="33.192" data-start-m="27.912" data-end-m="29.784"><span class="w">fry up</span><span class="ipa">/ˈfraɪ ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">煎一盘</p><div class="senses"><div class="sense"><p class="sense-zh">快手煎点东西</p><button class="ex say" type="button" data-start-f="33.192" data-end-f="35.976" data-start-m="29.784" data-end-m="32.496"><span class="txt">Fry up the leftover rice with two eggs.</span><span class="zh">把剩饭加两个蛋炒一下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>fry up 偏“随便煎一盘”，正式菜谱用 fry。</p><p class="colloc"><b>搭配</b>fry up some eggs · fry it up</p><p class="confuse"><b>易混</b>cook up · heat up</p></div></article>
+      <article class="entry" id="soak-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="35.976" data-end-f="37.848" data-start-m="32.496" data-end-m="34.368"><span class="w">soak up</span><span class="ipa">/ˈsoʊk ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">吸干（汤汁）</p><div class="senses"><div class="sense"><p class="sense-zh">用面包或纸吸掉</p><button class="ex say" type="button" data-start-f="37.848" data-end-f="40.488" data-start-m="34.368" data-end-m="36.744"><span class="txt">Use a paper towel to soak up the oil.</span><span class="zh">用厨房纸把油吸掉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>吸掉是 soak up；soak in 是吸收进皮肤。</p><p class="colloc"><b>搭配</b>soak up the sauce · soak it up</p><p class="confuse"><b>易混</b>soak in · drain off</p></div></article>
+      <article class="entry" id="drain-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="40.488" data-end-f="42.360" data-start-m="36.744" data-end-m="38.616"><span class="w">drain off</span><span class="ipa">/ˈdreɪn ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">把水倒掉</p><div class="senses"><div class="sense"><p class="sense-zh">沥掉多余液体</p><button class="ex say" type="button" data-start-f="42.360" data-end-f="45.192" data-start-m="38.616" data-end-m="41.256"><span class="txt">Drain off the water before you add the sauce.</span><span class="zh">加酱之前先把水沥掉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>沥掉是 drain off / drain；drain out 也有，但不常配食物。</p><p class="colloc"><b>搭配</b>drain off the pasta · drain it off</p><p class="confuse"><b>易混</b>strain off · pour off</p></div></article>
+      <article class="entry" id="strain-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="45.192" data-end-f="47.064" data-start-m="41.256" data-end-m="43.128"><span class="w">strain off</span><span class="ipa">/ˈstreɪn ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">滤掉</p><div class="senses"><div class="sense"><p class="sense-zh">用滤网滤掉</p><button class="ex say" type="button" data-start-f="47.064" data-end-f="50.184" data-start-m="43.128" data-end-m="46.056"><span class="txt">Strain off the oil and keep the chili flakes.</span><span class="zh">把油滤掉，辣椒留下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>滤掉是 strain off；strain 单独是拉伤。</p><p class="colloc"><b>搭配</b>strain off the broth · strain it off</p><p class="confuse"><b>易混</b>drain off · filter out</p></div></article>
+      <article class="entry" id="pour-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="50.184" data-end-f="52.056" data-start-m="46.056" data-end-m="47.928"><span class="w">pour off</span><span class="ipa">/ˈpɔr ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">倒出（上层液体）</p><div class="senses"><div class="sense"><p class="sense-zh">轻轻倒掉上层</p><button class="ex say" type="button" data-start-f="52.056" data-end-f="54.528" data-start-m="47.928" data-end-m="50.256"><span class="txt">Pour off the fat before you reheat it.</span><span class="zh">加热前把上面的油倒掉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>倒掉上层是 pour off；pour out 是倒出来。</p><p class="colloc"><b>搭配</b>pour off the oil · pour it off</p><p class="confuse"><b>易混</b>drain off · pour out</p></div></article>
+      <article class="entry" id="scoop-out" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="54.528" data-end-f="56.400" data-start-m="50.256" data-end-m="52.128"><span class="w">scoop out</span><span class="ipa">/ˈskup aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">挖出来</p><div class="senses"><div class="sense"><p class="sense-zh">用勺把里面掏空</p><button class="ex say" type="button" data-start-f="56.400" data-end-f="59.208" data-start-m="52.128" data-end-m="54.744"><span class="txt">Scoop out the seeds before stuffing the pepper.</span><span class="zh">塞馅前把辣椒籽掏出来。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>掏空是 scoop out；挖一勺是 scoop。</p><p class="colloc"><b>搭配</b>scoop out the middle · scoop it out</p><p class="confuse"><b>易混</b>scoop up · spoon out</p></div></article>
+      <article class="entry" id="scoop-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="59.208" data-end-f="61.080" data-start-m="54.744" data-end-m="56.616"><span class="w">scoop up</span><span class="ipa">/ˈskup ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">舀起来</p><div class="senses"><div class="sense"><p class="sense-zh">从下往上舀</p><button class="ex say" type="button" data-start-f="61.080" data-end-f="63.696" data-start-m="56.616" data-end-m="59.256"><span class="txt">Scoop up the rice and pack it into the bowl.</span><span class="zh">把饭舀起来压进碗里。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>舀起是 scoop up；也指一把抱起。</p><p class="colloc"><b>搭配</b>scoop up the sauce · scoop it up</p><p class="confuse"><b>易混</b>scoop out · pick up</p></div></article>
+      <article class="entry" id="plate-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="63.696" data-end-f="65.568" data-start-m="59.256" data-end-m="60.072"><span class="w">plate up</span><span class="ipa">/ˈpleɪt ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">装盘</p><div class="senses"><div class="sense"><p class="sense-zh">把菜分到盘子里</p><button class="ex say" type="button" data-start-f="65.568" data-end-f="67.464" data-start-m="60.072" data-end-m="61.944"><span class="txt">Plate up while it&#x27;s still hot.</span><span class="zh">趁热装盘。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>装盘是 plate up，餐厅和短视频里常见。</p><p class="colloc"><b>搭配</b>plate up the dishes · plate it up</p><p class="confuse"><b>易混</b>dish up · serve up</p></div></article>
+      <article class="entry" id="bag-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="67.464" data-end-f="69.336" data-start-m="61.944" data-end-m="62.784"><span class="w">bag up</span><span class="ipa">/ˈbæɡ ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">装袋</p><div class="senses"><div class="sense"><p class="sense-zh">把东西装进袋子</p><button class="ex say" type="button" data-start-f="69.336" data-end-f="72.312" data-start-m="62.784" data-end-m="65.688"><span class="txt">Bag up the leftovers and put them in the fridge.</span><span class="zh">剩菜装袋放冰箱。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>装袋是 bag up；打包盒是 box up。</p><p class="colloc"><b>搭配</b>bag up the trash · bag it up</p><p class="confuse"><b>易混</b>box up · wrap up</p></div></article>
+      <article class="entry" id="use-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="72.312" data-end-f="74.184" data-start-m="65.688" data-end-m="67.560"><span class="w">use up</span><span class="ipa">/ˈjuz ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">用光</p><div class="senses"><div class="sense"><p class="sense-zh">把剩的全用完</p><button class="ex say" type="button" data-start-f="74.184" data-end-f="76.632" data-start-m="67.560" data-end-m="69.696"><span class="txt">Use up the eggs before they go bad.</span><span class="zh">鸡蛋坏之前用完。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>用光是 use up；run out 是没了。</p><p class="colloc"><b>搭配</b>use up the milk · use it up</p><p class="confuse"><b>易混</b>run out of · eat up</p></div></article>
+      <article class="entry" id="run-low-on" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="76.632" data-end-f="78.504" data-start-m="69.696" data-end-m="71.568"><span class="w">run low on</span><span class="ipa">/ˈrʌn loʊ ɑn/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span></span></header><p class="zh-line">快用完了</p><div class="senses"><div class="sense"><p class="sense-zh">剩得不多了</p><button class="ex say" type="button" data-start-f="78.504" data-end-f="81.504" data-start-m="71.568" data-end-m="74.496"><span class="txt">We&#x27;re running low on rice — add it to the order.</span><span class="zh">米快没了，加进购物单。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>快没了是 run low on；用完是 run out of。</p><p class="colloc"><b>搭配</b>run low on supplies · running low on gas</p><p class="confuse"><b>易混</b>run out of · use up</p></div></article>
+      <article class="entry" id="rinse-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="81.504" data-end-f="83.376" data-start-m="74.496" data-end-m="76.368"><span class="w">rinse off</span><span class="ipa">/ˈrɪns ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">冲掉</p><div class="senses"><div class="sense"><p class="sense-zh">用水冲干净表面</p><button class="ex say" type="button" data-start-f="83.376" data-end-f="86.088" data-start-m="76.368" data-end-m="78.792"><span class="txt">Rinse off the vegetables before you chop them.</span><span class="zh">切之前把菜冲一下。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>冲掉是 rinse off；rinse out 是冲洗内部。</p><p class="colloc"><b>搭配</b>rinse off the mud · rinse it off</p><p class="confuse"><b>易混</b>wash off · scrub off</p></div></article>
+      <article class="entry" id="scrub-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="86.088" data-end-f="87.960" data-start-m="78.792" data-end-m="80.664"><span class="w">scrub off</span><span class="ipa">/ˈskrʌb ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">刷掉</p><div class="senses"><div class="sense"><p class="sense-zh">用力擦掉污渍</p><button class="ex say" type="button" data-start-f="87.960" data-end-f="90.912" data-start-m="80.664" data-end-m="83.592"><span class="txt">Scrub off the burnt bits before you soak the pan.</span><span class="zh">泡锅之前把糊的地方刷掉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>刷掉是 scrub off；scrub 单独是刷洗。</p><p class="colloc"><b>搭配</b>scrub off the stain · scrub it off</p><p class="confuse"><b>易混</b>rinse off · wipe off</p></div></article>
+      <article class="entry" id="clean-out" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="90.912" data-end-f="92.784" data-start-m="83.592" data-end-m="85.464"><span class="w">clean out</span><span class="ipa">/ˈklin aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">清空（冰箱、柜子）</p><div class="senses"><div class="sense"><p class="sense-zh">把里面清干净</p><button class="ex say" type="button" data-start-f="92.784" data-end-f="96.072" data-start-m="85.464" data-end-m="88.464"><span class="txt">Clean out the fridge before the new groceries arrive.</span><span class="zh">新买的菜到之前把冰箱清空。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>清空内部是 clean out；clear out 是整间清空。</p><p class="colloc"><b>搭配</b>clean out the fridge · clean it out</p><p class="confuse"><b>易混</b>clear out · clean up</p></div></article>
+      <article class="entry" id="toss-out" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="96.072" data-end-f="97.944" data-start-m="88.464" data-end-m="90.336"><span class="w">toss out</span><span class="ipa">/ˈtɔs aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">扔掉</p><div class="senses"><div class="sense"><p class="sense-zh">随手丢弃</p><button class="ex say" type="button" data-start-f="97.944" data-end-f="100.920" data-start-m="90.336" data-end-m="93.216"><span class="txt">Toss out anything past the expiration date.</span><span class="zh">过期的都扔了。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>扔掉是 toss out / throw out，美式口语常用。</p><p class="colloc"><b>搭配</b>toss out old food · toss it out</p><p class="confuse"><b>易混</b>throw away · get rid of</p></div></article>
+      <article class="entry" id="toss-together" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="100.920" data-end-f="102.792" data-start-m="93.216" data-end-m="95.088"><span class="w">toss together</span><span class="ipa">/ˈtɔs təˈɡɛðər/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">随手拌一盘</p><div class="senses"><div class="sense"><p class="sense-zh">快速拌个凉菜</p><button class="ex say" type="button" data-start-f="102.792" data-end-f="106.104" data-start-m="95.088" data-end-m="98.376"><span class="txt">Toss together a cucumber salad while the rice cooks.</span><span class="zh">煮饭的时候拍个黄瓜。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>随手拌是 toss together；正式拌沙拉也用 toss。</p><p class="colloc"><b>搭配</b>toss together a salad · toss it together</p><p class="confuse"><b>易混</b>throw together · mix in</p></div></article>
+      <article class="entry" id="measure-out" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="106.104" data-end-f="107.976" data-start-m="98.376" data-end-m="100.248"><span class="w">measure out</span><span class="ipa">/ˈmɛʒər aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">量出</p><div class="senses"><div class="sense"><p class="sense-zh">按份量称出来</p><button class="ex say" type="button" data-start-f="107.976" data-end-f="110.400" data-start-m="100.248" data-end-m="102.552"><span class="txt">Measure out two cups of rice first.</span><span class="zh">先量两杯米。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>量出是 measure out；measure 单独是测量。</p><p class="colloc"><b>搭配</b>measure out the flour · measure it out</p><p class="confuse"><b>易混</b>portion out · weigh out</p></div></article>
+      <article class="entry" id="portion-out" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="110.400" data-end-f="112.272" data-start-m="102.552" data-end-m="104.424"><span class="w">portion out</span><span class="ipa">/ˈpɔrʃən aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">分成份</p><div class="senses"><div class="sense"><p class="sense-zh">按人分好</p><button class="ex say" type="button" data-start-f="112.272" data-end-f="114.840" data-start-m="104.424" data-end-m="106.872"><span class="txt">Portion out the rice for tomorrow&#x27;s lunch.</span><span class="zh">把明天午饭的饭分好。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>分份是 portion out；分给别人是 dish out。</p><p class="colloc"><b>搭配</b>portion out the meals · portion it out</p><p class="confuse"><b>易混</b>measure out · dish out</p></div></article>
+      <article class="entry" id="heat-through" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="114.840" data-end-f="116.712" data-start-m="106.872" data-end-m="108.744"><span class="w">heat through</span><span class="ipa">/ˈhit θru/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">热透</p><div class="senses"><div class="sense"><p class="sense-zh">里面也热了</p><button class="ex say" type="button" data-start-f="116.712" data-end-f="119.712" data-start-m="108.744" data-end-m="111.528"><span class="txt">Stir and heat through for another two minutes.</span><span class="zh">搅一下再热两分钟。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>热透是 heat through；加热是 heat up / warm up。</p><p class="colloc"><b>搭配</b>heat through the leftovers · heat it through</p><p class="confuse"><b>易混</b>warm up · heat up</p></div></article>
+      <article class="entry" id="trim-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="119.712" data-end-f="121.584" data-start-m="111.528" data-end-m="113.400"><span class="w">trim off</span><span class="ipa">/ˈtrɪm ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">修掉（边角、肥肉）</p><div class="senses"><div class="sense"><p class="sense-zh">把不要的部分切掉</p><button class="ex say" type="button" data-start-f="121.584" data-end-f="124.512" data-start-m="113.400" data-end-m="116.016"><span class="txt">Trim off the fat before you slice the meat.</span><span class="zh">切片前把肥的修掉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>修掉是 trim off；trim 单独是修剪。</p><p class="colloc"><b>搭配</b>trim off the fat · trim it off</p><p class="confuse"><b>易混</b>cut off · peel off</p></div></article>
+      <article class="entry" id="skim-off" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="124.512" data-end-f="126.384" data-start-m="116.016" data-end-m="117.888"><span class="w">skim off</span><span class="ipa">/ˈskɪm ɔf/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">撇去（浮沫、油）</p><div class="senses"><div class="sense"><p class="sense-zh">把表面那层去掉</p><button class="ex say" type="button" data-start-f="126.384" data-end-f="129.024" data-start-m="117.888" data-end-m="120.600"><span class="txt">Skim off the foam while the broth simmers.</span><span class="zh">汤炖着的时候把浮沫撇掉。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>撇去是 skim off；skim 单独是略读。</p><p class="colloc"><b>搭配</b>skim off the fat · skim it off</p><p class="confuse"><b>易混</b>pour off · drain off</p></div></article>
+      <article class="entry" id="mash-up" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="129.024" data-end-f="130.896" data-start-m="120.600" data-end-m="122.472"><span class="w">mash up</span><span class="ipa">/ˈmæʃ ʌp/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">口语</span><span class="badge split">可分</span></span></header><p class="zh-line">捣成泥</p><div class="senses"><div class="sense"><p class="sense-zh">把食物压成泥</p><button class="ex say" type="button" data-start-f="130.896" data-end-f="133.224" data-start-m="122.472" data-end-m="124.584"><span class="txt">Mash up the potatoes while they&#x27;re hot.</span><span class="zh">趁热把土豆压成泥。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>捣泥是 mash up；mash-up 名词是混搭。</p><p class="colloc"><b>搭配</b>mash up the potatoes · mash it up</p><p class="confuse"><b>易混</b>mix up · crush up</p></div></article>
+      <article class="entry" id="spoon-out" data-chip="home"><header class="entry-head"><button class="head say" type="button" data-start-f="133.224" data-end-f="135.096" data-start-m="124.584" data-end-m="126.456"><span class="w">spoon out</span><span class="ipa">/ˈspun aʊt/</span><span class="play" aria-hidden="true">▶</span></button><span class="badges"><span class="badge reg">中性</span><span class="badge split">可分</span></span></header><p class="zh-line">用勺舀出</p><div class="senses"><div class="sense"><p class="sense-zh">一勺勺盛出来</p><button class="ex say" type="button" data-start-f="135.096" data-end-f="137.376" data-start-m="126.456" data-end-m="128.472"><span class="txt">Spoon out the batter into the pan.</span><span class="zh">把面糊一勺勺舀进锅里。</span></button></div></div><div class="note-card"><p class="l1"><b>中文易错</b>舀出是 spoon out；scoop 更偏大勺。</p><p class="colloc"><b>搭配</b>spoon out the mixture · spoon it out</p><p class="confuse"><b>易混</b>scoop out · dish out</p></div></article>
+  </section>
+  <p class="status" data-audio-status></p>
+</main>
+<script id="spriteMap" type="application/json">{"f":"sprites/1b386d444cab.mp3","m":"sprites/035dedec800e.mp3"}</script>
+<script>
+(function () {
+  var KEY_VOICE = 'pv-voice';
+  var KEY_SPEED = 'pv-speed', KEY_ZH = 'pv-zh';
+  var DEFAULT_SPEED = 0.9;
+  var voice = 'f', speed = DEFAULT_SPEED;
+
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  try {
+    if (load(KEY_VOICE) === 'f' || load(KEY_VOICE) === 'm') voice = load(KEY_VOICE);
+    var savedSpeed = parseFloat(load(KEY_SPEED));
+    if (savedSpeed >= 0.6 && savedSpeed <= 1.5) speed = savedSpeed;
+  } catch (e) {}
+
+  var player = new Audio();
+  player.preload = 'auto';
+  player.preservesPitch = true;
+  player.webkitPreservesPitch = true;
+
+  var allRows = Array.prototype.slice.call(document.querySelectorAll('.say'));
+  var current = null, playlist = null, statusTimer = null;
+  var stickyStatus = false;
+  var raf = 0, loadedSrc = null;
+  var SOURCES = {}, READY = {};
+  var SPRITES = {};
+  try { SPRITES = JSON.parse(document.getElementById('spriteMap').textContent); }
+  catch (e) { SPRITES = {}; }
+
+  function spanFor(el) {
+    var start = el.getAttribute('data-start-' + voice);
+    var end = el.getAttribute('data-end-' + voice);
+    if (start === null || end === null) return null;
+    var s = parseFloat(start), e = parseFloat(end);
+    return (isFinite(s) && isFinite(e)) ? [s, e] : null;
+  }
+
+  function spriteUrlFor(v) {
+    var rel = SPRITES[v];
+    return rel ? 'audio/' + rel : null;
+  }
+
+  function stopTick() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
+  function seekableEnd() {
+    var ranges = player.seekable, end = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.end(i) > end) end = ranges.end(i);
+    }
+    return end;
+  }
+
+  function waitForData(el, seek, from, attempt) {
+    if (current !== el) return;
+    if (seekableEnd() >= from - 0.01) { seek(); return; }
+    if (attempt > 40) { audioFailed(el); return; }
+    showStatus('语音加载中…', true);
+    setTimeout(function () { waitForData(el, seek, from, attempt + 1); }, 250);
+  }
+
+  function startSpan(el, span, onEnd) {
+    var from = span[0], stopAt = span[1];
+    var retries = 0;
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    var playSpan = function () {
+      if (current !== el) return;
+      if (player.currentTime < from - 0.15) {
+        if (++retries > 3) { audioFailed(el); return; }
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      hideStatus();
+      player.playbackRate = speed;
+      var started = player.play();
+      var tick = function () {
+        if (current !== el) return;
+        if (player.currentTime >= stopAt - 0.008) {
+          try { player.pause(); } catch (e) {}
+          stopTick();
+          unmark();
+          if (onEnd) onEnd();
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      if (started && started.catch) {
+        started.catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          if (current === el) audioFailed(el);
+        });
+      }
+    };
+    var seek = function () {
+      if (current !== el) return;
+      if (Math.abs(player.currentTime - from) < 0.02) { playSpan(); return; }
+      var done = false;
+      var onSeeked = function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      };
+      player.addEventListener('seeked', onSeeked);
+      try {
+        player.currentTime = from;
+      } catch (e) {
+        player.removeEventListener('seeked', onSeeked);
+        done = true;
+        waitForData(el, seek, from, 0);
+        return;
+      }
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        player.removeEventListener('seeked', onSeeked);
+        if (current === el) playSpan();
+      }, 1500);
+    };
+    if (player.readyState < 1) {
+      var onLoaded = function () {
+        player.removeEventListener('loadedmetadata', onLoaded);
+        seek();
+      };
+      player.addEventListener('loadedmetadata', onLoaded);
+      try { player.load(); } catch (e) {}
+    } else {
+      seek();
+    }
+  }
+
+  // Cloudflare Pages 的静态资源不支持 Range，媒体元素 seekable 只有 [0,0]，
+  // 点后面的句子会被夹回开头。先把整条 sprite 取进内存换成 blob 地址。
+  function sourceFor(v) {
+    if (SOURCES[v]) return SOURCES[v];
+    var url = spriteUrlFor(v);
+    if (!url) { SOURCES[v] = Promise.resolve(null); return SOURCES[v]; }
+    var canFetch = location.protocol !== 'file:' && window.fetch
+      && window.Promise && window.URL && URL.createObjectURL;
+    if (!canFetch) {
+      READY[v] = true;
+      SOURCES[v] = Promise.resolve(url);
+      return SOURCES[v];
+    }
+    SOURCES[v] = fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () {
+      return url;
+    }).then(function (src) {
+      READY[v] = true;
+      return src;
+    });
+    return SOURCES[v];
+  }
+
+  function begin(el, onEnd) {
+    var span = spanFor(el);
+    if (!span || !spriteUrlFor(voice)) {
+      if (current === el) unmark();
+      showStatus('这一条暂无语音');
+      return;
+    }
+    var loading = null;
+    if (!READY[voice]) {
+      loading = setTimeout(function () { showStatus('语音加载中…', true); }, 300);
+    }
+    sourceFor(voice).then(function (src) {
+      if (loading) clearTimeout(loading);
+      if (current !== el) return;
+      if (!src) { audioFailed(el); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      startSpan(el, span, onEnd);
+    });
+  }
+
+  function unmark() {
+    if (current) current.classList.remove('playing');
+    current = null;
+  }
+
+  function stopAudio() {
+    try { player.pause(); } catch (e) {}
+    stopTick();
+    hideStatus();
+    unmark();
+  }
+
+  function showStatus(text, sticky) {
+    var el = document.querySelector('[data-audio-status]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    stickyStatus = !!sticky;
+    if (statusTimer) clearTimeout(statusTimer);
+    if (stickyStatus) { statusTimer = null; return; }
+    statusTimer = setTimeout(function () {
+      if (stickyStatus) return;
+      el.textContent = '';
+      el.classList.remove('show');
+    }, 4000);
+  }
+
+  function hideStatus() {
+    var el = document.querySelector('[data-audio-status]');
+    stickyStatus = false;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function setSpeed(value, save) {
+    var n = Number(value);
+    if (!isFinite(n)) n = DEFAULT_SPEED;
+    n = Math.max(0.6, Math.min(1.5, Math.round(n * 100) / 100));
+    speed = n;
+    player.playbackRate = n;
+    var label = document.querySelector('[data-speed-label]');
+    if (label) label.textContent = String(n).replace(/0$/, '') + '×';
+    var input = document.querySelector('[data-speed]');
+    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    if (save) store(KEY_SPEED, String(n));
+  }
+
+  function setPlayAll(on) {
+    var btn = document.querySelector('[data-play-all]');
+    var label = document.querySelector('[data-play-label]');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (label) label.textContent = on ? '停止' : '连播';
+  }
+
+  function stopPlaylist() {
+    playlist = null;
+    setPlayAll(false);
+    stopAudio();
+  }
+
+  function audioFailed(el) {
+    if (!current && !playlist) return;
+    if (el && current && current !== el) return;
+    stopPlaylist();
+    showStatus('语音加载失败，请重试');
+  }
+
+  function playItem(index) {
+    if (!playlist) return;
+    if (index >= playlist.items.length) { stopPlaylist(); return; }
+    playlist.at = index;
+    var el = playlist.items[index];
+    try { player.pause(); } catch (e) {}
+    unmark();
+    if (!spanFor(el)) { audioFailed(el); return; }
+    current = el;
+    el.classList.add('playing');
+    if (index > 0) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight - 24) {
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { el.scrollIntoView(); }
+      }
+    }
+    var list = playlist;
+    begin(el, function () {
+      if (playlist !== list) return;
+      playItem(list.at + 1);
+    });
+  }
+
+  function play(el) {
+    if (playlist) stopPlaylist();
+    if (current === el && !player.paused) { stopAudio(); return; }
+    stopAudio();
+    current = el;
+    el.classList.add('playing');
+    begin(el, null);
+  }
+
+  function replayCurrent() {
+    var el = current;
+    if (!el) return;
+    var wasPlaying = !player.paused;
+    stopAudio();
+    if (wasPlaying) play(el);
+  }
+
+  player.addEventListener('loadedmetadata', function () {
+    try { player.playbackRate = speed; } catch (e) {}
+  });
+  player.addEventListener('error', function () {
+    if (current) audioFailed(current);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (playlist) stopPlaylist(); else stopAudio();
+  });
+
+  function setVoice(next) {
+    voice = next === 'm' ? 'm' : 'f';
+    store(KEY_VOICE, voice);
+    var buttons = document.querySelectorAll('[data-voice]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed',
+        buttons[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+    replayCurrent();
+    if (document.readyState === 'complete') prefetch();
+  }
+
+  function prefetch() {
+    if (navigator.connection && navigator.connection.saveData) return;
+    sourceFor(voice);
+  }
+
+  function setZh(on) {
+    document.body.classList.toggle('zh-off', !on);
+    store(KEY_ZH, on ? 'on' : 'off');
+    var btn = document.querySelector('[data-zh-toggle]');
+    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  var voiceButtons = document.querySelectorAll('[data-voice]');
+  for (var j = 0; j < voiceButtons.length; j++) {
+    voiceButtons[j].addEventListener('click', function (event) {
+      setVoice(event.currentTarget.getAttribute('data-voice'));
+    });
+  }
+  var zhButton = document.querySelector('[data-zh-toggle]');
+  if (zhButton) zhButton.addEventListener('click', function () {
+    setZh(document.body.classList.contains('zh-off'));
+  });
+  var speedInput = document.querySelector('[data-speed]');
+  if (speedInput) speedInput.addEventListener('input', function () {
+    setSpeed(parseFloat(speedInput.value), true);
+  });
+  var speedReset = document.querySelector('[data-speed-reset]');
+  if (speedReset) speedReset.addEventListener('click', function () {
+    setSpeed(DEFAULT_SPEED, true);
+  });
+  var playAllBtn = document.querySelector('[data-play-all]');
+  if (playAllBtn) playAllBtn.addEventListener('click', function () {
+    if (playlist) { stopPlaylist(); return; }
+    if (!allRows.length) return;
+    stopAudio();
+    playlist = { items: allRows, at: -1 };
+    setPlayAll(true);
+    playItem(0);
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var el = event.target.closest('.say');
+    if (el) play(el);
+  });
+
+  setVoice(voice);
+  setZh(load(KEY_ZH) !== 'off');
+  setSpeed(speed, false);
+
+  if (window.requestIdleCallback) {
+    requestIdleCallback(prefetch, { timeout: 2500 });
+  } else {
+    setTimeout(prefetch, 1500);
+  }
+})();
+</script>
+</body>
+</html>
