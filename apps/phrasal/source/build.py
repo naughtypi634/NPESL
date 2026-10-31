@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Build the phrasal-verb app: one page per chapter, one sprite per page.
+"""Build the phrasal-verb app: one page per theme, one sprite per page.
 
-Source of truth is content/phrasal/ — chapters.json plus one <chapter>.json per
-chapter. Clips are content-addressed, so re-running only synthesizes what is
+Source of truth is content/phrasal/ — themes.json plus one <theme>.json per
+theme. Clips are content-addressed, so re-running only synthesizes what is
 new; pages never reference master clips, only the concatenated sprite.
 
     python -I apps/phrasal/source/build.py
-    python -I apps/phrasal/source/build.py --only travel --skip-audio
+    python -I apps/phrasal/source/build.py --only getting-around --skip-audio
 """
 
 import argparse

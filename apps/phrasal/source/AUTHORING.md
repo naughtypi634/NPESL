@@ -1,7 +1,7 @@
 # 短语动词内容规范
 
-源文件在 `content/phrasal/`：`chapters.json` 定章节，每章一个 `<chapter>.json`。
-改内容只改这两个地方，页面由 `build.py` 生成。
+源文件在 `content/phrasal/`：`themes.json` 定主题，每个主题一个 `<theme>.json`
+（如 `getting-around.json`）。改内容只改这两个地方，页面由 `build.py` 生成。
 
 ```powershell
 .venv\Scripts\python.exe -I apps\phrasal\source\validate.py   # 先过校验

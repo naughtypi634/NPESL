@@ -9,7 +9,7 @@
 | Question Drill 中译英随机练习 | https://npesl.pages.dev/drill/ | `apps/drill/` |
 | Conversation Starters A1–C2 + ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `build/conversation-site/` |
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
-| 短语动词 Phrasal Verbs 12 章 | https://npesl.pages.dev/phrasal/ | `content/phrasal/` → `apps/phrasal/` |
+| 短语动词 Phrasal Verbs 18 章 | https://npesl.pages.dev/phrasal/ | `content/phrasal/` → `apps/phrasal/` |
 
 另有一个微信小程序（自然拼读 48 课 + Question Drill）：`apps/phonics/miniprogram/`。
 
@@ -22,7 +22,7 @@
 | `content/phonetics/` | 音标表 Markdown 源 + 成品 PDF（网页从 PDF 抽内嵌录音） |
 | `content/conversation/` | Conversation Starters 分级 `content.py`、逐段中文翻译、发音标注 |
 | `content/drill/` | Question Drill 题库：`raw/` `reviewed/` `final/` 批次、`questions.json`、翻译与修订表 |
-| `content/phrasal/` | 短语动词：`chapters.json` + 每章一个词条 JSON（内容源） |
+| `content/phrasal/` | 短语动词：`themes.json` + 每个主题一个词条 JSON（内容源） |
 | `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Bright / Dark / Sepia / Auto） |
 | `apps/phonics/` | 48 课网页、`source/`（内容与构建器）、`audio/`、微信小程序 |
 | `apps/ipa/` | 音标表网页（`index.html` + `audio/`），40 个音标 × 10 个单词 |

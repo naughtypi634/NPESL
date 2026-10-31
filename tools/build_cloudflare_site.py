@@ -272,12 +272,12 @@ def main() -> int:
     else:
         print("警告：常见发音现象 目录不存在，未包含")
 
-    # 短语动词：章节页 + 每章一条 sprite，自带样式
+    # 短语动词：主题页 + 每页一条 sprite，自带样式
     if PHRASAL.exists():
         phrasal_out = OUT / "phrasal"
         shutil.copytree(PHRASAL, phrasal_out, ignore=phrasal_ignore)
         index_page = phrasal_out / "index.html"
-        inject_head(index_page, "phrasal/", "短语动词 Phrasal Verbs · 12 章")
+        inject_head(index_page, "phrasal/", "短语动词 Phrasal Verbs · 18 章")
         inject_theme(index_page)
         replace_back(index_page, "/", "NPESL")
         for page in sorted(phrasal_out.glob("*.html")):

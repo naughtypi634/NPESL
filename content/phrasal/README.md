@@ -6,23 +6,29 @@
 「可分」在页面顶部有全局说明（代词放中间，名词两边都行）。
 
 ```
-chapters.json   12 章（stage 1-4）+ 每章对应的 chip
-travel.json     出行与方位     24 条
-home.json       住处与家务     17 条
-food.json       吃饭与购物     12 条
-health.json     身体与就医     14 条
-social.json     社交与人际     15 条
-study.json      学习与考试     12 条
-work.json       工作与求职     20 条
-money.json      钱与办事       12 条
-feelings.json   情绪与压力     14 条
-thinking.json   想法与决定     14 条
-time.json       时间与计划     12 条
-habits.json     习惯与性格     12 条
+themes.json          18 个主题：英文标题、中文标题、简介、对应 chip
+getting-around.json  出行            30 条
+transportation.json  交通            30 条
+directions.json      问路            30 条
+weather.json         天气            30 条
+technology.json      科技数码        30 条
+feelings.json        情绪感受        30 条
+shopping.json        购物            30 条
+ootd.json            今日穿搭        30 条
+makeup.json          化妆流程        30 条
+weekend-plan.json    周末计划        30 条
+communication.json   沟通            30 条
+home.json            居家            30 条
+eating-out.json      外出吃饭        30 条
+gossip.json          八卦            30 条
+feeling-off.json     身体不适        30 条
+conflicts.json       冲突            30 条
+frustrations.json    日常糟心事      30 条
+chatting.json        跟人聊天        30 条
 ```
 
-共 178 条：tier 1 八十条、tier 2 七十四条、tier 3 二十四条。写内容的规矩见
-`apps/phrasal/source/AUTHORING.md`。
+共 540 条（18 个主题 × 30 条）。`tier` / `level` 是可选字段，早期条目填了，
+后来补的条目没填。写内容的规矩见 `apps/phrasal/source/AUTHORING.md`。
 
 ## 来源与取舍
 
@@ -46,4 +52,4 @@ habits.json     习惯与性格     12 条
 
 - 每章的「三栏辨析」练习（原书按小品词归组、多组补语强制辨析的那种）。
 - 按动词 / 小品词 / 主题三入口检索的词典页（替代原书那套错行的字母索引）。
-- 覆盖到原书 579 条的规模：目前 178 条，缺口主要在双小品词和书面语条目。
+- 覆盖到原书 579 条的规模：目前 540 条，缺口主要在双小品词和书面语条目。

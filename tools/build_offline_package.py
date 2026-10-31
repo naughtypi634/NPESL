@@ -232,7 +232,7 @@ def main() -> int:
             inject_theme(page, "../")
             replace_back(page, "index.html", "常见发音现象")
 
-    # 短语动词：12 章 + 每章一条 sprite
+    # 短语动词：18 章 + 每章一条 sprite
     if PHRASAL.exists():
         phrasal_out = OUT / "phrasal"
         shutil.copytree(PHRASAL, phrasal_out, ignore=phrasal_ignore)
