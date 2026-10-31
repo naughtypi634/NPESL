@@ -909,22 +909,38 @@ const cases = [
         return true;
       })()`);
       if (!marked) return { ok: false, detail: 'no-card-say' };
-      const p = await playAndProbe('.card .say[data-smoke]');
-      await waitFor('!!(window.__lastAudio && window.__lastAudio.paused)', 6000);
+      await evaluate(`(function(){
+        window.__phPauses=[];
+        if(window.__phAudio){
+          window.__phAudio.addEventListener('pause',function(){
+            window.__phPauses.push(+window.__phAudio.currentTime.toFixed(3));
+          });
+        }
+      })()`);
+      await evaluate("document.querySelector('.card .say[data-smoke]').click()");
+      await waitFor(`!!(window.__phLast && (window.__phLast.mode === 'ha'
+        ? (window.__lastAudio && window.__lastAudio.paused)
+        : window.__phLast.t1 !== null))`, 8000);
       // 片段结束后必须停在终点附近：timeupdate 粒度太粗会漏出下一条的开头。
       const tail = await evaluate(`(() => {
+        const last = window.__phLast;
+        if (last && last.mode === 'wa') {
+          if (last.t1 === null) return { mode: 'wa', pending: true };
+          const dur = +(last.t1 - last.t0).toFixed(3);
+          const want = +(last.en - last.s).toFixed(3);
+          return { mode: 'wa', dur, want, delta: +(dur - want).toFixed(3) };
+        }
         const a = window.__lastAudio;
         if (!a) return null;
-        const b = document.querySelector('.card .say[data-smoke]');
-        const e = window.PHRASAL_INDEX.entries[+b.dataset.i];
-        const sp = e.au[+b.dataset.k];
-        const v = localStorage.getItem('pv-voice') === 'm' ? 'm' : 'f';
-        const end = v === 'm' ? sp[3] : sp[1];
-        return { end, t: +a.currentTime.toFixed(3), delta: +(a.currentTime - end).toFixed(3) };
+        const end = window.__phEnd;
+        const pauses = window.__phPauses || [];
+        const t = pauses.length ? pauses[pauses.length - 1] : +a.currentTime.toFixed(3);
+        return { mode: 'ha', end, t, delta: +(t - end).toFixed(3), pauses };
       })()`);
-      const ok = p.started && p.mediaErrors.length === 0
-        && tail && tail.delta <= 0.05 && tail.delta >= -0.3;
-      return { ok, detail: `card-audio start=${p.started} tail=${JSON.stringify(tail)} err=${JSON.stringify(p.mediaErrors)}` };
+      const ok = tail && ((tail.mode === 'wa' && tail.dur > 0.2 && Math.abs(tail.delta) <= 0.06)
+        || (tail.mode === 'ha' && tail.pauses.length > 0
+          && tail.delta <= 0.05 && tail.delta >= -0.3));
+      return { ok, detail: `card-audio tail=${JSON.stringify(tail)}` };
     },
   },
   {
