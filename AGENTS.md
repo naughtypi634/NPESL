@@ -46,7 +46,7 @@ build/     cloudflare-site/ cloudflare-audio/ npesl-offline/ …（gitignore）
 - **短语动词**：内容源是 `content/phrasal/themes.json` 加每个主题一个 JSON（**30 个主题 × 30 条 = 900 条**，分 6 大类），页面在 `apps/phrasal/`。音频默认 Azure（Ava/Andrew）；`--tts qwen` 是本地 Qwen3-TTS 备选，同一站点不要混用两种音源。页面只显示【口语】【可分】两个徽章，不显示等级和编号。改内容后先跑 `apps/phrasal/source/validate.py`（英式词、例句长度、IPA、chip、l1_note 都在这里拦），再跑 `build.py`。音频后端可选 `--tts azure|edge|kokoro|qwen`：`qwen` 用本地 Qwen3-TTS（ROCm 环境在 `F:\AIProject\tts-lab`，女声 vivian、男声 aiden，短句约 6–8 秒/条）；`kokoro` 是本地 ONNX 备选。两种都输出 24kHz/48kbps 定长 MP3，sprite 直接可用。**同一个页面必须用同一个音色来源，不要新旧混用**；换后端要先清空 `apps/phrasal/audio/{f,m}` 再全量重跑。例句一律美式、2026 中国成年人场景，不搬参考书原句。
 - **Conversation 正文的逐词时间**和 mp3 用同一次 Edge TTS 请求生成，存在 mp3 旁的 `.json` sidecar（WordBoundary）。删母版时连 sidecar 一起删；只删 mp3 也能工作，构建会重新合成并补上。sprite 文件名带音频 sha1，重合成后旧的长缓存不会和新页面错配。
 - **Azure 语音**：Phenomena 一直用 Azure；Phonics 和 IPA 也已迁到 Azure F0（凭证 `~/.azure-speech/key.txt`，每月 50 万字符）。Phonics 用 Speech SDK 的 word boundary 保留分块时间轴；IPA 默认全量 300 词 × 男女两版（Ava/Andrew，REST），PDF 录音只用于核对顺序，`--tts edge` 可回退旧混合方案。Azure 输出同样是 24kHz/48kbps MP3，sprite 拼接不用改。
-- **部署是对外发布**：`wrangler pages deploy` 之前先确认要发布哪些改动；不要在没有明确要求时部署。
+- **部署是对外发布**：用户已授权「每轮改完、自检通过后直接部署主站」（2026-10-31），不需要再逐次确认；音频站仅在音频有变化时一并部署。除此之外仍不要主动部署。
 - Cloudflare Pages 单次部署上限 20,000 个文件，所以音频站和主站分开；不要图省事把 `build/cloudflare-audio` 合进主站。
 
 ## 四 · 交付前自检

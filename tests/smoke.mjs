@@ -859,13 +859,13 @@ const cases = [
         btn.classList.add('on');
         const bars = getComputedStyle(btn.querySelector('.bars')).display;
         const svg = getComputedStyle(btn.querySelector('svg')).display;
-        const halo = getComputedStyle(btn.querySelector('.play'), '::after').animationName;
+        const beat = getComputedStyle(btn.querySelector('.play')).animationName;
         const colorOn = getComputedStyle(w).color;
         const bgOn = getComputedStyle(w).backgroundColor;
         const afterContent = getComputedStyle(w, '::after').content;
         btn.classList.remove('on');
         style.remove();
-        const playFx = bars === 'flex' && svg === 'none' && halo === 'pulse';
+        const playFx = bars === 'flex' && svg === 'none' && /beat/.test(beat);
         let rules = [];
         try {
           const sheet = document.querySelector('style').sheet;
@@ -881,7 +881,7 @@ const cases = [
           !== rootCss.getPropertyValue('--surface-strong').trim();
         return t !== 'none' && badges && playFx && textFx && hoverDiff ? 'ok'
           : 'transform=' + t + '/badges=' + badges + '/playFx=' + playFx + '/textFx=' + textFx
-            + '/' + colorOff + '->' + colorOn + '/bg=' + bgOff + '->' + bgOn + '/after=' + afterContent + '/hoverDiff=' + hoverDiff;
+            + '/' + colorOff + '->' + colorOn + '/bg=' + bgOff + '->' + bgOn + '/beat=' + beat + '/hoverDiff=' + hoverDiff;
       } catch (err) { return 'ERR:' + err.message; } })()`);
       if (afford !== 'ok') return { ok: false, detail: `affordance=${afford}` };
 

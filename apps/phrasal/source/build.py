@@ -420,15 +420,15 @@ INDEX_STYLE = """
   .card .playbtn .bars i:nth-child(3) { animation-delay:.3s; }
   .card .playbtn.on .play svg { display:none; }
   .card .playbtn.on .play .bars { display:inline-flex; }
-  .card .playbtn.on .play::before, .card .playbtn.on .play::after {
-    content:""; position:absolute; inset:-4px; border-radius:50%;
-    pointer-events:none; opacity:0;
-    background:radial-gradient(circle, var(--accent) 0%, transparent 70%);
-    background:radial-gradient(circle,
-      color-mix(in srgb, var(--accent) 55%, transparent) 0%,
-      transparent 70%);
-    animation:pulse 1.9s ease-out infinite; }
-  .card .playbtn.on .play::after { animation-delay:.95s; }
+  /* 心跳：徽标本身搏动 + 外圈阴影扩散（box-shadow 不受按钮裁切） */
+  .card .playbtn.on .play {
+    animation:beat 1.15s ease-in-out infinite,
+      ring 1.15s ease-out infinite; }
+  @keyframes beat { 0%,100% { transform:scale(1); }
+    14% { transform:scale(1.24); } 28% { transform:scale(1); }
+    42% { transform:scale(1.14); } 56% { transform:scale(1); } }
+  @keyframes ring { 0% { box-shadow:0 0 0 0 var(--accent); }
+    75%,100% { box-shadow:0 0 0 14px transparent; } }
   .card .say-unit:has(.playbtn.on) .w {
     background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
   .card .say-unit:has(.playbtn.on) .txt { color:var(--accent); }
@@ -436,12 +436,9 @@ INDEX_STYLE = """
   .card .playbtn:focus-visible { outline:2px solid var(--accent);
     outline-offset:3px; border-radius:50%; }
   @keyframes eq { 0%,100% { height:3px; } 50% { height:9px; } }
-  @keyframes pulse { 0% { transform:scale(.6); opacity:.6; }
-    70% { transform:scale(2.2); opacity:0; } 100% { opacity:0; } }
   @media (prefers-reduced-motion: reduce) {
     .card .playbtn .bars i { animation:none; height:6px; }
-    .card .playbtn.on .play::before,
-    .card .playbtn.on .play::after { display:none; }
+    .card .playbtn.on .play { animation:none; }
     .card .playbtn .play { transition:none; }
     .card .w, .card .txt { transition:none; }
   }
@@ -540,11 +537,29 @@ def index_data(themes):
                 "sen": [[s["zh"], s["example"]["en"], s["example"]["zh"]]
                         for s in entry["senses"]],
                 "l1": entry.get("l1_note", ""),
-                "coll": entry.get("collocations", []),
-                "conf": entry.get("confusables", []),
+                "coll": [],
+                "conf": [],
                 "sp": sprites, "au": spans.get(entry["id"], []),
             })
         theme_rows[theme["id"]] = rows
+
+    # 搭配/易混补中文：搭配读 collocations_zh；易混按 head 反查词条释义
+    by_head = {}
+    for theme in themes:
+        for entry in theme["entries"]:
+            by_head[entry["head"].lower()] = entry["zh"]
+    for theme in themes:
+        for entry in theme["entries"]:
+            idx = index_of[(theme["id"], entry["id"])]
+            coll_zh = entry.get("collocations_zh") or []
+            entries[idx]["coll"] = [
+                [text, coll_zh[i] if i < len(coll_zh) else ""]
+                for i, text in enumerate(entry.get("collocations", []))
+            ]
+            entries[idx]["conf"] = [
+                [name, by_head.get(name.lower(), "")]
+                for name in entry.get("confusables", [])
+            ]
 
     scene = []
     for cat in categories:
@@ -634,8 +649,8 @@ def build_index(themes):
         "  }\n"
         "  var notes='';\n"
         "  if(e.l1)notes+='<p class=\"l1\"><b>中文易错</b>'+esc(e.l1)+'</p>';\n"
-        "  if(e.coll&&e.coll.length)notes+='<p class=\"colloc\"><b>搭配</b>'+esc(e.coll.join(' · '))+'</p>';\n"
-        "  if(e.conf&&e.conf.length)notes+='<p class=\"confuse\"><b>易混</b>'+esc(e.conf.join(' · '))+'</p>';\n"
+        "  if(e.coll&&e.coll.length)notes+='<p class=\"colloc\"><b>搭配</b>'+e.coll.map(function(c){return esc(c[0])+(c[1]?'（'+esc(c[1])+'）':'');}).join(' · ')+'</p>';\n"
+        "  if(e.conf&&e.conf.length)notes+='<p class=\"confuse\"><b>易混</b>'+e.conf.map(function(c){return esc(c[0])+(c[1]?'（'+esc(c[1])+'）':'');}).join(' · ')+'</p>';\n"
         "  if(notes)out+='<div class=\"note-card\">'+notes+'</div>';\n"
         "  return out+'</div>';\n"
         "}\n"
