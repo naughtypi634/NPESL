@@ -864,9 +864,12 @@ const cases = [
         const content = getComputedStyle(w, '::after').content;
         const textFx = colorOff !== colorOn && bgOn !== bgOff
           && bgOn !== 'rgba(0, 0, 0, 0)' && afterContent === 'none' && chipLook;
-        return t !== 'none' && badges && playFx && textFx ? 'ok'
+        const rootCss = getComputedStyle(document.documentElement);
+        const hoverDiff = rootCss.getPropertyValue('--surface').trim()
+          !== rootCss.getPropertyValue('--surface-strong').trim();
+        return t !== 'none' && badges && playFx && textFx && hoverDiff ? 'ok'
           : 'transform=' + t + '/badges=' + badges + '/playFx=' + playFx + '/textFx=' + textFx
-            + '/' + colorOff + '->' + colorOn + '/bg=' + bgOff + '->' + bgOn + '/after=' + afterContent;
+            + '/' + colorOff + '->' + colorOn + '/bg=' + bgOff + '->' + bgOn + '/after=' + afterContent + '/hoverDiff=' + hoverDiff;
       })()`);
       if (afford !== 'ok') return { ok: false, detail: `affordance=${afford}` };
 
