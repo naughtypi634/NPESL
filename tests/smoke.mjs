@@ -922,9 +922,7 @@ const cases = [
         const w = wEl.getBoundingClientRect();
         const ex = card.querySelector('.ex').getBoundingClientRect();
         const badge = card.querySelector('.badge').getBoundingClientRect();
-        const wCss = getComputedStyle(wEl);
-        const wPad = (parseFloat(wCss.paddingLeft) || 0) + (parseFloat(wCss.borderLeftWidth) || 0);
-        const padLeft = Math.round(w.left + wPad - cr.left);
+        const padLeft = Math.round(w.left - cr.left);
         const padRight = Math.round(cr.right - ex.right);
         const badgeDelta = Math.round(Math.abs((badge.top + badge.height / 2) - (w.top + w.height / 2)));
         return { rightGap, heights, padLeft, padRight, badgeDelta };

@@ -402,13 +402,14 @@ INDEX_STYLE = """
   .card .head .ipa { color:var(--muted); font-size:13px; }
   /* 可播放元素的统一提示：小圆播放徽标，桌面 hover 实心，手机常驻可见 */
   .card .say .play { position:relative; display:inline-flex; align-items:center;
-    justify-content:center; width:18px; height:18px; flex:none; border:0;
-    border-radius:50%; background:var(--surface-strong, var(--surface));
+    justify-content:center; width:18px; height:18px; flex:none;
+    border:1px solid var(--rule); border-radius:50%; background:var(--bg);
     color:var(--muted);
-    transition:background-color .12s ease, color .12s ease, transform .12s ease; }
+    transition:background-color .12s ease, color .12s ease,
+      border-color .12s ease, transform .12s ease; }
   .card .say .play svg { display:block; width:8px; height:8px; margin-left:1px; }
   .card .say:hover .play, .card .say.on .play {
-    background:var(--accent); color:var(--on-accent); }
+    background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
   .card .say:active .play { transform:scale(.9); }
   /* 播放中：三角换成三根声波条，外圈一圈淡扩散环 */
   .card .say .bars { display:none; align-items:flex-end; gap:2px; height:9px; }
@@ -422,11 +423,12 @@ INDEX_STYLE = """
     border-radius:50%; border:1px solid var(--accent); pointer-events:none;
     animation:halo 1.6s ease-out infinite; }
   /* 词条常驻胶囊：默认是未选中的描边态，播放时切换成选中态 */
-  .card .say .w { display:inline-block; padding:3px 12px; margin-left:-13px;
+  .card .say .w { display:inline-block; padding:3px 12px;
     border:1px solid var(--rule); border-radius:999px; background:transparent;
     transition:background-color .18s ease, color .18s ease, border-color .18s ease; }
   .card .say .txt { transition:color .18s ease; }
-  .card .head:hover .w { background:var(--surface-strong, var(--surface)); }
+  .card .head:hover .w { background:var(--surface-strong, var(--surface));
+    border-color:var(--muted); }
   .card .say.on .w { background:var(--accent); border-color:var(--accent);
     color:var(--on-accent); }
   .card .say.on .txt { color:var(--accent); }
