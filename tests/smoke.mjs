@@ -711,6 +711,51 @@ const cases = [
     },
   },
   {
+    name: 'conversation-chrome', path: '/conversation/a1/01-01-family.html',
+    async run() {
+      // 返回键要回这一级的篇目列表。线上是无扩展名地址
+      // （/conversation/a1/01-01-family），写 ../ 会多退一层到 /conversation/。
+      const back = await evaluate(`(() => {
+        const a = document.querySelector('.npesl-back');
+        return a ? new URL(a.getAttribute('href'), location.href).pathname : '';
+      })()`);
+      const backOk = back === '/conversation/a1/';
+
+      // 播放条出现时主题按钮不能消失；手机上还要让到播放条上方，别被压住。
+      await send('Emulation.setDeviceMetricsOverride', {
+        width: 390, height: 780, deviceScaleFactor: 2, mobile: true,
+      });
+      await evaluate("document.querySelector('.story .s.ktv').click()");
+      const dock = await waitFor("!document.querySelector('[data-kplayer]').hidden");
+      const theme = await waitFor(`(() => {
+        const fab = document.querySelector('.npesl-theme-fab');
+        if (!fab) return false;
+        const s = getComputedStyle(fab.parentElement);
+        return s.visibility !== 'hidden' && Number(s.opacity) > 0.9;
+      })()`);
+      const box = await evaluate(`(() => {
+        const fab = document.querySelector('.npesl-theme-fab');
+        const dock = document.querySelector('[data-kplayer]');
+        if (!fab || !dock || dock.hidden) return null;
+        const a = fab.getBoundingClientRect();
+        const b = dock.getBoundingClientRect();
+        return {
+          overlap: a.left < b.right && a.right > b.left
+            && a.top < b.bottom && a.bottom > b.top,
+          gap: Math.round(b.top - a.bottom),
+        };
+      })()`);
+      await evaluate("document.querySelector('[data-kp-close]').click()");
+      await send('Emulation.clearDeviceMetricsOverride');
+      const ok = backOk && dock && theme && !!box && !box.overlap && box.gap >= 0;
+      return {
+        ok,
+        detail: `back=${back} dock=${dock} theme=${theme} `
+          + `overlap=${box ? box.overlap : 'n/a'} gap=${box ? box.gap : 'n/a'}`,
+      };
+    },
+  },
+  {
     name: 'conversation-levels', path: '/conversation/a1/01-01-family.html',
     run: probeConversationLevels,
   },

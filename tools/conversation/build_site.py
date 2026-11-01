@@ -817,10 +817,10 @@ html.zh-hide-body .story .zh { display:none; }
 .zh-toggle.is-off .zh-icon { color:var(--muted); }
 .zh-toggle:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
 body.has-player .page { padding-bottom:140px; }
-/* The floating theme button would sit over the dock / speed menu; it comes
-   back as soon as the player is closed. */
+/* 播放条贴底、在手机上几乎占满宽度，右下角的主题按钮会被它和关闭键压住。
+   按钮不隐藏，只抬到播放条上方（播放条高 62px + 底边 14px + 8px 间隙）。 */
 body.has-player .npesl-theme {
-  opacity:0; visibility:hidden; pointer-events:none;
+  bottom:calc(84px + env(safe-area-inset-bottom, 0px));
 }
 .kplayer {
   position:fixed; left:50%; z-index:60;
@@ -935,6 +935,10 @@ body.has-player .npesl-theme {
   /* .zh-float 的 top/right 不覆盖：和返回按钮同一套 12px / 页面边距。 */
   .sec-head { gap:12px; }
   body.has-player .page { padding-bottom:132px; }
+  /* 手机上的播放条矮一点（56px），主题按钮跟着降 6px。 */
+  body.has-player .npesl-theme {
+    bottom:calc(78px + env(safe-area-inset-bottom, 0px));
+  }
 }
 """
 
@@ -2307,10 +2311,13 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
             f"<li>{sentence_html(q, audio)}</li>" for q in items
         ) + "</ol>"
 
+    # 线上这条页面是 /conversation/a1/01-01-family（Cloudflare Pages 去掉
+    # .html 时是 308），浏览器按「文件」解析相对地址，写 ../ 会直接跳到
+    # /conversation/。显式带上级别目录，回的是这一级的篇目列表。
     body = (
         head(f"{story['title']} · {level} · Conversation Starters", "../../",
              STORY_CSS, "en", audio_base=audio_base_for(level))
-        + back("../", f"{level} {cn}".strip())
+        + back(f"../{level.lower()}/", f"{level} {cn}".strip())
         + f'<p class="unit-label">{html.escape(unit["title"])}</p>\n'
         + title
         + toolbar_html()
