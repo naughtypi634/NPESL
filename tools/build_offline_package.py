@@ -158,7 +158,7 @@ def drill_ignore(directory, names):
 
 def phenomena_ignore(directory, names):
     """只要拼好的 sprite；逐条录音（audio/f、audio/m）不进部署包。"""
-    skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md")(
+    skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md", "*.pdf")(
         directory, names))
     if Path(directory) == PHENOMENA / "audio":
         skip |= {"f", "m"}
@@ -167,7 +167,7 @@ def phenomena_ignore(directory, names):
 
 def phrasal_ignore(directory, names):
     """只要拼好的 sprite；逐条录音（audio/f、audio/m）不进部署包。"""
-    skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md")(
+    skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md", "*.pdf")(
         directory, names))
     if Path(directory) == PHRASAL / "audio":
         skip |= {"f", "m"}
