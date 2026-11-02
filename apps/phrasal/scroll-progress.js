@@ -13,18 +13,18 @@
     var style = document.createElement('style');
     style.id = 'npesl-scroll-style';
     style.textContent = [
-      '.sp-rail{position:fixed;left:8px;top:14vh;bottom:14vh;width:44px;z-index:60;',
+      '.sp-rail{position:fixed;left:8px;top:14vh;bottom:14vh;width:32px;z-index:60;',
       'touch-action:none;outline:none}',
-      '.sp-track{position:absolute;left:10px;top:0;bottom:0;width:2px;',
+      '.sp-track{position:absolute;left:15px;top:0;bottom:0;width:2px;',
       'border-radius:999px;background:var(--rule)}',
       '.sp-thumb{position:absolute;left:0;right:0;top:0;height:0;border-radius:999px;',
       'background:var(--accent);pointer-events:none;transition:height .14s ease-out}',
       '.sp-slider{position:absolute;inset:0;z-index:1;cursor:pointer;outline:none}',
-      '.sp-slider{left:0;right:auto;width:20px}',
-      '.sp-slider:focus-visible::after{content:"";position:absolute;left:3px;top:var(--sp-pct,0%);',
+      '.sp-slider{left:0;right:0;width:32px}',
+      '.sp-slider:focus-visible::after{content:"";position:absolute;left:8px;top:var(--sp-pct,0%);',
       'width:16px;height:16px;border:2px solid var(--accent);border-radius:50%;',
       'background:var(--bg);transform:translateY(-50%)}',
-      '.sp-dot{position:absolute;left:30px;top:0;width:16px;height:8px;padding:0;border:0;',
+      '.sp-dot{position:absolute;left:16px;top:0;width:16px;height:10px;padding:0;border:0;',
       'background:transparent;transform:translate(-50%,-50%) scaleX(var(--wave-x,1)) scaleY(var(--wave-scale,1));',
       'transform-origin:center;cursor:pointer;z-index:2;border-radius:999px;',
       'transition:transform .24s cubic-bezier(.2,.8,.2,1)}',
@@ -48,6 +48,7 @@
       '.sp-mobile .page{padding-left:56px!important}',
       '.sp-mobile .sp-rail{left:8px;top:12vh;bottom:12vh}',
       '.sp-mobile .sp-dot{transition:none}',
+      '.sp-mobile .sp-dot:active{transform:translate(-50%,-50%) scale(1.2)}',
       '.sp-short .sp-rail,.sp-short .sp-inline{display:none}'
     ].join('');
     document.head.appendChild(style);
@@ -123,6 +124,12 @@
     var rows = [];
     var themeRows = [];
     var dragging = false;
+    var pointerId = null;
+    var pointerStartY = 0;
+    var pointerDot = null;
+    var suppressDotClickUntil = 0;
+    var hoveredName = '';
+    var focusedName = '';
 
     function clamp(n, min, max) {
       return Math.max(min, Math.min(max, n));
@@ -194,7 +201,7 @@
       var mobile = window.innerWidth < 860;
       document.documentElement.classList.toggle('sp-mobile', mobile);
       var pageRect = page.getBoundingClientRect();
-      var left = mobile ? 8 : pageRect.left - 52;
+      var left = mobile ? 8 : pageRect.left - 40;
       rail.style.left = Math.max(8, left) + 'px';
     }
 
@@ -211,8 +218,11 @@
       }
       var label = pct + '%' + (info.name ? ' · ' + info.name : '');
       inlinePct.textContent = pct + '%';
-      inlinePos.textContent = info.name ? '· ' + info.name : '';
-      inline.title = label;
+      var previewName = focusedName || hoveredName;
+      inlinePos.textContent = previewName
+        ? '· 将跳到 ' + previewName
+        : (info.name ? '· ' + info.name : '');
+      inline.title = previewName ? '将跳到 ' + previewName : label;
       slider.setAttribute('aria-valuenow', String(pct));
       slider.setAttribute('aria-valuetext', label);
       slider.style.setProperty('--sp-pct', pct + '%');
@@ -243,8 +253,29 @@
           : target.querySelector('.entry-head .w');
         var name = isIndex ? themeName(target) : (head ? head.textContent.trim() : '');
         dot.setAttribute('aria-label', '跳到 ' + name);
-        dot.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+        dot.addEventListener('pointerenter', function () {
+          hoveredName = name;
+          update();
+        });
+        dot.addEventListener('pointerleave', function () {
+          hoveredName = '';
+          update();
+        });
+        dot.addEventListener('focus', function () {
+          focusedName = name;
+          update();
+        });
+        dot.addEventListener('blur', function () {
+          focusedName = '';
+          update();
+        });
         dot.addEventListener('click', function (e) {
+          if (Date.now() < suppressDotClickUntil) {
+            suppressDotClickUntil = 0;
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
           e.preventDefault();
           e.stopPropagation();
           var y = target.getBoundingClientRect().top + window.scrollY - 74;
@@ -277,8 +308,41 @@
 
     rail.addEventListener('pointermove', function (e) {
       if (e.pointerType !== 'touch') updateWave(e.clientY);
+      if (pointerId !== e.pointerId) return;
+      if (!dragging && Math.abs(e.clientY - pointerStartY) > 6) dragging = true;
+      if (dragging) {
+        moveTo(e.clientY);
+        e.preventDefault();
+      }
     });
     rail.addEventListener('pointerleave', resetWave);
+    rail.addEventListener('pointerdown', function (e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      pointerId = e.pointerId;
+      pointerStartY = e.clientY;
+      pointerDot = e.target.closest && e.target.closest('.sp-dot');
+      dragging = !pointerDot;
+      var capture = pointerDot || slider;
+      if (capture.setPointerCapture) {
+        try { capture.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      if (dragging) {
+        moveTo(e.clientY);
+        e.preventDefault();
+      }
+    });
+    rail.addEventListener('pointerup', function (e) {
+      if (pointerId !== e.pointerId) return;
+      if (dragging && pointerDot) suppressDotClickUntil = Date.now() + 400;
+      dragging = false;
+      pointerDot = null;
+      pointerId = null;
+    });
+    rail.addEventListener('pointercancel', function () {
+      dragging = false;
+      pointerDot = null;
+      pointerId = null;
+    });
 
     function layout() {
       position();
@@ -298,25 +362,6 @@
       var rect = slider.getBoundingClientRect();
       scrollToProgress(rect.height ? (clientY - rect.top) / rect.height : 0);
     }
-
-    slider.addEventListener('pointerdown', function (e) {
-      if (e.button !== undefined && e.button !== 0) return;
-      dragging = true;
-      if (slider.setPointerCapture) {
-        try { slider.setPointerCapture(e.pointerId); } catch (err) {}
-      }
-      moveTo(e.clientY);
-      e.preventDefault();
-    });
-
-    slider.addEventListener('pointermove', function (e) {
-      if (!dragging) return;
-      moveTo(e.clientY);
-    });
-
-    function endDrag() { dragging = false; }
-    slider.addEventListener('pointerup', endDrag);
-    slider.addEventListener('pointercancel', endDrag);
 
     slider.addEventListener('keydown', function (e) {
       var step = Math.round(viewH() * 0.8);
