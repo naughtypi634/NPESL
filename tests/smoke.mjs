@@ -827,13 +827,15 @@ const cases = [
     name: 'phrasal-index', path: '/phrasal/',
     async run() {
       // 默认场景+全部；两个模式的「全部」各自独立；无计数、无主题链接；点词条就地展开。
-      const r = await evaluate(`(() => {
+      const r = await evaluate(`(async () => {
         const path0 = location.pathname;
         if (document.querySelector('.sub')) return 'meta-text';
         if (/·\s*\d+\s*条/.test(document.body.innerText)) return 'count-text';
         if (document.querySelector('.theme a')) return 'theme-link';
         const sceneChips = [...document.querySelectorAll('[data-chips="scene"] button')];
         const partRow = document.querySelector('[data-chips="particle"]');
+        const panel = document.querySelector('.sp-context-chips');
+        if (!panel || getComputedStyle(panel).display !== 'none') return 'panel-default-open';
         if (!sceneChips.length || !partRow.hidden) return 'default-chips-wrong';
         if (getComputedStyle(partRow).display !== 'none') return 'part-chips-visible';
         const sceneSections = [...document.querySelectorAll('#view .group[data-cat]')];
@@ -848,10 +850,14 @@ const cases = [
         sceneChips.find((b) => b.dataset.scene === 'all').click();
         if (![...document.querySelectorAll('#view .group[data-cat]')].every((s) => s.style.display !== 'none')) return 'all-restore';
         const modes = [...document.querySelectorAll('[data-mode]')];
-        modes.find((b) => b.dataset.mode === 'particle').click();
+        const particleMode = modes.find((b) => b.dataset.mode === 'particle');
+        particleMode.click();
+        if (getComputedStyle(panel).display === 'none') return 'panel-not-open';
+        if (particleMode.getAttribute('aria-expanded') !== 'true') return 'panel-aria';
         if (partRow.hidden) return 'part-chips-hidden';
         if (getComputedStyle(document.querySelector('[data-chips=\"scene\"]')).display !== 'none') return 'scene-chips-visible';
         if (getComputedStyle(partRow).display === 'none') return 'part-chips-still-hidden';
+        if (partRow.querySelectorAll('button[data-particle]').length < 2) return 'particle-chips-missing';
         const up = [...document.querySelectorAll('[data-chips="particle"] button')]
           .find((b) => b.dataset.particle === 'up');
         if (!up) return 'no-up';
@@ -859,6 +865,10 @@ const cases = [
         const shownPart = [...document.querySelectorAll('#view .group[data-particle]')]
           .filter((s) => s.style.display !== 'none');
         if (!(shownPart.length === 1 && shownPart[0].dataset.particle === 'up')) return 'part-filter';
+        if (getComputedStyle(panel).display !== 'none') return 'panel-not-closed';
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        if (document.querySelectorAll('.sp-dot').length === 1
+            && getComputedStyle(document.querySelector('.sp-rail')).display !== 'none') return 'single-dot-rail';
         return 'ok';
       })()`);
       if (r !== 'ok') return { ok: false, detail: `index=${r}` };

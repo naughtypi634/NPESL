@@ -190,7 +190,18 @@ var view=document.getElementById('view');
 var rowScene=document.querySelector('[data-chips="scene"]');
 var rowPart=document.querySelector('[data-chips="particle"]');
 var modeBtns=document.querySelectorAll('[data-mode]');
-var state={scene:'all',particle:'all'},mode='scene',open=null;
+var STATE_KEY='pv-index-state-v1';var state={scene:'all',particle:'all'},mode='scene',open=null;
+var positions={scene:0,particle:0},chipsExpanded=false;
+try{
+  var saved=JSON.parse(sessionStorage.getItem(STATE_KEY)||'null');
+  if(saved&&saved.state&&saved.positions){
+    if(saved.mode==='scene'||saved.mode==='particle')mode=saved.mode;
+    if(saved.state.scene==='all'||D.scene.some(function(g){return g.id===saved.state.scene;}))state.scene=saved.state.scene;
+    if(saved.state.particle==='all'||D.particle.some(function(g){return g.p===saved.state.particle;}))state.particle=saved.state.particle;
+    if(Number.isFinite(saved.positions.scene)&&saved.positions.scene>=0)positions.scene=saved.positions.scene;
+    if(Number.isFinite(saved.positions.particle)&&saved.positions.particle>=0)positions.particle=saved.positions.particle;
+  }
+}catch(e){}
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 function chip(attr,val,label){return '<button type="button" data-'+attr+'="'+val+'">'+esc(label)+'</button>';}
 function rowButton(i){
@@ -235,11 +246,25 @@ function partHtml(){
 var html={scene:sceneHtml(),particle:partHtml()};
 function setChips(m){
   rowScene.hidden=(m!=='scene');rowPart.hidden=(m==='scene');
-  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-pressed',modeBtns[i].getAttribute('data-mode')===m?'true':'false');
+  for(var i=0;i<modeBtns.length;i++){
+    var active=modeBtns[i].getAttribute('data-mode')===m;
+    modeBtns[i].setAttribute('aria-pressed',active?'true':'false');
+    modeBtns[i].setAttribute('aria-expanded',active&&chipsExpanded?'true':'false');
+  }
   var chips=(m==='scene'?rowScene:rowPart).querySelectorAll('button');
   for(var c=0;c<chips.length;c++)chips[c].setAttribute('aria-pressed',chips[c].getAttribute('data-'+m)==='all'&&state[m]==='all'?'true':(chips[c].getAttribute('data-'+m)===state[m]?'true':'false'));
 }
-function paint(m,value,scroll){
+function setChipsExpanded(expanded){
+  chipsExpanded=!!expanded;
+  document.documentElement.classList.toggle('sp-chips-open',chipsExpanded);
+  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-expanded',modeBtns[i].getAttribute('data-mode')===mode&&chipsExpanded?'true':'false');
+}
+function persistState(){try{sessionStorage.setItem(STATE_KEY,JSON.stringify({mode:mode,state:state,positions:positions}));}catch(e){}}
+var restoringPosition=false;
+function paint(m,value,scroll,restore){
+  var changed=mode!==m;var shouldRestore=changed||restore;
+  if(changed)positions[mode]=window.scrollY;
+  if(shouldRestore)restoringPosition=true;
   mode=m;if(value!==undefined)state[m]=value;
   view.innerHTML=html[m];open=null;
   var attr=(m==='scene'?'cat':'particle');
@@ -247,7 +272,18 @@ function paint(m,value,scroll){
   for(var g=0;g<groups.length;g++)groups[g].style.display=(state[m]==='all'||groups[g].getAttribute('data-'+attr)===state[m])?'':'none';
   setChips(m);
   if(scroll)view.scrollIntoView({block:'start',behavior:'smooth'});
+  else if(shouldRestore)requestAnimationFrame(function(){var y=Math.min(positions[m],Math.max(0,document.documentElement.scrollHeight-window.innerHeight));window.scrollTo(0,y);positions[m]=y;restoringPosition=false;persistState();});
+  if(scroll)setChipsExpanded(false);
+  persistState();
 }
+var stateTimer=0;
+window.addEventListener('scroll',function(){
+  if(restoringPosition)return;
+  positions[mode]=window.scrollY;
+  if(stateTimer)clearTimeout(stateTimer);
+  stateTimer=setTimeout(persistState,120);
+},{passive:true});
+window.addEventListener('pagehide',function(){positions[mode]=window.scrollY;persistState();});
 function toggleCard(btn){
   var i=+btn.getAttribute('data-i');
   var existing=view.querySelector('.card');
@@ -346,14 +382,15 @@ rowScene.innerHTML=chip('scene','all','全部')+D.scene.map(function(g){return c
 rowPart.innerHTML=chip('particle','all','全部')+D.particle.map(function(g){return chip('particle',g.p,g.label||g.p);}).join('');
 rowScene.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint('scene',b.getAttribute('data-scene'),true);});
 rowPart.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint('particle',b.getAttribute('data-particle'),true);});
-for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){paint(e.currentTarget.getAttribute('data-mode'),'all',true);});
+for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var next=e.currentTarget.getAttribute('data-mode');if(next===mode){setChipsExpanded(!chipsExpanded);return;}setChipsExpanded(true);paint(next,state[next],false);});
 view.addEventListener('click',function(e){
   var say=e.target.closest('.say');
   if(say){playSay(say);return;}
   var b=e.target.closest('.prow');
   if(b)toggleCard(b);
 });
-paint('scene','all',false);
+try{if('scrollRestoration'in history)history.scrollRestoration='manual';}catch(e){}
+paint(mode,state[mode],false,true);
 })();
 </script>
 <script src="scroll-progress.js" defer></script>
