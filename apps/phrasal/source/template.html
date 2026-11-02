@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>__TITLE_EN__ · 短语动词</title>
+<title>__TITLE_EN__ · 短语搭配</title>
 <style>
   :root {
     --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
@@ -55,6 +55,8 @@
     background:var(--bg); border-bottom:1px solid var(--rule); }
   .seg { display:flex; border:1px solid var(--rule); border-radius:999px;
     overflow:hidden; }
+  .seg-label { color:var(--muted); font-size:11px; font-weight:600;
+    letter-spacing:0.06em; margin:0 2px 0 4px; }
   .seg button, .pill { appearance:none; border:0; background:transparent;
     color:var(--fg); font:inherit; font-size:14px; padding:7px 13px;
     cursor:pointer; white-space:nowrap; }
@@ -89,6 +91,10 @@
   .badge { font-size:12px; padding:2px 8px; border-radius:999px;
     border:1px solid var(--rule); color:var(--muted); }
   .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .badge.kind { font-weight:600; }
+  .badge.kind-phrasal { color:var(--accent); border-color:var(--accent); }
+  .badge.kind-prep { color:#a78bfa; border-color:#a78bfa; }
+  .badge.kind-idiom { color:#f0a984; border-color:#f0a984; }
   .zh-line { margin:10px 0 0; font-size:15px; color:var(--muted); }
 
   .senses { margin-top:12px; display:grid; gap:10px; }
@@ -130,16 +136,24 @@
 </head>
 <body>
 <main class="page">
-  <a class="back" href="index.html">短语动词</a>
+  <a class="back" href="index.html">短语搭配</a>
   <header>
-    <p class="crumbs"><a href="index.html">短语动词</a> › __CATEGORY_ZH__ › __TITLE_ZH__</p>
+    <p class="crumbs"><a href="index.html">短语搭配</a> › __CATEGORY_ZH__ › __TITLE_ZH__</p>
     <h1>__TITLE_EN__</h1>
     <p class="title-zh">__TITLE_ZH__</p>
     <p class="intro">__INTRO__</p>
-    <p class="legend"><b>可分</b> = 代词必须放中间：<code>pick me up</code><br>名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code></p>
+    <p class="legend"><b>类型</b>：短语动词 / 介词搭配 / 习语，三类可用上方筛选。<br><b>可分</b> = 代词必须放中间：<code>pick me up</code>；名词放中间或后面都行：<code>pick up my friend</code> / <code>pick my friend up</code>。</p>
   </header>
 
   <div class="toolbar">
+    <span class="seg-label">类型</span>
+    <div class="seg" role="group" aria-label="类型">
+      <button type="button" data-kind="all" aria-pressed="true">全部</button>
+      <button type="button" data-kind="phrasal" aria-pressed="false">短语动词</button>
+      <button type="button" data-kind="prep" aria-pressed="false">介词搭配</button>
+      <button type="button" data-kind="idiom" aria-pressed="false">习语</button>
+    </div>
+    <span class="seg-label">小品词</span>
     <div class="seg" role="group" aria-label="小品词">
       <button type="button" data-particle="all" aria-pressed="true">全部</button>
       <button type="button" data-particle="up" aria-pressed="false">up</button>
@@ -532,29 +546,43 @@
     playItem(0);
   });
 
-  // 小品词筛选：只看 up / down / out 这类词条
-  var PARTICLE_KEY = 'pv-particle';
-  var particle = 'all';
+  // 类型 + 小品词筛选：短语动词 / 介词搭配 / 习语，可叠加 up / down 等
+  var PARTICLE_KEY = 'pv-particle', KIND_KEY = 'pv-kind';
+  var particle = 'all', kind = 'all';
   var particleButtons = document.querySelectorAll('[data-particle]');
-  function applyParticle(next, save) {
-    particle = next;
+  var kindButtons = document.querySelectorAll('[data-kind]');
+  function applyFilters(save) {
     var cards = document.querySelectorAll('.entry');
     for (var i = 0; i < cards.length; i++) {
-      cards[i].style.display =
-        (next === 'all' || cards[i].getAttribute('data-particle') === next) ? '' : 'none';
+      var okKind = kind === 'all' || cards[i].getAttribute('data-kind') === kind;
+      var okPart = particle === 'all' || cards[i].getAttribute('data-particle') === particle;
+      cards[i].style.display = (okKind && okPart) ? '' : 'none';
     }
     for (var j = 0; j < particleButtons.length; j++) {
       particleButtons[j].setAttribute('aria-pressed',
-        particleButtons[j].getAttribute('data-particle') === next ? 'true' : 'false');
+        particleButtons[j].getAttribute('data-particle') === particle ? 'true' : 'false');
     }
-    if (save) store(PARTICLE_KEY, next);
+    for (var k = 0; k < kindButtons.length; k++) {
+      kindButtons[k].setAttribute('aria-pressed',
+        kindButtons[k].getAttribute('data-kind') === kind ? 'true' : 'false');
+    }
+    if (save) { store(PARTICLE_KEY, particle); store(KIND_KEY, kind); }
   }
   for (var q = 0; q < particleButtons.length; q++) {
     particleButtons[q].addEventListener('click', function (event) {
-      applyParticle(event.currentTarget.getAttribute('data-particle'), true);
+      particle = event.currentTarget.getAttribute('data-particle');
+      applyFilters(true);
     });
   }
-  applyParticle(load(PARTICLE_KEY) || 'all', false);
+  for (var r = 0; r < kindButtons.length; r++) {
+    kindButtons[r].addEventListener('click', function (event) {
+      kind = event.currentTarget.getAttribute('data-kind');
+      applyFilters(true);
+    });
+  }
+  particle = load(PARTICLE_KEY) || 'all';
+  kind = load(KIND_KEY) || 'all';
+  applyFilters(false);
 
   document.addEventListener('click', function (event) {
     if (!event.target.closest) return;

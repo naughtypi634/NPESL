@@ -18,6 +18,7 @@ CHIPS = ROOT / "content" / "drill" / "chips.json"
 LEVELS = {"A2", "B1", "B2", "C1"}
 REGISTERS = {"spoken", "neutral", "written"}
 REGISTER_ZH = {"spoken": "口语", "neutral": "中性", "written": "书面"}
+KINDS = {"phrasal", "prep", "idiom"}
 
 # 按 AGENTS.md 的硬规则：一律美式英语。这些词出现在例句里多半是英式残留。
 BRITISH = {
@@ -49,22 +50,31 @@ def check_entries(entries, chapter, chips, seen_ids, seen_sentences, bad):
             bad(f"{where}: id 重复（另一处：{seen_ids[eid]}）")
         seen_ids[eid] = where
 
-        for key in ("head", "base", "particle", "ipa",
+        for key in ("head", "base", "particle", "kind", "ipa",
                     "chip", "register", "separable", "zh", "senses"):
             if key not in entry:
                 bad(f"{where}: 缺字段 {key}")
         if any(key not in entry for key in ("head", "senses")):
             continue
 
+        kind = entry.get("kind")
+        if kind not in KINDS:
+            bad(f"{where}: kind {kind!r} 不在 {sorted(KINDS)}")
         head = entry["head"].strip()
         parts = head.split()
         if len(parts) < 2:
-            bad(f"{where}: head {head!r} 至少两个字（短语动词才有小品词）")
+            bad(f"{where}: head {head!r} 至少要两个词")
         else:
             if parts[0].lower() != str(entry.get("base", "")).lower():
                 bad(f"{where}: base 应等于 head 的第一个词")
-            if str(entry.get("particle", "")).lower() not in [p.lower() for p in parts[1:]]:
+            particle = str(entry.get("particle", "")).lower()
+            if kind == "idiom":
+                if particle and particle not in [p.lower() for p in parts[1:]]:
+                    bad(f"{where}: idiom 的 particle 要么留空，要么是 head 里的词")
+            elif particle not in [p.lower() for p in parts[1:]]:
                 bad(f"{where}: particle 必须是 head 里 base 之后的一个词")
+        if kind in ("prep", "idiom") and entry.get("separable"):
+            bad(f"{where}: {kind} 不应标 separable")
         if head != head.lower():
             bad(f"{where}: head 用小写")
 

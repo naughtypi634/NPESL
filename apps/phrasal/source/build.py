@@ -40,6 +40,7 @@ VOICES = {
 RATE = "+0%"
 
 REGISTER_ZH = {"spoken": "口语", "neutral": "中性", "written": "书面"}
+KIND_ZH = {"phrasal": "短语动词", "prep": "介词搭配", "idiom": "习语"}
 
 
 def slug(text):
@@ -236,7 +237,11 @@ def build_sprites(plan):
 
 
 def entry_html(entry, audio):
-    badges = [f'<span class="badge reg">{REGISTER_ZH[entry["register"]]}</span>']
+    kind = entry.get("kind", "phrasal")
+    badges = [
+        f'<span class="badge kind kind-{kind}">{KIND_ZH.get(kind, kind)}</span>',
+        f'<span class="badge reg">{REGISTER_ZH[entry["register"]]}</span>',
+    ]
     if entry.get("separable"):
         badges.append('<span class="badge split">可分</span>')
 
@@ -275,6 +280,7 @@ def entry_html(entry, audio):
     chips = f' data-chip="{html.escape(entry["chip"])}"'
     return (
         f'<article class="entry" id="{html.escape(entry["id"])}"'
+        f' data-kind="{html.escape(kind)}"'
         f' data-particle="{html.escape(entry["particle"])}"{chips}>'
         f'<header class="entry-head">{head}<span class="badges">{"".join(badges)}</span></header>'
         f'<p class="zh-line">{html.escape(entry["zh"])}</p>'
@@ -298,7 +304,7 @@ def build_page(chapter, number, total):
     rows = "\n      ".join(entry_html(entry, audio) for entry in chapter["entries"])
     page = template
     page = page.replace("__CATEGORY_ID__", html.escape(chapter.get("category", "")))
-    page = page.replace("__CATEGORY_ZH__", html.escape(cat.get("title_zh", "短语动词")))
+    page = page.replace("__CATEGORY_ZH__", html.escape(cat.get("title_zh", "短语搭配")))
     page = page.replace("__NUM__", f"{number:02d}")
     page = page.replace("__TITLE_EN__", html.escape(chapter["title_en"]))
     page = page.replace("__TITLE_ZH__", html.escape(chapter["title_zh"]))
@@ -448,6 +454,10 @@ INDEX_STYLE = """
   .badge { font-size:12px; padding:2px 8px; border-radius:var(--radius-pill, 999px);
     border:1px solid var(--rule); color:var(--muted); }
   .badge.reg { color:var(--accent); border-color:var(--accent); }
+  .badge.kind { font-weight:600; }
+  .badge.kind-phrasal { color:var(--accent); border-color:var(--accent); }
+  .badge.kind-prep { color:#a78bfa; border-color:#a78bfa; }
+  .badge.kind-idiom { color:#f0a984; border-color:#f0a984; }
   .card .zh-line { margin:8px 0 0; color:var(--muted); font-size:14px; }
   .card .sense { margin-top:10px; }
   .card .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted); }
@@ -530,6 +540,7 @@ def index_data(themes):
             rows.append(len(entries))
             entries.append({
                 "h": entry["head"], "zh": entry["zh"], "ipa": entry["ipa"],
+                "kind": entry.get("kind", "phrasal"),
                 "reg": entry["register"], "sep": entry["separable"],
                 "sen": [[s["zh"], s["example"]["en"], s["example"]["zh"]]
                         for s in entry["senses"]],
@@ -600,9 +611,9 @@ def build_index(themes):
     page = (
         '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-        "<title>短语动词 Phrasal Verbs</title>\n"
+        "<title>短语搭配 Collocations</title>\n"
         f"<style>{INDEX_STYLE}</style>\n</head>\n<body>\n<div class=\"page\">\n"
-        "<h1>短语动词</h1>\n"
+        "<h1>短语搭配</h1>\n"
         '<div class="topbar">'
         '<div class="level1" role="group" aria-label="浏览方式">'
         '<button type="button" data-mode="scene" aria-pressed="true">场景话题</button>'
@@ -638,7 +649,7 @@ def build_index(themes):
         "function fmt(v){return (v==null?'':v.toFixed(3));}\n"
         "function card(i){\n"
         "  var e=D.entries[i];var out='<div class=\"card\" data-card=\"'+i+'\">';\n"
-        "  out+='<div class=\"card-head say-unit\" data-unit=\"'+i+'-0\"><span class=\"w\">'+esc(e.h)+'</span><span class=\"ipa\">/'+esc(e.ipa)+'/</span><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"0\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><span class=\"badges\"><span class=\"badge reg\">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class=\"badge split\">可分</span>':'')+'</span></div>';\n"
+        "  out+='<div class=\"card-head say-unit\" data-unit=\"'+i+'-0\"><span class=\"w\">'+esc(e.h)+'</span><span class=\"ipa\">/'+esc(e.ipa)+'/</span><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"0\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><span class=\"badges\"><span class=\"badge kind kind-'+e.kind+'\">'+(e.kind==='prep'?'介词搭配':e.kind==='idiom'?'习语':'短语动词')+'</span><span class=\"badge reg\">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class=\"badge split\">可分</span>':'')+'</span></div>';\n"
         "  out+='<p class=\"zh-line\">'+esc(e.zh)+'</p>';\n"
         "  for(var s=0;s<e.sen.length;s++){\n"
         "    var it=e.sen[s];\n"
