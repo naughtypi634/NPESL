@@ -260,6 +260,15 @@ function setChipsExpanded(expanded){
   for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-expanded',modeBtns[i].getAttribute('data-mode')===mode&&chipsExpanded?'true':'false');
 }
 function persistState(){try{sessionStorage.setItem(STATE_KEY,JSON.stringify({mode:mode,state:state,positions:positions}));}catch(e){}}
+function scrollToFirstCard(){
+  var groups=view.querySelectorAll('.group'),first=null;
+  for(var i=0;i<groups.length;i++)if(groups[i].style.display!=='none'){first=groups[i].querySelector('.prow');if(first)break;}
+  if(!first){view.scrollIntoView({block:'start',behavior:'smooth'});return;}
+  var banner=document.querySelector('.sp-context');
+  var offset=banner?banner.getBoundingClientRect().height+(parseFloat(getComputedStyle(banner).top)||0)+12:0;
+  var y=window.scrollY+first.getBoundingClientRect().top-offset;
+  window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+}
 var restoringPosition=false;
 function paint(m,value,scroll,restore){
   var changed=mode!==m;var shouldRestore=changed||restore;
@@ -271,9 +280,8 @@ function paint(m,value,scroll,restore){
   var groups=view.querySelectorAll('.group');
   for(var g=0;g<groups.length;g++)groups[g].style.display=(state[m]==='all'||groups[g].getAttribute('data-'+attr)===state[m])?'':'none';
   setChips(m);
-  if(scroll)view.scrollIntoView({block:'start',behavior:'smooth'});
+  if(scroll){setChipsExpanded(false);scrollToFirstCard();}
   else if(shouldRestore)requestAnimationFrame(function(){var y=Math.min(positions[m],Math.max(0,document.documentElement.scrollHeight-window.innerHeight));window.scrollTo(0,y);positions[m]=y;restoringPosition=false;persistState();});
-  if(scroll)setChipsExpanded(false);
   persistState();
 }
 var stateTimer=0;

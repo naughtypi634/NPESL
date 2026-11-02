@@ -866,7 +866,10 @@ const cases = [
           .filter((s) => s.style.display !== 'none');
         if (!(shownPart.length === 1 && shownPart[0].dataset.particle === 'up')) return 'part-filter';
         if (getComputedStyle(panel).display !== 'none') return 'panel-not-closed';
-        await new Promise((resolve) => setTimeout(resolve, 120));
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        const firstCard = shownPart[0].querySelector('.prow');
+        if (firstCard.getBoundingClientRect().top
+            < document.querySelector('.sp-context').getBoundingClientRect().bottom + 4) return 'first-card-obscured';
         if (document.querySelectorAll('.sp-dot').length === 1
             && getComputedStyle(document.querySelector('.sp-rail')).display !== 'none') return 'single-dot-rail';
         return 'ok';
