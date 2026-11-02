@@ -962,13 +962,15 @@ const cases = [
       const alignOk = clean(metrics && metrics.base) && clean(metrics && metrics.glass)
         && clean(metrics && metrics.dark);
       if (!alignOk) return { ok: false, detail: `align=${JSON.stringify(metrics)}` };
-      // 版式一致性：音色右对齐、列表行等高、卡片内边距 16、徽章与词条垂直居中。
+      // 版式一致性：右上控件组（音色 + 进度读数）右对齐、列表行等高、
+      // 卡片内边距 16、徽章与词条垂直居中。
       const layout = await evaluate(`(() => { try {
         const page = document.querySelector('.page');
         const pr = page.getBoundingClientRect();
         const padR = parseFloat(getComputedStyle(page).paddingRight);
-        const voice = document.querySelector('.voice-seg').getBoundingClientRect();
-        const rightGap = Math.round((pr.right - padR) - voice.right);
+        const rightEdge = (document.querySelector('.sp-right')
+          || document.querySelector('.voice-seg')).getBoundingClientRect();
+        const rightGap = Math.round((pr.right - padR) - rightEdge.right);
         const heights = [...new Set([...document.querySelectorAll('.prow')]
           .slice(0, 40).map((r) => Math.round(r.getBoundingClientRect().height)))];
         const card = document.querySelector('.card');
