@@ -804,7 +804,7 @@ def build_index(themes):
         "});\n"
         "paint('scene','all',false);\n"
         "})();\n"
-        "</script>\n</body>\n</html>\n"
+        "</script>\n<script src=\"scroll-progress.js\" defer></script>\n</body>\n</html>\n"
     )
     (BASE / "index.html").write_text(page, encoding="utf-8")
     total = len(data["entries"])
