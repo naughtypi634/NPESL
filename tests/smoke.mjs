@@ -846,6 +846,17 @@ const cases = [
         const shownCat = [...document.querySelectorAll('#view .group[data-cat]')]
           .filter((s) => s.style.display !== 'none');
         if (!(shownCat.length === 1 && shownCat[0].dataset.cat === 'daily')) return 'cat-filter';
+        const workStudy = sceneChips.find((b) => b.textContent.trim() === '工作与学习');
+        if (!workStudy) return 'no-work-study';
+        workStudy.click();
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        const workGroup = document.querySelector('#view .group[data-cat="' + workStudy.dataset.scene + '"]');
+        const firstTheme = workGroup.querySelector('.theme');
+        const firstWorkCard = workGroup.querySelector('.prow');
+        const bannerBottom = document.querySelector('.sp-context').getBoundingClientRect().bottom;
+        if (!firstTheme.textContent.trim().startsWith('办公室 Office')) return 'wrong-first-theme';
+        if (firstTheme.getBoundingClientRect().top < bannerBottom + 4) return 'first-theme-obscured';
+        if (firstWorkCard.getBoundingClientRect().top < bannerBottom + 4) return 'first-card-obscured';
         if (location.pathname !== path0) return 'navigated';
         sceneChips.find((b) => b.dataset.scene === 'all').click();
         if (![...document.querySelectorAll('#view .group[data-cat]')].every((s) => s.style.display !== 'none')) return 'all-restore';
