@@ -22,16 +22,16 @@
       ':root{--sp-left:14px}',
       /* 与站点控件同一套语言：细轨、胶囊读数、1px 描边，不用阴影和描边圈。 */
       '.sp-rail{position:fixed;left:var(--sp-left);right:auto;top:18vh;bottom:18vh;',
-      'width:3px;border-radius:999px;background:var(--rail,var(--rule));z-index:60;',
+      'width:3px;border-radius:999px;background:var(--rule);z-index:60;',
       'touch-action:none;cursor:pointer;outline:none;',
       'transition:width .16s ease,background-color .16s ease}',
       '.sp-rail:hover,.sp-rail:focus-visible{width:6px;background:var(--surface-strong,var(--surface))}',
       '.sp-rail:focus-visible{outline:2px solid var(--accent);outline-offset:4px}',
       '.sp-thumb{position:absolute;left:0;right:0;top:0;min-height:36px;border-radius:999px;',
-      'background:var(--accent);cursor:grab;transition:opacity .16s ease}',
+      'background:var(--accent);cursor:grab;z-index:2;transition:opacity .16s ease}',
       '.sp-thumb:active{cursor:grabbing}',
       '.sp-dot{position:absolute;left:50%;width:18px;height:18px;padding:0;border:0;',
-      'background:transparent;transform:translateX(-50%);cursor:pointer;z-index:2;border-radius:50%}',
+      'background:transparent;transform:translateX(-50%);cursor:pointer;z-index:1;border-radius:50%}',
       '.sp-dot::before{content:"";position:absolute;left:50%;top:50%;width:3px;height:3px;',
       'transform:translate(-50%,-50%);border-radius:999px;background:var(--muted);opacity:.45;',
       'transition:background-color .12s ease,opacity .12s ease,width .12s ease,height .12s ease}',
@@ -47,14 +47,14 @@
       'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}',
       '.sp-tip[data-show="true"]{opacity:1;transform:translateY(0)}',
       '.sp-inline{display:inline-flex;align-items:center;gap:6px;margin-left:auto;',
-      'max-width:100%;padding:6px 12px;border:1px solid var(--rule);border-radius:999px;',
-      'background:transparent;color:var(--muted);font:inherit;font-size:13px;line-height:1.2;',
+      'max-width:100%;padding:7px 13px;border:1px solid var(--rule);border-radius:999px;',
+      'background:var(--surface);color:var(--muted);font:inherit;font-size:14px;',
       'font-variant-numeric:tabular-nums;white-space:nowrap;',
       'overflow:hidden;text-overflow:ellipsis}',
       '.sp-inline b{font-weight:600;color:var(--accent)}',
       '.sp-inline span{overflow:hidden;text-overflow:ellipsis}',
       '.sp-right{display:flex;align-items:center;gap:8px;margin-left:auto}',
-      '.sp-right .sp-inline{margin-left:0}',
+      '.sp-right .sp-inline{margin-left:0;padding:6px 14px}',
       '.sp-mobile .sp-dot,.sp-mobile .sp-tip{display:none}',
       '.sp-mobile .sp-rail{width:3px;top:14vh;bottom:14vh}',
       '.sp-short .sp-rail,.sp-short .sp-inline{display:none}'
@@ -265,7 +265,9 @@
         var dot = document.createElement('button');
         dot.type = 'button';
         dot.className = 'sp-dot';
-        dot.style.top = Math.round(clamp(p * trackH - 9, 0, Math.max(0, trackH - 18))) + 'px';
+        /* 和滑块用同一套映射：圆点中心对滑块中心，两端才不会错位。 */
+        var center = thumbH / 2 + p * Math.max(0, trackH - thumbH);
+        dot.style.top = Math.round(clamp(center - 9, 0, Math.max(0, trackH - 18))) + 'px';
         var name = themeName(heading);
         dot.title = name;
         dot.setAttribute('aria-label', '跳到 ' + name);
