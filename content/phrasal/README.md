@@ -2,56 +2,57 @@
 
 页面在 `apps/phrasal/`，由 `apps/phrasal/source/build.py` 生成。改内容只改这里。
 
-**每个主题固定 30 条**，按 `themes.json` 的顺序排列。页面只显示【口语】【可分】两个徽章；
-「可分」在页面顶部有全局说明（代词放中间，名词两边都行）。
+**每章至少 30 条**，按 `themes.json` 的顺序排列；补遗后部分章节 31–38 条。
+页面显示语体徽章（口语 / 中性 / 书面）和【可分】；「可分」在页面顶部有全局说明
+（代词放中间，名词两边都行）。
 
 ```
 themes.json          30 个主题：分类、英文标题、中文标题、简介、对应 chip
 
-【日常起居】
-cooking.json              做饭采购        30 条
-weather.json              天气          30 条
-technology.json           科技数码        30 条
-shopping.json             购物          30 条
-ootd.json                 今日穿搭        30 条
-makeup.json               化妆流程        30 条
-home.json                 居家          30 条
-eating-out.json           外出吃饭        30 条
+【日常生活】
+errands.json              办事跑腿       32 条
+cooking.json              做饭采购       30 条
+weather.json              天气         32 条
+technology.json           科技数码       33 条
+shopping.json             购物         32 条
+ootd.json                 今日穿搭       30 条
+makeup.json               化妆流程       30 条
+weekend-plan.json         周末计划       33 条
+home.json                 居家         34 条
+eating-out.json           外出吃饭       32 条
 
 【出行与金钱】
-getting-around.json       出行          30 条
-transportation.json       交通          30 条
-directions.json           问路          30 条
-travel.json               旅行住宿        30 条
-money-banking.json        金钱银行        30 条
-errands.json              办事跑腿        30 条
+getting-around.json       出行         30 条
+transportation.json       交通         31 条
+directions.json           问路         32 条
+travel.json               旅行住宿       32 条
+money-banking.json        金钱银行       34 条
 
 【身体与健康】
-feeling-off.json          身体不适        30 条
-doctor.json               看病拿药        30 条
-fitness.json              运动与饮食       30 条
+feeling-off.json          身体不适       31 条
+doctor.json               看病拿药       30 条
+fitness.json              运动与饮食      33 条
 
 【人际与情绪】
-feelings.json             情绪感受        30 条
-gossip.json               八卦          30 条
-conflicts.json            冲突          30 条
-frustrations.json         日常糟心事       30 条
-relationships.json        恋爱与家庭       30 条
-chatting.json             跟人聊天        30 条
+feelings.json             情绪感受       33 条
+gossip.json               八卦         32 条
+conflicts.json            冲突         33 条
+frustrations.json         日常糟心事      32 条
+relationships.json        恋爱与家庭      34 条
+chatting.json             跟人聊天       30 条
 
 【工作与学习】
-office.json               办公室         30 条
-meetings.json             会议与项目       30 条
-job-hunting.json          求职面试        30 条
-study.json                学习考试        30 条
+office.json               办公室        34 条
+meetings.json             会议与项目      35 条
+job-hunting.json          求职面试       30 条
+study.json                学习考试       30 条
 
-【语言功能】
-weekend-plan.json         周末计划        30 条
-decisions.json            想法与决定       30 条
-communication.json        沟通          30 条
+【沟通与思考】
+decisions.json            想法与决定      38 条
+communication.json        沟通         35 条
 ```
 
-共 900 条（30 个主题 × 30 条，分 6 大类）。`tier` / `level` 是可选字段，早期条目填了，
+共 967 条（30 个主题，每章至少 30 条，分 6 大类）。`tier` / `level` 是可选字段，早期条目填了，
 后来补的条目没填。写内容的规矩见 `apps/phrasal/source/AUTHORING.md`。
 
 ## 来源与取舍

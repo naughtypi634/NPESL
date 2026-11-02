@@ -277,7 +277,7 @@ def main() -> int:
         phrasal_out = OUT / "phrasal"
         shutil.copytree(PHRASAL, phrasal_out, ignore=phrasal_ignore)
         index_page = phrasal_out / "index.html"
-        inject_head(index_page, "phrasal/", "短语动词 Phrasal Verbs · 18 章")
+        inject_head(index_page, "phrasal/", "短语动词 Phrasal Verbs · 30 章")
         inject_theme(index_page)
         replace_back(index_page, "/", "NPESL")
         for page in sorted(phrasal_out.glob("*.html")):

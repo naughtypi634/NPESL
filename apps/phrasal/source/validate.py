@@ -174,14 +174,14 @@ def main():
             bad(f"{path.name}: entries 为空")
         total += len(entries)
         check_entries(entries, tid, chips, seen_ids, seen_sentences, bad)
-        mark = "" if len(entries) == PER_THEME else f"  ← 还差 {PER_THEME - len(entries)}"
-        if len(entries) != PER_THEME:
+        mark = "" if len(entries) >= PER_THEME else f"  ← 还差 {PER_THEME - len(entries)}"
+        if len(entries) < PER_THEME:
             short.append(tid)
         print(f"{tid:<16} {len(entries):>3} 条  {theme.get('title_zh', '')}{mark}")
 
     print(f"\n主题 {len(seen_themes)} 个，词条 {total} 条，问题 {problems} 条")
     if short:
-        print(f"未满 {PER_THEME} 条的主题：{', '.join(short)}")
+        print(f"少于 {PER_THEME} 条的主题：{', '.join(short)}")
     return 1 if problems else 0
 
 
