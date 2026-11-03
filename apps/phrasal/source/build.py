@@ -354,12 +354,20 @@ INDEX_STYLE = """
   .crumbs a { color:var(--muted); text-decoration:none; }
   .crumbs a:hover { color:var(--accent); }
   .level1 { display:flex; gap:8px; margin:18px 0 10px; }
-  .level1 button { appearance:none; font:inherit; font-size:14px; padding:8px 16px;
+  .level1 button { appearance:none; display:inline-flex; align-items:center; gap:5px;
+    font:inherit; font-size:14px; padding:8px 16px;
     border:1px solid var(--rule); border-radius:var(--radius-pill, 999px); background:transparent;
     color:var(--fg); cursor:pointer; }
   .level1 button:hover { background:var(--surface); }
   .level1 button[aria-pressed="true"] { background:var(--accent);
     border-color:var(--accent); color:var(--on-accent); }
+  /* 箭头提示这一栏可以展开/收起：收起指向右，展开转向下 */
+  .level1 .mode-arw { display:inline-block; font-size:1.1em; line-height:1;
+    opacity:.72; transition:transform .18s ease; }
+  .level1 button[aria-expanded="true"] .mode-arw { transform:rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) {
+    .level1 .mode-arw { transition:none; }
+  }
   .hint { margin:14px 0 0; color:var(--muted); font-size:14px; }
   .group .theme { margin:24px 0 6px; font-size:16px; font-weight:600; }
   .group .theme a { color:var(--fg); text-decoration:none; }
@@ -616,8 +624,10 @@ def build_index(themes):
         "<h1>短语搭配</h1>\n"
         '<div class="topbar">'
         '<div class="level1" role="group" aria-label="浏览方式">'
-        '<button type="button" data-mode="scene" aria-pressed="true">场景话题</button>'
-        '<button type="button" data-mode="particle" aria-pressed="false">介词</button>'
+        '<button type="button" data-mode="scene" aria-pressed="true">场景话题'
+        '<span class="mode-arw" aria-hidden="true">›</span></button>'
+        '<button type="button" data-mode="particle" aria-pressed="false">介词'
+        '<span class="mode-arw" aria-hidden="true">›</span></button>'
         '</div>'
         '<div class="voice-seg" role="group" aria-label="音色">'
         '<span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" '
@@ -872,6 +882,27 @@ def build_index(themes):
         "  if(say){playSay(say);return;}\n"
         "  var b=e.target.closest('.prow');\n"
         "  if(b)toggleCard(b);\n"
+        "});\n"
+        "function scrollToGroup(g){\n"
+        "  if(!g)return;\n"
+        "  var head=g.querySelector('.theme')||g.querySelector('.prow')||g;\n"
+        "  scrollToEl(head);\n"
+        "}\n"
+        "// 顶部面包屑（分类 / 主题）由 scroll-progress.js 渲染成按钮，点这里回跳\n"
+        "document.addEventListener('npesl:context',function(e){\n"
+        "  var d=(e&&e.detail)||{};\n"
+        "  if(d.particle){\n"
+        "    if(d.kind==='root'){paint('particle','all',true);return;}\n"
+        "    scrollToGroup(view.querySelector('.group[data-particle=\"'+d.group+'\"]'));\n"
+        "    return;\n"
+        "  }\n"
+        "  if(d.kind==='root'){\n"
+        "    atCategories=true;setChips(mode);\n"
+        "    scrollToGroup(view.querySelector('.group[data-cat=\"'+d.cat+'\"]'));\n"
+        "    return;\n"
+        "  }\n"
+        "  var t=d.theme?view.querySelector('.theme[data-theme=\"'+d.theme+'\"]'):null;\n"
+        "  if(t)scrollToEl(t);\n"
         "});\n"
         "try{if('scrollRestoration'in history)history.scrollRestoration='manual';}catch(e){}\n"
         "paint(mode,state[mode],false,true);\n"

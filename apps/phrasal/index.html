@@ -33,12 +33,20 @@
   .crumbs a { color:var(--muted); text-decoration:none; }
   .crumbs a:hover { color:var(--accent); }
   .level1 { display:flex; gap:8px; margin:18px 0 10px; }
-  .level1 button { appearance:none; font:inherit; font-size:14px; padding:8px 16px;
+  .level1 button { appearance:none; display:inline-flex; align-items:center; gap:5px;
+    font:inherit; font-size:14px; padding:8px 16px;
     border:1px solid var(--rule); border-radius:var(--radius-pill, 999px); background:transparent;
     color:var(--fg); cursor:pointer; }
   .level1 button:hover { background:var(--surface); }
   .level1 button[aria-pressed="true"] { background:var(--accent);
     border-color:var(--accent); color:var(--on-accent); }
+  /* 箭头提示这一栏可以展开/收起：收起指向右，展开转向下 */
+  .level1 .mode-arw { display:inline-block; font-size:1.1em; line-height:1;
+    opacity:.72; transition:transform .18s ease; }
+  .level1 button[aria-expanded="true"] .mode-arw { transform:rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) {
+    .level1 .mode-arw { transition:none; }
+  }
   .hint { margin:14px 0 0; color:var(--muted); font-size:14px; }
   .group .theme { margin:24px 0 6px; font-size:16px; font-weight:600; }
   .group .theme a { color:var(--fg); text-decoration:none; }
@@ -177,7 +185,7 @@
 <body>
 <div class="page">
 <h1>短语搭配</h1>
-<div class="topbar"><div class="level1" role="group" aria-label="浏览方式"><button type="button" data-mode="scene" aria-pressed="true">场景话题</button><button type="button" data-mode="particle" aria-pressed="false">介词</button></div><div class="voice-seg" role="group" aria-label="音色"><span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span><button type="button" data-voice="f" aria-pressed="true">女</button><button type="button" data-voice="m" aria-pressed="false">男</button></div></div>
+<div class="topbar"><div class="level1" role="group" aria-label="浏览方式"><button type="button" data-mode="scene" aria-pressed="true">场景话题<span class="mode-arw" aria-hidden="true">›</span></button><button type="button" data-mode="particle" aria-pressed="false">介词<span class="mode-arw" aria-hidden="true">›</span></button></div><div class="voice-seg" role="group" aria-label="音色"><span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span><button type="button" data-voice="f" aria-pressed="true">女</button><button type="button" data-voice="m" aria-pressed="false">男</button></div></div>
 <div class="chips" data-chips="scene"></div>
 <div class="chips" data-chips="particle" hidden></div>
 <div class="chips" data-chips="theme" hidden></div>
@@ -423,6 +431,27 @@ view.addEventListener('click',function(e){
   if(say){playSay(say);return;}
   var b=e.target.closest('.prow');
   if(b)toggleCard(b);
+});
+function scrollToGroup(g){
+  if(!g)return;
+  var head=g.querySelector('.theme')||g.querySelector('.prow')||g;
+  scrollToEl(head);
+}
+// 顶部面包屑（分类 / 主题）由 scroll-progress.js 渲染成按钮，点这里回跳
+document.addEventListener('npesl:context',function(e){
+  var d=(e&&e.detail)||{};
+  if(d.particle){
+    if(d.kind==='root'){paint('particle','all',true);return;}
+    scrollToGroup(view.querySelector('.group[data-particle="'+d.group+'"]'));
+    return;
+  }
+  if(d.kind==='root'){
+    atCategories=true;setChips(mode);
+    scrollToGroup(view.querySelector('.group[data-cat="'+d.cat+'"]'));
+    return;
+  }
+  var t=d.theme?view.querySelector('.theme[data-theme="'+d.theme+'"]'):null;
+  if(t)scrollToEl(t);
 });
 try{if('scrollRestoration'in history)history.scrollRestoration='manual';}catch(e){}
 paint(mode,state[mode],false,true);

@@ -22,9 +22,17 @@
       'color:var(--accent)}',
       '.sp-context-path{display:flex;align-items:center;gap:7px;flex:1;min-width:0;',
       'font-size:14px;line-height:1.3}',
-      '.sp-context-root{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.sp-context-root{appearance:none;border:0;background:transparent;padding:0;',
+      'font:inherit;color:var(--muted);cursor:pointer;text-align:left;min-width:0;',
+      'white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.sp-context-root:hover{color:var(--accent)}',
       '.sp-context-sep{color:var(--muted);flex:none}',
-      '.sp-context-leaf{color:var(--fg);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.sp-context-leaf{appearance:none;border:0;background:transparent;padding:0;',
+      'font:inherit;font-weight:600;color:var(--fg);cursor:pointer;text-align:left;',
+      'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.sp-context-leaf:hover{color:var(--accent)}',
+      '.sp-context-root:focus-visible,.sp-context-leaf:focus-visible{outline:2px solid var(--accent);',
+      'outline-offset:2px;border-radius:6px}',
       '.sp-context-pct{flex:none;min-width:3.1em;text-align:right;color:var(--muted);',
       'font-size:12px;font-variant-numeric:tabular-nums}',
       '.sp-context-track{height:2px;overflow:hidden;background:var(--rule);border-radius:999px}',
@@ -82,8 +90,9 @@
       context = document.createElement('header');
       context.className = 'sp-context';
       context.innerHTML = '<div class="sp-context-row"><div class="sp-context-path">' +
-        '<span class="sp-context-root"></span><span class="sp-context-sep" aria-hidden="true">›</span>' +
-        '<span class="sp-context-leaf"></span></div><div class="sp-context-mode"></div>' +
+        '<button type="button" class="sp-context-root"></button>' +
+        '<span class="sp-context-sep" aria-hidden="true">›</span>' +
+        '<button type="button" class="sp-context-leaf"></button></div><div class="sp-context-mode"></div>' +
         '<span class="sp-context-pct">0%</span></div>' +
         '<div class="sp-context-chips" id="sp-context-chips"></div>' +
         '<div class="sp-context-track" role="progressbar" aria-label="当前主题阅读进度" ' +
@@ -127,6 +136,30 @@
       contextLeaf = context.querySelector('.sp-context-leaf');
       contextPct = context.querySelector('.sp-context-pct');
       contextFill = context.querySelector('.sp-context-fill');
+      // 面包屑两段都是按钮：点分类回到上级，点主题跳到本节开头。
+      // 页面自己的状态在 index.html 的 IIFE 里，这里只发事件，由它去跳。
+      function navContext(kind) {
+        var current = currentIndex();
+        if (!current) return;
+        var particleMode = mode() === 'particle';
+        var detail = { kind: kind, particle: particleMode };
+        if (particleMode) {
+          detail.group = current.group.getAttribute('data-particle');
+        } else {
+          detail.cat = current.group.getAttribute('data-cat');
+          detail.theme = current.theme ? current.theme.getAttribute('data-theme') : null;
+          if (kind === 'leaf' && !detail.theme) return;
+        }
+        try {
+          document.dispatchEvent(new CustomEvent('npesl:context', { detail: detail }));
+        } catch (e) {}
+      }
+      contextRoot.addEventListener('click', function () {
+        if (contextRoot.textContent) navContext('root');
+      });
+      contextLeaf.addEventListener('click', function () {
+        if (contextLeaf.textContent) navContext('leaf');
+      });
     } else {
       if (page.querySelector('.npesl-back')) {
         document.documentElement.classList.add('sp-detail-back');
