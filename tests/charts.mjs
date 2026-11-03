@@ -192,6 +192,14 @@ try {
   check('pie shares respect the 3% floor', pieAfter.every((v) => v >= 2.99), JSON.stringify(pieAfter));
   check('pie shares changed', JSON.stringify(pieBefore) !== JSON.stringify(pieAfter));
 
+  const arcBefore = await edge.evaluate('window.NPESLCharts.state.datasets.shares.parts.map((p) => p.value)');
+  const arcDrag = await drag(edge, '[data-type="pie"] .handle[data-index="1"]', 0, 80);
+  await sleep(200);
+  const arcAfter = await edge.evaluate('window.NPESLCharts.state.datasets.shares.parts.map((p) => p.value)');
+  const arcSum = arcAfter.reduce((a, b) => a + b, 0);
+  check('pie drag follows the arc, not just left-right', arcDrag.ok === true && JSON.stringify(arcBefore) !== JSON.stringify(arcAfter), JSON.stringify({ arcBefore, arcAfter }));
+  check('arc drag keeps shares at 100', Math.abs(arcSum - 100) < 0.01, String(arcSum));
+
   await selectType(edge, 'line');
   await edge.evaluate("document.querySelector('#tab-line').focus(); document.querySelector('#tab-line').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))");
   await sleep(150);

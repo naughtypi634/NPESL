@@ -160,13 +160,21 @@
       var index = item.index;
       var nextIndex = (index + 1) % dataset.parts.length;
       var dragging = false;
-      var startX = 0;
       var startValues = null;
       var lastValues = null;
       var moved = false;
+      var lastAngle = 0;
+      var turn = 0;
 
-      function pairTotal() {
-        return dataset.parts[index].value + dataset.parts[nextIndex].value;
+      function pointAngle(event) {
+        var root = lab.pieState.root;
+        var rect = root.getBoundingClientRect();
+        var box = root.viewBox.baseVal;
+        var scaleX = box.width ? box.width / rect.width : 1;
+        var scaleY = box.height ? box.height / rect.height : 1;
+        var x = (event.clientX - rect.left) * scaleX;
+        var y = (event.clientY - rect.top) * scaleY;
+        return NC.scale.angleOf(cx, cy, x, y);
       }
 
       function apply(deltaPP) {
@@ -188,7 +196,8 @@
         if (event.button != null && event.button !== 0) return;
         dragging = true;
         moved = false;
-        startX = event.clientX;
+        turn = 0;
+        lastAngle = pointAngle(event);
         startValues = dataset.parts.map(function (part) { return part.value; });
         lastValues = startValues.slice();
         try { item.handle.group.setPointerCapture(event.pointerId); } catch (err) {}
@@ -198,10 +207,20 @@
 
       function move(event) {
         if (!dragging) return;
-        var dx = event.clientX - startX;
-        if (!moved && Math.abs(dx) < 4) return;
+        var angle = pointAngle(event);
+        var step = angle - lastAngle;
+        if (step > Math.PI) step -= Math.PI * 2;
+        if (step < -Math.PI) step += Math.PI * 2;
+        turn += step;
+        lastAngle = angle;
+        if (!moved && Math.abs(turn) < 0.01) return;
         moved = true;
-        apply(dx * 0.35);
+        var pair = startValues[index] + startValues[nextIndex];
+        var minTurn = (3 - startValues[index]) / 100 * Math.PI * 2;
+        var maxTurn = (pair - 3 - startValues[index]) / 100 * Math.PI * 2;
+        turn = NC.clamp(turn, minTurn, maxTurn);
+        var deltaPP = turn / (Math.PI * 2) * 100;
+        apply(deltaPP);
         lastValues = dataset.parts.map(function (part) { return part.value; });
         lab.changed(false);
         event.preventDefault();
