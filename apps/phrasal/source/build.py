@@ -531,7 +531,7 @@ def page_audio(path):
 
 
 def index_data(themes):
-    """整站数据一次写进 data.js（离线包用 file://，不能靠 fetch）。"""
+    """整站数据一次写进 data.js（本地 file:// 打开时不能靠 fetch）。"""
     doc = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
     categories = doc.get("categories", [])
     numbers = {theme["id"]: index + 1 for index, theme in enumerate(themes)}

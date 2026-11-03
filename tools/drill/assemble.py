@@ -155,7 +155,7 @@ def render(bank: list[dict]) -> int:
             return 1
 
     # 托管版：题库拆成单独的、可长缓存的脚本文件。用普通 <script src>（不加
-    # defer）而不是 fetch，是因为离线包要能在 file:// 下直接打开；defer 会让
+    # defer）而不是 fetch，是因为页面要能在 file:// 下直接打开；defer 会让
     # 它在内联脚本之后执行，BANK 就是 undefined。
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
     bank_name = f"bank.{digest}.js"

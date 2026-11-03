@@ -16,8 +16,7 @@ Output:  build/conversation-site/  —— 直接作为站点根下的 conversati
 
 页面里的音频地址指向 Cloudflare Pages 的独立音频项目
 （https://npesl-audio.pages.dev/audio/），因为主站加上两套语音会超过
-Cloudflare Pages 单次部署 20,000 个文件的上限。页面本身仍是相对链接，
-离线包会把音频地址改回相对路径。
+Cloudflare Pages 单次部署 20,000 个文件的上限。页面统一引用音频站的绝对地址。
 
 故事正文按整句点读，句内不再插意群隔断；连读（含 j/w 滑音）、省略、变音
 标记由 pron.py 生成。中文翻译逐句排在英文下面，不生成语音。

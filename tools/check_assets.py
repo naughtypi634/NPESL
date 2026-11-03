@@ -7,7 +7,6 @@ cleaned up).  This walks the five apps and resolves each reference against the
 deploy trees.
 
     python -I tools/check_assets.py build/cloudflare-site
-    python -I tools/check_assets.py build/npesl-offline
     python -I tools/check_assets.py build/cloudflare-site --audio build/cloudflare-audio
 
 Exit code 0 = every reference resolves.

@@ -6,7 +6,6 @@
 // the optimization work from quietly breaking playback.
 //
 //   node tests/smoke.mjs                 # tests build/cloudflare-site
-//   node tests/smoke.mjs --dir build/npesl-offline
 //   node tests/smoke.mjs --only drill    # run one case
 //
 // Exit code 0 = all passed.

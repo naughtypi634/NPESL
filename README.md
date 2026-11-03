@@ -68,7 +68,7 @@ cd apps\phenomena\source
 .venv\Scripts\python.exe -I tools\drill\make_audio.py
 .venv\Scripts\python.exe -I tools\drill\assemble.py
 
-# 清理构建垃圾（Edge 临时配置、日志、__pycache__）；--all 连部署暂存和离线包一起清
+# 清理构建垃圾（Edge 临时配置、日志、__pycache__）；--all 连部署暂存一起清
 .venv\Scripts\python.exe -I tools\clean_build.py
 .venv\Scripts\python.exe -I tools\clean_build.py --all
 
@@ -94,15 +94,7 @@ npx --yes wrangler@latest pages deploy build\cloudflare-site --project-name npes
 npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npesl-audio --branch main
 ```
 
-主站是 https://npesl.pages.dev/。音频仍然单独部署到 https://npesl-audio.pages.dev/audio/：A1–C2 两套语音是每页一条的 sprite（约 600 个文件），ESLSE 的语音留在主站的 `/conversation/eslse/audio/`。两边都远低于 Cloudflare Pages 单次 20,000 个文件的上限，但分开部署可以让音频按 immutable 长缓存独立更新。
-
-离线包：
-
-```powershell
-.venv\Scripts\python.exe -I tools\build_offline_package.py
-```
-
-生成 `build/npesl-offline/` 和 `build/NPESL-offline-<日期>.zip`，所有链接改成相对路径，解压后直接双击 `index.html` 就能用。
+主站是 https://npesl.pages.dev/。音频单独部署到 https://npesl-audio.pages.dev/audio/：A1–C2 与 ESLSE 全部级别的两套语音都是每页一条的 sprite（约 700 个文件），页面统一指向音频站。两边都远低于 Cloudflare Pages 单次 20,000 个文件的上限，但分开部署可以让音频按 immutable 长缓存独立更新。
 
 ## 自检
 
@@ -121,5 +113,5 @@ node tests\smoke.mjs
 ## 路径约定
 
 - **构建都从库根目录运行**；`tools/paths.py` 集中了所有路径常量，搬目录只改它。
-- 页面里的站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`、`/phrasal/`），源目录本身不是可直接预览的站点；要看效果先跑 `build_cloudflare_site.py` 或 `build_offline_package.py`。
-- 语音地址：A1–C2 用 `https://npesl-audio.pages.dev/audio/`，ESLSE 用相对的 `audio/`。离线包会把音频站地址改回相对路径。
+- 页面里的站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`、`/phrasal/`），源目录本身不是可直接预览的站点；要看效果先跑 `build_cloudflare_site.py`。
+- 语音地址统一用 `https://npesl-audio.pages.dev/audio/`，所有级别（含 ESLSE）都一样，不要给某一级单独开本地路径分支。

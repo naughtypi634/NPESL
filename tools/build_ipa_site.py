@@ -14,8 +14,8 @@
 
 输出：apps/ipa/index.html + audio/*.mp3
     页面自带返回按钮和主题切换（主题样式直接内联自 apps/site/），
-    所以本地直接打开也完整；组装站点时 build_cloudflare_site.py 和
-    build_offline_package.py 看到内联标记就不再重复注入。
+    所以本地直接打开也完整；组装站点时 build_cloudflare_site.py
+    看到内联标记就不再重复注入。
 
 用法：
     python -I tools/build_ipa_site.py              # 默认 azure 全量

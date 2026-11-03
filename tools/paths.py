@@ -42,7 +42,5 @@ PHRASAL_APP = APPS / "phrasal"
 # ---- 暂存产物（gitignore）----
 SITE_OUT = BUILD / "cloudflare-site"
 AUDIO_OUT = BUILD / "cloudflare-audio"
-OFFLINE_OUT = BUILD / "npesl-offline"
 CONVERSATION_OUT = BUILD / "conversation-site"
-ESLSE_MIRROR = BUILD / "conversation-eslse"
 TTS_CACHE = BUILD / "tts" / "cs"

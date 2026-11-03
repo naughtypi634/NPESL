@@ -29,11 +29,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 AUDIT_DIR = ROOT / "build" / "audit"
 
-# 部署产物：主站、音频站、离线包。缺失的目录跳过。
+# 部署产物：主站与音频站。缺失的目录跳过。
 DEFAULT_TARGETS = [
     ROOT / "build" / "cloudflare-site",
     ROOT / "build" / "cloudflare-audio",
-    ROOT / "build" / "npesl-offline",
 ]
 
 
