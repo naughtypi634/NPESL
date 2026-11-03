@@ -15,19 +15,19 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from paths import DRILL_APP, DRILL_CONTENT  # noqa: E402
+from paths import (DRILL_APP, DRILL_BANK_JSON, DRILL_CHIPS_JSON,  # noqa: E402
+                   DRILL_CONTENT, ROOT)
 import audio_sprite  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 TEMPLATE = HERE / "template.html"
 WORK = DRILL_CONTENT
 OUT_HTML = DRILL_APP / "中译英问题生成器.html"
-OUT_JSON = WORK / "questions.json"
+OUT_JSON = DRILL_BANK_JSON
 OUT_DOCS = DRILL_APP / "index.html"
 TRANSLATIONS_PATH = WORK / "translations.json"
-CHIPS_PATH = WORK / "chips.json"
+CHIPS_PATH = DRILL_CHIPS_JSON
 TRANSLATIONS = {}
 if TRANSLATIONS_PATH.exists():
     TRANSLATIONS = json.loads(TRANSLATIONS_PATH.read_text(encoding="utf-8"))

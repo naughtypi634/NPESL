@@ -31,14 +31,13 @@ from pathlib import Path
 
 import edge_tts
 
-ROOT = Path(__file__).resolve().parent.parent.parent
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from paths import DRILL_APP, DRILL_CONTENT  # noqa: E402
+from paths import DRILL_AUDIO, DRILL_BANK_JSON, DRILL_CONTENT  # noqa: E402
 
 WORK = DRILL_CONTENT
-BANK_JSON = WORK / "questions.json"
-AUDIO_ROOT = DRILL_APP / "audio"
+BANK_JSON = DRILL_BANK_JSON
+AUDIO_ROOT = DRILL_AUDIO
 
 VOICES = {
     "f": "en-US-AvaNeural",
@@ -157,7 +156,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if not BANK_JSON.exists():
-        print(f"{BANK_JSON} 不存在，先跑 assemble.py", file=sys.stderr)
+        print(f"{BANK_JSON} 不存在；先确认 content/drill/ 里有题库", file=sys.stderr)
         return 1
     keys = ["f", "m"] if args.voice == "both" else [args.voice]
     return asyncio.run(run(keys, args.jobs, args.force, args.limit or None))

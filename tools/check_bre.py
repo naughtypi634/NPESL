@@ -2,18 +2,20 @@
 """Check ESL course files for British English (project standard: American English only).
 
 Usage:
-    python tools/check_bre.py                        # default: every MD/*.md
-    python tools/check_bre.py MD/25-Citywalk.md      # specific files
-    python tools/check_bre.py --all                  # every .md in the repo
-    python tools/check_bre.py --quiet                # per-file counts only
-    python tools/check_bre.py --strict               # exit 1 when FIX-level hits exist
+    python -I tools/check_bre.py apps content       # scan these trees for .md
+    python -I tools/check_bre.py --all              # every .md in the repo
+    python -I tools/check_bre.py --quiet            # per-file counts only
+    python -I tools/check_bre.py --strict           # exit 1 when FIX-level hits exist
+
+Only Markdown files are scanned. JSON/HTML content is checked by each
+app's own validator instead.
 
 Levels:
     FIX     confident British usage -> use the American form shown
     REVIEW  ambiguous word (e.g. "flat" as an adjective, "lift" as a verb)
             -> read the line and decide
 
-Rule source: ESL-content.instructions.md ("American English only").
+Rule source: AGENTS.md (American English only).
 """
 
 from __future__ import annotations
@@ -23,7 +25,8 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from paths import ROOT  # noqa: E402
 # 本库没有单一的顶层 MD/：markdown 分散在五个类目下的 MD/ 里，所以默认扫描
 # 整个库。SKIP_DIRS 排除了 build/（generated tex 是讲义正文的副本，扫了会
 # 重复计数）和 PDF/。

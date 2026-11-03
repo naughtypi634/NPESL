@@ -39,8 +39,25 @@ DRILL_APP = APPS / "drill"
 PHENOMENA_APP = APPS / "phenomena"
 PHRASAL_APP = APPS / "phrasal"
 
+PHONICS_AUDIO = PHONICS_APP / "audio"
+PHONICS_SOURCE_AUDIO = PHONICS_APP / "source" / "audio"
+IPA_AUDIO = IPA_APP / "audio"
+DRILL_AUDIO = DRILL_APP / "audio"
+PHENOMENA_AUDIO = PHENOMENA_APP / "audio"
+PHRASAL_AUDIO = PHRASAL_APP / "audio"
+
+# ---- 内容文件 ----
+DRILL_BANK_JSON = DRILL_CONTENT / "questions.json"
+DRILL_CHIPS_JSON = DRILL_CONTENT / "chips.json"
+DRILL_TOPUP = DRILL_CONTENT / "topup"
+
+# ---- 公开地址 ----
+SITE_URL = "https://npesl.pages.dev"
+AUDIO_URL = "https://npesl-audio.pages.dev"
+
 # ---- 暂存产物（gitignore）----
 SITE_OUT = BUILD / "cloudflare-site"
 AUDIO_OUT = BUILD / "cloudflare-audio"
 CONVERSATION_OUT = BUILD / "conversation-site"
 TTS_CACHE = BUILD / "tts" / "cs"
+AUDIT_DIR = BUILD / "audit"

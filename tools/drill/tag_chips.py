@@ -17,11 +17,13 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-WORK = ROOT / "content" / "drill"
-BANK = WORK / "questions.json"
-TOPUP = WORK / "topup"
-CHIPS = WORK / "chips.json"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from paths import (DRILL_BANK_JSON, DRILL_CHIPS_JSON, DRILL_TOPUP,  # noqa: E402
+                   ROOT)
+
+BANK = DRILL_BANK_JSON
+TOPUP = DRILL_TOPUP
+CHIPS = DRILL_CHIPS_JSON
 
 PUNCT = re.compile(r"[\s，。！？、,.!?;；:：\"'“”‘’…（）()《》【】\-—]+")
 

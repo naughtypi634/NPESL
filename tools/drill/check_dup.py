@@ -16,8 +16,10 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-BANK = ROOT / "content" / "drill" / "questions.json"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from paths import DRILL_BANK_JSON  # noqa: E402
+
+BANK = DRILL_BANK_JSON
 
 PUNCT = re.compile(r"[\s，。！？、,.!?;；:：\"'“”‘’…（）()《》【】\-—]+")
 

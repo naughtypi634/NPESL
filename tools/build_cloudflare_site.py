@@ -19,11 +19,11 @@ splits into two deploy roots:
         audio/andrew/…               A1–C2 男声
         _headers                    长缓存
 
-页面里的音频地址由 build/conversation_starters/build_site.py 写入：
-A1–C2 用 https://npesl-audio.pages.dev/audio/，ESLSE 用相对的 audio/。
+页面里的音频地址由 tools/conversation/build_site.py 写入：
+所有级别（含 ESLSE）都用 https://npesl-audio.pages.dev/audio/。
 
 The directories are gitignored: they are deploy staging areas, not sources.
-Run from anywhere:  python -I build/build_cloudflare_site.py
+Run from anywhere:  python -I tools/build_cloudflare_site.py
 """
 
 from __future__ import annotations
@@ -32,12 +32,14 @@ import html
 import re
 import shutil
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from paths import (AUDIO_OUT, CONVERSATION_OUT, DRILL_APP,
+from paths import (AUDIO_OUT, AUDIO_URL, CONVERSATION_OUT, DRILL_APP,
                    IPA_APP, PHENOMENA_APP, PHONICS_APP, PHRASAL_APP,
-                   SITE_APP, SITE_OUT)
+                   SITE_APP, SITE_OUT, SITE_URL)
 from themes import theme_boot
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -50,8 +52,6 @@ DRILL = DRILL_APP
 CONVERSATION = CONVERSATION_OUT
 OUT = SITE_OUT
 
-SITE_URL = "https://npesl.pages.dev"
-AUDIO_URL = "https://npesl-audio.pages.dev"
 ICON = f"{SITE_URL}/npesl-icon.png"
 
 HEADERS = """/phonics/audio/*
@@ -92,6 +92,25 @@ REDIRECTS = """/conversation/audio/Ava/*  https://npesl-audio.pages.dev/audio/av
 
 THEME_HEAD = theme_boot("/theme.css")
 THEME_TAIL = '<script src="/theme.js" defer></script>'
+
+
+@dataclass(frozen=True)
+class BackLink:
+    href: str
+    label: str
+    replace: bool = False
+
+
+@dataclass(frozen=True)
+class PageGroup:
+    """One set of copied pages that get the same head, theme and back link."""
+
+    base: Path
+    pattern: str
+    url: Callable[[str], str]
+    description: str
+    back: BackLink
+    skip: frozenset[str] = frozenset()
 
 
 def write_page(path: Path, text: str) -> None:
@@ -171,6 +190,23 @@ def inject_head(path: Path, url: str, description: str) -> None:
 
 
 
+def finish_group(group: PageGroup) -> None:
+    """Apply head → theme → back, in that order, to every page in a group.
+
+    The order is load-bearing: inject_head and inject_theme both anchor on
+    </title>, so swapping them changes the bytes of every page.
+    """
+    for page in sorted(group.base.glob(group.pattern)):
+        if page.name in group.skip:
+            continue
+        inject_head(page, group.url(page.name), group.description)
+        inject_theme(page)
+        if group.back.replace:
+            replace_back(page, group.back.href, group.back.label)
+        else:
+            inject_back(page, group.back.href, group.back.label)
+
+
 def drill_ignore(directory, names):
     """网页只要拼好的 sprite；逐条录音留在 apps/drill/audio/ 作母版。"""
     if Path(directory) == DRILL / "audio":
@@ -217,75 +253,58 @@ def main() -> int:
                  "favicon.ico"):
         shutil.copy2(SITE_SRC / name, OUT / name)
 
+    site_back = BackLink("/", "NPESL")
+
     # 自然拼读：目录页 + 48 课
     phonics_out = OUT / "phonics"
-    (phonics_out).mkdir()
+    phonics_out.mkdir()
     shutil.copy2(PHONICS / "index.html", phonics_out / "index.html")
     shutil.copytree(PHONICS / "lessons", phonics_out / "lessons")
     shutil.copytree(PHONICS / "audio", phonics_out / "audio")
-    inject_head(
-        phonics_out / "index.html",
-        "phonics/",
-        "自然拼读阅读训练 · 48 课 · 成人 A1",
-    )
-    inject_theme(phonics_out / "index.html")
-    inject_back(phonics_out / "index.html", "/", "NPESL")
-    for page in sorted((phonics_out / "lessons").glob("*.html")):
-        inject_head(
-            page,
-            f"phonics/lessons/{page.name}",
-            "自然拼读阅读训练 · 成人 A1",
-        )
-        inject_theme(page)
-        inject_back(page, "/phonics/", "自然拼读")
+    finish_group(PageGroup(
+        phonics_out, "index.html", lambda _: "phonics/",
+        "自然拼读阅读训练 · 48 课 · 成人 A1", site_back))
+    finish_group(PageGroup(
+        phonics_out / "lessons", "*.html",
+        lambda name: f"phonics/lessons/{name}",
+        "自然拼读阅读训练 · 成人 A1",
+        BackLink("/phonics/", "自然拼读")))
 
     # 美式英语音标表：单页 + 单词音频
     ipa_out = OUT / "ipa"
     shutil.copytree(IPA, ipa_out, ignore=ipa_ignore)
-    inject_head(
-        ipa_out / "index.html",
-        "ipa/",
-        "美式英语音标表 · 40 个音标 × 10 个单词",
-    )
-    inject_theme(ipa_out / "index.html")
-    inject_back(ipa_out / "index.html", "/", "NPESL")
+    finish_group(PageGroup(
+        ipa_out, "index.html", lambda _: "ipa/",
+        "美式英语音标表 · 40 个音标 × 10 个单词", site_back))
 
-    # 常见发音现象：30 章 + 音频，自带样式，不注入 theme
+    # 常见发音现象：30 章 + 音频
     if PHENOMENA.exists():
         phenomena_out = OUT / "phenomena"
-        shutil.copytree(
-            PHENOMENA,
-            phenomena_out,
-            ignore=phenomena_ignore,
-        )
-        index_page = phenomena_out / "index.html"
-        inject_head(index_page, "phenomena/", "常见发音现象(AmE) · 30 章")
-        inject_theme(index_page)
-        replace_back(index_page, "/", "NPESL")
-        for page in sorted(phenomena_out.glob("*.html")):
-            if page.name == "index.html":
-                continue
-            inject_head(page, f"phenomena/{page.name}", "常见发音现象(AmE)")
-            inject_theme(page)
-            replace_back(page, "/phenomena/", "常见发音现象")
+        shutil.copytree(PHENOMENA, phenomena_out, ignore=phenomena_ignore)
+        finish_group(PageGroup(
+            phenomena_out, "index.html", lambda _: "phenomena/",
+            "常见发音现象(AmE) · 30 章", site_back))
+        finish_group(PageGroup(
+            phenomena_out, "*.html", lambda name: f"phenomena/{name}",
+            "常见发音现象(AmE)",
+            BackLink("/phenomena/", "常见发音现象", replace=True),
+            frozenset({"index.html"})))
         print("  常见发音现象：已包含")
     else:
         print("警告：常见发音现象 目录不存在，未包含")
 
-    # 短语动词：主题页 + 每页一条 sprite，自带样式
+    # 短语动词：主题页 + 每页一条 sprite
     if PHRASAL.exists():
         phrasal_out = OUT / "phrasal"
         shutil.copytree(PHRASAL, phrasal_out, ignore=phrasal_ignore)
-        index_page = phrasal_out / "index.html"
-        inject_head(index_page, "phrasal/", "短语搭配 Collocations · 30 章")
-        inject_theme(index_page)
-        replace_back(index_page, "/", "NPESL")
-        for page in sorted(phrasal_out.glob("*.html")):
-            if page.name == "index.html":
-                continue
-            inject_head(page, f"phrasal/{page.name}", "短语搭配 Collocations")
-            inject_theme(page)
-            replace_back(page, "/phrasal/", "短语搭配")
+        finish_group(PageGroup(
+            phrasal_out, "index.html", lambda _: "phrasal/",
+            "短语搭配 Collocations · 30 章", site_back))
+        finish_group(PageGroup(
+            phrasal_out, "*.html", lambda name: f"phrasal/{name}",
+            "短语搭配 Collocations",
+            BackLink("/phrasal/", "短语搭配", replace=True),
+            frozenset({"index.html"})))
         print("  短语搭配：已包含")
     else:
         print("警告：短语动词目录不存在，未包含")
@@ -297,13 +316,9 @@ def main() -> int:
     for bank in DRILL.glob("bank.*.js"):
         shutil.copy2(bank, drill_out / bank.name)
     shutil.copytree(DRILL / "audio", drill_out / "audio", ignore=drill_ignore)
-    inject_head(
-        drill_out / "index.html",
-        "drill/",
-        "中译英随机练习 · 2,247 题",
-    )
-    inject_theme(drill_out / "index.html")
-    inject_back(drill_out / "index.html", "/", "NPESL")
+    finish_group(PageGroup(
+        drill_out, "index.html", lambda _: "drill/",
+        "中译英随机练习 · 2,247 题", site_back))
 
     # Conversation Starters：页面和 ESLSE 语音进主站，A1–C2 两套语音进音频站
     def skip_top_audio(directory, names):

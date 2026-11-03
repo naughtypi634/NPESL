@@ -20,7 +20,10 @@ import re
 import sys
 from pathlib import Path
 
-AUDIO_SITE = "https://npesl-audio.pages.dev/audio/"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from paths import AUDIO_URL  # noqa: E402
+
+AUDIO_SITE = f"{AUDIO_URL}/audio/"
 VOICE_DIRS = {"f": "ava", "m": "andrew", "female": "ava", "male": "andrew"}
 
 

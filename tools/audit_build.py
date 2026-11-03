@@ -26,14 +26,11 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-AUDIT_DIR = ROOT / "build" / "audit"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from paths import AUDIT_DIR, AUDIO_OUT, ROOT, SITE_OUT  # noqa: E402
 
 # 部署产物：主站与音频站。缺失的目录跳过。
-DEFAULT_TARGETS = [
-    ROOT / "build" / "cloudflare-site",
-    ROOT / "build" / "cloudflare-audio",
-]
+DEFAULT_TARGETS = [SITE_OUT, AUDIO_OUT]
 
 
 def digest(path: Path) -> str:

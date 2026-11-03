@@ -16,9 +16,11 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-BANK = ROOT / "content" / "drill" / "questions.json"
-AUDIO = ROOT / "apps" / "drill" / "audio"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from paths import DRILL_AUDIO, DRILL_BANK_JSON  # noqa: E402
+
+BANK = DRILL_BANK_JSON
+AUDIO = DRILL_AUDIO
 
 
 def audio_id(text: str) -> str:
