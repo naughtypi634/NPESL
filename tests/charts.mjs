@@ -36,6 +36,16 @@ async function waitFor(edge, expression, timeout = 6000) {
   return false;
 }
 
+async function selectType(edge, id) {
+  await edge.evaluate(`document.querySelector('#tab-${id}').click()`);
+  const ready = await waitFor(edge, `(() => {
+    const panel = document.querySelector('#chart-${id}');
+    return panel && !panel.hidden && panel.dataset.mounted === 'true';
+  })()`);
+  check(`tab ${id} activates its panel`, ready === true);
+  await sleep(120);
+}
+
 async function drag(edge, selector, dx, dy) {
   return edge.evaluate(`(() => {
     const el = document.querySelector(${JSON.stringify(selector)});
@@ -81,21 +91,44 @@ try {
   check('page becomes ready', await waitFor(edge, "document.documentElement.dataset.chartsReady === 'true'"));
 
   const structure = await edge.evaluate(`(() => {
-    const sections = [...document.querySelectorAll('.chart-section')];
+    const panels = [...document.querySelectorAll('.chart-panel')];
+    const tabs = [...document.querySelectorAll('#type-buttons [role="tab"]')];
+    const visible = panels.filter((panel) => !panel.hidden);
     return {
-      sections: sections.length,
-      labels: sections.map((s) => s.getAttribute('data-type')),
+      panels: panels.length,
+      labels: panels.map((panel) => panel.dataset.type),
+      tabs: tabs.length,
+      tabLabels: tabs.map((tab) => tab.textContent.trim()),
+      selected: tabs.filter((tab) => tab.getAttribute('aria-selected') === 'true').map((tab) => tab.textContent.trim()),
+      visible: visible.map((panel) => panel.dataset.type),
       firstMounted: document.querySelector('[data-type="line"]').getAttribute('data-mounted'),
       externalScripts: document.querySelectorAll('script[src]').length,
-      stylesheets: [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.href),
-      description: document.querySelector('[data-type="line"] [data-desc-lines]').textContent.trim()
+      description: document.querySelector('[data-type="line"] [data-desc-lines]').textContent.trim(),
+      hero: !!document.querySelector('.hero'),
+      standaloneVocab: !!document.querySelector('#vocab'),
+      standaloneGrammar: !!document.querySelector('#grammar'),
+      lineVocab: document.querySelectorAll('#chart-line [data-vocab] .vocab-card').length,
+      lineGrammar: document.querySelectorAll('#chart-line [data-grammar] .grammar-card').length,
+      lineConverter: !!document.querySelector('#chart-line [data-converter]'),
+      hbarConverter: !!document.querySelector('#chart-hbar [data-converter]')
     };
   })()`);
-  check('eight chart sections exist', structure.sections === 8, String(structure.sections));
-  check('section order is line…combo', structure.labels.join(',').includes('line,area,bar,hbar,table,pie,scatter,combo'), structure.labels.join(','));
+  check('six chart panels exist', structure.panels === 6, String(structure.panels));
+  check('only chart types remain', structure.labels.join(',') === 'line,area,bar,hbar,table,pie', structure.labels.join(','));
+  check('six type tabs exist', structure.tabs === 6, String(structure.tabs));
+  check('tabs carry no sequence numbers', structure.tabLabels.every((label) => !/^\\d/.test(label)), structure.tabLabels.join(','));
+  check('one tab is selected', structure.selected.length === 1, JSON.stringify(structure.selected));
+  check('only the selected panel is visible', structure.visible.length === 1 && structure.visible[0] === 'line', JSON.stringify(structure.visible));
   check('first lab mounts', structure.firstMounted === 'true');
   check('no external scripts', structure.externalScripts === 0, String(structure.externalScripts));
   check('description is not empty', structure.description.length > 20, structure.description.slice(0, 40));
+  check('intro meta content is gone', structure.hero === false);
+  check('vocabulary is not a standalone section', structure.standaloneVocab === false);
+  check('grammar is not a standalone section', structure.standaloneGrammar === false);
+  check('line panel carries vocabulary', structure.lineVocab > 0, String(structure.lineVocab));
+  check('line panel carries grammar', structure.lineGrammar > 0, String(structure.lineGrammar));
+  check('dynamic types carry the converter', structure.lineConverter === true);
+  check('static types skip the converter', structure.hbarConverter === false);
 
   const before = await edge.evaluate("document.querySelector('[data-type=\"line\"] [data-desc-lines]').textContent");
   const lineHandle = await edge.evaluate("(() => { const h = document.querySelector('[data-type=\"line\"] .handle[data-index=\"1\"]'); return h ? h.getAttribute('aria-valuenow') : null; })()");
@@ -108,15 +141,14 @@ try {
   check('line description changes', before !== after);
   check('line description uses a stronger verb', /surged|soared|jumped|sharp|dramatic|surge|jump/i.test(after), after.slice(0, 120));
 
-  await edge.evaluate('window.NPESLCharts.test.mountAll()');
-  await sleep(250);
-
+  await selectType(edge, 'area');
   const areaBefore = await edge.evaluate("document.querySelector('[data-type=\"area\"] [data-desc-lines]').textContent");
   await drag(edge, '[data-type="area"] .handle[data-index="1"]', 0, -90);
   await sleep(180);
   const areaAfter = await edge.evaluate("document.querySelector('[data-type=\"area\"] [data-desc-lines]').textContent");
   check('area drag changes its description', areaBefore !== areaAfter);
 
+  await selectType(edge, 'bar');
   const barBefore = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
   const barTextBefore = await edge.evaluate("document.querySelector('[data-type=\"bar\"] [data-desc-lines]').textContent");
   await drag(edge, '[data-type="bar"] .handle[data-index="0"]', 0, -60);
@@ -126,70 +158,27 @@ try {
   check('column drag changes the category dataset', barAfter !== barBefore, `${barBefore} -> ${barAfter}`);
   check('column drag changes its description', barTextBefore !== barTextAfter);
 
+  await selectType(edge, 'hbar');
   const hbarBefore = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
   await drag(edge, '[data-type="hbar"] .handle[data-index="0"]', -80, 0);
   await sleep(200);
   const hbarAfter = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
   check('horizontal bar drag changes the category dataset', hbarAfter !== hbarBefore, `${hbarBefore} -> ${hbarAfter}`);
 
-  const pointBefore = await edge.evaluate('({ x: window.NPESLCharts.state.datasets.points.points[0].x, y: window.NPESLCharts.state.datasets.points.points[0].y })');
-  const scatterBefore = await edge.evaluate("document.querySelector('[data-type=\"scatter\"] [data-desc-lines]').textContent");
-  await drag(edge, '[data-type="scatter"] .scatter-point[data-id="a"]', 50, -50);
-  await sleep(200);
-  const pointAfter = await edge.evaluate('({ x: window.NPESLCharts.state.datasets.points.points[0].x, y: window.NPESLCharts.state.datasets.points.points[0].y })');
-  const scatterAfter = await edge.evaluate("document.querySelector('[data-type=\"scatter\"] [data-desc-lines]').textContent");
-  check('scatter drag changes both coordinates', pointBefore.x !== pointAfter.x && pointBefore.y !== pointAfter.y, JSON.stringify({ pointBefore, pointAfter }));
-  check('scatter description stays coherent', scatterAfter.length > 20 && scatterAfter === scatterAfter.trim());
-
-  const comboBarBefore = await edge.evaluate('window.NPESLCharts.state.datasets.time.series[0].values[2]');
-  await drag(edge, '[data-type="combo"] .handle[data-kind="bar"][data-index="2"]', 0, -40);
-  await sleep(180);
-  const comboBarAfter = await edge.evaluate('window.NPESLCharts.state.datasets.time.series[0].values[2]');
-  check('combo bar drag changes revenue', comboBarBefore !== comboBarAfter, `${comboBarBefore} -> ${comboBarAfter}`);
-
-  const comboLineBefore = await edge.evaluate('window.NPESLCharts.state.datasets.time.series[1].values[0]');
-  const comboTextBefore = await edge.evaluate("document.querySelector('[data-type=\"combo\"] [data-desc-lines]').textContent");
-  await drag(edge, '[data-type="combo"] .handle[data-kind="line"][data-index="0"]', 0, 60);
-  await sleep(180);
-  const comboLineAfter = await edge.evaluate('window.NPESLCharts.state.datasets.time.series[1].values[0]');
-  const comboTextAfter = await edge.evaluate("document.querySelector('[data-type=\"combo\"] [data-desc-lines]').textContent");
-  check('combo line drag changes growth', comboLineBefore !== comboLineAfter, `${comboLineBefore} -> ${comboLineAfter}`);
-  check('combo drag changes its description', comboTextBefore !== comboTextAfter);
-
-  await edge.evaluate("document.querySelector('[data-type=\"combo\"] [data-combo-view]').click()");
-  await sleep(200);
-  const overlay = await edge.evaluate(`({
-    viewBox: document.querySelector('[data-type="combo"] .chart-svg').getAttribute('viewBox'),
-    handles: document.querySelectorAll('[data-type="combo"] .handle').length
-  })`);
-  check('combo overlay view renders', overlay.viewBox === '0 0 720 430' && overlay.handles === 16, JSON.stringify(overlay));
-  await edge.evaluate("document.querySelector('[data-type=\"combo\"] [data-combo-view]').click()");
-  await sleep(150);
-
-  await edge.evaluate("document.querySelectorAll('#level-switch [data-level]').forEach((b) => { if (b.dataset.level === 'C1') b.click(); })");
-  await sleep(120);
-  const c1 = await edge.evaluate("document.querySelector('[data-type=\"line\"] [data-desc-lines]').textContent");
-  check('level switch changes wording', c1 !== after && c1.length > 20);
-
-  await edge.evaluate('window.NPESLCharts.test.mountAll()');
-  await sleep(250);
-  const mounted = await edge.evaluate("[...document.querySelectorAll('.chart-section')].every((s) => s.getAttribute('data-mounted') === 'true')");
-  check('all labs mount', mounted === true);
-  const plotted = await edge.evaluate("[...document.querySelectorAll('.plot')].every((p) => p.children.length > 0)");
-  check('all plots render', plotted === true);
-  const interactive = await edge.evaluate(`(() => {
-    const out = {};
-    for (const section of document.querySelectorAll('.chart-section')) {
-      out[section.dataset.type] = {
-        sliders: section.querySelectorAll('[role="slider"]').length,
-        inputs: section.querySelectorAll('input').length
-      };
-    }
-    return out;
+  await selectType(edge, 'table');
+  const tableBefore = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
+  await edge.evaluate(`(() => {
+    const input = document.querySelector('[data-type="table"] [data-plot] input');
+    if (!input) return;
+    input.value = String(Number(input.value) + 40);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
   })()`);
-  check('all eight types are interactive', Object.values(interactive).every((item) => item.sliders + item.inputs > 0), JSON.stringify(interactive));
-  check('table uses editable inputs', interactive.table.inputs > 0, JSON.stringify(interactive.table));
+  await sleep(250);
+  const tableAfter = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
+  check('table edit updates the dataset', tableAfter === tableBefore + 40, `${tableBefore} -> ${tableAfter}`);
 
+  await selectType(edge, 'pie');
   const pieBefore = await edge.evaluate('window.NPESLCharts.state.datasets.shares.parts.map((p) => p.value)');
   const pieDrag = await drag(edge, '[data-type="pie"] .handle', 70, 0);
   await sleep(200);
@@ -200,28 +189,22 @@ try {
   check('pie shares respect the 3% floor', pieAfter.every((v) => v >= 2.99), JSON.stringify(pieAfter));
   check('pie shares changed', JSON.stringify(pieBefore) !== JSON.stringify(pieAfter));
 
-  const tableBefore = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
-  await edge.evaluate(`(() => {
-    const input = document.querySelector('[data-type="bar"] [data-table] input');
-    if (!input) return;
-    input.value = String(Number(input.value) + 40);
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  })()`);
-  await sleep(250);
-  const tableAfter = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
-  const hbarText = await edge.evaluate("document.querySelector('[data-type=\"hbar\"] [data-desc-lines]').textContent");
-  check('table edit updates the dataset', tableAfter === tableBefore + 40, `${tableBefore} -> ${tableAfter}`);
-  check('table edit propagates to the horizontal bar description', hbarText.length > 20);
+  await selectType(edge, 'line');
+  await edge.evaluate("document.querySelector('#tab-line').focus(); document.querySelector('#tab-line').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))");
+  await sleep(150);
+  const keyboardTab = await edge.evaluate(`({
+    selected: document.querySelector('[role="tab"][aria-selected="true"]').id,
+    visible: [...document.querySelectorAll('.chart-panel')].filter((panel) => !panel.hidden).map((panel) => panel.dataset.type)
+  })`);
+  check('arrow keys move between tabs', keyboardTab.selected === 'tab-area' && keyboardTab.visible.join(',') === 'area', JSON.stringify(keyboardTab));
 
-  const keyboard = await edge.evaluate(`(() => {
-    const h = document.querySelector('[data-type="line"] .handle[data-index="1"]');
-    const before = h.getAttribute('aria-valuenow');
-    h.focus();
-    h.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-    return { before, after: h.getAttribute('aria-valuenow') };
-  })()`);
-  check('keyboard changes a handle', keyboard.before !== keyboard.after, `${keyboard.before} -> ${keyboard.after}`);
+  await selectType(edge, 'line');
+  await edge.evaluate("document.querySelectorAll('#level-switch [data-level]').forEach((b) => { if (b.dataset.level === 'C1') b.click(); })");
+  await sleep(150);
+  const c1 = await edge.evaluate("document.querySelector('[data-type=\"line\"] [data-desc-lines]').textContent");
+  check('level switch changes wording', c1 !== after && c1.length > 20);
+  const vocabularyAfterLevel = await edge.evaluate("document.querySelectorAll('#chart-line [data-vocab] .vocab-card').length");
+  check('vocabulary follows the level switch', vocabularyAfterLevel > 0, String(vocabularyAfterLevel));
 
   await edge.send('Emulation.setDeviceMetricsOverride', {
     width: 375, height: 812, deviceScaleFactor: 2, mobile: true
@@ -230,11 +213,11 @@ try {
   const mobile = await edge.evaluate(`({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
-    tocScroll: document.querySelector('.toc-scroll').scrollWidth,
-    tocClient: document.querySelector('.toc-scroll').clientWidth
+    switchScroll: document.querySelector('.type-switch-scroll').scrollWidth,
+    switchClient: document.querySelector('.type-switch-scroll').clientWidth
   })`);
   check('mobile has no horizontal page overflow', mobile.scrollWidth <= mobile.innerWidth + 1, JSON.stringify(mobile));
-  check('toc is horizontally scrollable', mobile.tocScroll >= mobile.tocClient);
+  check('type tabs scroll horizontally on narrow screens', mobile.switchScroll > mobile.switchClient, JSON.stringify(mobile));
 
   await edge.evaluate("document.documentElement.setAttribute('data-theme', 'dark')");
   const dark = await edge.evaluate(`({

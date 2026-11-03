@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import check_bre  # noqa: E402
 
 LEVELS = {"A2", "B1", "B2", "C1"}
-RENDERERS = {"line", "area", "bar", "hbar", "table", "pie", "scatter", "combo"}
+RENDERERS = {"line", "area", "bar", "hbar", "table", "pie"}
 ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 COUNT_RE = re.compile(r"\d+\s*(个|条|种|张)")
 CLICHES = [
@@ -87,8 +87,8 @@ def check_english(value, where: str, problems: Problems) -> None:
 
 def check_content(data: dict, problems: Problems) -> None:
     types = data.get("types", {}).get("sections", [])
-    if len(types) != 8:
-        problems.add("chart-types.json", "expected exactly eight chart sections")
+    if len(types) != 6:
+        problems.add("chart-types.json", "expected exactly six chart sections")
     seen = set()
     for section in types:
         where = f"chart-type {section.get('id', '?')}"
@@ -109,7 +109,7 @@ def check_content(data: dict, problems: Problems) -> None:
 
     labs = data.get("labs", {})
     datasets = labs.get("datasets", {})
-    for key in ("time", "category", "shares", "points"):
+    for key in ("time", "category", "shares"):
         if key not in datasets:
             problems.add("labs.json", f"dataset {key} is missing")
     shares = datasets.get("shares", {}).get("parts", [])
@@ -148,9 +148,35 @@ def check_content(data: dict, problems: Problems) -> None:
         for key in ("id", "adverb", "adjective", "level", "zh"):
             if not adverb.get(key):
                 problems.add("grammar.json", f"converter adverb missing {key}")
+    grammar_ids = set()
     for pattern in grammar.get("patterns", []):
         if pattern.get("level") not in LEVELS:
             problems.add("grammar.json", f"{pattern.get('id')}: bad level")
+        grammar_ids.add(pattern.get("id"))
+
+    group_ids = {group.get("id") for group in vocab.get("groups", [])}
+    for section in types:
+        where = f"chart-type {section.get('id', '?')}"
+        assigned = section.get("vocab_groups")
+        if not isinstance(assigned, list) or not assigned:
+            problems.add(where, "vocab_groups must be a non-empty list")
+        else:
+            for group in assigned:
+                if group not in group_ids:
+                    problems.add(where, f"unknown vocab group {group!r}")
+            if len(set(assigned)) != len(assigned):
+                problems.add(where, "duplicate vocab group")
+        patterns = section.get("grammar_patterns")
+        if not isinstance(patterns, list) or not patterns:
+            problems.add(where, "grammar_patterns must be a non-empty list")
+        else:
+            for pattern in patterns:
+                if pattern not in grammar_ids:
+                    problems.add(where, f"unknown grammar pattern {pattern!r}")
+            if len(set(patterns)) != len(patterns):
+                problems.add(where, "duplicate grammar pattern")
+        if not isinstance(section.get("converter"), bool):
+            problems.add(where, "converter must be true or false")
 
     errors = data.get("errors", {}).get("errors", [])
     for error in errors:

@@ -16,7 +16,6 @@
     this.renderer = NC.renderers[type.renderer];
     this.mounted = false;
     this.result = null;
-    this.comboOverlay = false;
     NC.state.labs[type.id] = this;
 
     var self = this;
