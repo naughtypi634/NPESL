@@ -155,6 +155,26 @@
   .card .note-card p { margin:6px 0 0; font-size:13px; line-height:1.6; }
   .card .note-card p b { display:inline-block; margin-right:6px; font-size:12px;
     color:var(--accent); font-weight:600; }
+  .card .opp { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .card .opp-btn { display:inline-flex; align-items:baseline; gap:5px;
+    padding:2px 10px; border:1px solid var(--accent); border-radius:999px;
+    background:transparent; color:var(--accent); font:inherit; font-size:13px;
+    line-height:1.5; cursor:pointer; }
+  .card .opp-btn:hover { background:var(--tint); }
+  .card .opp-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .card .opp-btn .zh, .card .opp-word .zh { color:var(--muted); font-size:12px; }
+  .card .opp-sep { color:var(--muted); }
+  .card .opp-word { margin:6px 0 0; font-size:13px; color:var(--muted); }
+  .card .opp-word b { display:inline-block; margin-right:6px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+  .card.opp-focus { box-shadow:0 0 0 3px var(--accent); }
+  .opp-return { position:fixed; left:max(16px, env(safe-area-inset-left, 0px));
+    bottom:max(16px, env(safe-area-inset-bottom, 0px)); z-index:60;
+    display:inline-flex; align-items:center; gap:6px; padding:9px 16px;
+    border:1px solid var(--rule); border-radius:999px; background:var(--fg);
+    color:var(--bg); font:inherit; font-size:14px; cursor:pointer;
+    box-shadow:0 6px 18px rgba(0, 0, 0, .22); }
+  .opp-return[hidden] { display:none; }
   .back { display:inline-block; margin-bottom:14px; color:var(--muted);
     text-decoration:none; font-size:14px; }
   .back:hover { color:var(--accent); }
@@ -190,8 +210,9 @@
 <div class="chips" data-chips="particle" hidden></div>
 <div class="chips" data-chips="theme" hidden></div>
 <div id="view"></div>
+<button class="opp-return" type="button" data-opp-return hidden>‹ 返回</button>
 </div>
-<script src="data.88e8f4fe11.js"></script>
+<script src="data.34d682a422.js"></script>
 <script>
 (function(){
 var D=window.PHRASAL_INDEX;
@@ -225,12 +246,15 @@ function card(i){
   out+='<p class="zh-line">'+esc(e.zh)+'</p>';
   for(var s=0;s<e.sen.length;s++){
     var it=e.sen[s];
-    out+='<div class="sense"><p class="sense-zh">'+esc(it[0])+'</p><div class="say-unit ex-unit" data-unit="'+i+'-'+(s+1)+'"><button class="say playbtn" type="button" data-i="'+i+'" data-k="'+(s+1)+'" aria-label="播放"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span></button><div class="ex-text"><span class="txt">'+esc(it[1])+'</span><span class="zh">'+esc(it[2])+'</span></div></div></div>';
+    var wo='';
+    if(e.wo&&e.wo.length){var wl=e.wo.filter(function(w){return w[0]===s+1;});if(wl.length)wo='<p class=\"opp-word\"><b>反义</b>'+wl.map(function(w){return esc(w[1])+'<span class=\"zh\">'+esc(w[2])+'</span>';}).join(' · ')+'</p>';}
+    out+='<div class="sense"><p class="sense-zh">'+esc(it[0])+'</p><div class="say-unit ex-unit" data-unit="'+i+'-'+(s+1)+'"><button class="say playbtn" type="button" data-i="'+i+'" data-k="'+(s+1)+'" aria-label="播放"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span></button><div class="ex-text"><span class="txt">'+esc(it[1])+'</span><span class="zh">'+esc(it[2])+'</span></div></div>'+wo+'</div>';
   }
   var notes='';
   if(e.l1)notes+='<p class="l1"><b>易错</b>'+esc(e.l1)+'</p>';
   if(e.coll&&e.coll.length)notes+='<p class="colloc"><b>搭配</b>'+e.coll.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';
   if(e.conf&&e.conf.length)notes+='<p class="confuse"><b>易混</b>'+e.conf.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';
+  if(e.opp&&e.opp.length)notes+='<p class="opp"><b>反义</b>'+e.opp.map(function(o){return '<button type="button" class="opp-btn" data-opp-i="'+o.i+'">'+esc(o.h)+'<span class="zh">'+esc(o.zh)+'</span></button>';}).join('<span class="opp-sep">·</span>')+'</p>';
   if(notes)out+='<div class="note-card">'+notes+'</div>';
   return out+'</div>';
 }
@@ -298,8 +322,14 @@ function scrollToFirstTheme(){
   scrollToEl(target);
 }
 var restoringPosition=false;
-function paint(m,value,scroll,restore){
-  var changed=mode!==m;var shouldRestore=changed||restore;
+var oppOrigin=null;
+function oppPill(){return document.querySelector('[data-opp-return]');}
+function showOppPill(on){var b=oppPill();if(b)b.hidden=!on;document.body.classList.toggle('has-opp-return',!!on);}
+function clearOppFocus(){var el=view.querySelector('.card.opp-focus');if(el)el.classList.remove('opp-focus');}
+function exitOpp(){var b=oppPill();if(oppOrigin||(b&&!b.hidden)){oppOrigin=null;showOppPill(false);clearOppFocus();}}
+function paint(m,value,scroll,restore,keepScroll,keepOpp){
+  if(!keepOpp)exitOpp();
+  var changed=mode!==m;var shouldRestore=(changed||restore)&&!keepScroll;
   if(changed)positions[mode]=window.scrollY;
   if(shouldRestore)restoringPosition=true;
   mode=m;if(value!==undefined)state[m]=value;
@@ -321,6 +351,7 @@ window.addEventListener('scroll',function(){
 },{passive:true});
 window.addEventListener('pagehide',function(){positions[mode]=window.scrollY;persistState();});
 function toggleCard(btn){
+  exitOpp();
   var i=+btn.getAttribute('data-i');
   var existing=view.querySelector('.card');
   var prev=view.querySelector('.prow[aria-expanded="true"]');
@@ -328,6 +359,40 @@ function toggleCard(btn){
   if(existing)existing.remove();
   if(prev)prev.setAttribute('aria-expanded','false');
   open=i;btn.setAttribute('aria-expanded','true');btn.insertAdjacentHTML('afterend',card(i));
+}
+function openOppTarget(i){
+  var e=D.entries[i];if(!e)return false;
+  if(mode!=='scene'||state.scene!==e.c)paint('scene',e.c,false,false,true,true);
+  var row=view.querySelector('.prow[data-i="'+i+'"]');if(!row)return false;
+  if(open!==i){
+    var ex=view.querySelector('.card');if(ex)ex.remove();
+    var prev=view.querySelector('.prow[aria-expanded="true"]');if(prev)prev.setAttribute('aria-expanded','false');
+    open=i;row.setAttribute('aria-expanded','true');row.insertAdjacentHTML('afterend',card(i));
+  }
+  var c=view.querySelector('.card[data-card="'+i+'"]');
+  if(c){c.classList.add('opp-focus');scrollToEl(c);}
+  return true;
+}
+function jumpToOpp(i){
+  if(oppOrigin&&oppOrigin.open===i){returnToOppOrigin();return;}
+  if(!oppOrigin)oppOrigin={mode:mode,scene:state.scene,particle:state.particle,atCategories:atCategories,chipsExpanded:chipsExpanded,open:open,y:window.scrollY};
+  if(openOppTarget(i))showOppPill(true);
+}
+function returnToOppOrigin(){
+  var o=oppOrigin;if(!o)return;
+  oppOrigin=null;showOppPill(false);clearOppFocus();
+  atCategories=o.atCategories;
+  if(mode!==o.mode||state.scene!==o.scene||state.particle!==o.particle)paint(o.mode,o.mode==='scene'?o.scene:o.particle,false,false,true,true);
+  chipsExpanded=o.chipsExpanded;setChipsExpanded(chipsExpanded);
+  var row=view.querySelector('.prow[data-i="'+o.open+'"]');
+  if(row){
+    var ex=view.querySelector('.card');if(ex)ex.remove();
+    var prev=view.querySelector('.prow[aria-expanded="true"]');if(prev)prev.setAttribute('aria-expanded','false');
+    open=o.open;row.setAttribute('aria-expanded','true');row.insertAdjacentHTML('afterend',card(o.open));
+    var c=view.querySelector('.card[data-card="'+o.open+'"]');
+    if(c){c.classList.add('opp-focus');scrollToEl(c);}
+  }
+  persistState();
 }
 var KEY_VOICE='pv-voice';var voice='f';
 try{var sv=localStorage.getItem(KEY_VOICE);if(sv==='f'||sv==='m')voice=sv;}catch(e){}
@@ -427,11 +492,15 @@ rowTheme.addEventListener('click',function(e){
 });
 for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var next=e.currentTarget.getAttribute('data-mode');if(next===mode){setChipsExpanded(!chipsExpanded);return;}atCategories=false;setChipsExpanded(true);paint(next,state[next],false);});
 view.addEventListener('click',function(e){
+  var ob=e.target.closest('.opp-btn');
+  if(ob){jumpToOpp(+ob.getAttribute('data-opp-i'));return;}
   var say=e.target.closest('.say');
   if(say){playSay(say);return;}
   var b=e.target.closest('.prow');
   if(b)toggleCard(b);
 });
+var oppRet=oppPill();
+if(oppRet)oppRet.addEventListener('click',function(){returnToOppOrigin();});
 function scrollToGroup(g){
   if(!g)return;
   var head=g.querySelector('.theme')||g.querySelector('.prow')||g;

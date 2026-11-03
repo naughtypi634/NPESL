@@ -110,14 +110,24 @@ await send('Page.addScriptToEvaluateOnNewDocument', { source: HOOK });
 async function goto(path) {
   errors = [];
   await send('Page.navigate', { url: BASE + path });
+  // Page.navigate 返回时旧文档可能还是 complete，先等新文档接管。
+  await sleep(300);
+  const want = path.split('?')[0];
   for (let i = 0; i < 100; i++) {
     try {
-      if (await evaluate('document.readyState') === 'complete') break;
+      const state = await evaluate(`({ ready: document.readyState, path: location.pathname })`);
+      if (state.ready === 'complete' && (state.path.endsWith(want) || want === '/')) break;
     } catch {}
-    await sleep(60);
+    await sleep(80);
   }
-  await sleep(250);
+  await sleep(300);
 }
+
+const inView = (id) => `(() => {
+  const el = document.getElementById('${id}');
+  const r = el && el.getBoundingClientRect();
+  return !!(r && r.bottom > 0 && r.top < window.innerHeight);
+})()`;
 
 async function waitFor(expression, timeout = 5000) {
   const end = Date.now() + timeout;
@@ -1022,6 +1032,155 @@ const cases = [
         || (tail.mode === 'ha' && tail.pauses.length > 0
           && tail.delta <= 0.05 && tail.delta >= -0.3));
       return { ok, detail: `card-audio tail=${JSON.stringify(tail)}` };
+    },
+  },
+  {
+    name: 'phrasal-opposite', path: '/phrasal/01-getting-around.html',
+    async run() {
+      // 同页反义：跳过去出现临时返回，点返回回到原词条且按钮消失。
+      const start = await evaluate(`(() => {
+        const a = document.querySelector('a.opp-btn[href^="#"]');
+        if (!a) return null;
+        const origin = a.closest('.entry');
+        a.setAttribute('data-smoke', '1');
+        return { origin: origin && origin.id, target: a.getAttribute('href').slice(1) };
+      })()`);
+      if (!start) return { ok: false, detail: '没有同页反义链接' };
+      await evaluate(`document.querySelector('a.opp-btn[data-smoke]').click()`);
+      await waitFor(inView(start.target));
+      const jumped = await evaluate(`(() => {
+        const pill = document.querySelector('[data-opp-return]');
+        const el = document.getElementById('${start.target}');
+        const r = el && el.getBoundingClientRect();
+        return {
+          hash: location.hash, pill: !!(pill && !pill.hidden),
+          focus: !!(el && el.classList.contains('opp-focus')),
+          visible: !!(r && r.bottom > 0 && r.top < window.innerHeight),
+          say: !!document.querySelector('.opp-btn.say'),
+        };
+      })()`);
+      if (!jumped || jumped.hash !== '#' + start.target || !jumped.pill
+          || !jumped.focus || !jumped.visible || jumped.say) {
+        return { ok: false, detail: `jump=${JSON.stringify(jumped)}` };
+      }
+      await evaluate(`document.querySelector('[data-opp-return]').click()`);
+      await waitFor(inView(start.origin));
+      const back = await evaluate(`(() => {
+        const pill = document.querySelector('[data-opp-return]');
+        const el = document.getElementById('${start.origin}');
+        const r = el && el.getBoundingClientRect();
+        return {
+          hash: location.hash, pill: !!(pill && !pill.hidden),
+          focus: !!(el && el.classList.contains('opp-focus')),
+          visible: !!(r && r.bottom > 0 && r.top < window.innerHeight),
+        };
+      })()`);
+      const ok = back && back.hash === '' && !back.pill && back.focus && back.visible;
+      return { ok, detail: `back=${JSON.stringify(back)}` };
+    },
+  },
+  {
+    name: 'phrasal-opposite-cross', path: '/phrasal/01-getting-around.html',
+    async run() {
+      // 跨页反义：目标页出现返回按钮，点返回回到原页原词条，按钮消失。
+      const start = await evaluate(`(() => {
+        const a = [...document.querySelectorAll('a.opp-btn')]
+          .find((x) => /\\.html\\?from=/.test(x.getAttribute('href') || ''));
+        if (!a) return null;
+        const origin = a.closest('.entry');
+        a.setAttribute('data-smoke', '1');
+        return { origin: origin && origin.id, target: (a.getAttribute('href').split('#')[1] || '') };
+      })()`);
+      if (!start) return { ok: false, detail: '没有跨页反义链接' };
+      await evaluate(`document.querySelector('a.opp-btn[data-smoke]').click()`);
+      for (let i = 0; i < 60; i++) {
+        try { if ((await evaluate('location.search')).includes('from=')) break; } catch {}
+        await sleep(100);
+      }
+      await sleep(600);
+      const arrived = await evaluate(`(() => {
+        const pill = document.querySelector('[data-opp-return]');
+        return {
+          path: location.pathname, search: location.search, hash: location.hash,
+          pill: !!(pill && !pill.hidden), from: pill && pill.getAttribute('data-from'),
+        };
+      })()`);
+      if (!arrived || !arrived.path.endsWith('.html') || !arrived.search.includes('from=')
+          || arrived.hash !== '#' + start.target || !arrived.pill || !arrived.from) {
+        return { ok: false, detail: `arrive=${JSON.stringify(arrived)}` };
+      }
+      await evaluate(`document.querySelector('[data-opp-return]').click()`);
+      for (let i = 0; i < 60; i++) {
+        try { if ((await evaluate('location.pathname')).endsWith('01-getting-around.html')) break; } catch {}
+        await sleep(100);
+      }
+      await waitFor(inView(start.origin));
+      const back = await evaluate(`(() => {
+        const pill = document.querySelector('[data-opp-return]');
+        const el = document.getElementById('${start.origin}');
+        const r = el && el.getBoundingClientRect();
+        return {
+          path: location.pathname, hash: location.hash,
+          pill: !!(pill && !pill.hidden),
+          focus: !!(el && el.classList.contains('opp-focus')),
+          visible: !!(r && r.bottom > 0 && r.top < window.innerHeight),
+        };
+      })()`);
+      const ok = back && back.path.endsWith('01-getting-around.html')
+        && back.hash === '#' + start.origin && !back.pill && back.focus && back.visible;
+      return { ok, detail: `back=${JSON.stringify(back)}` };
+    },
+  },
+  {
+    name: 'phrasal-index-opposite', path: '/phrasal/',
+    async run() {
+      // 索引页展开卡片里的反义：跳转到目标卡片，返回后回到来源卡片。
+      const pick = await evaluate(`(() => {
+        const D = window.PHRASAL_INDEX;
+        for (let i = 0; i < D.entries.length; i++) {
+          const e = D.entries[i];
+          if (e.opp && e.opp.length) {
+            const j = e.opp[0].i;
+            return { i, j, c: e.c, tc: D.entries[j].c };
+          }
+        }
+        return null;
+      })()`);
+      if (!pick) return { ok: false, detail: '没有反义数据' };
+      await evaluate(`document.querySelector('.prow[data-i="${pick.i}"]').click()`);
+      await sleep(250);
+      const opened = await evaluate(
+        `!!document.querySelector('.card[data-card="${pick.i}"] .opp-btn[data-opp-i="${pick.j}"]')`);
+      if (!opened) return { ok: false, detail: '来源卡片没有反义按钮' };
+      await evaluate(
+        `document.querySelector('.card[data-card="${pick.i}"] .opp-btn[data-opp-i="${pick.j}"]').click()`);
+      await waitFor(`!!document.querySelector('.card[data-card="${pick.j}"]')`);
+      const jumped = await evaluate(`(() => {
+        const pill = document.querySelector('[data-opp-return]');
+        const row = document.querySelector('.prow[data-i="${pick.j}"]');
+        return {
+          pill: !!(pill && !pill.hidden),
+          card: !!document.querySelector('.card[data-card="${pick.j}"]'),
+          expanded: row && row.getAttribute('aria-expanded'),
+          originCard: !!document.querySelector('.card[data-card="${pick.i}"]'),
+        };
+      })()`);
+      if (!jumped || !jumped.pill || !jumped.card || jumped.expanded !== 'true' || jumped.originCard) {
+        return { ok: false, detail: `jump=${JSON.stringify(jumped)}` };
+      }
+      await evaluate(`document.querySelector('[data-opp-return]').click()`);
+      await waitFor(`!!document.querySelector('.card[data-card="${pick.i}"]')`);
+      const back = await evaluate(`(() => {
+        const pill = document.querySelector('[data-opp-return]');
+        const row = document.querySelector('.prow[data-i="${pick.i}"]');
+        return {
+          pill: !!(pill && !pill.hidden),
+          card: !!document.querySelector('.card[data-card="${pick.i}"]'),
+          expanded: row && row.getAttribute('aria-expanded'),
+        };
+      })()`);
+      const ok = back && !back.pill && back.card && back.expanded === 'true';
+      return { ok, detail: `back=${JSON.stringify(back)}` };
     },
   },
   {

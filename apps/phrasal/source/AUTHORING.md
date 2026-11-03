@@ -46,7 +46,29 @@
 - `separable`：代词能不能插中间。true 的要在 `l1_note` 里点明。
 - `l1_note` 是本书没有的字段，写中文母语者的真实错误（代词位置、介词悬空、直译）。
   tier 1 必填。
+- **及物/可分的词要写清搭配对象**：`stand someone up`（人）、`blow off a meeting/plans`
+  （事/安排）、`pick me up`（代词夹中间）。不能只写「放鸽子」这种看不出宾语类型的释义。
 - `confusables` 写易混词，`collocations` 写两三条固定搭配。
+
+## 反义关系
+
+`content/phrasal/opposites.json` 单独存反义，不写进词条：
+
+```json
+{
+  "version": 1,
+  "pairs": [["pick-up", "drop-off"], ["put-on", "take-off"]],
+  "word_opposites": {
+    "take-off": [{"word": "land", "zh": "落地、着陆", "sense": 1}]
+  }
+}
+```
+
+- `pairs` 里两个 id 必须都存在；一条词条可以出现在多对里（按义项），但不能自配对、不能重复。
+- 关系写一次，构建时双向生成按钮；跨主题也可以配。
+- 反义是单个单词、词库里没有这个词条时，写进 `word_opposites`：`sense` 是第几个义项
+  （从 1 开始），页面只在义项下面显示「反义 land（落地）」，不做跳转。
+- 按**义项**配对，不按词形：`turn up`（到场）和 `turn down`（拒绝）不是反义。
 
 ## 例句
 

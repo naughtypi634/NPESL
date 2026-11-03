@@ -133,6 +133,73 @@ def check_entries(entries, chapter, chips, seen_ids, seen_sentences, bad):
             seen_sentences[low] = where
 
 
+def check_opposites(seen_ids, sense_counts, bad):
+    """Validate content/phrasal/opposites.json against the loaded entries."""
+    path = CONTENT / "opposites.json"
+    if not path.exists():
+        bad("opposites.json 不存在")
+        return 0, 0
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as error:  # noqa: BLE001 - surface and continue
+        bad(f"opposites.json 解析失败：{error}")
+        return 0, 0
+    if doc.get("version") != 1:
+        bad(f"opposites.json: version 应为 1，实际 {doc.get('version')!r}")
+
+    pairs = doc.get("pairs")
+    if not isinstance(pairs, list):
+        bad("opposites.json: pairs 应是数组")
+        pairs = []
+    seen_pairs = set()
+    for index, pair in enumerate(pairs, 1):
+        where = f"opposites.json 第 {index} 对"
+        if (not isinstance(pair, list) or len(pair) != 2
+                or not all(isinstance(item, str) for item in pair)):
+            bad(f"{where}: 应是两个 id 的数组")
+            continue
+        left, right = pair
+        for entry_id in (left, right):
+            if entry_id not in seen_ids:
+                bad(f"{where}: id {entry_id!r} 不存在")
+        if left == right:
+            bad(f"{where}: 不能自己配自己")
+        key = frozenset((left, right))
+        if key in seen_pairs:
+            bad(f"{where}: {left} ↔ {right} 重复（含反向重复）")
+        seen_pairs.add(key)
+
+    word_map = doc.get("word_opposites") or {}
+    if not isinstance(word_map, dict):
+        bad("opposites.json: word_opposites 应是对象")
+        word_map = {}
+    word_count = 0
+    for entry_id, items in word_map.items():
+        if entry_id not in seen_ids:
+            bad(f"word_opposites: id {entry_id!r} 不存在")
+            continue
+        if not isinstance(items, list) or not items:
+            bad(f"word_opposites/{entry_id}: 应是非空数组")
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                bad(f"word_opposites/{entry_id}: 每一项应是对象")
+                continue
+            word = str(item.get("word", "")).strip()
+            zh = str(item.get("zh", "")).strip()
+            sense = item.get("sense")
+            if not word:
+                bad(f"word_opposites/{entry_id}: 缺 word")
+            elif word != word.lower() or not re.fullmatch(r"[a-z][a-z' -]*", word):
+                bad(f"word_opposites/{entry_id}: word {word!r} 应是小写英文单词")
+            if not zh:
+                bad(f"word_opposites/{entry_id}: 缺中文释义")
+            if not isinstance(sense, int) or not 1 <= sense <= sense_counts.get(entry_id, 0):
+                bad(f"word_opposites/{entry_id}: sense {sense!r} 超出义项范围")
+            word_count += 1
+    return len(pairs), word_count
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -157,6 +224,7 @@ def main():
     seen_themes = set()
     seen_ids = {}
     seen_sentences = {}
+    sense_counts = {}
     total = 0
     short = []
 
@@ -183,13 +251,17 @@ def main():
         if not entries:
             bad(f"{path.name}: entries 为空")
         total += len(entries)
+        for entry in entries:
+            sense_counts[entry.get("id")] = len(entry.get("senses") or [])
         check_entries(entries, tid, chips, seen_ids, seen_sentences, bad)
         mark = "" if len(entries) >= PER_THEME else f"  ← 还差 {PER_THEME - len(entries)}"
         if len(entries) < PER_THEME:
             short.append(tid)
         print(f"{tid:<16} {len(entries):>3} 条  {theme.get('title_zh', '')}{mark}")
 
-    print(f"\n主题 {len(seen_themes)} 个，词条 {total} 条，问题 {problems} 条")
+    pairs_count, words_count = check_opposites(seen_ids, sense_counts, bad)
+    print(f"\n主题 {len(seen_themes)} 个，词条 {total} 条，"
+          f"反义 {pairs_count} 对 + 单词反义 {words_count} 条，问题 {problems} 条")
     if short:
         print(f"少于 {PER_THEME} 条的主题：{', '.join(short)}")
     return 1 if problems else 0

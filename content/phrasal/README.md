@@ -2,12 +2,16 @@
 
 页面在 `apps/phrasal/`，由 `apps/phrasal/source/build.py` 生成。改内容只改这里。
 
-30 个主题，共 **1,277 条**：短语动词 1,121、介词搭配 98、习语/固定短语 58。
+30 个主题，共 **1,279 条**：短语动词 1,122、介词搭配 98、习语/固定短语 59。
 每条都带 `kind`（phrasal / prep / idiom）；页面显示类型、语体（口语/中性/书面）和【可分】。
 每章 32–74 条，页面顶部可按类型和小品词筛选。
 
+`opposites.json` 存反义关系：`pairs` 是两两配对的词条 id（可跨主题、一条可挂多个），
+`word_opposites` 是「反义是单个单词」的提示（如 `take off` 起飞义 → `land`），只显示不跳转。
+
 ```
 themes.json          30 个主题：分类、英文标题、中文标题、简介、对应 chip
+opposites.json       反义词条配对 + 单词反义提示
 
 【日常生活】
 errands.json              办事跑腿
@@ -65,7 +69,8 @@ communication.json        沟通
 2026-11-02 又按《Illustrated Phrasal Verb Dictionary》和《Work on Your Phrasal Verbs》
 做了全量对齐，补入 310 条（154 条短语动词、98 条介词搭配、58 条习语），按场景归入
 现有 30 章。两本书里重复的、英式专用的（排队类表达、knock up 等）和书页标题
-（your turn!）没有重复入库，所以总数是 1,277 而不是 1,308。
+（your turn!）没有重复入库，所以总数是 1,277 而不是 1,308。后来又补了两条反义配对缺的词条
+（`sign out`、`get off on the wrong foot`），现在共 1,279 条。
 
 相对原书改掉的地方：
 

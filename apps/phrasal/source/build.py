@@ -20,6 +20,7 @@ import re
 import shutil
 import subprocess
 import sys
+from urllib.parse import quote
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 CONTENT = ROOT / "content" / "phrasal"
@@ -67,6 +68,49 @@ def load_themes():
         else:
             theme["entries"] = []
     return themes
+
+
+def load_opposites():
+    path = CONTENT / "opposites.json"
+    if not path.exists():
+        return {"pairs": [], "word_opposites": {}}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def opposite_maps(themes, numbers):
+    """Resolve opposites.json into page-aware targets and word hints.
+
+    Returns (links, words, by_id):
+      links[id] = [{"id", "head", "zh", "page"}, ...]   # clickable entries
+      words[id] = [{"word", "zh", "sense"}, ...]        # display-only words
+      by_id[id] = {"id", "head", "zh", "page", "theme"}
+    """
+    doc = load_opposites()
+    by_id = {}
+    for theme in themes:
+        page = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
+        for entry in theme["entries"]:
+            by_id[entry["id"]] = {
+                "id": entry["id"], "head": entry["head"], "zh": entry["zh"],
+                "page": page, "theme": theme["id"],
+            }
+
+    links: dict[str, list] = {}
+    for pair in doc.get("pairs", []):
+        if not isinstance(pair, list) or len(pair) != 2:
+            continue
+        left, right = pair
+        if left not in by_id or right not in by_id:
+            print(f"warn: opposites.json 跳过未知 id：{left} / {right}", file=sys.stderr)
+            continue
+        links.setdefault(left, []).append(by_id[right])
+        links.setdefault(right, []).append(by_id[left])
+    words = {
+        key: value
+        for key, value in (doc.get("word_opposites") or {}).items()
+        if key in by_id
+    }
+    return links, words, by_id
 
 
 def entry_texts(entry):
@@ -236,7 +280,7 @@ def build_sprites(plan):
     return ClipCursor(spans), urls
 
 
-def entry_html(entry, audio):
+def entry_html(entry, audio, opposites=None, page="", word_opposites=None):
     kind = entry.get("kind", "phrasal")
     badges = [
         f'<span class="badge kind kind-{kind}">{KIND_ZH.get(kind, kind)}</span>',
@@ -254,15 +298,24 @@ def entry_html(entry, audio):
     )
 
     senses = []
-    for sense in entry.get("senses", []):
+    for sense_index, sense in enumerate(entry.get("senses", []), 1):
         example = sense.get("example") or {}
         en = example.get("en", "")
+        word_line = ""
+        word_items = [w for w in (word_opposites or []) if w.get("sense") == sense_index]
+        if word_items:
+            word_line = '<p class="opp-word"><b>反义</b>' + " · ".join(
+                f'<span class="opp-word-en">{html.escape(w["word"])}</span>'
+                f'<span class="zh">{html.escape(w["zh"])}</span>'
+                for w in word_items
+            ) + '</p>'
         senses.append(
             '<div class="sense">'
             f'<p class="sense-zh">{html.escape(sense.get("zh", ""))}</p>'
             f'<button class="ex say" type="button" {audio.attrs(en)}>'
             f'<span class="txt">{html.escape(en)}</span>'
             f'<span class="zh">{html.escape(example.get("zh", ""))}</span></button>'
+            f'{word_line}'
             '</div>'
         )
 
@@ -275,6 +328,23 @@ def entry_html(entry, audio):
     if entry.get("confusables"):
         extra.append('<p class="confuse"><b>易混</b>'
                      + html.escape(" · ".join(entry["confusables"])) + "</p>")
+    if opposites:
+        links = []
+        for opp in opposites:
+            if opp["page"] == page:
+                href = f'#{opp["id"]}'
+                same = ' data-opp-same="1"'
+            else:
+                back = quote(f'{page}.html#{entry["id"]}', safe="")
+                href = f'{opp["page"]}.html?from={back}#{opp["id"]}'
+                same = ""
+            links.append(
+                f'<a class="opp-btn" href="{html.escape(href, quote=True)}"{same}>'
+                f'{html.escape(opp["head"])}'
+                f'<span class="zh">{html.escape(opp["zh"])}</span></a>'
+            )
+        extra.append('<p class="opp"><b>反义</b>'
+                     + '<span class="opp-sep">·</span>'.join(links) + '</p>')
     details = ('<div class="note-card">' + "".join(extra) + "</div>") if extra else ""
 
     chips = f' data-chip="{html.escape(entry["chip"])}"'
@@ -289,8 +359,9 @@ def entry_html(entry, audio):
     )
 
 
-def build_page(chapter, number, total):
+def build_page(chapter, number, total, opp_map=None, word_map=None):
     template = (BASE / "source" / "template.html").read_text(encoding="utf-8")
+    page_name = f"{number:02d}-{slug(chapter['title_en'])}"
     plan = ClipPlan()
     for entry in chapter["entries"]:
         for text in entry_texts(entry):
@@ -301,7 +372,11 @@ def build_page(chapter, number, total):
         (CONTENT / "themes.json").read_text(encoding="utf-8")).get("categories", [])}
     cat = categories.get(chapter.get("category"), {})
 
-    rows = "\n      ".join(entry_html(entry, audio) for entry in chapter["entries"])
+    rows = "\n      ".join(
+        entry_html(entry, audio, (opp_map or {}).get(entry["id"]), page_name,
+                   (word_map or {}).get(entry["id"]))
+        for entry in chapter["entries"]
+    )
     page = template
     page = page.replace("__CATEGORY_ID__", html.escape(chapter.get("category", "")))
     page = page.replace("__CATEGORY_ZH__", html.escape(cat.get("title_zh", "短语搭配")))
@@ -317,7 +392,7 @@ def build_page(chapter, number, total):
         '<script id="spriteMap" type="application/json">'
         + json.dumps(sprites, separators=(",", ":")) + "</script>",
     )
-    name = f"{number:02d}-{slug(chapter['title_en'])}.html"
+    name = f"{page_name}.html"
     out = BASE / name
     out.write_text(page, encoding="utf-8")
     print(f"built {name} ({len(chapter['entries'])} entries, "
@@ -476,6 +551,26 @@ INDEX_STYLE = """
   .card .note-card p { margin:6px 0 0; font-size:13px; line-height:1.6; }
   .card .note-card p b { display:inline-block; margin-right:6px; font-size:12px;
     color:var(--accent); font-weight:600; }
+  .card .opp { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .card .opp-btn { display:inline-flex; align-items:baseline; gap:5px;
+    padding:2px 10px; border:1px solid var(--accent); border-radius:999px;
+    background:transparent; color:var(--accent); font:inherit; font-size:13px;
+    line-height:1.5; cursor:pointer; }
+  .card .opp-btn:hover { background:var(--tint); }
+  .card .opp-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .card .opp-btn .zh, .card .opp-word .zh { color:var(--muted); font-size:12px; }
+  .card .opp-sep { color:var(--muted); }
+  .card .opp-word { margin:6px 0 0; font-size:13px; color:var(--muted); }
+  .card .opp-word b { display:inline-block; margin-right:6px; font-size:12px;
+    color:var(--accent); font-weight:600; }
+  .card.opp-focus { box-shadow:0 0 0 3px var(--accent); }
+  .opp-return { position:fixed; left:max(16px, env(safe-area-inset-left, 0px));
+    bottom:max(16px, env(safe-area-inset-bottom, 0px)); z-index:60;
+    display:inline-flex; align-items:center; gap:6px; padding:9px 16px;
+    border:1px solid var(--rule); border-radius:999px; background:var(--fg);
+    color:var(--bg); font:inherit; font-size:14px; cursor:pointer;
+    box-shadow:0 6px 18px rgba(0, 0, 0, .22); }
+  .opp-return[hidden] { display:none; }
   .back { display:inline-block; margin-bottom:14px; color:var(--muted);
     text-decoration:none; font-size:14px; }
   .back:hover { color:var(--accent); }
@@ -530,7 +625,7 @@ def page_audio(path):
     return sprites, spans
 
 
-def index_data(themes):
+def index_data(themes, opp_map=None, word_map=None):
     """整站数据一次写进 data.js（本地 file:// 打开时不能靠 fetch）。"""
     doc = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
     categories = doc.get("categories", [])
@@ -547,6 +642,7 @@ def index_data(themes):
             index_of[(theme["id"], entry["id"])] = len(entries)
             rows.append(len(entries))
             entries.append({
+                "id": entry["id"], "c": theme.get("category", ""), "t": theme["id"],
                 "h": entry["head"], "zh": entry["zh"], "ipa": entry["ipa"],
                 "kind": entry.get("kind", "phrasal"),
                 "reg": entry["register"], "sep": entry["separable"],
@@ -555,6 +651,7 @@ def index_data(themes):
                 "l1": entry.get("l1_note", ""),
                 "coll": [],
                 "conf": [],
+                "opp": [], "wo": [],
                 "sp": sprites, "au": spans.get(entry["id"], []),
             })
         theme_rows[theme["id"]] = rows
@@ -575,6 +672,26 @@ def index_data(themes):
             entries[idx]["conf"] = [
                 [name, by_head.get(name.lower(), "")]
                 for name in entry.get("confusables", [])
+            ]
+
+    by_entry_id = {
+        entry["id"]: index_of[(theme["id"], entry["id"])]
+        for theme in themes for entry in theme["entries"]
+    }
+    for theme in themes:
+        for entry in theme["entries"]:
+            idx = index_of[(theme["id"], entry["id"])]
+            targets = []
+            for target in (opp_map or {}).get(entry["id"], []):
+                target_index = by_entry_id.get(target["id"])
+                if target_index is not None:
+                    targets.append({
+                        "i": target_index, "h": target["head"], "zh": target["zh"],
+                    })
+            entries[idx]["opp"] = targets
+            entries[idx]["wo"] = [
+                [item.get("sense"), item.get("word"), item.get("zh")]
+                for item in (word_map or {}).get(entry["id"], [])
             ]
 
     scene = []
@@ -606,8 +723,8 @@ def index_data(themes):
     return {"scene": scene, "particle": particle, "entries": entries}
 
 
-def build_index(themes):
-    data = index_data(themes)
+def build_index(themes, opp_map=None, word_map=None):
+    data = index_data(themes, opp_map, word_map)
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:10]
     for old in BASE.glob("data.*.js"):
@@ -641,6 +758,7 @@ def build_index(themes):
         '<div class="chips" data-chips="particle" hidden></div>\n'
         '<div class="chips" data-chips="theme" hidden></div>\n'
         '<div id="view"></div>\n'
+        '<button class="opp-return" type="button" data-opp-return hidden>‹ 返回</button>\n'
         '</div>\n'
         f'<script src="data.{digest}.js"></script>\n'
         "<script>\n"
@@ -676,12 +794,15 @@ def build_index(themes):
         "  out+='<p class=\"zh-line\">'+esc(e.zh)+'</p>';\n"
         "  for(var s=0;s<e.sen.length;s++){\n"
         "    var it=e.sen[s];\n"
-        "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><div class=\"say-unit ex-unit\" data-unit=\"'+i+'-'+(s+1)+'\"><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><div class=\"ex-text\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></div></div></div>';\n"
+        "    var wo='';\n"
+        "    if(e.wo&&e.wo.length){var wl=e.wo.filter(function(w){return w[0]===s+1;});if(wl.length)wo='<p class=\\\"opp-word\\\"><b>反义</b>'+wl.map(function(w){return esc(w[1])+'<span class=\\\"zh\\\">'+esc(w[2])+'</span>';}).join(' · ')+'</p>';}\n"
+        "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><div class=\"say-unit ex-unit\" data-unit=\"'+i+'-'+(s+1)+'\"><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><div class=\"ex-text\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></div></div>'+wo+'</div>';\n"
         "  }\n"
         "  var notes='';\n"
         "  if(e.l1)notes+='<p class=\"l1\"><b>易错</b>'+esc(e.l1)+'</p>';\n"
         "  if(e.coll&&e.coll.length)notes+='<p class=\"colloc\"><b>搭配</b>'+e.coll.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';\n"
         "  if(e.conf&&e.conf.length)notes+='<p class=\"confuse\"><b>易混</b>'+e.conf.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';\n"
+        "  if(e.opp&&e.opp.length)notes+='<p class=\"opp\"><b>反义</b>'+e.opp.map(function(o){return '<button type=\"button\" class=\"opp-btn\" data-opp-i=\"'+o.i+'\">'+esc(o.h)+'<span class=\"zh\">'+esc(o.zh)+'</span></button>';}).join('<span class=\"opp-sep\">·</span>')+'</p>';\n"
         "  if(notes)out+='<div class=\"note-card\">'+notes+'</div>';\n"
         "  return out+'</div>';\n"
         "}\n"
@@ -749,8 +870,14 @@ def build_index(themes):
         "  scrollToEl(target);\n"
         "}\n"
         "var restoringPosition=false;\n"
-        "function paint(m,value,scroll,restore){\n"
-        "  var changed=mode!==m;var shouldRestore=changed||restore;\n"
+        "var oppOrigin=null;\n"
+        "function oppPill(){return document.querySelector('[data-opp-return]');}\n"
+        "function showOppPill(on){var b=oppPill();if(b)b.hidden=!on;document.body.classList.toggle('has-opp-return',!!on);}\n"
+        "function clearOppFocus(){var el=view.querySelector('.card.opp-focus');if(el)el.classList.remove('opp-focus');}\n"
+        "function exitOpp(){var b=oppPill();if(oppOrigin||(b&&!b.hidden)){oppOrigin=null;showOppPill(false);clearOppFocus();}}\n"
+        "function paint(m,value,scroll,restore,keepScroll,keepOpp){\n"
+        "  if(!keepOpp)exitOpp();\n"
+        "  var changed=mode!==m;var shouldRestore=(changed||restore)&&!keepScroll;\n"
         "  if(changed)positions[mode]=window.scrollY;\n"
         "  if(shouldRestore)restoringPosition=true;\n"
         "  mode=m;if(value!==undefined)state[m]=value;\n"
@@ -772,6 +899,7 @@ def build_index(themes):
         "},{passive:true});\n"
         "window.addEventListener('pagehide',function(){positions[mode]=window.scrollY;persistState();});\n"
         "function toggleCard(btn){\n"
+        "  exitOpp();\n"
         "  var i=+btn.getAttribute('data-i');\n"
         "  var existing=view.querySelector('.card');\n"
         "  var prev=view.querySelector('.prow[aria-expanded=\"true\"]');\n"
@@ -779,6 +907,40 @@ def build_index(themes):
         "  if(existing)existing.remove();\n"
         "  if(prev)prev.setAttribute('aria-expanded','false');\n"
         "  open=i;btn.setAttribute('aria-expanded','true');btn.insertAdjacentHTML('afterend',card(i));\n"
+        "}\n"
+        "function openOppTarget(i){\n"
+        "  var e=D.entries[i];if(!e)return false;\n"
+        "  if(mode!=='scene'||state.scene!==e.c)paint('scene',e.c,false,false,true,true);\n"
+        "  var row=view.querySelector('.prow[data-i=\"'+i+'\"]');if(!row)return false;\n"
+        "  if(open!==i){\n"
+        "    var ex=view.querySelector('.card');if(ex)ex.remove();\n"
+        "    var prev=view.querySelector('.prow[aria-expanded=\"true\"]');if(prev)prev.setAttribute('aria-expanded','false');\n"
+        "    open=i;row.setAttribute('aria-expanded','true');row.insertAdjacentHTML('afterend',card(i));\n"
+        "  }\n"
+        "  var c=view.querySelector('.card[data-card=\"'+i+'\"]');\n"
+        "  if(c){c.classList.add('opp-focus');scrollToEl(c);}\n"
+        "  return true;\n"
+        "}\n"
+        "function jumpToOpp(i){\n"
+        "  if(oppOrigin&&oppOrigin.open===i){returnToOppOrigin();return;}\n"
+        "  if(!oppOrigin)oppOrigin={mode:mode,scene:state.scene,particle:state.particle,atCategories:atCategories,chipsExpanded:chipsExpanded,open:open,y:window.scrollY};\n"
+        "  if(openOppTarget(i))showOppPill(true);\n"
+        "}\n"
+        "function returnToOppOrigin(){\n"
+        "  var o=oppOrigin;if(!o)return;\n"
+        "  oppOrigin=null;showOppPill(false);clearOppFocus();\n"
+        "  atCategories=o.atCategories;\n"
+        "  if(mode!==o.mode||state.scene!==o.scene||state.particle!==o.particle)paint(o.mode,o.mode==='scene'?o.scene:o.particle,false,false,true,true);\n"
+        "  chipsExpanded=o.chipsExpanded;setChipsExpanded(chipsExpanded);\n"
+        "  var row=view.querySelector('.prow[data-i=\"'+o.open+'\"]');\n"
+        "  if(row){\n"
+        "    var ex=view.querySelector('.card');if(ex)ex.remove();\n"
+        "    var prev=view.querySelector('.prow[aria-expanded=\"true\"]');if(prev)prev.setAttribute('aria-expanded','false');\n"
+        "    open=o.open;row.setAttribute('aria-expanded','true');row.insertAdjacentHTML('afterend',card(o.open));\n"
+        "    var c=view.querySelector('.card[data-card=\"'+o.open+'\"]');\n"
+        "    if(c){c.classList.add('opp-focus');scrollToEl(c);}\n"
+        "  }\n"
+        "  persistState();\n"
         "}\n"
         "var KEY_VOICE='pv-voice';var voice='f';\n"
         "try{var sv=localStorage.getItem(KEY_VOICE);if(sv==='f'||sv==='m')voice=sv;}catch(e){}\n"
@@ -878,11 +1040,15 @@ def build_index(themes):
         "});\n"
         "for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var next=e.currentTarget.getAttribute('data-mode');if(next===mode){setChipsExpanded(!chipsExpanded);return;}atCategories=false;setChipsExpanded(true);paint(next,state[next],false);});\n"
         "view.addEventListener('click',function(e){\n"
+        "  var ob=e.target.closest('.opp-btn');\n"
+        "  if(ob){jumpToOpp(+ob.getAttribute('data-opp-i'));return;}\n"
         "  var say=e.target.closest('.say');\n"
         "  if(say){playSay(say);return;}\n"
         "  var b=e.target.closest('.prow');\n"
         "  if(b)toggleCard(b);\n"
         "});\n"
+        "var oppRet=oppPill();\n"
+        "if(oppRet)oppRet.addEventListener('click',function(){returnToOppOrigin();});\n"
         "function scrollToGroup(g){\n"
         "  if(!g)return;\n"
         "  var head=g.querySelector('.theme')||g.querySelector('.prow')||g;\n"
@@ -931,9 +1097,10 @@ async def main():
     themes = load_themes()
     numbers = {theme["id"]: index + 1 for index, theme in enumerate(themes)}
     total = sum(len(theme["entries"]) for theme in themes)
+    opp_map, word_map, _ = opposite_maps(themes, numbers)
 
     if args.index_only:
-        build_index(themes)
+        build_index(themes, opp_map, word_map)
         return 0
 
     selected = themes
@@ -960,12 +1127,12 @@ async def main():
         if missing:
             print(f"skip {theme['id']}: {len(missing)} clips missing")
             continue
-        build_page(theme, numbers[theme["id"]], total)
+        build_page(theme, numbers[theme["id"]], total, opp_map, word_map)
         built += 1
 
     if not args.only and built == len(selected):
         all_themes = load_themes()
-        build_index(all_themes)
+        build_index(all_themes, opp_map, word_map)
     return 1 if failed else 0
 
 
