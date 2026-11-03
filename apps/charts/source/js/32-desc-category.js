@@ -82,6 +82,21 @@
           top.name_zh + '领先' + second.name_zh + ' ' + valueZh(dataset, rank.gap) + '。'
         ));
       }
+      if (rank.fastest && rank.fastest.pctChange > 0) {
+        sentences.push(desc.sentence(
+          'growth',
+          rank.fastest.name_en + ' grew fastest, up ' + NC.fmt.number(Math.abs(rank.fastest.pctChange), 1) + '% on last year.',
+          rank.fastest.name_zh + '增长最快，同比上升 ' + NC.fmt.number(Math.abs(rank.fastest.pctChange), 1) + '%。'
+        ));
+      }
+      if (rank.total) {
+        var b1TopTwoShare = (top.value + second.value) / rank.total * 100;
+        sentences.push(desc.sentence(
+          'structure',
+          'The top two markets made up ' + NC.fmt.number(b1TopTwoShare, 0) + '% of total revenue.',
+          '前两个市场合计占总收入的 ' + NC.fmt.number(b1TopTwoShare, 0) + '%。'
+        ));
+      }
     } else if (level === 'B2') {
       var b2Lead = opts.style === 'table'
         ? top.name_en + ' was the highest-performing market at ' + topValue + ', ' + gapValue + ' ahead of ' + second.name_en + '.'

@@ -1630,10 +1630,8 @@ body.charts-page {
       <span class="brand-zh">商务图表英语</span>
     </div>
     <div class="level-switch" id="level-switch" role="group" aria-label="难度">
-      <button type="button" data-level="A2">A2</button>
-      <button type="button" data-level="B1">B1</button>
-      <button type="button" data-level="B2">B2</button>
-      <button type="button" data-level="C1">C1</button>
+      <button type="button" data-level="B1">基础</button>
+      <button type="button" data-level="C1">进阶</button>
     </div>
   </div>
   <nav class="type-switch" aria-label="图表类型">
@@ -1659,7 +1657,7 @@ body.charts-page {
 
   var NC = global.NPESLCharts = global.NPESLCharts || {};
   NC.version = '1.0.0';
-  NC.LEVELS = ['A2', 'B1', 'B2', 'C1'];
+  NC.LEVELS = ['B1', 'C1'];
   NC.renderers = {};
   NC.desc = NC.desc || {};
   NC.stats = NC.stats || {};
@@ -1755,14 +1753,6 @@ body.charts-page {
   NC.bus = {};
   NC.on = function (name, fn) {
     (NC.bus[name] = NC.bus[name] || []).push(fn);
-  };
-
-  NC.levelIndex = function (level) {
-    return NC.LEVELS.indexOf(level);
-  };
-
-  NC.showLevel = function (entryLevel, level) {
-    return NC.levelIndex(entryLevel) <= NC.levelIndex(level || NC.state.level);
   };
 })(window);
 
@@ -2716,29 +2706,14 @@ body.charts-page {
     return variants[index];
   };
 
-  desc.cap = {
-    A2: 2,
-    B1: 3,
-    B2: 4,
-    C1: 5
-  };
-
-  desc.modelCap = {
-    A2: 3,
-    B1: 4,
-    B2: 5,
-    C1: 6
-  };
-
   desc.output = function (level, sentences, stats, extra) {
     var list = sentences.filter(function (sentence) {
       return sentence && sentence.en;
     });
-    var liveCount = Math.min(desc.cap[level] || 3, list.length);
     return {
       level: level,
       sentences: list,
-      live: list.slice(0, liveCount),
+      live: list,
       stats: stats || null,
       watch: extra && extra.watch ? extra.watch : null
     };
@@ -3033,7 +3008,7 @@ body.charts-page {
       candidates.push(lastSeg);
     }
 
-    var segmentLimit = level === 'A2' ? 1 : level === 'B1' ? 2 : 3;
+    var segmentLimit = 3;
     var picks;
     if (level === 'A2') {
       picks = [stats.biggestRise || stats.biggest || lastSeg];
@@ -3103,6 +3078,20 @@ body.charts-page {
         takeaway = desc.sentence('takeaway', 'The overall direction is clear, even though individual quarters moved at different speeds.', '整体方向清楚，只是各季度的变化速度不同。');
       }
       sentences.push(takeaway);
+    } else {
+      var plainTakeaway;
+      if (stats.reversal) {
+        plainTakeaway = desc.sentence('takeaway', 'The direction changed during the period rather than following one trend.', '这段时间里方向发生了变化，而不是单一趋势。');
+      } else if (stats.volatile) {
+        plainTakeaway = desc.sentence('takeaway', 'The figures moved up and down rather than in one direction.', '这些数字上下波动，并没有朝一个方向走。');
+      } else if (stats.backLoaded) {
+        plainTakeaway = desc.sentence('takeaway', 'Most of the growth came later in the period.', '大部分增长出现在后半段。');
+      } else if (stats.frontLoaded) {
+        plainTakeaway = desc.sentence('takeaway', 'Most of the growth came earlier in the period.', '大部分增长出现在前半段。');
+      } else {
+        plainTakeaway = desc.sentence('takeaway', 'The overall direction is clear, although the pace changed during the period.', '整体方向清楚，只是这段时间里速度有变化。');
+      }
+      sentences.push(plainTakeaway);
     }
 
     return { sentences: sentences, stats: stats };
@@ -3192,6 +3181,21 @@ body.charts-page {
           'gap',
           top.name_en + ' was ' + gapValue + ' ahead of ' + second.name_en + '.',
           top.name_zh + '领先' + second.name_zh + ' ' + valueZh(dataset, rank.gap) + '。'
+        ));
+      }
+      if (rank.fastest && rank.fastest.pctChange > 0) {
+        sentences.push(desc.sentence(
+          'growth',
+          rank.fastest.name_en + ' grew fastest, up ' + NC.fmt.number(Math.abs(rank.fastest.pctChange), 1) + '% on last year.',
+          rank.fastest.name_zh + '增长最快，同比上升 ' + NC.fmt.number(Math.abs(rank.fastest.pctChange), 1) + '%。'
+        ));
+      }
+      if (rank.total) {
+        var b1TopTwoShare = (top.value + second.value) / rank.total * 100;
+        sentences.push(desc.sentence(
+          'structure',
+          'The top two markets made up ' + NC.fmt.number(b1TopTwoShare, 0) + '% of total revenue.',
+          '前两个市场合计占总收入的 ' + NC.fmt.number(b1TopTwoShare, 0) + '%。'
         ));
       }
     } else if (level === 'B2') {
@@ -3324,6 +3328,28 @@ body.charts-page {
         bottom.name_en + ' accounts for just ' + bottomShare + '.',
         bottom.name_zh + '只占 ' + bottomShare + '。'
       ));
+      if (stats.consolidated) {
+        sentences.push(desc.sentence(
+          'structure',
+          'The top three channels hold ' + pct(stats.top3) + ' between them.',
+          '前三个渠道合计占 ' + pct(stats.top3) + '。'
+        ));
+      } else if (stats.fragmented) {
+        sentences.push(desc.sentence(
+          'structure',
+          'The market is split across several channels, with no clear leader.',
+          '市场分散在多个渠道，没有明显的领先者。'
+        ));
+      }
+      var b1Change = stats.changes.filter(function (item) { return item.id === top.id; })[0] || stats.changes[0];
+      if (b1Change) {
+        var b1Shrank = b1Change.deltaPP < 0 && b1Change.id === top.id;
+        sentences.push(desc.sentence(
+          'change',
+          b1Change.name_en + ' ' + (b1Shrank ? 'lost ' : b1Change.deltaPP > 0 ? 'gained ' : 'lost ') + pp(b1Change.deltaPP) + ', from ' + pct(b1Change.baselineShare) + ' to ' + pct(b1Change.share) + '.',
+          b1Change.name_zh + (b1Shrank ? '份额下降 ' : b1Change.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(b1Change.deltaPP) + '，从 ' + pct(b1Change.baselineShare) + ' 变为 ' + pct(b1Change.share) + '。'
+        ));
+      }
     } else if (level === 'B2') {
       if (stats.neckAndNeck) {
         sentences.push(desc.sentence(
@@ -4891,7 +4917,7 @@ body.charts-page {
     if (!host) return;
     var allowed = type.vocab_groups || [];
     var entries = NC.state.data.vocab.entries.filter(function (entry) {
-      return allowed.indexOf(entry.group) !== -1 && NC.showLevel(entry.level, NC.state.level);
+      return allowed.indexOf(entry.group) !== -1;
     });
     var html = NC.state.data.vocab.groups.filter(function (group) {
       return allowed.indexOf(group.id) !== -1;
@@ -4910,10 +4936,7 @@ body.charts-page {
     var section = NC.byId('chart-' + type.id);
     var list = section && section.querySelector('[data-patterns]');
     if (!list) return;
-    var visible = (type.patterns || []).filter(function (pattern) {
-      return NC.showLevel(pattern.level, NC.state.level);
-    });
-    if (!visible.length && type.patterns && type.patterns.length) visible = [type.patterns[0]];
+    var visible = (type.patterns || []).slice();
     list.innerHTML = visible.map(function (pattern) {
       return '<li>' + levelBadge(pattern.level) +
         '<span class="pattern-en" lang="en">' + NC.escapeHtml(pattern.en) + '</span>' +
@@ -4959,10 +4982,8 @@ body.charts-page {
     if (!verbSelect || !adverbSelect || !output) return;
 
     var grammar = NC.state.data.grammar.converter;
-    var verbs = grammar.verbs.filter(function (verb) { return NC.showLevel(verb.level, NC.state.level); });
-    var adverbs = grammar.adverbs.filter(function (adverb) { return NC.showLevel(adverb.level, NC.state.level); });
-    if (!verbs.length) verbs = grammar.verbs;
-    if (!adverbs.length) adverbs = grammar.adverbs;
+    var verbs = grammar.verbs.slice();
+    var adverbs = grammar.adverbs.slice();
 
     var verbValue = verbSelect.value;
     var adverbValue = adverbSelect.value;

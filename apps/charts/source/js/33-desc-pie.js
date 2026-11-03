@@ -50,6 +50,28 @@
         bottom.name_en + ' accounts for just ' + bottomShare + '.',
         bottom.name_zh + '只占 ' + bottomShare + '。'
       ));
+      if (stats.consolidated) {
+        sentences.push(desc.sentence(
+          'structure',
+          'The top three channels hold ' + pct(stats.top3) + ' between them.',
+          '前三个渠道合计占 ' + pct(stats.top3) + '。'
+        ));
+      } else if (stats.fragmented) {
+        sentences.push(desc.sentence(
+          'structure',
+          'The market is split across several channels, with no clear leader.',
+          '市场分散在多个渠道，没有明显的领先者。'
+        ));
+      }
+      var b1Change = stats.changes.filter(function (item) { return item.id === top.id; })[0] || stats.changes[0];
+      if (b1Change) {
+        var b1Shrank = b1Change.deltaPP < 0 && b1Change.id === top.id;
+        sentences.push(desc.sentence(
+          'change',
+          b1Change.name_en + ' ' + (b1Shrank ? 'lost ' : b1Change.deltaPP > 0 ? 'gained ' : 'lost ') + pp(b1Change.deltaPP) + ', from ' + pct(b1Change.baselineShare) + ' to ' + pct(b1Change.share) + '.',
+          b1Change.name_zh + (b1Shrank ? '份额下降 ' : b1Change.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(b1Change.deltaPP) + '，从 ' + pct(b1Change.baselineShare) + ' 变为 ' + pct(b1Change.share) + '。'
+        ));
+      }
     } else if (level === 'B2') {
       if (stats.neckAndNeck) {
         sentences.push(desc.sentence(

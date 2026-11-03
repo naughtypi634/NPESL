@@ -3,7 +3,7 @@
 
   var NC = global.NPESLCharts = global.NPESLCharts || {};
   NC.version = '1.0.0';
-  NC.LEVELS = ['A2', 'B1', 'B2', 'C1'];
+  NC.LEVELS = ['B1', 'C1'];
   NC.renderers = {};
   NC.desc = NC.desc || {};
   NC.stats = NC.stats || {};
@@ -99,13 +99,5 @@
   NC.bus = {};
   NC.on = function (name, fn) {
     (NC.bus[name] = NC.bus[name] || []).push(fn);
-  };
-
-  NC.levelIndex = function (level) {
-    return NC.LEVELS.indexOf(level);
-  };
-
-  NC.showLevel = function (entryLevel, level) {
-    return NC.levelIndex(entryLevel) <= NC.levelIndex(level || NC.state.level);
   };
 })(window);

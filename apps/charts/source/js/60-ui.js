@@ -131,7 +131,7 @@
     if (!host) return;
     var allowed = type.vocab_groups || [];
     var entries = NC.state.data.vocab.entries.filter(function (entry) {
-      return allowed.indexOf(entry.group) !== -1 && NC.showLevel(entry.level, NC.state.level);
+      return allowed.indexOf(entry.group) !== -1;
     });
     var html = NC.state.data.vocab.groups.filter(function (group) {
       return allowed.indexOf(group.id) !== -1;
@@ -150,10 +150,7 @@
     var section = NC.byId('chart-' + type.id);
     var list = section && section.querySelector('[data-patterns]');
     if (!list) return;
-    var visible = (type.patterns || []).filter(function (pattern) {
-      return NC.showLevel(pattern.level, NC.state.level);
-    });
-    if (!visible.length && type.patterns && type.patterns.length) visible = [type.patterns[0]];
+    var visible = (type.patterns || []).slice();
     list.innerHTML = visible.map(function (pattern) {
       return '<li>' + levelBadge(pattern.level) +
         '<span class="pattern-en" lang="en">' + NC.escapeHtml(pattern.en) + '</span>' +
@@ -199,10 +196,8 @@
     if (!verbSelect || !adverbSelect || !output) return;
 
     var grammar = NC.state.data.grammar.converter;
-    var verbs = grammar.verbs.filter(function (verb) { return NC.showLevel(verb.level, NC.state.level); });
-    var adverbs = grammar.adverbs.filter(function (adverb) { return NC.showLevel(adverb.level, NC.state.level); });
-    if (!verbs.length) verbs = grammar.verbs;
-    if (!adverbs.length) adverbs = grammar.adverbs;
+    var verbs = grammar.verbs.slice();
+    var adverbs = grammar.adverbs.slice();
 
     var verbValue = verbSelect.value;
     var adverbValue = adverbSelect.value;

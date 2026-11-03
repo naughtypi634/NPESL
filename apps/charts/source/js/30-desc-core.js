@@ -69,29 +69,14 @@
     return variants[index];
   };
 
-  desc.cap = {
-    A2: 2,
-    B1: 3,
-    B2: 4,
-    C1: 5
-  };
-
-  desc.modelCap = {
-    A2: 3,
-    B1: 4,
-    B2: 5,
-    C1: 6
-  };
-
   desc.output = function (level, sentences, stats, extra) {
     var list = sentences.filter(function (sentence) {
       return sentence && sentence.en;
     });
-    var liveCount = Math.min(desc.cap[level] || 3, list.length);
     return {
       level: level,
       sentences: list,
-      live: list.slice(0, liveCount),
+      live: list,
       stats: stats || null,
       watch: extra && extra.watch ? extra.watch : null
     };

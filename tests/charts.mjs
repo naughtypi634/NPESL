@@ -99,6 +99,7 @@ try {
       labels: panels.map((panel) => panel.dataset.type),
       tabs: tabs.length,
       tabLabels: tabs.map((tab) => tab.textContent.trim()),
+      levelButtons: [...document.querySelectorAll('#level-switch button')].map((button) => button.textContent.trim()),
       selected: tabs.filter((tab) => tab.getAttribute('aria-selected') === 'true').map((tab) => tab.textContent.trim()),
       visible: visible.map((panel) => panel.dataset.type),
       firstMounted: document.querySelector('[data-type="line"]').getAttribute('data-mounted'),
@@ -118,6 +119,7 @@ try {
   check('only chart types remain', structure.labels.join(',') === 'line,area,bar,hbar,table,pie', structure.labels.join(','));
   check('six type tabs exist', structure.tabs === 6, String(structure.tabs));
   check('tabs carry no sequence numbers', structure.tabLabels.every((label) => !/^\\d/.test(label)), structure.tabLabels.join(','));
+  check('only two difficulty levels remain', structure.levelButtons.join(',') === '基础,进阶', structure.levelButtons.join(','));
   check('one tab is selected', structure.selected.length === 1, JSON.stringify(structure.selected));
   check('only the selected panel is visible', structure.visible.length === 1 && structure.visible[0] === 'line', JSON.stringify(structure.visible));
   check('first lab mounts', structure.firstMounted === 'true');
@@ -200,12 +202,36 @@ try {
   check('arrow keys move between tabs', keyboardTab.selected === 'tab-area' && keyboardTab.visible.join(',') === 'area', JSON.stringify(keyboardTab));
 
   await selectType(edge, 'line');
+  const basic = await edge.evaluate(`(() => {
+    const lab = window.NPESLCharts.state.labs.line;
+    return {
+      shown: document.querySelectorAll('#chart-line [data-desc-lines] .sentence').length,
+      total: lab.result.sentences.length,
+      vocab: document.querySelectorAll('#chart-line [data-vocab] .vocab-card').length,
+      patterns: document.querySelectorAll('#chart-line [data-patterns] li').length,
+      grammar: document.querySelectorAll('#chart-line [data-grammar] .grammar-card').length
+    };
+  })()`);
+  check('basic description shows every sentence', basic.shown === basic.total && basic.total > 0, JSON.stringify(basic));
+
   await edge.evaluate("document.querySelectorAll('#level-switch [data-level]').forEach((b) => { if (b.dataset.level === 'C1') b.click(); })");
   await sleep(150);
   const c1 = await edge.evaluate("document.querySelector('[data-type=\"line\"] [data-desc-lines]').textContent");
   check('level switch changes wording', c1 !== after && c1.length > 20);
-  const vocabularyAfterLevel = await edge.evaluate("document.querySelectorAll('#chart-line [data-vocab] .vocab-card').length");
-  check('vocabulary follows the level switch', vocabularyAfterLevel > 0, String(vocabularyAfterLevel));
+  const advanced = await edge.evaluate(`(() => {
+    const lab = window.NPESLCharts.state.labs.line;
+    return {
+      shown: document.querySelectorAll('#chart-line [data-desc-lines] .sentence').length,
+      total: lab.result.sentences.length,
+      vocab: document.querySelectorAll('#chart-line [data-vocab] .vocab-card').length,
+      patterns: document.querySelectorAll('#chart-line [data-patterns] li').length,
+      grammar: document.querySelectorAll('#chart-line [data-grammar] .grammar-card').length
+    };
+  })()`);
+  check('advanced description shows every sentence', advanced.shown === advanced.total && advanced.total > 0, JSON.stringify(advanced));
+  check('both levels show the full vocabulary', advanced.vocab === basic.vocab && advanced.vocab > 0, JSON.stringify({ basic: basic.vocab, advanced: advanced.vocab }));
+  check('both levels show the full patterns', advanced.patterns === basic.patterns && advanced.patterns > 0, JSON.stringify({ basic: basic.patterns, advanced: advanced.patterns }));
+  check('both levels show the full grammar', advanced.grammar === basic.grammar && advanced.grammar > 0, JSON.stringify({ basic: basic.grammar, advanced: advanced.grammar }));
 
   await edge.send('Emulation.setDeviceMetricsOverride', {
     width: 375, height: 812, deviceScaleFactor: 2, mobile: true

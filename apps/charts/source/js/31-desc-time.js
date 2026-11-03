@@ -267,7 +267,7 @@
       candidates.push(lastSeg);
     }
 
-    var segmentLimit = level === 'A2' ? 1 : level === 'B1' ? 2 : 3;
+    var segmentLimit = 3;
     var picks;
     if (level === 'A2') {
       picks = [stats.biggestRise || stats.biggest || lastSeg];
@@ -337,6 +337,20 @@
         takeaway = desc.sentence('takeaway', 'The overall direction is clear, even though individual quarters moved at different speeds.', '整体方向清楚，只是各季度的变化速度不同。');
       }
       sentences.push(takeaway);
+    } else {
+      var plainTakeaway;
+      if (stats.reversal) {
+        plainTakeaway = desc.sentence('takeaway', 'The direction changed during the period rather than following one trend.', '这段时间里方向发生了变化，而不是单一趋势。');
+      } else if (stats.volatile) {
+        plainTakeaway = desc.sentence('takeaway', 'The figures moved up and down rather than in one direction.', '这些数字上下波动，并没有朝一个方向走。');
+      } else if (stats.backLoaded) {
+        plainTakeaway = desc.sentence('takeaway', 'Most of the growth came later in the period.', '大部分增长出现在后半段。');
+      } else if (stats.frontLoaded) {
+        plainTakeaway = desc.sentence('takeaway', 'Most of the growth came earlier in the period.', '大部分增长出现在前半段。');
+      } else {
+        plainTakeaway = desc.sentence('takeaway', 'The overall direction is clear, although the pace changed during the period.', '整体方向清楚，只是这段时间里速度有变化。');
+      }
+      sentences.push(plainTakeaway);
     }
 
     return { sentences: sentences, stats: stats };
