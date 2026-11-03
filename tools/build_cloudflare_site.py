@@ -172,7 +172,7 @@ def inject_head(path: Path, url: str, description: str) -> None:
 
 
 def drill_ignore(directory, names):
-    """网页只要拼好的 sprite；逐条录音留给小程序上传和离线母版。"""
+    """网页只要拼好的 sprite；逐条录音留在 apps/drill/audio/ 作母版。"""
     if Path(directory) == DRILL / "audio":
         return {"f", "m"}
     return set()

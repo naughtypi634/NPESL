@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站与微信小程序。六个应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters A1–C2 + ESLSE、常见发音现象 30 章、短语动词。
+成人英语练习网站。六个应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters A1–C2 + ESLSE、常见发音现象 30 章、短语动词。
 
 **本库是独立项目。** 2026-10-28 从 ESLStudio 复制出来，作为岔路点独立演进；不读、不写、不依赖 ESLStudio 或任何其他仓库。内容与代码都在本库内。
 

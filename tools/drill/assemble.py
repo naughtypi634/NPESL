@@ -85,7 +85,7 @@ def audio_id(text: str) -> str:
 def build_sprites(bank: list[dict]) -> None:
     """每题每音色拼一条 sprite，并把每句的时间区间写回题库。
 
-    逐条母版仍留在 audio/{f,m}/，微信小程序从云存储按条下载靠它；
+    逐条母版仍留在 audio/{f,m}/，重拼 sprite 或补录单句都靠它；
     网页只引用 sprite，部署文件从 8,772 个降到 2,740 个。
     """
     root = DRILL_APP / "audio"

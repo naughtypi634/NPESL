@@ -3,7 +3,7 @@
 
     NPESL/
       content/   内容源（Markdown、题库批次 JSON）
-      apps/      六个应用（页面、音频、源、小程序）
+      apps/      六个应用（页面、音频、源）
       tools/     构建、部署、校验脚本
       build/     暂存产物（gitignore）
 

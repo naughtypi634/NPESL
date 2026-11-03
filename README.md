@@ -11,8 +11,6 @@
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
 | 短语动词 Phrasal Verbs 30 主题 | https://npesl.pages.dev/phrasal/ | `content/phrasal/` → `apps/phrasal/` |
 
-另有一个微信小程序（自然拼读 48 课 + Question Drill）：`apps/phonics/miniprogram/`。
-
 ## 目录
 
 四层分得很清楚：**content 是内容源，apps 是应用，tools 是脚本，build 是产物。**
@@ -24,7 +22,7 @@
 | `content/drill/` | Question Drill 题库：`raw/` `reviewed/` `final/` 批次、`questions.json`、翻译与修订表 |
 | `content/phrasal/` | 短语动词：`themes.json` + 每个主题一个词条 JSON（内容源） |
 | `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Bright / Dark / Sepia / Auto） |
-| `apps/phonics/` | 48 课网页、`source/`（内容与构建器）、`audio/`、微信小程序 |
+| `apps/phonics/` | 48 课网页、`source/`（内容与构建器）、`audio/` |
 | `apps/ipa/` | 音标表网页（`index.html` + `audio/`），40 个音标 × 10 个单词 |
 | `apps/drill/` | 中译英练习网页（`index.html` + `audio/f,m/`）与独立单文件 HTML |
 | `apps/phenomena/` | 30 章发音现象课，逐词音素标注 + 男女声 |
@@ -32,7 +30,7 @@
 | `tools/` | 构建、部署、校验脚本；`tools/paths.py` 是路径的唯一来源 |
 | `tools/audio_sprite.py` | 把逐条录音拼成每页/每课/每题一条（不改码率，音质不变） |
 | `tools/conversation/` | Conversation Starters 页面与语音构建器 |
-| `tools/drill/` | Question Drill 题库工具与小程序数据生成器 |
+| `tools/drill/` | Question Drill 题库工具 |
 | `build/` | 暂存产物（gitignore，脚本可重建） |
 | `tests/` | 无头浏览器冒烟测试 |
 
@@ -43,7 +41,7 @@ python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-需要联网的只有 Edge TTS 合成；已有音频会自动跳过。Node 只在小程序的 `miniprogram-ci` 上传脚本和页面截图工具里用到，Python 构建不需要。
+需要联网的只有 TTS 合成（Azure / Edge）；已有音频会自动跳过。Node 只用于本地预览和无头浏览器自检，Python 构建不需要。
 
 ## 构建
 
@@ -66,10 +64,9 @@ cd apps\phenomena\source
 # Conversation Starters：页面 + 全部级别男女两套语音（缓存命中就不重新合成）
 .venv\Scripts\python.exe -I tools\conversation\build_site.py
 
-# Question Drill：先补语音，再拼 sprite 并重渲染页面，最后生成小程序题库
+# Question Drill：先补语音，再拼 sprite 并重渲染页面
 .venv\Scripts\python.exe -I tools\drill\make_audio.py
 .venv\Scripts\python.exe -I tools\drill\assemble.py
-.venv\Scripts\python.exe -I tools\drill\build_miniprogram_bank.py
 
 # 清理构建垃圾（Edge 临时配置、日志、__pycache__）；--all 连部署暂存和离线包一起清
 .venv\Scripts\python.exe -I tools\clean_build.py
