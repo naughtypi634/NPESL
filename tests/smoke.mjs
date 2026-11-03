@@ -826,7 +826,7 @@ const cases = [
   {
     name: 'phrasal-index', path: '/phrasal/',
     async run() {
-      // 默认场景+全部；两个模式的「全部」各自独立；无计数、无主题链接；点词条就地展开。
+      // 默认场景+全部、chip 展开；两个模式的「全部」各自独立；无计数、无主题链接；点词条就地展开。
       const r = await evaluate(`(async () => {
         const path0 = location.pathname;
         if (document.querySelector('.sub')) return 'meta-text';
@@ -835,7 +835,9 @@ const cases = [
         const sceneChips = [...document.querySelectorAll('[data-chips="scene"] button')];
         const partRow = document.querySelector('[data-chips="particle"]');
         const panel = document.querySelector('.sp-context-chips');
-        if (!panel || getComputedStyle(panel).display !== 'none') return 'panel-default-open';
+        if (!panel || getComputedStyle(panel).display === 'none') return 'panel-default-closed';
+        const sceneMode = document.querySelector('[data-mode="scene"]');
+        if (!sceneMode || sceneMode.getAttribute('aria-pressed') !== 'true') return 'default-mode-wrong';
         if (!sceneChips.length || !partRow.hidden) return 'default-chips-wrong';
         if (getComputedStyle(partRow).display !== 'none') return 'part-chips-visible';
         const sceneSections = [...document.querySelectorAll('#view .group[data-cat]')];
@@ -846,6 +848,14 @@ const cases = [
         const shownCat = [...document.querySelectorAll('#view .group[data-cat]')]
           .filter((s) => s.style.display !== 'none');
         if (!(shownCat.length === 1 && shownCat[0].dataset.cat === 'daily')) return 'cat-filter';
+        const themeRow = document.querySelector('[data-chips="theme"]');
+        const themeChips = [...themeRow.querySelectorAll('button[data-theme]')];
+        if (getComputedStyle(themeRow).display === 'none') return 'l3-not-shown';
+        if (getComputedStyle(document.querySelector('[data-chips=\"scene\"]')).display !== 'none') return 'l2-still-visible';
+        if (!themeChips.some((b) => b.textContent.trim() === '做饭采购')) return 'l3-wrong-chips';
+        themeRow.querySelector('[data-theme-back]').click();
+        if (getComputedStyle(themeRow).display !== 'none') return 'l3-back';
+        if (getComputedStyle(document.querySelector('[data-chips=\"scene\"]')).display === 'none') return 'l2-back';
         const workStudy = sceneChips.find((b) => b.textContent.trim() === '工作与学习');
         if (!workStudy) return 'no-work-study';
         workStudy.click();
@@ -881,8 +891,8 @@ const cases = [
         const firstCard = shownPart[0].querySelector('.prow');
         if (firstCard.getBoundingClientRect().top
             < document.querySelector('.sp-context').getBoundingClientRect().bottom + 4) return 'first-card-obscured';
-        if (document.querySelectorAll('.sp-dot').length === 1
-            && getComputedStyle(document.querySelector('.sp-rail')).display !== 'none') return 'single-dot-rail';
+        if (document.querySelector('.sp-rail')) return 'rail-still-there';
+        if (document.querySelector('.sp-dot')) return 'dots-still-there';
         return 'ok';
       })()`);
       if (r !== 'ok') return { ok: false, detail: `index=${r}` };

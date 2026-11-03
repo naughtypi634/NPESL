@@ -576,7 +576,7 @@ def index_data(themes):
             continue
         scene.append({
             "id": cat["id"], "zh": cat["title_zh"], "en": cat["title_en"],
-            "themes": [{"zh": t["title_zh"], "en": t["title_en"],
+            "themes": [{"id": t["id"], "zh": t["title_zh"], "en": t["title_en"],
                         "rows": theme_rows[t["id"]]} for t in group],
         })
 
@@ -629,6 +629,7 @@ def build_index(themes):
         '</div></div>\n'
         '<div class="chips" data-chips="scene"></div>\n'
         '<div class="chips" data-chips="particle" hidden></div>\n'
+        '<div class="chips" data-chips="theme" hidden></div>\n'
         '<div id="view"></div>\n'
         '</div>\n'
         f'<script src="data.{digest}.js"></script>\n'
@@ -638,9 +639,10 @@ def build_index(themes):
         "var view=document.getElementById('view');\n"
         "var rowScene=document.querySelector('[data-chips=\"scene\"]');\n"
         "var rowPart=document.querySelector('[data-chips=\"particle\"]');\n"
+        "var rowTheme=document.querySelector('[data-chips=\"theme\"]');\n"
         "var modeBtns=document.querySelectorAll('[data-mode]');\n"
         "var STATE_KEY='pv-index-state-v1';var state={scene:'all',particle:'all'},mode='scene',open=null;\n"
-        "var positions={scene:0,particle:0},chipsExpanded=false;\n"
+        "var positions={scene:0,particle:0},chipsExpanded=true,atCategories=false;\n"
         "try{\n"
         "  var saved=JSON.parse(sessionStorage.getItem(STATE_KEY)||'null');\n"
         "  if(saved&&saved.state&&saved.positions){\n"
@@ -678,7 +680,7 @@ def build_index(themes):
         "  D.scene.forEach(function(g){\n"
         "    out+='<section class=\"group\" data-cat=\"'+g.id+'\">';\n"
         "    g.themes.forEach(function(t){\n"
-        "      out+='<h3 class=\"theme\">'+esc(t.zh)+' <span class=\"stage-en\">'+esc(t.en)+'</span></h3>';\n"
+        "      out+='<h3 class=\"theme\" data-theme=\"'+t.id+'\">'+esc(t.zh)+' <span class=\"stage-en\">'+esc(t.en)+'</span></h3>';\n"
         "      out+='<div class=\"list\">'+t.rows.map(rowButton).join('')+'</div>';\n"
         "    });\n"
         "    out+='</section>';\n"
@@ -693,8 +695,23 @@ def build_index(themes):
         "  return out;\n"
         "}\n"
         "var html={scene:sceneHtml(),particle:partHtml()};\n"
+        "function themeGroup(cat){\n"
+        "  for(var i=0;i<D.scene.length;i++)if(D.scene[i].id===cat)return D.scene[i];\n"
+        "  return null;\n"
+        "}\n"
+        "function showThemeLevel(){return mode==='scene'&&state.scene!=='all'&&!atCategories;}\n"
+        "function renderThemeRow(){\n"
+        "  var g=themeGroup(state.scene);\n"
+        "  var out='<button type=\"button\" class=\"sp-chip-back\" data-theme-back=\"1\">‹ 全部分类</button>';\n"
+        "  if(g)out+=g.themes.map(function(t){return '<button type=\"button\" data-theme=\"'+t.id+'\">'+esc(t.zh)+'</button>';}).join('');\n"
+        "  rowTheme.innerHTML=out;\n"
+        "}\n"
         "function setChips(m){\n"
-        "  rowScene.hidden=(m!=='scene');rowPart.hidden=(m==='scene');\n"
+        "  var l3=showThemeLevel();\n"
+        "  rowScene.hidden=(m!=='scene')||l3;\n"
+        "  rowPart.hidden=(m!=='particle');\n"
+        "  rowTheme.hidden=!l3;\n"
+        "  if(l3)renderThemeRow();\n"
         "  for(var i=0;i<modeBtns.length;i++){\n"
         "    var active=modeBtns[i].getAttribute('data-mode')===m;\n"
         "    modeBtns[i].setAttribute('aria-pressed',active?'true':'false');\n"
@@ -709,14 +726,17 @@ def build_index(themes):
         "  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-expanded',modeBtns[i].getAttribute('data-mode')===mode&&chipsExpanded?'true':'false');\n"
         "}\n"
         "function persistState(){try{sessionStorage.setItem(STATE_KEY,JSON.stringify({mode:mode,state:state,positions:positions}));}catch(e){}}\n"
-        "function scrollToFirstTheme(){\n"
-        "  var groups=view.querySelectorAll('.group'),target=null;\n"
-        "  for(var i=0;i<groups.length;i++)if(groups[i].style.display!=='none'){target=groups[i].querySelector('.theme')||groups[i].querySelector('.prow');if(target)break;}\n"
-        "  if(!target){view.scrollIntoView({block:'start',behavior:'smooth'});return;}\n"
+        "function scrollToEl(target){\n"
         "  var banner=document.querySelector('.sp-context');\n"
         "  var offset=banner?banner.getBoundingClientRect().height+(parseFloat(getComputedStyle(banner).top)||0)+12:0;\n"
         "  var y=window.scrollY+target.getBoundingClientRect().top-offset;\n"
         "  window.scrollTo({top:Math.max(0,y),behavior:'smooth'});\n"
+        "}\n"
+        "function scrollToFirstTheme(){\n"
+        "  var groups=view.querySelectorAll('.group'),target=null;\n"
+        "  for(var i=0;i<groups.length;i++)if(groups[i].style.display!=='none'){target=groups[i].querySelector('.theme')||groups[i].querySelector('.prow');if(target)break;}\n"
+        "  if(!target){view.scrollIntoView({block:'start',behavior:'smooth'});return;}\n"
+        "  scrollToEl(target);\n"
         "}\n"
         "var restoringPosition=false;\n"
         "function paint(m,value,scroll,restore){\n"
@@ -729,7 +749,7 @@ def build_index(themes):
         "  var groups=view.querySelectorAll('.group');\n"
         "  for(var g=0;g<groups.length;g++)groups[g].style.display=(state[m]==='all'||groups[g].getAttribute('data-'+attr)===state[m])?'':'none';\n"
         "  setChips(m);\n"
-        "  if(scroll){setChipsExpanded(false);scrollToFirstTheme();}\n"
+        "  if(scroll){setChipsExpanded(showThemeLevel());scrollToFirstTheme();}\n"
         "  else if(shouldRestore)requestAnimationFrame(function(){var y=Math.min(positions[m],Math.max(0,document.documentElement.scrollHeight-window.innerHeight));window.scrollTo(0,y);positions[m]=y;restoringPosition=false;persistState();});\n"
         "  persistState();\n"
         "}\n"
@@ -837,9 +857,16 @@ def build_index(themes):
         "paintVoice();\n"
         "rowScene.innerHTML=chip('scene','all','全部')+D.scene.map(function(g){return chip('scene',g.id,g.zh);}).join('');\n"
         "rowPart.innerHTML=chip('particle','all','全部')+D.particle.map(function(g){return chip('particle',g.p,g.label||g.p);}).join('');\n"
-        "rowScene.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint('scene',b.getAttribute('data-scene'),true);});\n"
+        "rowScene.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;atCategories=false;paint('scene',b.getAttribute('data-scene'),true);});\n"
         "rowPart.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint('particle',b.getAttribute('data-particle'),true);});\n"
-        "for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var next=e.currentTarget.getAttribute('data-mode');if(next===mode){setChipsExpanded(!chipsExpanded);return;}setChipsExpanded(true);paint(next,state[next],false);});\n"
+        "rowTheme.addEventListener('click',function(e){\n"
+        "  var b=e.target.closest('button');if(!b)return;\n"
+        "  if(b.hasAttribute('data-theme-back')){atCategories=true;setChips(mode);return;}\n"
+        "  var id=b.getAttribute('data-theme');\n"
+        "  var target=view.querySelector('.theme[data-theme=\"'+id+'\"]');\n"
+        "  if(target)scrollToEl(target);\n"
+        "});\n"
+        "for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var next=e.currentTarget.getAttribute('data-mode');if(next===mode){setChipsExpanded(!chipsExpanded);return;}atCategories=false;setChipsExpanded(true);paint(next,state[next],false);});\n"
         "view.addEventListener('click',function(e){\n"
         "  var say=e.target.closest('.say');\n"
         "  if(say){playSay(say);return;}\n"
@@ -848,6 +875,7 @@ def build_index(themes):
         "});\n"
         "try{if('scrollRestoration'in history)history.scrollRestoration='manual';}catch(e){}\n"
         "paint(mode,state[mode],false,true);\n"
+        "setChipsExpanded(chipsExpanded);\n"
         "})();\n"
         "</script>\n<script src=\"scroll-progress.js\" defer></script>\n</body>\n</html>\n"
     )
