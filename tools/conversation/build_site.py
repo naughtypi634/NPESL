@@ -1565,9 +1565,15 @@ PLAY_JS = """
     if (playlist) stopPlaylist();
     if (current === btn) {
       // Karaoke sentences pause and resume; short clips keep the old
-      // tap-again-to-stop behavior.  While the sprite is still loading there
-      // is nothing to pause, so a second tap cancels.
-      if (loadingBtn === btn || !btn.classList.contains('ktv') || !dock) {
+      // tap-again-to-stop behavior.  A tap while the sprite is still loading
+      // must NOT cancel: on a slow mobile connection the first tap can take
+      // several seconds, and impatient repeat taps would then leave the page
+      // silent with nothing loaded.  Keep waiting for the same sentence.
+      if (loadingBtn === btn) {
+        showStatus('语音加载中…', true);
+        return;
+      }
+      if (!btn.classList.contains('ktv') || !dock) {
         stopAudio();
       } else if (player.paused) {
         resumeActive();
