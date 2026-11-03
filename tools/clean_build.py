@@ -30,7 +30,7 @@ STAGING = [
 
 # build/ 顶层的临时文件；只匹配文件，目录（tts/、素材目录）不会被 glob 命中。
 SCRATCH_GLOBS = ("*.png", "*.mjs", "*.html", "*.json", "*.txt", "*.py", "*.log")
-SCRATCH_DIRS = ("ab", "site-shots")
+SCRATCH_DIRS = ("ab", "site-shots", "drill-tests")
 
 
 def size(path: Path) -> int:
