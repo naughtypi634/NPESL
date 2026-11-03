@@ -125,6 +125,68 @@ try {
   check('first lab mounts', structure.firstMounted === 'true');
   check('no external scripts', structure.externalScripts === 0, String(structure.externalScripts));
   check('description is not empty', structure.description.length > 20, structure.description.slice(0, 40));
+
+  const shell = await edge.evaluate(`(() => {
+    const head = document.querySelector('.head-inner');
+    const page = document.querySelector('.page');
+    const grid = document.querySelector('#chart-line .panel-grid');
+    const figure = document.querySelector('#chart-line .panel-figure');
+    const reading = document.querySelector('#chart-line .panel-reading');
+    return {
+      headMax: getComputedStyle(head).maxWidth,
+      pageMax: getComputedStyle(page).maxWidth,
+      gridDisplay: getComputedStyle(grid).display,
+      figureRect: figure.getBoundingClientRect().toJSON(),
+      readingRect: reading.getBoundingClientRect().toJSON(),
+      controls: !!document.querySelector('[data-chart-controls]'),
+      replay: !!document.querySelector('#chart-line [data-replay]'),
+      replayLabel: document.querySelector('#chart-line [data-replay]')?.getAttribute('aria-label')
+    };
+  })()`);
+  check('header and page widths align', shell.headMax === shell.pageMax, JSON.stringify({ head: shell.headMax, page: shell.pageMax }));
+  check('desktop uses a two-column lab grid', shell.gridDisplay === 'grid' && shell.readingRect.left >= shell.figureRect.right - 1, JSON.stringify({ grid: shell.gridDisplay, figure: shell.figureRect.right, reading: shell.readingRect.left }));
+  check('empty toolbar span is gone', shell.controls === false);
+  check('replay control is present and labeled', shell.replay === true && shell.replayLabel === '重播动画');
+
+  const tip = await edge.evaluate(`(() => {
+    const handle = document.querySelector('#chart-line .handle[data-index="1"]');
+    handle.dispatchEvent(new PointerEvent('pointerenter', { bubbles: false }));
+    const node = document.querySelector('#chart-line .chart-tip');
+    return node ? { visible: node.dataset.visible, text: node.textContent } : null;
+  })()`);
+  check('hovering a point shows its value tooltip', tip && tip.visible === 'true' && /Q2 2025/.test(tip.text) && /RMB/.test(tip.text), JSON.stringify(tip));
+
+  const lineLabels = await edge.evaluate(`(() => {
+    const labels = [...document.querySelectorAll('#chart-line .value-label')];
+    return labels.map((node) => ({ text: node.textContent, x: Number(node.getAttribute('x')), y: Number(node.getAttribute('y')) }));
+  })()`);
+  check('line value labels are decluttered', lineLabels.length > 0 && lineLabels.length <= 4, JSON.stringify(lineLabels));
+  check('line value labels stay inside the plot', lineLabels.every((label) => label.x >= 40 && label.x <= 710 && label.y >= 20 && label.y <= 340), JSON.stringify(lineLabels));
+  check('line x ticks match the periods', await edge.evaluate("document.querySelectorAll('#chart-line .tick-line').length") === 8);
+
+  const quiet = await edge.evaluate(`(() => {
+    const style = (selector) => getComputedStyle(document.querySelector(selector));
+    return {
+      focusRow: !!document.querySelector('.focus-row'),
+      descBorder: style('#chart-line .desc').borderLeftWidth,
+      sentenceBorder: style('#chart-line .sentence').borderTopWidth,
+      noteBorder: style('#chart-line .note').borderTopWidth,
+      patternBorder: style('#chart-line .pattern-list li').borderTopWidth,
+      vocabBorder: style('#chart-line .vocab-card').borderTopWidth,
+      grammarBorder: style('#chart-line .grammar-card').borderTopWidth,
+      errorBorder: style('.error-card').borderTopWidth,
+      chartBorder: style('#chart-line .chart-card').borderTopWidth,
+      chartBg: style('#chart-line .chart-card').backgroundColor,
+      levelBorder: style('#level-switch').borderTopWidth,
+      levelBg: style('#level-switch').backgroundColor
+    };
+  })()`);
+  check('focus chip row is removed', quiet.focusRow === false);
+  check('per-item dividers are gone', [quiet.descBorder, quiet.sentenceBorder, quiet.noteBorder, quiet.patternBorder, quiet.vocabBorder, quiet.grammarBorder, quiet.errorBorder].every((width) => width === '0px'), JSON.stringify(quiet));
+  check('default chart surface is quiet', quiet.chartBorder === '0px' && quiet.chartBg === 'rgba(0, 0, 0, 0)', JSON.stringify({ border: quiet.chartBorder, background: quiet.chartBg }));
+  check('difficulty control is unboxed', quiet.levelBorder === '0px' && quiet.levelBg === 'rgba(0, 0, 0, 0)', JSON.stringify({ border: quiet.levelBorder, background: quiet.levelBg }));
+
+  await edge.evaluate("document.querySelector('#chart-line [data-desc-lines] .sentence-en').__marker = 'reused'");
   check('intro meta content is gone', structure.hero === false && structure.footer === false);
   check('vocabulary is not a standalone section', structure.standaloneVocab === false);
   check('grammar is not a standalone section', structure.standaloneGrammar === false);
@@ -143,6 +205,7 @@ try {
   check('line value changes', lineHandle !== lineHandleAfter, `${lineHandle} -> ${lineHandleAfter}`);
   check('line description changes', before !== after);
   check('line description uses a stronger verb', /surged|soared|jumped|sharp|dramatic|surge|jump/i.test(after), after.slice(0, 120));
+  check('description nodes are reused during drag', await edge.evaluate("document.querySelector('#chart-line [data-desc-lines] .sentence-en').__marker === 'reused'") === true);
 
   await selectType(edge, 'area');
   const areaBefore = await edge.evaluate("document.querySelector('[data-type=\"area\"] [data-desc-lines]').textContent");
@@ -150,6 +213,7 @@ try {
   await sleep(180);
   const areaAfter = await edge.evaluate("document.querySelector('[data-type=\"area\"] [data-desc-lines]').textContent");
   check('area drag changes its description', areaBefore !== areaAfter);
+  check('area uses a functional gradient', await edge.evaluate("document.querySelectorAll('#chart-area linearGradient').length") === 1);
 
   await selectType(edge, 'bar');
   const barBefore = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
@@ -167,6 +231,19 @@ try {
   await sleep(200);
   const hbarAfter = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
   check('horizontal bar drag changes the category dataset', hbarAfter !== hbarBefore, `${hbarBefore} -> ${hbarAfter}`);
+  const hbarFocus = await edge.evaluate(`(() => {
+    const active = document.activeElement;
+    return {
+      className: active && active.getAttribute('class'),
+      category: active && active.getAttribute('data-category')
+    };
+  })()`);
+  check('horizontal bar keeps focus after re-sorting', hbarFocus.category != null && /handle/.test(hbarFocus.className || ''), JSON.stringify(hbarFocus));
+  check('horizontal bar uses a baseline rule', await edge.evaluate("document.querySelectorAll('#chart-hbar .bar-ghost-rule').length") > 0);
+  check('horizontal bar labels stay inside the chart', await edge.evaluate(`(() => {
+    const labels = [...document.querySelectorAll('#chart-hbar .value-label')];
+    return labels.every((node) => Number(node.getAttribute('x')) <= 710);
+  })()`) === true);
 
   await selectType(edge, 'table');
   const tableBefore = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
@@ -180,6 +257,9 @@ try {
   await sleep(250);
   const tableAfter = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[1].values[0]');
   check('table edit updates the dataset', tableAfter === tableBefore + 40, `${tableBefore} -> ${tableAfter}`);
+  check('table numbers are right-aligned', await edge.evaluate("getComputedStyle(document.querySelector('#chart-table .num-cell')).textAlign") === 'right');
+  check('table has a real total row', await edge.evaluate("!!document.querySelector('#chart-table tfoot td')") === true);
+  check('table headers carry units', await edge.evaluate("document.querySelector('#chart-table .th-unit')?.textContent.trim()") === 'RMB thousand');
 
   await selectType(edge, 'pie');
   const pieBefore = await edge.evaluate('window.NPESLCharts.state.datasets.shares.parts.map((p) => p.value)');
@@ -199,6 +279,40 @@ try {
   const arcSum = arcAfter.reduce((a, b) => a + b, 0);
   check('pie drag follows the arc, not just left-right', arcDrag.ok === true && JSON.stringify(arcBefore) !== JSON.stringify(arcAfter), JSON.stringify({ arcBefore, arcAfter }));
   check('arc drag keeps shares at 100', Math.abs(arcSum - 100) < 0.01, String(arcSum));
+
+  const pieLabels = await edge.evaluate(`(() => {
+    const state = window.NPESLCharts.state.labs.pie.pieState;
+    return {
+      labels: [...document.querySelectorAll('#chart-pie .pie-label')].map((node) => ({
+        text: node.textContent,
+        x: Number(node.getAttribute('x')),
+        y: Number(node.getAttribute('y'))
+      })),
+      leaders: document.querySelectorAll('#chart-pie .pie-leader').length,
+      cx: state.cx,
+      cy: state.cy,
+      radius: state.radius,
+      orientation: document.querySelector('#chart-pie .pie-handle').getAttribute('aria-orientation')
+    };
+  })()`);
+  check('pie labels sit outside the slices', pieLabels.labels.every((label) => Math.hypot(label.x - pieLabels.cx, label.y - pieLabels.cy) > pieLabels.radius), JSON.stringify(pieLabels.labels));
+  check('pie labels and leader lines are complete', pieLabels.labels.length === 5 && pieLabels.labels.every((label) => label.text.trim().length > 0) && pieLabels.leaders === 5, JSON.stringify({ count: pieLabels.labels.length, leaders: pieLabels.leaders }));
+  check('pie handles are not marked horizontal', pieLabels.orientation == null);
+
+  await edge.evaluate(`(() => {
+    const dataset = window.NPESLCharts.state.datasets.shares;
+    dataset.parts.forEach((part) => { part.value = 0; });
+    const lab = window.NPESLCharts.state.labs.pie;
+    lab.changed(true);
+  })()`);
+  await sleep(200);
+  const pieEmpty = await edge.evaluate(`({
+    empty: !!document.querySelector('#chart-pie .chart-empty'),
+    nan: /NaN/.test(document.querySelector('#chart-pie')?.textContent || '')
+  })`);
+  check('all-zero pie shows an empty state', pieEmpty.empty === true && pieEmpty.nan === false, JSON.stringify(pieEmpty));
+  await edge.evaluate("window.NPESLCharts.resetKey('shares')");
+  await sleep(200);
 
   await selectType(edge, 'line');
   await edge.evaluate("document.querySelector('#tab-line').focus(); document.querySelector('#tab-line').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))");
@@ -252,14 +366,72 @@ try {
     switchClient: document.querySelector('.type-switch-scroll').clientWidth
   })`);
   check('mobile has no horizontal page overflow', mobile.scrollWidth <= mobile.innerWidth + 1, JSON.stringify(mobile));
-  check('type tabs scroll horizontally on narrow screens', mobile.switchScroll > mobile.switchClient, JSON.stringify(mobile));
+  check('type tabs stay scrollable', mobile.switchScroll >= mobile.switchClient);
 
+  const mobileLayout = await edge.evaluate(`(() => {
+    const brand = document.querySelector('.brand').getBoundingClientRect();
+    const tabs = document.querySelector('.type-switch').getBoundingClientRect();
+    const figure = document.querySelector('#chart-line .panel-figure').getBoundingClientRect();
+    const reading = document.querySelector('#chart-line .panel-reading').getBoundingClientRect();
+    return {
+      brandBottom: brand.bottom,
+      tabsTop: tabs.top,
+      figureBottom: figure.bottom,
+      readingTop: reading.top
+    };
+  })()`);
+  check('type tabs drop below the brand on mobile', mobileLayout.tabsTop >= mobileLayout.brandBottom - 1, JSON.stringify(mobileLayout));
+  check('reading column stacks below the chart on mobile', mobileLayout.readingTop >= mobileLayout.figureBottom - 1, JSON.stringify(mobileLayout));
+
+  await edge.send('Emulation.setDeviceMetricsOverride', {
+    width: 320, height: 720, deviceScaleFactor: 2, mobile: true
+  });
+  await sleep(250);
+  const narrow = await edge.evaluate(`({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+    switchScroll: document.querySelector('.type-switch-scroll').scrollWidth,
+    switchClient: document.querySelector('.type-switch-scroll').clientWidth,
+    overflow: document.querySelector('.type-switch').getAttribute('data-overflow')
+  })`);
+  check('tabs fit or expose an overflow affordance', narrow.switchScroll <= narrow.switchClient + 1 || narrow.overflow !== 'none', JSON.stringify(narrow));
+  check('no horizontal overflow at 320px', narrow.scrollWidth <= narrow.innerWidth + 1, JSON.stringify(narrow));
+
+  const themeRadii = await edge.evaluate(`(() => {
+    const card = document.querySelector('#chart-line .chart-card');
+    const out = {};
+    ['editorial', 'brutal', 'glass'].forEach((theme) => {
+      document.documentElement.setAttribute('data-theme', theme);
+      out[theme] = getComputedStyle(card).borderRadius;
+    });
+    out.glassArt = getComputedStyle(document.body).getPropertyValue('--bg-art').trim();
+    return out;
+  })()`);
+  check('directional themes reach the chart card', themeRadii.editorial === '0px' && themeRadii.brutal === '14px' && themeRadii.glass === '20px', JSON.stringify(themeRadii));
+  check('glass keeps its aurora background layer', themeRadii.glassArt.length > 10, themeRadii.glassArt.slice(0, 40));
+
+  await edge.evaluate("document.documentElement.setAttribute('data-theme', 'bright')");
+  await sleep(120);
+  const brightStroke = await edge.evaluate("getComputedStyle(document.querySelector('#chart-line .line-path')).stroke");
   await edge.evaluate("document.documentElement.setAttribute('data-theme', 'dark')");
+  await sleep(120);
   const dark = await edge.evaluate(`({
-    series: getComputedStyle(document.documentElement).getPropertyValue('--series-1').trim(),
+    stroke: getComputedStyle(document.querySelector('#chart-line .line-path')).stroke,
+    series: getComputedStyle(document.body).getPropertyValue('--series-1').trim(),
     bg: getComputedStyle(document.body).backgroundColor
   })`);
-  check('dark theme switches chart colours', dark.series === '#3987e5', JSON.stringify(dark));
+  check('dark theme switches chart colours', dark.stroke !== brightStroke && /^rgb/.test(dark.stroke), JSON.stringify({ brightStroke, dark }));
+
+  await edge.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  await edge.send('Page.reload');
+  check('reduced-motion page becomes ready', await waitFor(edge, "document.documentElement.dataset.chartsReady === 'true'"));
+  await edge.evaluate("document.querySelector('#tab-pie').click()");
+  await sleep(120);
+  const reduced = await edge.evaluate(`({
+    state: window.NPESLCharts.state.reducedMotion,
+    entering: !!document.querySelector('.chart-panel.is-entering')
+  })`);
+  check('reduced motion disables entrance animation', reduced.state === true && reduced.entering === false, JSON.stringify(reduced));
 
   check('no console errors', consoleErrors.length === 0, consoleErrors.join(' | '));
 } catch (error) {

@@ -11,6 +11,8 @@
     pie: 'Harbor Cloud · market share by channel'
   };
 
+  var REPLAY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v6h-6"/></svg>';
+
   var state = {
     typeId: null
   };
@@ -43,37 +45,48 @@
   }
 
   function panelHtml(type) {
+    var replay = type.renderer === 'table' ? '' :
+      '<button class="icon-btn" type="button" data-replay aria-label="重播动画" title="重播动画">' + REPLAY_ICON + '</button>';
     return '<header class="section-head">' +
         '<h2>' + NC.escapeHtml(type.label_zh) + ' <span class="h2-en">' + NC.escapeHtml(type.label_en) + '</span></h2>' +
         '<p class="definition">' + NC.escapeHtml(type.definition_zh) + '</p>' +
       '</header>' +
-      '<div class="chart-card">' +
-        '<div class="chart-toolbar">' +
-          '<span class="chart-scene">' + NC.escapeHtml(SCENES[type.id] || '') + '</span>' +
-          '<span class="chart-actions">' +
-            '<span class="chart-controls" data-chart-controls></span>' +
-            '<button class="pill compact" type="button" data-reset>重置</button>' +
-          '</span>' +
+      '<div class="panel-grid">' +
+        '<div class="panel-figure">' +
+          '<figure class="chart-card surface">' +
+            '<header class="figure-head">' +
+              '<span class="chart-scene">' + NC.escapeHtml(SCENES[type.id] || '') + '</span>' +
+              '<span class="figure-actions">' +
+                replay +
+                '<button class="text-link" type="button" data-reset>重置</button>' +
+              '</span>' +
+            '</header>' +
+            '<div class="plot" data-plot></div>' +
+            '<details class="data-panel" data-data-panel>' +
+              '<summary>数据</summary>' +
+              '<div class="data-table-host" data-table></div>' +
+            '</details>' +
+          '</figure>' +
         '</div>' +
-        '<div class="plot" data-plot></div>' +
-        '<div class="desc" data-desc>' +
-          '<div class="desc-lines" data-desc-lines></div>' +
-          '<p class="sr-only" data-live aria-live="polite"></p>' +
+        '<aside class="panel-reading">' +
+          '<section class="desc" data-desc>' +
+            '<div class="desc-lines" data-desc-lines></div>' +
+            '<p class="sr-only" data-live aria-live="polite"></p>' +
+          '</section>' +
+        '</aside>' +
+      '</div>' +
+      '<div class="panel-notes">' +
+        '<div class="section-notes">' +
+          '<div class="note"><h3>适合说明什么</h3><p>' + NC.escapeHtml(type.best_for_zh) + '</p></div>' +
+          '<div class="note"><h3>小心</h3><p>' + NC.escapeHtml(type.watch_out_zh) + '</p></div>' +
+          '<div class="note"><h3>雅思提示</h3><p>' + NC.escapeHtml(type.ielts_tip_zh) + '</p></div>' +
         '</div>' +
-        '<details class="data-panel" data-data-panel>' +
-          '<summary>数据</summary>' +
-          '<div class="data-table-host" data-table></div>' +
-        '</details>' +
+        '<div class="model">' +
+          '<button class="text-link" type="button" data-model-toggle aria-expanded="false">看一段范文 <span aria-hidden="true">→</span></button>' +
+          '<div class="model-box" data-model hidden><div class="model-body" data-model-body></div></div>' +
+        '</div>' +
       '</div>' +
-      '<div class="section-notes">' +
-        '<div class="note"><h3>适合说明什么</h3><p>' + NC.escapeHtml(type.best_for_zh) + '</p></div>' +
-        '<div class="note"><h3>小心</h3><p>' + NC.escapeHtml(type.watch_out_zh) + '</p></div>' +
-        '<div class="note"><h3>雅思提示</h3><p>' + NC.escapeHtml(type.ielts_tip_zh) + '</p></div>' +
-      '</div>' +
-      '<div class="focus-row">' + (type.focus || []).map(function (item) {
-        return '<span class="chip focus-chip"><span lang="en">' + NC.escapeHtml(item.en) + '</span><span class="chip-zh">' + NC.escapeHtml(item.zh) + '</span></span>';
-      }).join('') + '</div>' +
-      '<div class="patterns">' +
+      '<div class="pattern-section">' +
         '<h3>常用句型</h3>' +
         '<ul class="pattern-list" data-patterns></ul>' +
       '</div>' +
@@ -87,11 +100,7 @@
           (type.converter ? converterHtml() : '') +
           '<div class="grammar-list" data-grammar></div>' +
         '</div>' +
-      '</details>' +
-      '<div class="model">' +
-        '<button class="pill" type="button" data-model-toggle aria-expanded="false">看一段范文</button>' +
-        '<div class="model-box" data-model hidden><div class="model-body" data-model-body></div></div>' +
-      '</div>';
+      '</details>';
   }
 
   function buildPanels() {
@@ -143,18 +152,19 @@
         '<div class="vocab-list">' + items.map(vocabCard).join('') + '</div>' +
       '</div>';
     }).join('');
-    host.innerHTML = html || '<p class="empty">当前难度下没有词条，把难度调高试试。</p>';
+    host.innerHTML = html || '<p class="empty">暂无匹配内容。</p>';
   }
 
   function renderPatterns(type) {
     var section = NC.byId('chart-' + type.id);
     var list = section && section.querySelector('[data-patterns]');
     if (!list) return;
-    var visible = (type.patterns || []).slice();
-    list.innerHTML = visible.map(function (pattern) {
-      return '<li>' + levelBadge(pattern.level) +
+    list.innerHTML = (type.patterns || []).map(function (pattern) {
+      return '<li>' +
+        '<span class="pattern-level">' + NC.escapeHtml(pattern.level) + '</span>' +
         '<span class="pattern-en" lang="en">' + NC.escapeHtml(pattern.en) + '</span>' +
-        '<span class="pattern-zh">' + NC.escapeHtml(pattern.zh) + '</span></li>';
+        '<span class="pattern-zh">' + NC.escapeHtml(pattern.zh) + '</span>' +
+      '</li>';
     }).join('');
   }
 
@@ -183,7 +193,7 @@
     var patterns = NC.state.data.grammar.patterns.filter(function (pattern) {
       return allowed.indexOf(pattern.id) !== -1;
     });
-    host.innerHTML = patterns.map(grammarCard).join('');
+    host.innerHTML = patterns.map(grammarCard).join('') || '<p class="empty">暂无匹配内容。</p>';
   }
 
   function renderConverter(type) {
@@ -240,14 +250,13 @@
     var host = NC.byId('errors-list');
     if (!host) return;
     var errors = NC.state.data.errors.errors;
-    host.innerHTML = errors.map(function (item) {
+    host.innerHTML = '<div class="errors-grid">' + errors.map(function (item) {
       return '<article class="error-card">' +
-        '<div class="error-head">' + levelBadge(item.level) + '</div>' +
         '<div class="example wrong"><span class="mark">✕</span><p lang="en">' + NC.escapeHtml(item.wrong_en) + '</p></div>' +
         '<div class="example correct"><span class="mark">✓</span><p lang="en">' + NC.escapeHtml(item.right_en) + '</p></div>' +
         '<p class="error-why">' + NC.escapeHtml(item.why_zh) + '</p>' +
       '</article>';
-    }).join('');
+    }).join('') + '</div>';
   }
 
   function buildTypeSwitch() {
@@ -294,10 +303,17 @@
     return hash;
   }
 
+  function headerOffset() {
+    var head = NC.byId('site-head');
+    return (head ? head.getBoundingClientRect().height : 0) + 16;
+  }
+
   function activate(id) {
     var types = sortedTypes();
     var known = types.some(function (type) { return type.id === id; });
     if (!known) id = types[0].id;
+    var first = state.typeId == null;
+    var wasScrolled = window.scrollY > 80;
     state.typeId = id;
     types.forEach(function (type) {
       var panel = NC.byId('chart-' + type.id);
@@ -309,8 +325,30 @@
         tab.tabIndex = selected ? 0 : -1;
       }
     });
+
+    var scroller = NC.byId('type-buttons');
+    var tab = NC.byId('tab-' + id);
+    if (scroller && tab && scroller.scrollWidth > scroller.clientWidth) {
+      var left = tab.offsetLeft - 16;
+      scroller.scrollTo({ left: left, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+    }
+
     var lab = NC.state.labs[id];
     if (lab) lab.mount();
+    var panel = NC.byId('chart-' + id);
+    if (panel && !NC.state.reducedMotion) {
+      panel.classList.remove('is-entering');
+      void panel.offsetWidth;
+      panel.classList.add('is-entering');
+      window.setTimeout(function () { panel.classList.remove('is-entering'); }, 800);
+    }
+    if (!first && wasScrolled && panel) {
+      var top = panel.getBoundingClientRect().top + window.scrollY - headerOffset();
+      if (Math.abs(window.scrollY - top) > 8) {
+        window.scrollTo({ top: top, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+      }
+    }
+    if (NC.motion && lab) NC.motion.play(lab);
     try {
       window.history.replaceState(null, '', '#chart-' + id);
     } catch (err) {}
@@ -332,31 +370,124 @@
     });
   }
 
+  function setupHeader() {
+    var head = NC.byId('site-head');
+    if (!head) return;
+    var ticking = false;
+    function update() {
+      head.classList.toggle('is-scrolled', window.scrollY > 8);
+    }
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () {
+        ticking = false;
+        update();
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    update();
+    function measure() {
+      document.documentElement.style.setProperty('--header-h', head.getBoundingClientRect().height + 'px');
+    }
+    measure();
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(measure).observe(head);
+    } else {
+      window.addEventListener('resize', measure);
+    }
+  }
+
+  function setupTypeOverflow() {
+    var nav = document.querySelector('.type-switch');
+    var scroller = NC.byId('type-buttons');
+    if (!nav || !scroller) return;
+    var prev = nav.querySelector('[data-scroll="-1"]');
+    var next = nav.querySelector('[data-scroll="1"]');
+    var hover = !window.matchMedia || window.matchMedia('(hover: hover)').matches;
+    function update() {
+      var max = scroller.scrollWidth - scroller.clientWidth;
+      var x = scroller.scrollLeft;
+      var start = x > 2;
+      var end = max > 2 && x < max - 2;
+      var mode = !start && !end ? 'none' : start && end ? 'both' : start ? 'start' : 'end';
+      nav.setAttribute('data-overflow', mode);
+      if (prev) prev.hidden = !(hover && start);
+      if (next) next.hidden = !(hover && end);
+    }
+    scroller.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    if (prev) {
+      prev.addEventListener('click', function () {
+        scroller.scrollBy({ left: -180, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+      });
+    }
+    if (next) {
+      next.addEventListener('click', function () {
+        scroller.scrollBy({ left: 180, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+      });
+    }
+    update();
+  }
+
   function setupLevel() {
     var buttons = Array.prototype.slice.call(document.querySelectorAll('#level-switch [data-level]'));
+    var switchEl = NC.byId('level-switch');
     try {
       var saved = localStorage.getItem('npesl-charts-level');
       if (saved && NC.LEVELS.indexOf(saved) !== -1) NC.state.level = saved;
     } catch (err) {}
-    function apply(level) {
+    function apply(level, animate) {
       NC.state.level = level;
       document.documentElement.setAttribute('data-charts-level', level);
+      if (switchEl) switchEl.setAttribute('data-active', level);
       buttons.forEach(function (button) {
         button.setAttribute('aria-pressed', button.getAttribute('data-level') === level ? 'true' : 'false');
       });
       try { localStorage.setItem('npesl-charts-level', level); } catch (err) {}
       Object.keys(NC.state.labs).forEach(function (id) {
         var lab = NC.state.labs[id];
-        if (lab.mounted) lab.refresh(false);
+        if (!lab.mounted) return;
+        if (animate) {
+          var desc = lab.section.querySelector('[data-desc]');
+          if (desc) {
+            desc.classList.remove('is-level-switching');
+            void desc.offsetWidth;
+            desc.classList.add('is-level-switching');
+            window.setTimeout(function () { desc.classList.remove('is-level-switching'); }, 240);
+          }
+        }
+        lab.refresh(false);
       });
       renderAllLearning();
     }
     buttons.forEach(function (button) {
       button.addEventListener('click', function () {
-        apply(button.getAttribute('data-level'));
+        apply(button.getAttribute('data-level'), true);
       });
     });
-    apply(NC.state.level);
+    apply(NC.state.level, false);
+  }
+
+  function setupResize() {
+    var timer = null;
+    function fit() {
+      Object.keys(NC.state.labs).forEach(function (id) {
+        var lab = NC.state.labs[id];
+        if (!lab.mounted || !lab.svg || !NC.renderCommon || !NC.renderCommon.fit) return;
+        var compact = NC.renderCommon.fit(lab.svg);
+        if (lab.compact !== compact) {
+          lab.compact = compact;
+          lab.renderer.render(lab);
+          lab.refresh(false);
+          if (NC.motion) NC.motion.play(lab);
+        }
+      });
+    }
+    window.addEventListener('resize', function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(fit, 150);
+    });
   }
 
   function setupReducedMotion() {
@@ -370,6 +501,9 @@
     buildPanels();
     buildTypeSwitch();
     renderErrors();
+    setupHeader();
+    setupTypeOverflow();
+    setupResize();
     setupLevel();
     setupHash();
     activate(initialTypeId());

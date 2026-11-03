@@ -76,6 +76,7 @@
       moved = false;
       try { handle.setPointerCapture(pointerId); } catch (err) {}
       handle.classList.add('dragging');
+      if (opts.onStart) opts.onStart(event);
       event.preventDefault();
     }
 
@@ -120,11 +121,15 @@
       } else if (moved) {
         updateAria(handle, opts, valueNow());
         if (opts.onCommit) opts.onCommit(valueNow());
+        if (opts.focusOnCommit) {
+          try { handle.focus({ preventScroll: true }); } catch (err) { handle.focus(); }
+        }
       } else {
         opts.set(snapshot);
         updateAria(handle, opts, snapshot);
         if (opts.onUpdate) opts.onUpdate(snapshot);
       }
+      if (opts.onEnd) opts.onEnd(canceled);
       try { handle.releasePointerCapture(pointerId); } catch (err) {}
       pointerId = null;
       active = null;

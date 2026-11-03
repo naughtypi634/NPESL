@@ -38,6 +38,7 @@ OUT = CHARTS_APP / "index.html"
 JS_FILES = [
     "00-namespace.js",
     "05-svg.js",
+    "07-motion.js",
     "10-format.js",
     "15-scale.js",
     "20-drag.js",

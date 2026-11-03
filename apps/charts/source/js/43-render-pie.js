@@ -63,6 +63,7 @@
     items.forEach(function (item) {
       var row = document.createElement('span');
       row.className = 'legend-item';
+      row.setAttribute('data-legend', item.id);
       var dot = document.createElement('span');
       dot.className = 'legend-dot';
       dot.style.background = item.color;
@@ -79,6 +80,29 @@
     });
   }
 
+  function shareText(share) {
+    if (share > 0 && share < 1) return '<1%';
+    return NC.fmt.number(share, 0) + '%';
+  }
+
+  function layoutLabels(items, height, gap, pad) {
+    if (!items.length) return;
+    items.sort(function (a, b) { return a.y - b.y; });
+    for (var i = 1; i < items.length; i += 1) {
+      if (items[i].y < items[i - 1].y + gap) items[i].y = items[i - 1].y + gap;
+    }
+    var overflow = items[items.length - 1].y - (height - pad);
+    if (overflow > 0) items.forEach(function (item) { item.y -= overflow; });
+    if (items[0].y < pad) {
+      var push = pad - items[0].y;
+      items.forEach(function (item) { item.y += push; });
+    }
+  }
+
+  function labelPath(item) {
+    return 'M ' + item.p0x + ' ' + item.p0y + ' L ' + item.p1x + ' ' + item.y + ' L ' + item.p2x + ' ' + item.y;
+  }
+
   function render(lab) {
     var dataset = lab.dataset;
     var values = dataset.parts.map(function (part) { return part.value; });
@@ -86,25 +110,40 @@
     var perc = shares(values, sum);
     var width = 720;
     var height = 360;
+    var root = svg.create(lab.plot, width, height, 'Pie chart of market share by channel. Drag a boundary to change the split.');
+    lab.svg = root;
+    var compact = common.fit(root);
+    lab.compact = compact;
     var cx = 360;
-    var cy = 176;
-    var radius = 132;
+    var cy = compact ? 168 : 176;
+    var radius = compact ? 110 : 132;
     var start = -Math.PI / 2;
     var cumulative = start;
 
-    var root = svg.create(lab.plot, width, height, 'Pie chart of market share by channel. Drag a boundary to change the split.');
-    lab.svg = root;
+    if (sum <= 0) {
+      renderLegend(lab, dataset.parts.map(function (part, index) {
+        return { id: part.id, name: part.name_en, color: 'var(--' + part.color + ')', share: shareText(perc[index]) };
+      }));
+      var ringLayer = svg.group(root, { class: 'pie-empty' });
+      svg.circle(ringLayer, { cx: cx, cy: cy, r: radius, class: 'pie-empty-ring' });
+      common.empty(lab.plot, 'No data · 份额为 0');
+      lab.pieState = { empty: true, root: root, parts: dataset.parts };
+      lab.motion = null;
+      return;
+    }
+
     renderLegend(lab, dataset.parts.map(function (part, index) {
-      return { name: part.name_en, color: 'var(--' + part.color + ')', share: NC.fmt.number(perc[index], 0) + '%' };
+      return { id: part.id, name: part.name_en, color: 'var(--' + part.color + ')', share: shareText(perc[index]) };
     }));
 
     var sliceLayer = svg.group(root, { class: 'pie-slices' });
+    var leaderLayer = svg.group(root, { class: 'pie-leaders' });
     var labelLayer = svg.group(root, { class: 'pie-labels' });
     var handleLayer = svg.group(root, { class: 'handles' });
     var slices = [];
     var labels = [];
+    var leaders = [];
     var handles = [];
-    var boundaries = [];
 
     dataset.parts.forEach(function (part, index) {
       var share = perc[index];
@@ -117,17 +156,36 @@
         'data-id': part.id
       });
       var mid = cumulative + angle / 2;
-      var labelPoint = NC.scale.polar(cx, cy, radius * 0.62, mid);
+      var side = Math.cos(mid) >= 0 ? 1 : -1;
+      var p0 = NC.scale.polar(cx, cy, radius + 6, mid);
+      var p1 = { x: cx + side * (radius + 34), y: cy + Math.sin(mid) * (radius + 34) };
+      var p2 = { x: cx + side * (radius + 48), y: p1.y };
+      var leader = svg.path(leaderLayer, {
+        d: 'M ' + p0.x + ' ' + p0.y + ' L ' + p1.x + ' ' + p1.y + ' L ' + p2.x + ' ' + p2.y,
+        class: 'pie-leader'
+      });
       var label = svg.text(labelLayer, {
-        x: labelPoint.x,
-        y: labelPoint.y,
-        'text-anchor': 'middle',
+        x: p2.x + side * 4,
+        y: p2.y,
+        'text-anchor': side > 0 ? 'start' : 'end',
         'dominant-baseline': 'middle',
-        class: 'pie-label' + (part.color === 'series-4' ? ' on-light' : '')
-      }, share >= 6 ? NC.fmt.number(share, 0) + '%' : '');
+        class: 'pie-label'
+      }, part.name_en + ' ' + shareText(share));
       slices.push(path);
-      labels.push(label);
+      leaders.push(leader);
+      labels.push({ node: label, leader: leader, side: side, y: p2.y, p0x: p0.x, p0y: p0.y, p1x: p1.x, p2x: p2.x + side * 4 });
       cumulative = end;
+    });
+
+    var labelGap = common.screenPx(root, 18);
+    var labelPad = common.screenPx(root, 24);
+    ['left', 'right'].forEach(function (key) {
+      var side = key === 'left' ? -1 : 1;
+      layoutLabels(labels.filter(function (item) { return item.side === side; }), height, labelGap, labelPad);
+    });
+    labels.forEach(function (item) {
+      item.node.setAttribute('y', item.y);
+      item.leader.setAttribute('d', labelPath(item));
     });
 
     dataset.parts.forEach(function (part, index) {
@@ -139,9 +197,8 @@
         min: 3,
         max: 97,
         now: perc[index],
-        radius: 5,
-        hitRadius: 20,
-        orientation: 'horizontal',
+        radius: common.screenPx(root, 5),
+        hitRadius: common.screenPx(root, compact ? 22 : 18),
         label: 'Boundary between ' + part.name_en + ' and ' + dataset.parts[nextIndex].name_en,
         valueText: part.name_en + ' ' + NC.fmt.number(perc[index], 0) + '%, ' + dataset.parts[nextIndex].name_en + ' ' + NC.fmt.number(perc[nextIndex], 0) + '%'
       });
@@ -150,10 +207,41 @@
       handles.push({ index: index, handle: handle });
     });
 
+    function partTip(index) {
+      var part = dataset.parts[index];
+      var current = perc[index];
+      var text = part.name_en + ' · ' + shareText(current);
+      if (typeof part.baseline === 'number') {
+        var delta = current - part.baseline;
+        var sign = delta >= 0 ? '+' : '−';
+        text += ' · ' + sign + NC.fmt.number(Math.abs(delta), 1) + ' pp';
+      }
+      return text;
+    }
+
+    function showTip(index) {
+      var midAngle = start;
+      for (var i = 0; i < index; i += 1) midAngle += perc[i] / 100 * Math.PI * 2;
+      midAngle += (perc[index] / 100 * Math.PI * 2) / 2;
+      var point = NC.scale.polar(cx, cy, radius * 0.75, midAngle);
+      common.showTip(lab.plot, partTip(index), root, point.x, point.y);
+      common.emphasize(lab.plot, dataset.parts[index].id);
+      slices.forEach(function (slice, i) { slice.classList.toggle('is-active', i === index); });
+      lab.pieState.tipIndex = index;
+    }
+
+    function hideTip() {
+      common.hideTip(lab.plot);
+      common.clearEmphasis(lab.plot);
+      slices.forEach(function (slice) { slice.classList.remove('is-active'); });
+      if (lab.pieState) lab.pieState.tipIndex = null;
+    }
+
     lab.pieState = {
-      cx: cx, cy: cy, radius: radius, start: start,
-      slices: slices, labels: labels, handles: handles,
-      parts: dataset.parts, root: root
+      cx: cx, cy: cy, radius: radius, start: start, height: height,
+      slices: slices, labels: labels, leaders: leaders, handles: handles,
+      parts: dataset.parts, root: root, perc: perc,
+      tipIndex: null, layoutLabels: layoutLabels, showTip: showTip
     };
 
     handles.forEach(function (item) {
@@ -161,13 +249,12 @@
       var nextIndex = (index + 1) % dataset.parts.length;
       var dragging = false;
       var startValues = null;
-      var lastValues = null;
       var moved = false;
       var lastAngle = 0;
       var turn = 0;
+      var pointerId = null;
 
       function pointAngle(event) {
-        var root = lab.pieState.root;
         var rect = root.getBoundingClientRect();
         var box = root.viewBox.baseVal;
         var scaleX = box.width ? box.width / rect.width : 1;
@@ -186,9 +273,9 @@
         var b = pair - a;
         values2[index] = a;
         values2[nextIndex] = b;
-        var sum = total(values2);
+        var sum2 = total(values2);
         dataset.parts.forEach(function (part, i) {
-          part.value = sum > 0 ? values2[i] / sum * 100 : values2[i];
+          part.value = sum2 > 0 ? values2[i] / sum2 * 100 : values2[i];
         });
       }
 
@@ -197,16 +284,17 @@
         dragging = true;
         moved = false;
         turn = 0;
+        pointerId = event.pointerId;
         lastAngle = pointAngle(event);
         startValues = dataset.parts.map(function (part) { return part.value; });
-        lastValues = startValues.slice();
-        try { item.handle.group.setPointerCapture(event.pointerId); } catch (err) {}
+        try { item.handle.group.setPointerCapture(pointerId); } catch (err) {}
         item.handle.group.classList.add('dragging');
+        showTip(index);
         event.preventDefault();
       }
 
       function move(event) {
-        if (!dragging) return;
+        if (!dragging || event.pointerId !== pointerId) return;
         var angle = pointAngle(event);
         var step = angle - lastAngle;
         if (step > Math.PI) step -= Math.PI * 2;
@@ -219,17 +307,16 @@
         var minTurn = (3 - startValues[index]) / 100 * Math.PI * 2;
         var maxTurn = (pair - 3 - startValues[index]) / 100 * Math.PI * 2;
         turn = NC.clamp(turn, minTurn, maxTurn);
-        var deltaPP = turn / (Math.PI * 2) * 100;
-        apply(deltaPP);
-        lastValues = dataset.parts.map(function (part) { return part.value; });
+        apply(turn / (Math.PI * 2) * 100);
         lab.changed(false);
+        showTip(index);
         event.preventDefault();
       }
 
       function up(event, canceled) {
         if (!dragging) return;
         dragging = false;
-        try { item.handle.group.releasePointerCapture(event.pointerId); } catch (err) {}
+        try { item.handle.group.releasePointerCapture(pointerId); } catch (err) {}
         item.handle.group.classList.remove('dragging');
         if (!moved || canceled) {
           dataset.parts.forEach(function (part, i) { part.value = startValues[i]; });
@@ -237,12 +324,16 @@
         } else {
           lab.changed(true);
         }
+        pointerId = null;
+        showTip(index);
       }
 
       item.handle.group.addEventListener('pointerdown', down);
       item.handle.group.addEventListener('pointermove', move);
       item.handle.group.addEventListener('pointerup', function (event) { up(event, false); });
       item.handle.group.addEventListener('pointercancel', function (event) { up(event, true); });
+      item.handle.group.addEventListener('focus', function () { showTip(index); });
+      item.handle.group.addEventListener('blur', hideTip);
       item.handle.group.addEventListener('keydown', function (event) {
         var delta = 0;
         if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') delta = event.shiftKey ? -5 : -1;
@@ -251,9 +342,52 @@
         startValues = dataset.parts.map(function (part) { return part.value; });
         apply(delta);
         lab.changed(true);
+        showTip(index);
         event.preventDefault();
       });
+
+      item.begin = down;
+      item.handle.group.addEventListener('pointerenter', function () {
+        common.emphasize(lab.plot, dataset.parts[index].id);
+        showTip(index);
+      });
+      item.handle.group.addEventListener('pointerleave', hideTip);
+
+      slices[index].addEventListener('pointerenter', function () {
+        common.emphasize(lab.plot, dataset.parts[index].id);
+        showTip(index);
+      });
+      slices[index].addEventListener('pointerleave', hideTip);
+      slices[index].addEventListener('pointerdown', function (event) {
+        if (event.button != null && event.button !== 0) return;
+        var angle = pointAngle(event);
+        var best = 0;
+        var bestDistance = Infinity;
+        for (var i = 0; i < dataset.parts.length; i += 1) {
+          var boundary = start;
+          for (var j = 0; j <= i; j += 1) boundary += perc[j] / 100 * Math.PI * 2;
+          var diff = Math.abs(angle - boundary);
+          diff = Math.min(diff, Math.PI * 2 - diff);
+          if (diff < bestDistance) {
+            bestDistance = diff;
+            best = i;
+          }
+        }
+        if (handles[best]) handles[best].begin(event);
+      });
     });
+
+    var legendRows = legendHost(lab).querySelectorAll('[data-legend]');
+    legendRows.forEach(function (row, rowIndex) {
+      row.addEventListener('pointerenter', function () {
+        common.emphasize(lab.plot, row.getAttribute('data-legend'));
+        slices.forEach(function (slice, i) { slice.classList.toggle('is-active', i === rowIndex); });
+        showTip(rowIndex);
+      });
+      row.addEventListener('pointerleave', hideTip);
+    });
+
+    lab.motion = { slices: slices, labels: labels.map(function (item) { return item.node; }), leaders: leaders, handles: handles.map(function (item) { return item.handle; }) };
   }
 
   function update(lab) {
@@ -261,18 +395,48 @@
     if (!state) return;
     var values = state.parts.map(function (part) { return part.value; });
     var sum = total(values);
+    if (state.empty) {
+      if (sum > 0) render(lab);
+      return;
+    }
+    if (sum <= 0) {
+      render(lab);
+      return;
+    }
     var perc = shares(values, sum);
+    state.perc = perc;
     var cumulative = state.start;
     state.parts.forEach(function (part, index) {
       var angle = perc[index] / 100 * Math.PI * 2;
       var end = cumulative + angle;
       state.slices[index].setAttribute('d', NC.scale.arc(state.cx, state.cy, state.radius, cumulative, end));
       var mid = cumulative + angle / 2;
-      var labelPoint = NC.scale.polar(state.cx, state.cy, state.radius * 0.62, mid);
-      state.labels[index].setAttribute('x', labelPoint.x);
-      state.labels[index].setAttribute('y', labelPoint.y);
-      state.labels[index].textContent = perc[index] >= 6 ? NC.fmt.number(perc[index], 0) + '%' : '';
+      var side = Math.cos(mid) >= 0 ? 1 : -1;
+      var p0 = NC.scale.polar(state.cx, state.cy, state.radius + 6, mid);
+      var p1 = { x: state.cx + side * (state.radius + 34), y: state.cy + Math.sin(mid) * (state.radius + 34) };
+      var p2 = { x: state.cx + side * (state.radius + 48), y: p1.y };
+      var label = state.labels[index];
+      label.side = side;
+      label.y = p2.y;
+      label.p0x = p0.x;
+      label.p0y = p0.y;
+      label.p1x = p1.x;
+      label.p2x = p2.x + side * 4;
+      label.node.setAttribute('x', label.p2x);
+      label.node.setAttribute('y', p2.y);
+      label.node.setAttribute('text-anchor', side > 0 ? 'start' : 'end');
+      label.node.textContent = part.name_en + ' ' + shareText(perc[index]);
       cumulative = end;
+    });
+    var labelGap = common.screenPx(state.root, 18);
+    var labelPad = common.screenPx(state.root, 24);
+    ['left', 'right'].forEach(function (key) {
+      var side = key === 'left' ? -1 : 1;
+      state.layoutLabels(state.labels.filter(function (item) { return item.side === side; }), state.height, labelGap, labelPad);
+    });
+    state.labels.forEach(function (item) {
+      item.node.setAttribute('y', item.y);
+      item.leader.setAttribute('d', labelPath(item));
     });
 
     state.handles.forEach(function (item) {
@@ -289,11 +453,12 @@
       );
     });
 
-    var host = legendHost(lab);
-    var rows = host.querySelectorAll('.legend-value');
+    var rows = legendHost(lab).querySelectorAll('.legend-value');
     rows.forEach(function (row, index) {
-      row.textContent = NC.fmt.number(perc[index], 0) + '%';
+      row.textContent = shareText(perc[index]);
     });
+
+    if (typeof state.tipIndex === 'number') state.showTip(state.tipIndex);
   }
 
   function describe(lab) {

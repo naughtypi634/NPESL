@@ -426,6 +426,7 @@ html[data-theme="editorial"] :is(
   .speed-reset, .zh-toggle, .seg, .seg button, .voice, .voice button,
   .chips button, .level, .npesl-back, .browseBtn, .browserClose, .catBtn,
   .badge, .hint, .npesl-theme-option,
+  .opp-btn, .opp-return,
   .sp-inline, .sp-tip
 ) { border-radius: 0 !important; }
 
@@ -597,69 +598,100 @@ html[data-theme="glass"] .npesl-theme-option:hover { background: var(--surface-s
 
 </style>
 <style>
-/* Business Charts — page styles. Theme tokens come from apps/site/theme.css. */
+/* Business Charts — editorial chart lab. Theme tokens come from apps/site/theme.css. */
 
-:root {
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    "Segoe UI Variable", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", sans-serif;
-  --chart-surface: var(--bg, #ffffff);
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --series-4: #eda100;
-  --series-5: #e87ba4;
-}
+.charts-page {
+  --shell-max: 1180px;
+  --header-h: 64px;
 
-html[data-theme="dark"] {
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #199e70;
-  --series-4: #c98500;
-  --series-5: #d55181;
-}
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+  --space-9: 112px;
 
-html[data-theme="sepia"] {
-  --series-1: #1f5f9e;
-  --series-2: #b9501f;
-  --series-3: #0d7a55;
-  --series-4: #a87400;
-  --series-5: #b34f74;
-}
+  --t-display: clamp(2.1rem, 3.8vw, 3.25rem);
+  --t-h2: clamp(1.5rem, 2.4vw, 2rem);
+  --t-h3: 1.0625rem;
+  --t-body: 1rem;
+  --t-small: 0.875rem;
+  --t-meta: 0.75rem;
+  --t-micro: 0.6875rem;
 
-html[data-theme="mono"] {
-  --series-1: #2b2b2e;
+  --c-ink: var(--fg);
+  --c-muted: var(--muted);
+  --c-rule: var(--rule);
+  --c-rule-strong: color-mix(in srgb, var(--fg) 24%, var(--rule));
+  --c-surface: var(--surface);
+  --c-surface-strong: var(--surface-strong);
+  --c-accent: var(--blue);
+  --c-accent-tint: var(--blue-tint);
+  --c-on-accent: var(--on-blue);
+  --c-positive: #246a50;
+  --c-negative: #b05a4a;
+
+  --c-radius-card: var(--radius-card, 24px);
+  --c-radius-control: var(--radius-control, 12px);
+  --c-radius-pill: var(--radius-pill, 999px);
+  --c-shadow-card: var(--shadow-card, none);
+
+  --motion-fast: 160ms;
+  --motion-base: 240ms;
+  --motion-reveal: 700ms;
+  --motion-enter: 900ms;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-quart: cubic-bezier(.25, 1, .5, 1);
+
+  --series-1: var(--blue);
   --series-2: #6b6b70;
   --series-3: #96969b;
-  --series-4: #454549;
-  --series-5: #b4b4b8;
+  --series-4: #b4b4b8;
+  --series-5: #d2d2d5;
 }
 
-@media (prefers-color-scheme: dark) {
-  html[data-theme="auto"] {
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  .charts-page {
+    --series-2: color-mix(in srgb, var(--fg) 76%, var(--bg));
+    --series-3: color-mix(in srgb, var(--fg) 58%, var(--bg));
+    --series-4: color-mix(in srgb, var(--fg) 44%, var(--bg));
+    --series-5: color-mix(in srgb, var(--fg) 34%, var(--bg));
   }
 }
+
+html[data-theme="dark"] .charts-page,
+html[data-theme="glass"] .charts-page { --c-positive: #6fceb0; --c-negative: #e08a7f; }
+html[data-theme="mono"] .charts-page { --c-positive: var(--fg); --c-negative: var(--fg); }
 
 * { box-sizing: border-box; }
 
 body.charts-page {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: var(--bg-art, none);
+  background-attachment: fixed;
   color: var(--fg);
-  font-family: var(--font, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "PingFang SC", "Microsoft YaHei", sans-serif);
+  font-family: var(--font, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "SF Pro Display", "Segoe UI Variable", "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html[data-theme="glass"] .site-head {
+  background-color: var(--bg);
+  background-image: var(--bg-art, none);
 }
 
 .charts-page .npesl-back {
   position: static;
   margin: 0;
   flex: none;
+  padding: 6px 12px;
+  font-size: 13px;
 }
 
 .sr-only {
@@ -674,30 +706,44 @@ body.charts-page {
   border: 0;
 }
 
+.charts-page :where(a, button, summary, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.charts-page .plot [tabindex]:focus-visible { outline: none; }
+
+/* ---------------------------------------------------------------- shell */
+
 .site-head {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: var(--bg);
-  border-bottom: 1px solid var(--rule);
+  background-color: var(--bg);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 @supports (backdrop-filter: blur(12px)) {
   .site-head {
-    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    background-color: color-mix(in srgb, var(--bg) 94%, transparent);
     backdrop-filter: blur(12px);
   }
 }
 
+.site-head.is-scrolled { border-bottom: 1px solid var(--rule); }
+
 .head-inner {
-  max-width: 1080px;
+  max-width: var(--shell-max);
   margin: 0 auto;
-  padding: 10px 20px;
-  display: flex;
+  padding: 8px max(var(--space-5), env(safe-area-inset-right, 0px)) 8px max(var(--space-5), env(safe-area-inset-left, 0px));
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  gap: var(--space-5);
+  transition: padding var(--motion-fast) ease;
 }
+
+.site-head.is-scrolled .head-inner { padding-top: 5px; padding-bottom: 5px; }
 
 .brand {
   display: flex;
@@ -707,183 +753,321 @@ body.charts-page {
 }
 
 .brand-en {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
 }
 
 .brand-zh {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--muted);
-}
-
-.level-switch {
-  margin-left: auto;
-  display: flex;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  overflow: hidden;
-  flex: none;
-}
-
-.level-switch button {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--fg);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-
-.level-switch button + button {
-  border-left: 1px solid var(--rule);
-}
-
-.level-switch button[aria-pressed="true"] {
-  background: var(--blue);
-  color: var(--on-blue);
+  white-space: nowrap;
 }
 
 .type-switch {
-  border-top: 1px solid var(--rule);
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .type-switch-scroll {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 8px 20px;
+  min-width: 0;
+  flex: 1 1 auto;
   display: flex;
-  gap: 6px;
+  align-items: stretch;
+  gap: 0 var(--space-4);
   overflow-x: auto;
   scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
 }
 
 .type-switch-scroll::-webkit-scrollbar { display: none; }
 
-.type-tab {
+.type-switch::before,
+.type-switch::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--motion-fast) ease;
+  z-index: 2;
+}
+
+.type-switch::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--bg), transparent);
+}
+
+.type-switch::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--bg), transparent);
+}
+
+.type-switch[data-overflow="start"]::before,
+.type-switch[data-overflow="both"]::before,
+.type-switch[data-overflow="end"]::after,
+.type-switch[data-overflow="both"]::after { opacity: 1; }
+
+.type-scroll {
   appearance: none;
   flex: none;
-  white-space: nowrap;
-  border: 1px solid transparent;
-  border-radius: 999px;
+  width: 26px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: var(--c-radius-control);
+  z-index: 3;
+}
+
+.type-scroll:hover { color: var(--fg); background: var(--surface); }
+.type-scroll[hidden] { display: none; }
+.type-scroll svg { width: 17px; height: 17px; }
+
+.type-tab {
+  appearance: none;
+  position: relative;
+  flex: none;
+  scroll-snap-align: start;
+  border: 0;
   background: transparent;
   color: var(--muted);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
-  padding: 6px 14px;
+  letter-spacing: 0;
+  padding: 9px 0 8px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.type-tab:hover { background: var(--surface); color: var(--fg); }
-
-.type-tab[aria-selected="true"] {
-  background: var(--blue-tint);
-  border-color: color-mix(in srgb, var(--blue) 30%, transparent);
-  color: var(--blue);
+.type-tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1.5px;
+  background: var(--fg);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms var(--ease-out);
 }
 
-.type-tab:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 2px;
+.type-tab:hover { color: var(--fg); }
+.type-tab[aria-selected="true"] { color: var(--fg); }
+.type-tab[aria-selected="true"]::after { transform: scaleX(1); }
+
+.level-switch {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
+
+.level-switch button {
+  position: relative;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 0 5px;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.level-switch button::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+.level-switch button:hover { color: var(--fg); }
+.level-switch button[aria-pressed="true"] { color: var(--fg); font-weight: 600; }
+.level-switch button[aria-pressed="true"]::after { transform: scaleX(1); }
 
 .page {
-  max-width: 820px;
+  max-width: var(--shell-max);
   margin: 0 auto;
-  padding: 24px 20px 120px;
+  padding: var(--space-6) max(var(--space-5), env(safe-area-inset-right, 0px))
+    calc(var(--space-9) + env(safe-area-inset-bottom, 0px))
+    max(var(--space-5), env(safe-area-inset-left, 0px));
 }
 
-.chart-section {
-  scroll-margin-top: 100px;
-}
+/* ------------------------------------------------------------- panel head */
 
+.chart-section { scroll-margin-top: calc(var(--header-h) + var(--space-4)); }
 .chart-panel[hidden] { display: none; }
+
+.section-head {
+  margin: 0 0 var(--space-6);
+  padding-bottom: 0;
+  border-bottom: 0;
+}
 
 .section-head h2 {
   margin: 0;
-  font-size: clamp(1.55rem, 4vw, 2rem);
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  font-size: var(--t-h2);
+  line-height: 1.15;
   letter-spacing: -0.02em;
 }
 
 .h2-en {
   color: var(--muted);
-  font-size: 0.62em;
+  font-size: 0.52em;
   font-weight: 500;
   letter-spacing: 0;
-  margin-left: 8px;
 }
 
 .definition {
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
+  max-width: 66ch;
   color: var(--muted);
   font-size: 15px;
   line-height: 1.65;
+  letter-spacing: 0;
+}
+
+/* ---------------------------------------------------------- two-column lab */
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.95fr);
+  gap: var(--space-7);
+  align-items: start;
+}
+
+.panel-figure { min-width: 0; }
+.panel-reading {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .chart-card {
-  margin-top: 18px;
-  border: 1px solid var(--rule);
-  border-radius: 20px;
-  padding: 14px 16px 18px;
-  background: var(--bg);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.chart-toolbar {
+html[data-theme="editorial"] .chart-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-theme="brutal"] .chart-card {
+  border: 2px solid var(--fg);
+  border-radius: var(--c-radius-card);
+  padding: var(--space-4);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+html[data-theme="glass"] .chart-card {
+  border-radius: var(--c-radius-card);
+  padding: var(--space-4);
+  background: var(--surface);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  box-shadow: var(--shadow-card);
+}
+
+.figure-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 0 2px 10px;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 0;
 }
 
 .chart-scene {
-  color: var(--muted);
-  font-size: 12px;
   min-width: 0;
-  flex: 1 1 auto;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.015em;
 }
 
-.chart-actions {
-  margin-left: auto;
+.figure-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   flex: none;
 }
 
-.chart-controls {
-  display: flex;
-  gap: 6px;
-}
-
-.pill {
+.icon-btn {
   appearance: none;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--c-radius-pill);
   background: transparent;
-  color: var(--fg);
-  font: inherit;
-  font-size: 13px;
-  padding: 7px 13px;
+  color: var(--muted);
   cursor: pointer;
 }
 
-.pill:hover { background: var(--surface); }
+.icon-btn:hover { color: var(--fg); background: var(--surface-strong); }
+.icon-btn svg { width: 15px; height: 15px; }
 
-.pill.compact {
+.text-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
   font-size: 12px;
-  padding: 5px 10px;
+  font-weight: 500;
+  padding: 4px 0;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-.pill[aria-expanded="true"] {
-  background: var(--blue);
-  color: var(--on-blue);
-  border-color: var(--blue);
+.text-link:hover { color: var(--fg); }
+
+.text-link span[aria-hidden="true"] {
+  display: inline-block;
+  transition: transform var(--motion-fast) ease;
 }
+
+.text-link:hover span[aria-hidden="true"] { transform: translateX(2px); }
 
 .plot {
   position: relative;
@@ -895,24 +1079,31 @@ body.charts-page {
   width: 100%;
   height: auto;
   overflow: visible;
-  font-family: var(--font);
-}
-
-.axis-label {
-  fill: var(--muted);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.axis-title {
-  fill: var(--muted);
+  font-family: var(--font, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif);
   font-size: 13px;
 }
+
+.axis-label,
+.axis-title,
+.chart-caption,
+.axis-note,
+.value-label,
+.point-label,
+.pie-label {
+  font-size: 1em;
+}
+
+.axis-label { fill: var(--muted); font-variant-numeric: tabular-nums; }
+.axis-title { fill: var(--muted); }
+.chart-caption { fill: var(--muted); font-size: 0.92em; }
+.axis-note { fill: var(--muted); font-size: 0.92em; }
+.tick-line { stroke: var(--rule); stroke-width: 1; }
 
 .grid-line {
   stroke: var(--rule);
   stroke-width: 1;
-  opacity: 0.72;
+  opacity: 0.55;
 }
 
 .axis-line {
@@ -920,42 +1111,40 @@ body.charts-page {
   stroke-width: 1.2;
 }
 
-.chart-caption {
-  fill: var(--muted);
-  font-size: 12px;
-}
-
-.axis-note {
-  fill: var(--muted);
-  font-size: 12px;
-}
-
 .line-path {
   fill: none;
   stroke: var(--series-1);
-  stroke-width: 2.5;
+  stroke-width: 2.4;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
-.line-path-alt {
-  stroke: var(--series-2);
-}
+.line-path-alt { stroke: var(--series-2); }
 
 .area-fill {
   fill: var(--series-1);
-  opacity: 0.14;
+  opacity: 0.12;
 }
 
-.bar-current {
-  fill: var(--series-1);
+.area-edge {
+  fill: none;
+  stroke: var(--series-1);
+  stroke-width: 1;
+  opacity: 0.45;
 }
+
+.bar-current { fill: var(--series-1); }
 
 .bar-ghost {
   fill: none;
   stroke: var(--series-2);
-  stroke-width: 1.5;
-  opacity: 0.75;
+  stroke-width: 1.4;
+  opacity: 0.72;
+}
+
+.bar-ghost-rule {
+  fill: var(--series-2);
+  opacity: 0.6;
 }
 
 .trend-line {
@@ -967,49 +1156,56 @@ body.charts-page {
 
 .value-label {
   fill: var(--fg);
-  font-size: 12px;
+  font-size: 0.92em;
   font-variant-numeric: tabular-nums;
 }
 
 .value-label.end { text-anchor: start; }
-.value-label.inside { fill: #ffffff; font-weight: 600; }
+.value-label.inside { fill: var(--c-on-accent); font-weight: 600; }
+.value-label.ghost { fill: var(--muted); }
 
-.point-label {
-  fill: var(--fg);
-  font-size: 12px;
-}
+.point-label { fill: var(--fg); font-size: 0.92em; }
 
 .pie-slice {
   stroke: var(--bg);
   stroke-width: 2;
+  transition: opacity var(--motion-fast) ease;
 }
 
 .pie-label {
-  fill: #ffffff;
-  font-size: 14px;
-  font-weight: 700;
+  fill: var(--fg);
+  font-size: 0.92em;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
   pointer-events: none;
 }
 
-.pie-label.on-light { fill: #111111; }
+.pie-leader {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  opacity: 0.65;
+}
 
 .pie-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
-  margin-top: 8px;
+  gap: 6px 16px;
+  margin-top: var(--space-2);
   font-size: 12px;
 }
 
 .pie-legend .legend-name { color: var(--fg); }
 .pie-legend .legend-value { color: var(--muted); font-variant-numeric: tabular-nums; }
 
-.legend-host { margin-top: 6px; }
+.legend-host { margin-top: var(--space-2); }
 
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 6px 16px;
   color: var(--muted);
   font-size: 12px;
 }
@@ -1021,10 +1217,70 @@ body.charts-page {
 }
 
 .legend-dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex: none;
+}
+
+.crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.hover-dot {
+  fill: var(--bg);
+  stroke: var(--blue);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.plot-hit { cursor: crosshair; }
+
+.plot[data-emphasis="current"] .bar-ghost,
+.plot[data-emphasis="baseline"] .bar-current,
+.plot[data-emphasis="baseline"] .bar-ghost-rule { opacity: 0.28; }
+
+.plot[data-emphasis] .pie-slice { opacity: 0.55; }
+.plot[data-emphasis] .pie-slice.is-active { opacity: 1; }
+
+.pie-empty-ring {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 6;
+}
+
+.chart-tip {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  padding: 6px 9px;
+  border-radius: var(--c-radius-control);
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.chart-tip[data-visible="true"] { opacity: 1; }
+
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  pointer-events: none;
 }
 
 .handle {
@@ -1033,10 +1289,7 @@ body.charts-page {
   touch-action: none;
 }
 
-.handle[aria-orientation="horizontal"] {
-  cursor: ew-resize;
-}
-
+.handle[aria-orientation="horizontal"] { cursor: ew-resize; }
 .handle.pie-handle { cursor: grab; }
 .handle.pie-handle.dragging { cursor: grabbing; }
 
@@ -1045,14 +1298,12 @@ body.charts-page {
 .handle .halo {
   fill: var(--blue-tint);
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transition: opacity 120ms ease;
 }
 
 .handle:hover .halo,
 .handle:focus-visible .halo,
-.handle.dragging .halo {
-  opacity: 0.95;
-}
+.handle.dragging .halo { opacity: 0.95; }
 
 .handle .dot {
   fill: var(--series-1);
@@ -1071,91 +1322,508 @@ body.charts-page {
   stroke-width: 2;
 }
 
+/* --------------------------------------------------------------- reading */
+
 .desc {
-  margin-top: 14px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border-radius: 14px;
+  border-left: 0;
+  padding-left: 0;
+}
+
+.desc.is-level-switching { animation: level-fade 180ms ease; }
+
+@keyframes level-fade {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+.desc-lines {
+  display: grid;
+  gap: var(--space-5);
 }
 
 .sentence {
-  padding: 9px 0;
-  border-top: 1px solid var(--rule);
+  padding: 0;
+  border-top: 0;
 }
 
-.sentence:first-child {
-  border-top: 0;
-  padding-top: 2px;
-}
+.sentence:first-child { padding-top: 0; }
 
 .sentence-en {
   margin: 0;
-  font-size: 16.5px;
+  font-size: 1rem;
   line-height: 1.55;
+  letter-spacing: -0.003em;
 }
 
 .sentence.lead .sentence-en {
-  font-size: 18px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.38;
+  letter-spacing: -0.012em;
+}
+
+.sentence-zh {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+.section-notes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+.panel-notes {
+  margin-top: var(--space-7);
+  padding-top: 0;
+  border-top: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.note {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.note h3 {
+  margin: 0 0 var(--space-1);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.note p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+.model { margin-top: var(--space-1); }
+
+.model-box {
+  margin-top: var(--space-3);
+  padding-top: 0;
+  border-top: 0;
+}
+
+.model-box[hidden] { display: none; }
+
+.model-body .sentence:first-child { padding-top: 0; }
+
+/* ------------------------------------------------------- patterns / learning */
+
+.pattern-section {
+  margin-top: var(--space-7);
+  border-top: 0;
+  padding-top: 0;
+}
+
+.learning {
+  margin-top: var(--space-6);
+  border-top: 0;
+  padding-top: 0;
+}
+
+.pattern-section h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pattern-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-7);
+  row-gap: var(--space-4);
+}
+
+.pattern-list li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  column-gap: var(--space-2);
+  padding: 0;
+  border-top: 0;
+}
+
+.pattern-level {
+  grid-row: 1 / span 2;
+  padding-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.pattern-en {
+  grid-column: 2;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.pattern-zh {
+  grid-column: 2;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.learning summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 8px 0;
+  cursor: pointer;
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.learning summary::-webkit-details-marker { display: none; }
+
+.learning summary::after {
+  content: "+";
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.learning[open] summary::after { content: "−"; }
+
+.learning-body { padding-bottom: var(--space-4); }
+
+.vocab-groups {
+  column-count: 2;
+  column-gap: var(--space-7);
+}
+
+.vocab-group {
+  break-inside: avoid;
+  margin-bottom: var(--space-6);
+}
+
+.vocab-group h4 {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.vocab-list { display: grid; gap: var(--space-4); }
+
+.vocab-card {
+  break-inside: avoid;
+  padding: 0;
+  border-top: 0;
+}
+
+.vocab-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.vocab-en {
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-.sentence-zh {
-  margin: 3px 0 0;
+.vocab-zh {
   color: var(--muted);
+  font-size: 12.5px;
+  letter-spacing: 0;
+}
+
+.vocab-ex {
+  margin: var(--space-2) 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.vocab-ex-zh {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.vocab-note {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 9.5px;
+  line-height: 1.4;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.level-badge { color: var(--muted); font-weight: 500; }
+.register-badge { color: var(--muted); }
+
+.converter {
+  border-top: 0;
+  padding: 0;
+  margin: 0 0 var(--space-5);
+}
+
+.converter h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.converter-controls {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin: var(--space-3) 0;
+}
+
+.converter-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.converter-controls select {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--c-radius-control);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.converter-output {
+  background: var(--surface);
+  border-radius: var(--c-radius-control);
+  padding: var(--space-3) var(--space-4);
+}
+
+.converter-line {
+  margin: 4px 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.converter-zh {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  letter-spacing: 0;
+}
+
+.grammar-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-7);
+  row-gap: var(--space-6);
+}
+
+.grammar-card {
+  padding: 0;
+  border-top: 0;
+}
+
+.grammar-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.grammar-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.grammar-zh {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.grammar-explain {
+  margin: var(--space-2) 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+.example {
+  display: flex;
+  gap: var(--space-2);
+  padding: 4px 0;
+  border-top: 0;
+}
+
+.example .mark {
+  flex: none;
+  font-weight: 700;
   font-size: 13px;
   line-height: 1.5;
 }
 
-.data-panel {
-  margin-top: 12px;
+.example.correct .mark { color: var(--c-positive); }
+.example.wrong .mark { color: var(--c-negative); }
+
+.example p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
 }
 
-.data-panel summary {
+.example .zh {
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 11.5px;
+  letter-spacing: 0;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-3) 0;
+  border-top: 0;
   color: var(--muted);
   font-size: 13px;
-  cursor: pointer;
+  letter-spacing: 0;
 }
+
+/* ---------------------------------------------------------------- errors */
+
+.library {
+  margin-top: var(--space-8);
+}
+
+.library-head { margin-bottom: var(--space-4); }
+
+.library-head h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+
+.errors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-7);
+  row-gap: var(--space-6);
+}
+
+.error-card {
+  padding: 0;
+  border-top: 0;
+}
+
+.error-why {
+  margin: var(--space-2) 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+/* ----------------------------------------------------------------- table */
+
+.table-wrap { overflow-x: auto; }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
 .data-table th,
 .data-table td {
   border-bottom: 1px solid var(--rule);
-  padding: 7px 8px;
+  padding: var(--space-2) var(--space-2);
   text-align: left;
   vertical-align: middle;
 }
 
 .data-table th {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.data-table .num-cell,
+.data-table th.num-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--fg) 2.5%, transparent);
+}
+
+.data-table tbody tr:hover { background: var(--surface-strong); }
+
+.data-table tfoot th,
+.data-table tfoot td {
+  border-top: 1px solid var(--c-rule-strong);
+  border-bottom: 0;
   font-weight: 600;
 }
 
 .data-table input {
   width: 88px;
-  padding: 5px 7px;
+  padding: 6px 7px;
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: var(--c-radius-control);
   background: var(--bg);
   color: var(--fg);
   font: inherit;
+  font-size: 13px;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+.data-table input:focus { border-color: var(--blue); }
 
 .cell-unit {
   margin-left: 4px;
   color: var(--muted);
-}
-
-.table-wrap {
-  overflow-x: auto;
 }
 
 .chart-table .row-en {
@@ -1167,6 +1835,7 @@ body.charts-page {
   display: block;
   color: var(--muted);
   font-size: 11px;
+  letter-spacing: 0;
 }
 
 .chart-table .edit-cell {
@@ -1178,451 +1847,217 @@ body.charts-page {
   position: absolute;
   left: 8px;
   bottom: 6px;
-  height: 4px;
+  height: 3px;
   border-radius: 999px;
   background: var(--blue);
-  opacity: 0.35;
+  opacity: 0.26;
   pointer-events: none;
 }
 
 .chart-table input {
   position: relative;
   z-index: 1;
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
 }
 
-.yoy-cell.positive { color: #0ca30c; }
-.yoy-cell.negative { color: #d03b3b; }
+.yoy-cell.positive { color: var(--c-positive); }
+.yoy-cell.negative { color: var(--c-negative); }
 
-.table-unit {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
+.table-unit,
 .table-total {
-  margin: 10px 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11.5px;
+  letter-spacing: 0;
 }
 
-.section-notes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 14px;
+.table-scroll {
+  max-height: min(60vh, 520px);
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
-.note {
-  border-top: 1px solid var(--rule);
-  padding-top: 10px;
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg);
 }
 
-.note h3 {
-  margin: 0 0 4px;
+.table-scroll th.row-head {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+}
+
+.table-scroll-shell { position: relative; }
+
+.table-scroll-cue {
+  display: none;
+  margin: var(--space-2) 0 0;
   color: var(--muted);
   font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
-.note p {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.55;
+.table-scroll-shell[data-overflow="true"] .table-scroll-cue { display: block; }
+
+.table-scroll-shell[data-overflow="true"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 24px;
+  width: 32px;
+  pointer-events: none;
+  background: linear-gradient(270deg, var(--bg), transparent);
 }
 
-.focus-row {
+.th-unit {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.data-panel {
+  margin-top: var(--space-3);
+}
+
+.data-panel summary {
+  min-height: 32px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 14px;
-}
-
-.chip {
-  display: inline-flex;
   align-items: center;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  padding: 5px 10px;
-  background: transparent;
-  color: var(--fg);
-  font: inherit;
+  color: var(--muted);
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
+  letter-spacing: 0.02em;
 }
 
-.chip[aria-pressed="true"] {
-  background: var(--blue);
-  border-color: var(--blue);
-  color: var(--on-blue);
-}
+.data-panel summary::-webkit-details-marker { display: none; }
 
-.focus-chip {
-  cursor: default;
-}
-
-.chip-zh {
-  color: var(--muted);
-  margin-left: 5px;
-}
-
-.focus-chip[aria-pressed="true"] .chip-zh,
-.chip[aria-pressed="true"] .chip-zh {
-  color: inherit;
-  opacity: 0.8;
-}
-
-.patterns {
-  margin-top: 18px;
-}
-
-.patterns h3 {
-  margin: 0 0 6px;
-  font-size: 13px;
-  color: var(--muted);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.pattern-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.pattern-list li {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  padding: 10px 0;
-  border-top: 1px solid var(--rule);
-}
-
-.pattern-en {
-  font-size: 15.5px;
-}
-
-.pattern-zh {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.badge {
-  display: inline-block;
-  font-size: 11px;
-  line-height: 1.4;
-  padding: 1px 7px;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.level-badge {
-  color: var(--blue);
-  border-color: var(--blue);
-}
-
-.register-badge {
-  color: var(--muted);
-}
-
-.model {
-  margin-top: 16px;
-}
-
-.model-box {
-  margin-top: 12px;
-  border: 1px dashed var(--rule);
-  border-radius: 14px;
-  padding: 12px 16px;
-  background: var(--surface);
-}
-
-.model-box[hidden] { display: none; }
-
-.model-body .sentence:first-child {
-  padding-top: 2px;
-}
-
-.library {
-  margin-top: 76px;
-  scroll-margin-top: 122px;
-}
-
-.library-head {
-  margin-bottom: 14px;
-}
-
-.library-head h2 {
-  margin: 0;
-  font-size: clamp(1.45rem, 4vw, 1.9rem);
-  letter-spacing: -0.02em;
-}
-
-.learning {
-  margin-top: 18px;
-  border-top: 1px solid var(--rule);
-}
-
-.learning summary {
-  padding: 12px 0;
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-
-.learning[open] summary { color: var(--fg); }
-
-.learning-body { padding-bottom: 4px; }
-
-.vocab-group + .vocab-group { margin-top: 20px; }
-
-.vocab-group h4 {
-  margin: 0 0 8px;
-  color: var(--fg);
-  font-size: 13px;
-}
-
-.grammar-list { margin-top: 4px; }
-
-.search {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  background: var(--bg);
-  color: var(--fg);
-  font: inherit;
-  margin: 10px 0 14px;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-
-.vocab-list {
-  display: grid;
-  gap: 10px;
-}
-
-.vocab-card {
-  border: 1px solid var(--rule);
-  border-radius: 14px;
-  padding: 12px 14px;
-}
-
-.vocab-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.vocab-en {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.vocab-zh {
-  color: var(--muted);
+.data-panel summary::after {
+  content: "+";
+  margin-left: 6px;
   font-size: 14px;
 }
 
-.vocab-ex {
-  margin: 8px 0 0;
-  font-size: 14.5px;
-  line-height: 1.55;
+.data-panel[open] summary::after { content: "−"; }
+
+/* --------------------------------------------------------------- motion */
+
+.chart-panel.is-entering .panel-grid {
+  animation: panel-in var(--motion-reveal) var(--ease-out) both;
 }
 
-.vocab-ex-zh {
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: 12.5px;
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    clip-path: inset(0 0 6% 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0);
+  }
 }
 
-.vocab-note {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
+/* --------------------------------------------------------------- mobile */
+
+@media (max-width: 1023px) {
+  .panel-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
+  .panel-figure { position: static; }
 }
 
-.empty {
-  color: var(--muted);
-  font-size: 14px;
+@media (max-width: 999px) {
+  .head-inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-3) var(--space-4);
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .brand { grid-column: 2; }
+  .level-switch { grid-column: 3; }
+
+  .type-switch {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding-top: 6px;
+  }
 }
 
-.converter {
-  border: 1px solid var(--rule);
-  border-radius: 16px;
-  padding: 16px;
-  margin: 18px 0;
-  background: var(--surface);
-}
+@media (max-width: 720px) {
+  .head-inner {
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+    gap: var(--space-2) var(--space-3);
+  }
 
-.converter h3 {
-  margin: 0;
-  font-size: 15px;
-}
-
-.converter-controls {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 12px 0;
-}
-
-.converter-controls label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.converter-controls select {
-  font: inherit;
-  padding: 7px 10px;
-  border: 1px solid var(--rule);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--fg);
-}
-
-.converter-output {
-  background: var(--bg);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
-.converter-line {
-  margin: 4px 0;
-  font-size: 15.5px;
-  line-height: 1.5;
-}
-
-.converter-zh {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.grammar-card,
-.error-card {
-  border: 1px solid var(--rule);
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 10px;
-}
-
-.grammar-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.grammar-head h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.grammar-zh {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.grammar-explain {
-  margin: 8px 0 4px;
-  color: var(--muted);
-  font-size: 13.5px;
-  line-height: 1.55;
-}
-
-.example {
-  display: flex;
-  gap: 8px;
-  padding: 7px 0;
-  border-top: 1px solid var(--rule);
-}
-
-.example .mark {
-  flex: none;
-  font-weight: 700;
-}
-
-.example.correct .mark { color: #0ca30c; }
-.example.wrong .mark { color: #d03b3b; }
-
-.example p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.example .zh {
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.error-head {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 2px;
-}
-
-.error-why {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-@media (max-width: 640px) {
-  .head-inner { gap: 10px; padding: 9px 14px; }
   .brand-zh { display: none; }
-  .level-switch button { padding: 5px 9px; font-size: 12px; }
-  .type-switch-scroll { padding: 7px 14px; }
-  .page { padding: 20px 14px 120px; }
-  .section-notes { grid-template-columns: 1fr; }
-  .chart-card { padding: 12px 12px 16px; border-radius: 16px; }
-  .chart-toolbar { gap: 6px; }
+  .brand-en { font-size: 14px; }
+  .charts-page .npesl-back { padding: 5px 10px; font-size: 12px; }
+  .level-switch { gap: var(--space-3); }
+  .level-switch button { padding: 8px 0; min-height: 38px; }
+
+  .page {
+    padding-top: var(--space-5);
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+  }
+
+  .section-head { margin-bottom: var(--space-5); padding-bottom: 0; }
+  .section-head h2 { font-size: 1.45rem; }
+  .h2-en { display: block; width: 100%; margin-top: 1px; font-size: 0.6em; }
+  .definition { font-size: 14px; }
+
+  .chart-card { padding: 0; }
   .chart-scene { font-size: 11px; }
-  .desc { padding: 10px 12px; }
-  .sentence-en { font-size: 15.5px; }
-  .sentence.lead .sentence-en { font-size: 17px; }
+
+  .sentence.lead .sentence-en { font-size: 1.2rem; }
+  .sentence-en { font-size: 1rem; }
+  .sentence-zh { font-size: 0.8rem; }
+
+  .pattern-list,
+  .grammar-list,
+  .errors-grid {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 0;
+  }
+
+  .section-notes { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+
+  .vocab-groups { column-count: 1; }
+
   .data-table { font-size: 12px; }
   .data-table th, .data-table td { padding: 6px 5px; }
-  .data-table input { width: 72px; }
+  .data-table input { width: 70px; }
   .chart-table .edit-cell { min-width: 96px; }
-  .h2-en { display: block; margin: 4px 0 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.001ms !important;
     animation-duration: 0.001ms !important;
   }
+
   .handle .halo { transition: none; }
+  .chart-panel.is-entering .panel-grid { animation: none; }
 }
 
 </style>
 </head>
 <body class="charts-page">
-<header class="site-head">
+<header class="site-head" id="site-head">
   <div class="head-inner">
     <a class="npesl-back" href="../" aria-label="返回 NPESL">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
@@ -1632,14 +2067,20 @@ body.charts-page {
       <span class="brand-en">Business Charts</span>
       <span class="brand-zh">商务图表英语</span>
     </div>
+    <nav class="type-switch" aria-label="图表类型">
+      <button class="type-scroll" type="button" data-scroll="-1" aria-label="向前浏览图表类型" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="type-switch-scroll" id="type-buttons" role="tablist"></div>
+      <button class="type-scroll" type="button" data-scroll="1" aria-label="向后浏览图表类型" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </nav>
     <div class="level-switch" id="level-switch" role="group" aria-label="难度">
       <button type="button" data-level="B1">基础</button>
       <button type="button" data-level="C1">进阶</button>
     </div>
   </div>
-  <nav class="type-switch" aria-label="图表类型">
-    <div class="type-switch-scroll" id="type-buttons" role="tablist"></div>
-  </nav>
 </header>
 
 <main class="page">
@@ -1837,17 +2278,23 @@ body.charts-page {
 
   svg.mkHandle = function (node, x, y, opts) {
     var o = opts || {};
-    var g = svg.group(node, {
+    var attrs = {
       class: 'handle',
       tabindex: '0',
       role: 'slider',
       'aria-label': o.label || 'value',
-      'aria-orientation': o.orientation || 'vertical',
       'aria-valuemin': o.min,
       'aria-valuemax': o.max,
       'aria-valuenow': o.now,
       'aria-valuetext': o.valueText || String(o.now)
-    });
+    };
+    if (o.orientation) attrs['aria-orientation'] = o.orientation;
+    if (o.data) {
+      Object.keys(o.data).forEach(function (key) {
+        attrs['data-' + key] = o.data[key];
+      });
+    }
+    var g = svg.group(node, attrs);
     var hit = svg.circle(g, {
       cx: x, cy: y, r: o.hitRadius || 22, fill: 'transparent', class: 'hit'
     });
@@ -1883,6 +2330,142 @@ body.charts-page {
       'dominant-baseline': o.baseline || 'middle'
     }, text);
   };
+})(window.NPESLCharts);
+
+;
+(function (NC) {
+  'use strict';
+
+  var motion = NC.motion = {};
+
+  motion.reduced = function () {
+    return !!(NC.state && NC.state.reducedMotion);
+  };
+
+  function cancel(lab) {
+    if (!lab.motionAnimations) return;
+    lab.motionAnimations.forEach(function (animation) {
+      try { animation.cancel(); } catch (err) {}
+    });
+    lab.motionAnimations = [];
+  }
+
+  function labelNodes(labels) {
+    if (!labels) return [];
+    if (Array.isArray(labels)) return labels;
+    return Object.keys(labels).map(function (key) { return labels[key]; });
+  }
+
+  function reset(lab) {
+    if (!lab || !lab.motion) return;
+    var m = lab.motion;
+    if (m.line) {
+      m.line.style.strokeDasharray = '';
+      m.line.style.strokeDashoffset = '';
+    }
+    (m.bars || []).forEach(function (bar) {
+      bar.style.transform = '';
+      bar.style.transformBox = '';
+      bar.style.transformOrigin = '';
+    });
+    (m.ghosts || []).forEach(function (node) { node.style.opacity = ''; });
+    (m.rules || []).forEach(function (node) { node.style.opacity = ''; });
+    (m.slices || []).forEach(function (node) { node.style.opacity = ''; });
+    (m.dots || []).forEach(function (node) { node.style.opacity = ''; });
+    labelNodes(m.labels).forEach(function (node) { if (node) node.style.opacity = ''; });
+  }
+
+  function keep(lab, animation) {
+    lab.motionAnimations = lab.motionAnimations || [];
+    lab.motionAnimations.push(animation);
+  }
+
+  motion.play = function (lab) {
+    if (!lab || !lab.motion || !lab.svg) return;
+    cancel(lab);
+    reset(lab);
+    if (motion.reduced()) return;
+    var m = lab.motion;
+    var kind = lab.type.renderer;
+    var ease = 'cubic-bezier(.25, 1, .5, 1)';
+
+    if (m.line) {
+      var length = 0;
+      try { length = m.line.getTotalLength(); } catch (err) { length = 0; }
+      if (length) {
+        m.line.style.strokeDasharray = String(length);
+        m.line.style.strokeDashoffset = String(length);
+        var draw = m.line.animate(
+          [{ strokeDashoffset: length }, { strokeDashoffset: 0 }],
+          { duration: 900, easing: ease, fill: 'both' }
+        );
+        keep(lab, draw);
+        draw.finished.then(function () {
+          m.line.style.strokeDasharray = '';
+          m.line.style.strokeDashoffset = '';
+        }).catch(function () {});
+      }
+    }
+
+    (m.dots || []).forEach(function (node, index) {
+      node.style.opacity = '0';
+      var anim = node.animate(
+        [{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1)' }],
+        { duration: 320, delay: 260 + index * 12, easing: ease, fill: 'both' }
+      );
+      keep(lab, anim);
+      anim.finished.then(function () { node.style.opacity = ''; }).catch(function () {});
+    });
+
+    (m.bars || []).forEach(function (bar, index) {
+      var horizontal = kind === 'hbar';
+      bar.style.transformBox = 'fill-box';
+      bar.style.transformOrigin = horizontal ? 'left center' : 'center bottom';
+      var anim = bar.animate(
+        [{ transform: horizontal ? 'scaleX(0)' : 'scaleY(0)' }, { transform: 'scale(1)' }],
+        { duration: 620, delay: index * 55, easing: ease, fill: 'both' }
+      );
+      keep(lab, anim);
+      anim.finished.then(function () {
+        bar.style.transform = '';
+        bar.style.transformBox = '';
+        bar.style.transformOrigin = '';
+      }).catch(function () {});
+    });
+
+    [].concat(m.ghosts || [], m.rules || []).forEach(function (node, index) {
+      node.style.opacity = '0';
+      var anim = node.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: 420, delay: index * 40, easing: 'ease-out', fill: 'both' }
+      );
+      keep(lab, anim);
+      anim.finished.then(function () { node.style.opacity = ''; }).catch(function () {});
+    });
+
+    (m.slices || []).forEach(function (node, index) {
+      node.style.opacity = '0';
+      var anim = node.animate(
+        [{ opacity: 0, transform: 'scale(.97)' }, { opacity: 1, transform: 'scale(1)' }],
+        { duration: 520, delay: index * 60, easing: ease, fill: 'both' }
+      );
+      keep(lab, anim);
+      anim.finished.then(function () { node.style.opacity = ''; }).catch(function () {});
+    });
+
+    labelNodes(m.labels).forEach(function (node, index) {
+      if (!node) return;
+      node.style.opacity = '0';
+      var anim = node.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: 320, delay: 260 + index * 25, easing: 'ease-out', fill: 'both' }
+      );
+      keep(lab, anim);
+      anim.finished.then(function () { node.style.opacity = ''; }).catch(function () {});
+    });
+  };
+
+  motion.revealPanel = function () {};
 })(window.NPESLCharts);
 
 ;
@@ -2219,6 +2802,7 @@ body.charts-page {
       moved = false;
       try { handle.setPointerCapture(pointerId); } catch (err) {}
       handle.classList.add('dragging');
+      if (opts.onStart) opts.onStart(event);
       event.preventDefault();
     }
 
@@ -2263,11 +2847,15 @@ body.charts-page {
       } else if (moved) {
         updateAria(handle, opts, valueNow());
         if (opts.onCommit) opts.onCommit(valueNow());
+        if (opts.focusOnCommit) {
+          try { handle.focus({ preventScroll: true }); } catch (err) { handle.focus(); }
+        }
       } else {
         opts.set(snapshot);
         updateAria(handle, opts, snapshot);
         if (opts.onUpdate) opts.onUpdate(snapshot);
       }
+      if (opts.onEnd) opts.onEnd(canceled);
       try { handle.releasePointerCapture(pointerId); } catch (err) {}
       pointerId = null;
       active = null;
@@ -3459,10 +4047,11 @@ body.charts-page {
 
   common.width = 720;
   common.height = 380;
-  common.margin = { top: 30, right: 26, bottom: 52, left: 66 };
+  common.margin = { top: 18, right: 26, bottom: 52, left: 66 };
+  common.compactMargin = { top: 16, right: 18, bottom: 46, left: 56 };
 
-  common.plot = function (width, height) {
-    var m = common.margin;
+  common.plot = function (width, height, compact) {
+    var m = compact ? common.compactMargin : common.margin;
     return {
       left: m.left,
       right: width - m.right,
@@ -3471,6 +4060,80 @@ body.charts-page {
       width: width - m.left - m.right,
       height: height - m.top - m.bottom
     };
+  };
+
+  common.fit = function (root) {
+    if (!root || !root.getBoundingClientRect) return false;
+    var rect = root.getBoundingClientRect();
+    var box = root.viewBox && root.viewBox.baseVal;
+    var viewWidth = box && box.width ? box.width : common.width;
+    var scale = rect.width > 0 ? rect.width / viewWidth : 1;
+    root.style.fontSize = (13 / (scale || 1)) + 'px';
+    var compact = rect.width > 0 && rect.width < 520;
+    root.setAttribute('data-compact', compact ? 'true' : 'false');
+    return compact;
+  };
+
+  common.screenPx = function (root, px) {
+    var rect = root && root.getBoundingClientRect ? root.getBoundingClientRect() : null;
+    var box = root && root.viewBox ? root.viewBox.baseVal : null;
+    if (!rect || !rect.width || !box || !box.width) return px;
+    return px / (rect.width / box.width);
+  };
+
+  common.tip = function (plotHost) {
+    if (plotHost.__tip) return plotHost.__tip;
+    var node = document.createElement('div');
+    node.className = 'chart-tip';
+    node.setAttribute('aria-hidden', 'true');
+    plotHost.appendChild(node);
+    plotHost.__tip = node;
+    return node;
+  };
+
+  common.showTip = function (plotHost, text, root, x, y) {
+    if (!plotHost || !root) return;
+    var node = common.tip(plotHost);
+    node.textContent = text;
+    var rect = root.getBoundingClientRect();
+    var hostRect = plotHost.getBoundingClientRect();
+    var box = root.viewBox && root.viewBox.baseVal;
+    if (!box || !box.width || !box.height) return;
+    var left = (rect.left - hostRect.left) + (x / box.width) * rect.width;
+    var top = (rect.top - hostRect.top) + (y / box.height) * rect.height;
+    node.dataset.visible = 'true';
+    node.style.left = Math.max(10, Math.min(hostRect.width - 10, left)) + 'px';
+    node.style.top = Math.max(26, top) + 'px';
+  };
+
+  common.hideTip = function (plotHost) {
+    if (!plotHost || !plotHost.__tip) return;
+    plotHost.__tip.dataset.visible = 'false';
+  };
+
+  common.fitText = function (node, maxWidth) {
+    if (!node || !node.getComputedTextLength) return;
+    var full = node.textContent;
+    if (!full) return;
+    var old = node.querySelector('title');
+    if (old) old.remove();
+    if (node.getComputedTextLength() <= maxWidth) return;
+    var chars = full;
+    while (chars.length > 1 && node.getComputedTextLength() > maxWidth) {
+      chars = chars.slice(0, -1);
+      node.textContent = chars + '…';
+    }
+    var title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+    title.textContent = full;
+    node.appendChild(title);
+  };
+
+  common.empty = function (plotHost, message) {
+    var node = document.createElement('p');
+    node.className = 'chart-empty';
+    node.textContent = message;
+    plotHost.appendChild(node);
+    return node;
   };
 
   common.drawYAxis = function (root, opts) {
@@ -3505,11 +4168,24 @@ body.charts-page {
       x1: opts.left, x2: opts.right, y1: opts.bottom, y2: opts.bottom,
       class: 'axis-line'
     });
-    (opts.labels || []).forEach(function (label, index) {
+    var labels = opts.labels || [];
+    var every = opts.labelEvery || 1;
+    labels.forEach(function (label, index) {
       var x = opts.x(index);
+      if (opts.ticks !== false) {
+        svg.line(root, {
+          x1: x, x2: x, y1: opts.bottom, y2: opts.bottom + 4,
+          class: 'tick-line'
+        });
+      }
+      var lastIndex = labels.length - 1;
+      var show = index === 0 || index === lastIndex ||
+        (index % every === 0 && lastIndex - index >= 2);
+      if (!show) return;
+      var anchor = index === 0 ? 'start' : index === lastIndex ? 'end' : 'middle';
       svg.text(root, {
         x: x, y: opts.bottom + 20,
-        'text-anchor': opts.anchor || 'middle',
+        'text-anchor': anchor,
         class: 'axis-label'
       }, label);
     });
@@ -3517,7 +4193,7 @@ body.charts-page {
 
   common.caption = function (root, text, opts) {
     var o = opts || {};
-    svg.text(root, {
+    return svg.text(root, {
       x: o.x == null ? 0 : o.x,
       y: o.y == null ? 14 : o.y,
       'text-anchor': o.anchor || 'start',
@@ -3529,9 +4205,11 @@ body.charts-page {
     container.innerHTML = '';
     var box = document.createElement('div');
     box.className = 'legend';
+    var nodes = [];
     items.forEach(function (item) {
       var row = document.createElement('span');
       row.className = 'legend-item';
+      if (item.key) row.setAttribute('data-legend', item.key);
       var dot = document.createElement('span');
       dot.className = 'legend-dot';
       dot.style.background = item.color;
@@ -3544,16 +4222,32 @@ body.charts-page {
       row.appendChild(dot);
       row.appendChild(label);
       box.appendChild(row);
+      nodes.push(row);
     });
     container.appendChild(box);
+    return { box: box, items: nodes };
+  };
+
+  common.emphasize = function (plotHost, key) {
+    if (plotHost) plotHost.setAttribute('data-emphasis', key || '');
+  };
+
+  common.clearEmphasis = function (plotHost) {
+    if (plotHost) plotHost.removeAttribute('data-emphasis');
+  };
+
+  common.placeValueLabel = function (root, x, y, text, opts) {
+    var o = opts || {};
+    return svg.text(root, {
+      x: x,
+      y: Math.max(o.top == null ? 0 : o.top, y),
+      'text-anchor': o.anchor || 'middle',
+      class: o.class || 'value-label'
+    }, text);
   };
 
   common.valueLabel = function (root, x, y, text, cls) {
-    return svg.text(root, {
-      x: x, y: y,
-      'text-anchor': 'middle',
-      class: cls || 'value-label'
-    }, text);
+    return common.placeValueLabel(root, x, y, text, { class: cls });
   };
 
   common.describeValue = function (value, unit) {
@@ -3576,23 +4270,24 @@ body.charts-page {
     function render(lab) {
       var width = 720;
       var height = 380;
-      var plot = common.plot(width, height);
       var series = lab.dataset.series[0];
       var values = series.values;
       var periods = lab.dataset.periods;
       var n = values.length;
       var max = series.max || 100;
+
+      var root = svg.create(lab.plot, width, height, series.name_en + ' line chart. Drag a point to change the value.');
+      lab.svg = root;
+      lab.lineState = null;
+      var compact = common.fit(root);
+      lab.compact = compact;
+      var plot = common.plot(width, height, compact);
       var y = NC.scale.linear(0, max, plot.bottom, plot.top);
       var x = function (index) {
         if (n <= 1) return plot.left + plot.width / 2;
         return plot.left + index / (n - 1) * plot.width;
       };
 
-      var root = svg.create(lab.plot, width, height, series.name_en + ' line chart. Drag a point to change the value.');
-      lab.svg = root;
-      lab.lineState = null;
-
-      common.caption(root, series.name_en + ' · ' + series.unit, { x: 0, y: 14 });
       common.drawYAxis(root, {
         left: plot.left, right: plot.right, top: plot.top, bottom: plot.bottom,
         min: 0, max: max, scale: y,
@@ -3601,7 +4296,8 @@ body.charts-page {
       common.drawXAxis(root, {
         left: plot.left, right: plot.right, bottom: plot.bottom,
         labels: periods.map(function (p) { return shortPeriod(p.label_en); }),
-        x: x
+        x: x,
+        labelEvery: compact ? 2 : 1
       });
 
       var pathPoints = values.map(function (value, index) {
@@ -3611,28 +4307,114 @@ body.charts-page {
         return (index === 0 ? 'M ' : 'L ') + point[0] + ' ' + point[1];
       }).join(' ');
 
+      var defs = svg.el('defs', null, root);
+      var gradientId = 'areaGrad-' + lab.type.id;
+      var gradient = svg.el('linearGradient', {
+        id: gradientId, x1: '0', y1: '0', x2: '0', y2: '1'
+      }, defs);
+      svg.el('stop', { offset: '0%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.16' }, gradient);
+      svg.el('stop', { offset: '100%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.02' }, gradient);
+
+      var hit = svg.rect(root, {
+        x: plot.left, y: plot.top, width: plot.width, height: plot.height,
+        fill: 'transparent', class: 'plot-hit'
+      });
+      var crosshair = svg.line(root, {
+        x1: plot.left, x2: plot.left, y1: plot.top, y2: plot.bottom,
+        class: 'crosshair'
+      });
+      crosshair.setAttribute('opacity', '0');
+
       var area = null;
+      var edge = null;
       if (variant === 'area') {
         var areaD = 'M ' + pathPoints[0][0] + ' ' + plot.bottom +
           ' L ' + pathPoints.map(function (point) { return point[0] + ' ' + point[1]; }).join(' L ') +
           ' L ' + pathPoints[pathPoints.length - 1][0] + ' ' + plot.bottom + ' Z';
-        area = svg.path(root, { d: areaD, class: 'area-fill' });
+        area = svg.path(root, { d: areaD, fill: 'url(#' + gradientId + ')', class: 'area-fill' });
+        edge = svg.path(root, { d: lineD, class: 'area-edge' });
       }
 
       var line = svg.path(root, { d: lineD, class: 'line-path' });
+      var hoverDot = svg.circle(root, { cx: 0, cy: 0, r: 4.5, class: 'hover-dot' });
+      hoverDot.setAttribute('opacity', '0');
       var handleLayer = svg.group(root, { class: 'handles' });
       var handles = [];
-      var labels = [];
+      var labels = {};
+      var labelIndices = {};
+
+      var first = 0;
+      var last = n - 1;
+      var minIndex = 1;
+      var maxIndex = 1;
+      for (var i = 2; i < n - 1; i += 1) {
+        if (values[i] < values[minIndex]) minIndex = i;
+        if (values[i] > values[maxIndex]) maxIndex = i;
+      }
+      labelIndices[last] = true;
+      if (compact) {
+        if (maxIndex !== last) labelIndices[maxIndex] = true;
+      } else {
+        labelIndices[first] = true;
+        labelIndices[minIndex] = true;
+        labelIndices[maxIndex] = true;
+      }
+      Object.keys(labelIndices).forEach(function (key) {
+        var index = Number(key);
+        var anchor = index === first ? 'start' : index === last ? 'end' : 'middle';
+        var lx = index === first ? x(index) + 6 : index === last ? x(index) - 6 : x(index);
+        labels[index] = common.placeValueLabel(root, lx, y(values[index]) - 12, NC.fmt.number(values[index], series.decimals), {
+          top: plot.top + 12,
+          anchor: anchor
+        });
+      });
+
+      function tipText(index) {
+        return periods[index].label_en + ' · ' + NC.fmt.value(values[index], series.unit, series.decimals);
+      }
+
+      function showPoint(index) {
+        if (lab.lineState) lab.lineState.activeIndex = index;
+        var px = x(index);
+        var py = y(series.values[index]);
+        crosshair.setAttribute('x1', px);
+        crosshair.setAttribute('x2', px);
+        crosshair.setAttribute('opacity', '1');
+        hoverDot.setAttribute('cx', px);
+        hoverDot.setAttribute('cy', py);
+        hoverDot.setAttribute('opacity', '1');
+        common.showTip(lab.plot, tipText(index), root, px, py);
+      }
+
+      function hidePoint() {
+        if (lab.lineState) lab.lineState.activeIndex = null;
+        crosshair.setAttribute('opacity', '0');
+        hoverDot.setAttribute('opacity', '0');
+        common.hideTip(lab.plot);
+      }
+
+      function localX(event) {
+        var rect = root.getBoundingClientRect();
+        return rect.width ? (event.clientX - rect.left) * width / rect.width : 0;
+      }
+
+      hit.addEventListener('pointermove', function (event) {
+        var index = NC.scale.nearestIndex(pathPoints.map(function (point) { return point[0]; }), localX(event));
+        showPoint(index);
+      });
+      hit.addEventListener('pointerleave', hidePoint);
 
       values.forEach(function (value, index) {
+        var handleRadius = common.screenPx(root, 6);
+        var hitRadius = common.screenPx(root, 20);
         var handle = svg.mkHandle(handleLayer, x(index), y(value), {
           min: 0,
           max: max,
           now: value,
-          radius: 6,
-          hitRadius: 20,
+          radius: handleRadius,
+          hitRadius: hitRadius,
           label: series.name_en + ' in ' + periods[index].label_en,
-          valueText: periods[index].label_en + ', ' + NC.fmt.value(value, series.unit, series.decimals)
+          valueText: tipText(index)
         });
         handle.group.setAttribute('data-index', index);
         NC.drag.bind(handle.group, {
@@ -3643,14 +4425,26 @@ body.charts-page {
           pixelSpan: plot.height,
           get: function () { return series.values[index]; },
           set: function (v) { series.values[index] = v; },
-          onUpdate: function () { lab.changed(false); },
-          onCommit: function () { lab.changed(true); },
+          onStart: function () { showPoint(index); },
+          onUpdate: function () {
+            lab.changed(false);
+            showPoint(index);
+          },
+          onCommit: function () {
+            lab.changed(true);
+            showPoint(index);
+          },
+          onEnd: function () { showPoint(index); },
+          focusOnCommit: true,
           valueText: function (v) {
             return periods[index].label_en + ', ' + NC.fmt.value(v, series.unit, series.decimals);
           }
         });
+        handle.group.addEventListener('focus', function () { showPoint(index); });
+        handle.group.addEventListener('blur', hidePoint);
+        handle.group.addEventListener('pointerenter', function () { showPoint(index); });
+        handle.group.addEventListener('pointerleave', hidePoint);
         handles.push(handle);
-        labels.push(common.valueLabel(root, x(index), y(value) - 14, NC.fmt.number(value, series.decimals)));
       });
 
       lab.lineState = {
@@ -3660,11 +4454,19 @@ body.charts-page {
         labels: labels,
         line: line,
         area: area,
+        edge: edge,
         plot: plot,
         series: series,
         periods: periods,
-        max: max
+        max: max,
+        root: root,
+        crosshair: crosshair,
+        hoverDot: hoverDot,
+        tipText: tipText,
+        showPoint: showPoint,
+        hidePoint: hidePoint
       };
+      lab.motion = { line: line, dots: handles.map(function (handle) { return handle.dot; }), labels: labels };
     }
 
     function update(lab) {
@@ -3684,6 +4486,7 @@ body.charts-page {
           ' L ' + points[points.length - 1][0] + ' ' + state.plot.bottom + ' Z';
         state.area.setAttribute('d', areaD);
       }
+      if (state.edge) state.edge.setAttribute('d', lineD);
       values.forEach(function (value, index) {
         svg.move(state.handles[index], points[index][0], points[index][1]);
         svg.setSlider(
@@ -3691,10 +4494,19 @@ body.charts-page {
           value,
           state.periods[index].label_en + ', ' + NC.fmt.value(value, state.series.unit, state.series.decimals)
         );
-        state.labels[index].setAttribute('x', points[index][0]);
-        state.labels[index].setAttribute('y', points[index][1] - 14);
-        state.labels[index].textContent = NC.fmt.number(value, state.series.decimals);
       });
+      Object.keys(state.labels).forEach(function (key) {
+        var index = Number(key);
+        var node = state.labels[key];
+        if (!node) return;
+        var anchor = index === 0 ? 'start' : index === values.length - 1 ? 'end' : 'middle';
+        var lx = index === 0 ? points[index][0] + 6 : index === values.length - 1 ? points[index][0] - 6 : points[index][0];
+        node.setAttribute('x', lx);
+        node.setAttribute('text-anchor', anchor);
+        node.setAttribute('y', Math.max(state.plot.top + 12, points[index][1] - 12));
+        node.textContent = NC.fmt.number(values[index], state.series.decimals);
+      });
+      if (typeof state.activeIndex === 'number') state.showPoint(state.activeIndex);
     }
 
     function describe(lab) {
@@ -3756,8 +4568,11 @@ body.charts-page {
     return dataset.series.length > 1 ? dataset.series[0] : null;
   }
 
-  function valueZhUnit(dataset) {
-    return dataset.unit_zh || dataset.unit;
+  function tipText(dataset, current, baseline, index) {
+    var category = dataset.categories[index];
+    var text = category.label_en + ' · ' + current.name_en + ': ' + NC.fmt.value(current.values[index], dataset.unit, 0);
+    if (baseline) text += ' · ' + baseline.name_en + ': ' + NC.fmt.value(baseline.values[index], dataset.unit, 0);
+    return text;
   }
 
   function tableSpec(lab) {
@@ -3794,13 +4609,43 @@ body.charts-page {
     };
   }
 
+  function bindBarDrag(target, lab, categoryIndex, handle, showTip) {
+    var dataset = lab.dataset;
+    var current = currentSeries(dataset);
+    var baseline = baselineSeries(dataset);
+    var opts = {
+      axis: 'y',
+      min: 0,
+      max: dataset.max || 600,
+      step: 5,
+      pixelSpan: lab.barState ? lab.barState.plot.height : 520,
+      get: function () { return current.values[categoryIndex]; },
+      set: function (value) { current.values[categoryIndex] = value; },
+      onStart: showTip,
+      onUpdate: function () {
+        lab.changed(false);
+        showTip();
+      },
+      onCommit: function () { lab.changed(true); },
+      onEnd: showTip,
+      valueText: function (value) {
+        return dataset.categories[categoryIndex].label_en + ', ' + NC.fmt.value(value, dataset.unit, 0);
+      }
+    };
+    NC.drag.bind(target, opts);
+  }
+
   function renderVertical(lab) {
     var dataset = lab.dataset;
     var current = currentSeries(dataset);
     var baseline = baselineSeries(dataset);
     var width = 720;
     var height = 400;
-    var plot = common.plot(width, height);
+    var root = svg.create(lab.plot, width, height, 'Column chart of revenue by market. Drag a bar to change the value.');
+    lab.svg = root;
+    var compact = common.fit(root);
+    lab.compact = compact;
+    var plot = common.plot(width, height, compact);
     plot.bottom = height - 64;
     plot.height = plot.bottom - plot.top;
     var max = dataset.max || 600;
@@ -3808,57 +4653,66 @@ body.charts-page {
     var band = NC.scale.band(dataset.categories.length, plot.left, plot.right, 0.24);
     var barWidth = Math.min(34, band.width * 0.34);
 
-    var root = svg.create(lab.plot, width, height, 'Column chart of revenue by market. Drag a bar to change the value.');
-    lab.svg = root;
     lab.legendHost = lab.legendHost || document.createElement('div');
     lab.legendHost.className = 'legend-host';
     if (!lab.legendHost.parentNode) lab.plot.appendChild(lab.legendHost);
-    common.legend(lab.legendHost, [
-      { label: baseline ? baseline.name_en : 'Last year', color: 'var(--series-2)', outline: true },
-      { label: current.name_en, color: 'var(--series-1)' }
+    var legend = common.legend(lab.legendHost, [
+      { label: baseline ? baseline.name_en : 'Last year', color: 'var(--series-2)', outline: true, key: 'baseline' },
+      { label: current.name_en, color: 'var(--series-1)', key: 'current' }
     ]);
 
-    common.caption(root, current.name_en + ' · ' + dataset.unit, { x: 0, y: 14 });
     common.drawYAxis(root, {
       left: plot.left, right: plot.right, top: plot.top, bottom: plot.bottom,
       min: 0, max: max, scale: y,
       format: function (value) { return NC.fmt.axis(value); }
     });
 
+    var bars = [];
+    var ghosts = [];
+    var labels = [];
+    var ghostLabels = [];
     dataset.categories.forEach(function (category, index) {
       var center = band.center(index);
       var currentValue = current.values[index];
       var previous = baseline ? baseline.values[index] : null;
       if (previous != null) {
-        var ghostHeight = Math.max(0, plot.bottom - y(previous));
-        svg.rect(root, {
+        var ghost = svg.rect(root, {
           x: center - barWidth - 2,
           y: y(previous),
           width: barWidth,
-          height: ghostHeight,
+          height: Math.max(0, plot.bottom - y(previous)),
           rx: 3,
           class: 'bar-ghost'
         });
+        ghosts.push(ghost);
+        if (!compact) {
+          ghostLabels.push(common.placeValueLabel(root, center - barWidth / 2 - 2, y(previous) - 8, NC.fmt.number(previous, 0), {
+            class: 'value-label ghost',
+            top: plot.top + 12
+          }));
+        }
       }
-      var barHeight = Math.max(0, plot.bottom - y(currentValue));
-      svg.rect(root, {
+      var bar = svg.rect(root, {
         x: center + 2,
         y: y(currentValue),
         width: barWidth,
-        height: barHeight,
+        height: Math.max(0, plot.bottom - y(currentValue)),
         rx: 3,
         class: 'bar-current'
       });
+      bars.push(bar);
       svg.text(root, {
         x: center, y: plot.bottom + 20,
         'text-anchor': 'middle',
-        class: 'axis-label'
+        class: 'axis-label category-label'
       }, category.label_en);
+      labels.push(common.placeValueLabel(root, center, y(currentValue) - 10, NC.fmt.number(currentValue, 0), {
+        top: plot.top + 12
+      }));
     });
 
     var handleLayer = svg.group(root, { class: 'handles' });
     var handles = [];
-    var labels = [];
     dataset.categories.forEach(function (category, index) {
       var center = band.center(index) + 2 + barWidth / 2;
       var currentValue = current.values[index];
@@ -3866,29 +4720,26 @@ body.charts-page {
         min: 0,
         max: max,
         now: currentValue,
-        radius: 6,
-        hitRadius: 20,
+        radius: common.screenPx(root, 6),
+        hitRadius: common.screenPx(root, 20),
         label: category.label_en + ' ' + current.name_en,
-        valueText: category.label_en + ', ' + NC.fmt.value(currentValue, dataset.unit, 0)
-      });
-      NC.drag.bind(handle.group, {
-        axis: 'y',
-        min: 0,
-        max: max,
-        step: 5,
-        pixelSpan: plot.height,
-        get: function () { return current.values[index]; },
-        set: function (value) { current.values[index] = value; },
-        onUpdate: function () { lab.changed(false); },
-        onCommit: function () { lab.changed(true); },
-        valueText: function (value) {
-          return category.label_en + ', ' + NC.fmt.value(value, dataset.unit, 0);
-        }
+        valueText: tipText(dataset, current, baseline, index)
       });
       handle.group.setAttribute('data-index', index);
       handles.push(handle);
-      labels.push(common.valueLabel(root, center, y(currentValue) - 12, NC.fmt.number(currentValue, 0)));
     });
+
+    function showTip(index) {
+      var py = y(current.values[index]);
+      common.showTip(lab.plot, tipText(dataset, current, baseline, index), root, band.center(index), py);
+      lab.barState.tipIndex = index;
+    }
+
+    function hideTip() {
+      common.hideTip(lab.plot);
+      if (lab.barState) lab.barState.tipIndex = null;
+      common.clearEmphasis(lab.plot);
+    }
 
     lab.barState = {
       layout: 'vertical',
@@ -3898,35 +4749,67 @@ body.charts-page {
       barWidth: barWidth,
       current: current,
       baseline: baseline,
-      handles: handles,
+      bars: bars,
+      ghosts: ghosts,
       labels: labels,
-      max: max
+      ghostLabels: ghostLabels,
+      handles: handles,
+      max: max,
+      root: root,
+      tipIndex: null
     };
+
+    dataset.categories.forEach(function (category, index) {
+      var handle = handles[index];
+      bindBarDrag(handle.group, lab, index, handle, function () { showTip(index); });
+      bindBarDrag(bars[index], lab, index, handle, function () { showTip(index); });
+      [handle.group, bars[index]].forEach(function (target) {
+        target.addEventListener('pointerenter', function () {
+          common.emphasize(lab.plot, 'current');
+          showTip(index);
+        });
+        target.addEventListener('pointerleave', hideTip);
+      });
+      handle.group.addEventListener('focus', function () { showTip(index); });
+      handle.group.addEventListener('blur', hideTip);
+    });
+    legend.items.forEach(function (item) {
+      item.addEventListener('pointerenter', function () { common.emphasize(lab.plot, item.getAttribute('data-legend')); });
+      item.addEventListener('pointerleave', function () { common.clearEmphasis(lab.plot); });
+    });
+
+    lab.motion = { bars: bars, ghosts: ghosts, handles: handles, labels: labels };
   }
 
   function updateVertical(lab) {
     var state = lab.barState;
     if (!state || state.layout !== 'vertical') return;
-    var bars = lab.svg.querySelectorAll('.bar-current');
-    var ghosts = lab.svg.querySelectorAll('.bar-ghost');
     lab.dataset.categories.forEach(function (category, index) {
       var value = state.current.values[index];
       var previous = state.baseline ? state.baseline.values[index] : null;
-      var x = state.band.center(index) + 2;
-      var bar = bars[index];
-      if (bar) {
-        bar.setAttribute('y', state.y(value));
-        bar.setAttribute('height', Math.max(0, state.plot.bottom - state.y(value)));
+      var center = state.band.center(index);
+      if (state.bars[index]) {
+        state.bars[index].setAttribute('y', state.y(value));
+        state.bars[index].setAttribute('height', Math.max(0, state.plot.bottom - state.y(value)));
       }
-      if (previous != null && ghosts[index]) {
-        ghosts[index].setAttribute('y', state.y(previous));
-        ghosts[index].setAttribute('height', Math.max(0, state.plot.bottom - state.y(previous)));
+      if (previous != null && state.ghosts[index]) {
+        state.ghosts[index].setAttribute('y', state.y(previous));
+        state.ghosts[index].setAttribute('height', Math.max(0, state.plot.bottom - state.y(previous)));
       }
-      svg.move(state.handles[index], x + state.barWidth / 2, state.y(value));
+      svg.move(state.handles[index], center + 2 + state.barWidth / 2, state.y(value));
       svg.setSlider(state.handles[index], value, category.label_en + ', ' + NC.fmt.value(value, lab.dataset.unit, 0));
-      state.labels[index].setAttribute('y', state.y(value) - 12);
-      state.labels[index].textContent = NC.fmt.number(value, 0);
+      if (state.labels[index]) {
+        state.labels[index].setAttribute('y', Math.max(state.plot.top + 12, state.y(value) - 10));
+        state.labels[index].textContent = NC.fmt.number(value, 0);
+      }
+      if (state.ghostLabels[index] && previous != null) {
+        state.ghostLabels[index].setAttribute('y', Math.max(state.plot.top + 12, state.y(previous) - 8));
+        state.ghostLabels[index].textContent = NC.fmt.number(previous, 0);
+      }
     });
+    if (typeof state.tipIndex === 'number') {
+      common.showTip(lab.plot, tipText(lab.dataset, state.current, state.baseline, state.tipIndex), state.root, state.band.center(state.tipIndex), state.y(state.current.values[state.tipIndex]));
+    }
   }
 
   function renderHorizontal(lab) {
@@ -3935,9 +4818,13 @@ body.charts-page {
     var baseline = baselineSeries(dataset);
     var width = 720;
     var height = 420;
-    var plot = common.plot(width, height);
-    plot.left = 126;
-    plot.top = 30;
+    var root = svg.create(lab.plot, width, height, 'Horizontal bar chart ranking markets by revenue. Drag a bar to change the value.');
+    lab.svg = root;
+    var compact = common.fit(root);
+    lab.compact = compact;
+    var plot = common.plot(width, height, compact);
+    plot.left = compact ? 96 : 126;
+    plot.top = 24;
     plot.bottom = height - 40;
     plot.width = plot.right - plot.left;
     plot.height = plot.bottom - plot.top;
@@ -3948,17 +4835,14 @@ body.charts-page {
     var band = NC.scale.band(order.length, plot.top, plot.bottom, 0.26);
     var barHeight = Math.min(28, band.width * 0.58);
 
-    var root = svg.create(lab.plot, width, height, 'Horizontal bar chart ranking markets by revenue. Drag a bar to change the value.');
-    lab.svg = root;
     lab.legendHost = lab.legendHost || document.createElement('div');
     lab.legendHost.className = 'legend-host';
     if (!lab.legendHost.parentNode) lab.plot.appendChild(lab.legendHost);
-    common.legend(lab.legendHost, [
-      { label: baseline ? baseline.name_en : 'Last year', color: 'var(--series-2)', outline: true },
-      { label: current.name_en, color: 'var(--series-1)' }
+    var legend = common.legend(lab.legendHost, [
+      { label: baseline ? baseline.name_en : 'Last year', color: 'var(--series-2)', outline: true, key: 'baseline' },
+      { label: current.name_en, color: 'var(--series-1)', key: 'current' }
     ]);
 
-    common.caption(root, current.name_en + ' · ' + dataset.unit + ' · ranked high to low', { x: 0, y: 14 });
     var ticks = NC.scale.ticks(0, max, 5);
     ticks.forEach(function (tick) {
       var px = x(tick);
@@ -3967,69 +4851,79 @@ body.charts-page {
     });
 
     var handleLayer = svg.group(root, { class: 'handles' });
-    var handles = [];
+    var bars = [];
+    var rules = [];
     var labels = [];
+    var handles = [];
     order.forEach(function (categoryIndex, row) {
       var category = dataset.categories[categoryIndex];
       var value = current.values[categoryIndex];
       var previous = baseline ? baseline.values[categoryIndex] : null;
       var cy = band.center(row);
-      svg.text(root, {
+      var label = svg.text(root, {
         x: plot.left - 12,
         y: cy,
         'text-anchor': 'end',
         'dominant-baseline': 'middle',
         class: 'axis-label category-label'
       }, category.label_en);
+      common.fitText(label, plot.left - 24);
       if (previous != null) {
-        svg.rect(root, {
+        rules.push(svg.rect(root, {
           x: plot.left,
-          y: cy - barHeight / 2 - 2,
+          y: cy + barHeight / 2 - 5,
           width: Math.max(0, x(previous) - plot.left),
-          height: barHeight,
-          rx: 3,
-          class: 'bar-ghost'
-        });
+          height: 3,
+          rx: 1.5,
+          class: 'bar-ghost-rule'
+        }));
+      } else {
+        rules.push(null);
       }
-      svg.rect(root, {
+      var bar = svg.rect(root, {
         x: plot.left,
-        y: cy - barHeight / 2 + 2,
+        y: cy - barHeight / 2,
         width: Math.max(0, x(value) - plot.left),
-        height: barHeight - 4,
-        rx: 3,
+        height: barHeight,
+        rx: Math.min(4, barHeight / 2),
         class: 'bar-current'
       });
+      bars.push(bar);
+      var nearEnd = x(value) > plot.right - 50;
+      labels.push(common.placeValueLabel(root, nearEnd ? x(value) - 8 : x(value) + 8, cy, NC.fmt.number(value, 0), {
+        anchor: nearEnd ? 'end' : 'start',
+        class: nearEnd ? 'value-label inside' : 'value-label end'
+      }));
       var handle = svg.mkHandle(handleLayer, x(value), cy, {
         min: 0,
         max: max,
         now: value,
-        radius: 6,
-        hitRadius: 20,
+        radius: common.screenPx(root, 6),
+        hitRadius: common.screenPx(root, compact ? 22 : 18),
         orientation: 'horizontal',
         label: category.label_en + ' ' + current.name_en,
-        valueText: category.label_en + ', ' + NC.fmt.value(value, dataset.unit, 0)
-      });
-      NC.drag.bind(handle.group, {
-        axis: 'x',
-        min: 0,
-        max: max,
-        step: 5,
-        pixelSpan: plot.width,
-        get: function () { return current.values[categoryIndex]; },
-        set: function (next) { current.values[categoryIndex] = next; },
-        onUpdate: function () { lab.changed(false); },
-        onCommit: function () {
-          lab.changed(true);
-          renderHorizontal(lab);
-        },
-        valueText: function (next) {
-          return category.label_en + ', ' + NC.fmt.value(next, dataset.unit, 0);
-        }
+        valueText: tipText(dataset, current, baseline, categoryIndex)
       });
       handle.group.setAttribute('data-index', categoryIndex);
+      handle.group.setAttribute('data-category', category.id);
       handles.push({ handle: handle, categoryIndex: categoryIndex, row: row });
-      labels.push(common.valueLabel(root, x(value) + 10, cy, NC.fmt.number(value, 0), 'value-label end'));
     });
+
+    function showTip(categoryIndex, row) {
+      var cy = band.center(row);
+      common.showTip(lab.plot, tipText(dataset, current, baseline, categoryIndex), root, x(current.values[categoryIndex]), cy);
+      lab.barState.tipIndex = categoryIndex;
+      lab.barState.tipRow = row;
+    }
+
+    function hideTip() {
+      common.hideTip(lab.plot);
+      if (lab.barState) {
+        lab.barState.tipIndex = null;
+        lab.barState.tipRow = null;
+      }
+      common.clearEmphasis(lab.plot);
+    }
 
     lab.barState = {
       layout: 'horizontal',
@@ -4040,35 +4934,89 @@ body.charts-page {
       order: order,
       current: current,
       baseline: baseline,
-      handles: handles,
+      bars: bars,
+      rules: rules,
       labels: labels,
-      max: max
+      handles: handles,
+      max: max,
+      root: root,
+      tipIndex: null,
+      tipRow: null
     };
+
+    order.forEach(function (categoryIndex, row) {
+      var item = handles[row];
+      var category = dataset.categories[categoryIndex];
+      var show = function () { showTip(categoryIndex, row); };
+      var optsHandle = {
+        axis: 'x',
+        min: 0,
+        max: max,
+        step: 5,
+        pixelSpan: plot.width,
+        get: function () { return current.values[categoryIndex]; },
+        set: function (next) { current.values[categoryIndex] = next; },
+        onStart: show,
+        onUpdate: function () { lab.changed(false); show(); },
+        onCommit: function () {
+          lab.changed(true);
+          var categoryId = category.id;
+          renderHorizontal(lab);
+          var next = lab.svg.querySelector('.handle[data-category="' + categoryId + '"]');
+          if (next) {
+            try { next.focus({ preventScroll: true }); } catch (err) { next.focus(); }
+          }
+        },
+        onEnd: show,
+        valueText: function (next) {
+          return category.label_en + ', ' + NC.fmt.value(next, dataset.unit, 0);
+        }
+      };
+      NC.drag.bind(item.handle.group, optsHandle);
+      NC.drag.bind(bars[row], optsHandle);
+      [item.handle.group, bars[row]].forEach(function (target) {
+        target.addEventListener('pointerenter', function () {
+          common.emphasize(lab.plot, 'current');
+          show();
+        });
+        target.addEventListener('pointerleave', hideTip);
+      });
+      item.handle.group.addEventListener('focus', show);
+      item.handle.group.addEventListener('blur', hideTip);
+    });
+    legend.items.forEach(function (item) {
+      item.addEventListener('pointerenter', function () { common.emphasize(lab.plot, item.getAttribute('data-legend')); });
+      item.addEventListener('pointerleave', function () { common.clearEmphasis(lab.plot); });
+    });
+
+    lab.motion = { bars: bars, rules: rules, handles: handles.map(function (item) { return item.handle; }), labels: labels };
   }
 
   function updateHorizontal(lab) {
     var state = lab.barState;
     if (!state || state.layout !== 'horizontal') return;
-    var bars = lab.svg.querySelectorAll('.bar-current');
-    var ghosts = lab.svg.querySelectorAll('.bar-ghost');
     state.order.forEach(function (categoryIndex, row) {
       var value = state.current.values[categoryIndex];
       var previous = state.baseline ? state.baseline.values[categoryIndex] : null;
-      if (bars[row]) {
-        bars[row].setAttribute('width', Math.max(0, state.x(value) - state.plot.left));
+      var nearEnd = state.x(value) > state.plot.right - 50;
+      if (state.bars[row]) state.bars[row].setAttribute('width', Math.max(0, state.x(value) - state.plot.left));
+      if (previous != null && state.rules[row]) state.rules[row].setAttribute('width', Math.max(0, state.x(previous) - state.plot.left));
+      var item = state.handles[row];
+      if (item) {
+        svg.move(item.handle, state.x(value), state.band.center(item.row));
+        svg.setSlider(item.handle, value, lab.dataset.categories[categoryIndex].label_en + ', ' + NC.fmt.value(value, lab.dataset.unit, 0));
       }
-      if (previous != null && ghosts[row]) {
-        ghosts[row].setAttribute('width', Math.max(0, state.x(previous) - state.plot.left));
+      var label = state.labels[row];
+      if (label) {
+        label.setAttribute('x', nearEnd ? state.x(value) - 8 : state.x(value) + 8);
+        label.setAttribute('text-anchor', nearEnd ? 'end' : 'start');
+        label.setAttribute('class', nearEnd ? 'value-label inside' : 'value-label end');
+        label.textContent = NC.fmt.number(value, 0);
       }
     });
-    state.handles.forEach(function (item) {
-      var value = state.current.values[item.categoryIndex];
-      svg.move(item.handle, state.x(value), state.band.center(item.row));
-      svg.setSlider(item.handle, value, lab.dataset.categories[item.categoryIndex].label_en + ', ' + NC.fmt.value(value, lab.dataset.unit, 0));
-      var label = state.labels[item.row];
-      label.setAttribute('x', state.x(value) + 10);
-      label.textContent = NC.fmt.number(value, 0);
-    });
+    if (typeof state.tipIndex === 'number' && state.tipRow != null) {
+      common.showTip(lab.plot, tipText(lab.dataset, state.current, state.baseline, state.tipIndex), state.root, state.x(state.current.values[state.tipIndex]), state.band.center(state.tipRow));
+    }
   }
 
   function describe(lab) {
@@ -4158,6 +5106,7 @@ body.charts-page {
     items.forEach(function (item) {
       var row = document.createElement('span');
       row.className = 'legend-item';
+      row.setAttribute('data-legend', item.id);
       var dot = document.createElement('span');
       dot.className = 'legend-dot';
       dot.style.background = item.color;
@@ -4174,6 +5123,29 @@ body.charts-page {
     });
   }
 
+  function shareText(share) {
+    if (share > 0 && share < 1) return '<1%';
+    return NC.fmt.number(share, 0) + '%';
+  }
+
+  function layoutLabels(items, height, gap, pad) {
+    if (!items.length) return;
+    items.sort(function (a, b) { return a.y - b.y; });
+    for (var i = 1; i < items.length; i += 1) {
+      if (items[i].y < items[i - 1].y + gap) items[i].y = items[i - 1].y + gap;
+    }
+    var overflow = items[items.length - 1].y - (height - pad);
+    if (overflow > 0) items.forEach(function (item) { item.y -= overflow; });
+    if (items[0].y < pad) {
+      var push = pad - items[0].y;
+      items.forEach(function (item) { item.y += push; });
+    }
+  }
+
+  function labelPath(item) {
+    return 'M ' + item.p0x + ' ' + item.p0y + ' L ' + item.p1x + ' ' + item.y + ' L ' + item.p2x + ' ' + item.y;
+  }
+
   function render(lab) {
     var dataset = lab.dataset;
     var values = dataset.parts.map(function (part) { return part.value; });
@@ -4181,25 +5153,40 @@ body.charts-page {
     var perc = shares(values, sum);
     var width = 720;
     var height = 360;
+    var root = svg.create(lab.plot, width, height, 'Pie chart of market share by channel. Drag a boundary to change the split.');
+    lab.svg = root;
+    var compact = common.fit(root);
+    lab.compact = compact;
     var cx = 360;
-    var cy = 176;
-    var radius = 132;
+    var cy = compact ? 168 : 176;
+    var radius = compact ? 110 : 132;
     var start = -Math.PI / 2;
     var cumulative = start;
 
-    var root = svg.create(lab.plot, width, height, 'Pie chart of market share by channel. Drag a boundary to change the split.');
-    lab.svg = root;
+    if (sum <= 0) {
+      renderLegend(lab, dataset.parts.map(function (part, index) {
+        return { id: part.id, name: part.name_en, color: 'var(--' + part.color + ')', share: shareText(perc[index]) };
+      }));
+      var ringLayer = svg.group(root, { class: 'pie-empty' });
+      svg.circle(ringLayer, { cx: cx, cy: cy, r: radius, class: 'pie-empty-ring' });
+      common.empty(lab.plot, 'No data · 份额为 0');
+      lab.pieState = { empty: true, root: root, parts: dataset.parts };
+      lab.motion = null;
+      return;
+    }
+
     renderLegend(lab, dataset.parts.map(function (part, index) {
-      return { name: part.name_en, color: 'var(--' + part.color + ')', share: NC.fmt.number(perc[index], 0) + '%' };
+      return { id: part.id, name: part.name_en, color: 'var(--' + part.color + ')', share: shareText(perc[index]) };
     }));
 
     var sliceLayer = svg.group(root, { class: 'pie-slices' });
+    var leaderLayer = svg.group(root, { class: 'pie-leaders' });
     var labelLayer = svg.group(root, { class: 'pie-labels' });
     var handleLayer = svg.group(root, { class: 'handles' });
     var slices = [];
     var labels = [];
+    var leaders = [];
     var handles = [];
-    var boundaries = [];
 
     dataset.parts.forEach(function (part, index) {
       var share = perc[index];
@@ -4212,17 +5199,36 @@ body.charts-page {
         'data-id': part.id
       });
       var mid = cumulative + angle / 2;
-      var labelPoint = NC.scale.polar(cx, cy, radius * 0.62, mid);
+      var side = Math.cos(mid) >= 0 ? 1 : -1;
+      var p0 = NC.scale.polar(cx, cy, radius + 6, mid);
+      var p1 = { x: cx + side * (radius + 34), y: cy + Math.sin(mid) * (radius + 34) };
+      var p2 = { x: cx + side * (radius + 48), y: p1.y };
+      var leader = svg.path(leaderLayer, {
+        d: 'M ' + p0.x + ' ' + p0.y + ' L ' + p1.x + ' ' + p1.y + ' L ' + p2.x + ' ' + p2.y,
+        class: 'pie-leader'
+      });
       var label = svg.text(labelLayer, {
-        x: labelPoint.x,
-        y: labelPoint.y,
-        'text-anchor': 'middle',
+        x: p2.x + side * 4,
+        y: p2.y,
+        'text-anchor': side > 0 ? 'start' : 'end',
         'dominant-baseline': 'middle',
-        class: 'pie-label' + (part.color === 'series-4' ? ' on-light' : '')
-      }, share >= 6 ? NC.fmt.number(share, 0) + '%' : '');
+        class: 'pie-label'
+      }, part.name_en + ' ' + shareText(share));
       slices.push(path);
-      labels.push(label);
+      leaders.push(leader);
+      labels.push({ node: label, leader: leader, side: side, y: p2.y, p0x: p0.x, p0y: p0.y, p1x: p1.x, p2x: p2.x + side * 4 });
       cumulative = end;
+    });
+
+    var labelGap = common.screenPx(root, 18);
+    var labelPad = common.screenPx(root, 24);
+    ['left', 'right'].forEach(function (key) {
+      var side = key === 'left' ? -1 : 1;
+      layoutLabels(labels.filter(function (item) { return item.side === side; }), height, labelGap, labelPad);
+    });
+    labels.forEach(function (item) {
+      item.node.setAttribute('y', item.y);
+      item.leader.setAttribute('d', labelPath(item));
     });
 
     dataset.parts.forEach(function (part, index) {
@@ -4234,9 +5240,8 @@ body.charts-page {
         min: 3,
         max: 97,
         now: perc[index],
-        radius: 5,
-        hitRadius: 20,
-        orientation: 'horizontal',
+        radius: common.screenPx(root, 5),
+        hitRadius: common.screenPx(root, compact ? 22 : 18),
         label: 'Boundary between ' + part.name_en + ' and ' + dataset.parts[nextIndex].name_en,
         valueText: part.name_en + ' ' + NC.fmt.number(perc[index], 0) + '%, ' + dataset.parts[nextIndex].name_en + ' ' + NC.fmt.number(perc[nextIndex], 0) + '%'
       });
@@ -4245,10 +5250,41 @@ body.charts-page {
       handles.push({ index: index, handle: handle });
     });
 
+    function partTip(index) {
+      var part = dataset.parts[index];
+      var current = perc[index];
+      var text = part.name_en + ' · ' + shareText(current);
+      if (typeof part.baseline === 'number') {
+        var delta = current - part.baseline;
+        var sign = delta >= 0 ? '+' : '−';
+        text += ' · ' + sign + NC.fmt.number(Math.abs(delta), 1) + ' pp';
+      }
+      return text;
+    }
+
+    function showTip(index) {
+      var midAngle = start;
+      for (var i = 0; i < index; i += 1) midAngle += perc[i] / 100 * Math.PI * 2;
+      midAngle += (perc[index] / 100 * Math.PI * 2) / 2;
+      var point = NC.scale.polar(cx, cy, radius * 0.75, midAngle);
+      common.showTip(lab.plot, partTip(index), root, point.x, point.y);
+      common.emphasize(lab.plot, dataset.parts[index].id);
+      slices.forEach(function (slice, i) { slice.classList.toggle('is-active', i === index); });
+      lab.pieState.tipIndex = index;
+    }
+
+    function hideTip() {
+      common.hideTip(lab.plot);
+      common.clearEmphasis(lab.plot);
+      slices.forEach(function (slice) { slice.classList.remove('is-active'); });
+      if (lab.pieState) lab.pieState.tipIndex = null;
+    }
+
     lab.pieState = {
-      cx: cx, cy: cy, radius: radius, start: start,
-      slices: slices, labels: labels, handles: handles,
-      parts: dataset.parts, root: root
+      cx: cx, cy: cy, radius: radius, start: start, height: height,
+      slices: slices, labels: labels, leaders: leaders, handles: handles,
+      parts: dataset.parts, root: root, perc: perc,
+      tipIndex: null, layoutLabels: layoutLabels, showTip: showTip
     };
 
     handles.forEach(function (item) {
@@ -4256,13 +5292,12 @@ body.charts-page {
       var nextIndex = (index + 1) % dataset.parts.length;
       var dragging = false;
       var startValues = null;
-      var lastValues = null;
       var moved = false;
       var lastAngle = 0;
       var turn = 0;
+      var pointerId = null;
 
       function pointAngle(event) {
-        var root = lab.pieState.root;
         var rect = root.getBoundingClientRect();
         var box = root.viewBox.baseVal;
         var scaleX = box.width ? box.width / rect.width : 1;
@@ -4281,9 +5316,9 @@ body.charts-page {
         var b = pair - a;
         values2[index] = a;
         values2[nextIndex] = b;
-        var sum = total(values2);
+        var sum2 = total(values2);
         dataset.parts.forEach(function (part, i) {
-          part.value = sum > 0 ? values2[i] / sum * 100 : values2[i];
+          part.value = sum2 > 0 ? values2[i] / sum2 * 100 : values2[i];
         });
       }
 
@@ -4292,16 +5327,17 @@ body.charts-page {
         dragging = true;
         moved = false;
         turn = 0;
+        pointerId = event.pointerId;
         lastAngle = pointAngle(event);
         startValues = dataset.parts.map(function (part) { return part.value; });
-        lastValues = startValues.slice();
-        try { item.handle.group.setPointerCapture(event.pointerId); } catch (err) {}
+        try { item.handle.group.setPointerCapture(pointerId); } catch (err) {}
         item.handle.group.classList.add('dragging');
+        showTip(index);
         event.preventDefault();
       }
 
       function move(event) {
-        if (!dragging) return;
+        if (!dragging || event.pointerId !== pointerId) return;
         var angle = pointAngle(event);
         var step = angle - lastAngle;
         if (step > Math.PI) step -= Math.PI * 2;
@@ -4314,17 +5350,16 @@ body.charts-page {
         var minTurn = (3 - startValues[index]) / 100 * Math.PI * 2;
         var maxTurn = (pair - 3 - startValues[index]) / 100 * Math.PI * 2;
         turn = NC.clamp(turn, minTurn, maxTurn);
-        var deltaPP = turn / (Math.PI * 2) * 100;
-        apply(deltaPP);
-        lastValues = dataset.parts.map(function (part) { return part.value; });
+        apply(turn / (Math.PI * 2) * 100);
         lab.changed(false);
+        showTip(index);
         event.preventDefault();
       }
 
       function up(event, canceled) {
         if (!dragging) return;
         dragging = false;
-        try { item.handle.group.releasePointerCapture(event.pointerId); } catch (err) {}
+        try { item.handle.group.releasePointerCapture(pointerId); } catch (err) {}
         item.handle.group.classList.remove('dragging');
         if (!moved || canceled) {
           dataset.parts.forEach(function (part, i) { part.value = startValues[i]; });
@@ -4332,12 +5367,16 @@ body.charts-page {
         } else {
           lab.changed(true);
         }
+        pointerId = null;
+        showTip(index);
       }
 
       item.handle.group.addEventListener('pointerdown', down);
       item.handle.group.addEventListener('pointermove', move);
       item.handle.group.addEventListener('pointerup', function (event) { up(event, false); });
       item.handle.group.addEventListener('pointercancel', function (event) { up(event, true); });
+      item.handle.group.addEventListener('focus', function () { showTip(index); });
+      item.handle.group.addEventListener('blur', hideTip);
       item.handle.group.addEventListener('keydown', function (event) {
         var delta = 0;
         if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') delta = event.shiftKey ? -5 : -1;
@@ -4346,9 +5385,52 @@ body.charts-page {
         startValues = dataset.parts.map(function (part) { return part.value; });
         apply(delta);
         lab.changed(true);
+        showTip(index);
         event.preventDefault();
       });
+
+      item.begin = down;
+      item.handle.group.addEventListener('pointerenter', function () {
+        common.emphasize(lab.plot, dataset.parts[index].id);
+        showTip(index);
+      });
+      item.handle.group.addEventListener('pointerleave', hideTip);
+
+      slices[index].addEventListener('pointerenter', function () {
+        common.emphasize(lab.plot, dataset.parts[index].id);
+        showTip(index);
+      });
+      slices[index].addEventListener('pointerleave', hideTip);
+      slices[index].addEventListener('pointerdown', function (event) {
+        if (event.button != null && event.button !== 0) return;
+        var angle = pointAngle(event);
+        var best = 0;
+        var bestDistance = Infinity;
+        for (var i = 0; i < dataset.parts.length; i += 1) {
+          var boundary = start;
+          for (var j = 0; j <= i; j += 1) boundary += perc[j] / 100 * Math.PI * 2;
+          var diff = Math.abs(angle - boundary);
+          diff = Math.min(diff, Math.PI * 2 - diff);
+          if (diff < bestDistance) {
+            bestDistance = diff;
+            best = i;
+          }
+        }
+        if (handles[best]) handles[best].begin(event);
+      });
     });
+
+    var legendRows = legendHost(lab).querySelectorAll('[data-legend]');
+    legendRows.forEach(function (row, rowIndex) {
+      row.addEventListener('pointerenter', function () {
+        common.emphasize(lab.plot, row.getAttribute('data-legend'));
+        slices.forEach(function (slice, i) { slice.classList.toggle('is-active', i === rowIndex); });
+        showTip(rowIndex);
+      });
+      row.addEventListener('pointerleave', hideTip);
+    });
+
+    lab.motion = { slices: slices, labels: labels.map(function (item) { return item.node; }), leaders: leaders, handles: handles.map(function (item) { return item.handle; }) };
   }
 
   function update(lab) {
@@ -4356,18 +5438,48 @@ body.charts-page {
     if (!state) return;
     var values = state.parts.map(function (part) { return part.value; });
     var sum = total(values);
+    if (state.empty) {
+      if (sum > 0) render(lab);
+      return;
+    }
+    if (sum <= 0) {
+      render(lab);
+      return;
+    }
     var perc = shares(values, sum);
+    state.perc = perc;
     var cumulative = state.start;
     state.parts.forEach(function (part, index) {
       var angle = perc[index] / 100 * Math.PI * 2;
       var end = cumulative + angle;
       state.slices[index].setAttribute('d', NC.scale.arc(state.cx, state.cy, state.radius, cumulative, end));
       var mid = cumulative + angle / 2;
-      var labelPoint = NC.scale.polar(state.cx, state.cy, state.radius * 0.62, mid);
-      state.labels[index].setAttribute('x', labelPoint.x);
-      state.labels[index].setAttribute('y', labelPoint.y);
-      state.labels[index].textContent = perc[index] >= 6 ? NC.fmt.number(perc[index], 0) + '%' : '';
+      var side = Math.cos(mid) >= 0 ? 1 : -1;
+      var p0 = NC.scale.polar(state.cx, state.cy, state.radius + 6, mid);
+      var p1 = { x: state.cx + side * (state.radius + 34), y: state.cy + Math.sin(mid) * (state.radius + 34) };
+      var p2 = { x: state.cx + side * (state.radius + 48), y: p1.y };
+      var label = state.labels[index];
+      label.side = side;
+      label.y = p2.y;
+      label.p0x = p0.x;
+      label.p0y = p0.y;
+      label.p1x = p1.x;
+      label.p2x = p2.x + side * 4;
+      label.node.setAttribute('x', label.p2x);
+      label.node.setAttribute('y', p2.y);
+      label.node.setAttribute('text-anchor', side > 0 ? 'start' : 'end');
+      label.node.textContent = part.name_en + ' ' + shareText(perc[index]);
       cumulative = end;
+    });
+    var labelGap = common.screenPx(state.root, 18);
+    var labelPad = common.screenPx(state.root, 24);
+    ['left', 'right'].forEach(function (key) {
+      var side = key === 'left' ? -1 : 1;
+      state.layoutLabels(state.labels.filter(function (item) { return item.side === side; }), state.height, labelGap, labelPad);
+    });
+    state.labels.forEach(function (item) {
+      item.node.setAttribute('y', item.y);
+      item.leader.setAttribute('d', labelPath(item));
     });
 
     state.handles.forEach(function (item) {
@@ -4384,11 +5496,12 @@ body.charts-page {
       );
     });
 
-    var host = legendHost(lab);
-    var rows = host.querySelectorAll('.legend-value');
+    var rows = legendHost(lab).querySelectorAll('.legend-value');
     rows.forEach(function (row, index) {
-      row.textContent = NC.fmt.number(perc[index], 0) + '%';
+      row.textContent = shareText(perc[index]);
     });
+
+    if (typeof state.tipIndex === 'number') state.showTip(state.tipIndex);
   }
 
   function describe(lab) {
@@ -4443,26 +5556,55 @@ body.charts-page {
     return dataset.series.length > 1 ? dataset.series[0] : null;
   }
 
+  function makeCell(text, cls) {
+    var td = document.createElement(cls === 'th' ? 'th' : 'td');
+    if (cls) td.className = cls;
+    td.textContent = text;
+    return td;
+  }
+
   function render(lab) {
     var dataset = lab.dataset;
     var current = currentSeries(dataset);
     var baseline = baselineSeries(dataset);
     var total = current.values.reduce(function (sum, value) { return sum + value; }, 0);
-    var max = dataset.max || Math.max.apply(null, current.values);
+    var max = dataset.max || Math.max(1, Math.max.apply(null, current.values));
 
     NC.svg.clear(lab.plot);
-    var wrap = document.createElement('div');
-    wrap.className = 'table-wrap';
+    var shell = document.createElement('div');
+    shell.className = 'table-scroll-shell';
+    var scroll = document.createElement('div');
+    scroll.className = 'table-scroll';
     var table = document.createElement('table');
     table.className = 'data-table chart-table';
+
+    var caption = document.createElement('caption');
+    caption.className = 'sr-only';
+    caption.textContent = 'Revenue by market, with editable values.';
+    table.appendChild(caption);
+
     var thead = document.createElement('thead');
-    var headerRow = document.createElement('tr');
-    ['Market', baseline ? baseline.name_en : 'Last year', current.name_en, 'YoY', 'Share'].forEach(function (label) {
+    var headRow = document.createElement('tr');
+    var heads = [
+      { label: 'Market' },
+      { label: baseline ? baseline.name_en : 'Last year', unit: dataset.unit, numeric: true },
+      { label: current.name_en, unit: dataset.unit, numeric: true },
+      { label: 'YoY', numeric: true },
+      { label: 'Share', numeric: true }
+    ];
+    heads.forEach(function (head) {
       var th = document.createElement('th');
-      th.textContent = label;
-      headerRow.appendChild(th);
+      th.textContent = head.label;
+      if (head.numeric) th.className = 'num-cell';
+      if (head.unit) {
+        var unit = document.createElement('span');
+        unit.className = 'th-unit';
+        unit.textContent = head.unit;
+        th.appendChild(unit);
+      }
+      headRow.appendChild(th);
     });
-    thead.appendChild(headerRow);
+    thead.appendChild(headRow);
     table.appendChild(thead);
 
     var tbody = document.createElement('tbody');
@@ -4479,10 +5621,7 @@ body.charts-page {
       nameCell.innerHTML = '<span class="row-en">' + NC.escapeHtml(category.label_en) + '</span><span class="row-zh">' + NC.escapeHtml(category.label_zh) + '</span>';
       tr.appendChild(nameCell);
 
-      var prevCell = document.createElement('td');
-      prevCell.className = 'num-cell';
-      prevCell.textContent = previous == null ? '—' : NC.fmt.number(previous, 0);
-      tr.appendChild(prevCell);
+      tr.appendChild(makeCell(previous == null ? '—' : NC.fmt.number(previous, 0), 'num-cell'));
 
       var editCell = document.createElement('td');
       editCell.className = 'num-cell edit-cell';
@@ -4512,34 +5651,48 @@ body.charts-page {
       editCell.appendChild(input);
       tr.appendChild(editCell);
 
-      var yoyCell = document.createElement('td');
-      yoyCell.className = 'num-cell yoy-cell';
-      yoyCell.textContent = yoy == null ? '—' : (yoy >= 0 ? '+' : '') + NC.fmt.number(yoy, 1) + '%';
-      yoyCell.classList.toggle('positive', yoy != null && yoy >= 0);
-      yoyCell.classList.toggle('negative', yoy != null && yoy < 0);
+      var yoyCell = makeCell(yoy == null ? '—' : (yoy >= 0 ? '+' : '') + NC.fmt.number(yoy, 1) + '%', 'num-cell yoy-cell');
+      if (yoy != null) yoyCell.classList.add(yoy >= 0 ? 'positive' : 'negative');
       tr.appendChild(yoyCell);
 
-      var shareCell = document.createElement('td');
-      shareCell.className = 'num-cell';
-      shareCell.textContent = NC.fmt.number(total > 0 ? value / total * 100 : 0, 1) + '%';
+      var shareCell = makeCell(NC.fmt.number(total > 0 ? value / total * 100 : 0, 1) + '%', 'num-cell');
       tr.appendChild(shareCell);
 
       tbody.appendChild(tr);
       rows.push({ input: input, bar: bar, yoy: yoyCell, share: shareCell, index: index });
     });
     table.appendChild(tbody);
-    wrap.appendChild(table);
-    lab.plot.appendChild(wrap);
-    lab.tableState = { rows: rows, current: current, baseline: baseline, dataset: dataset, max: max };
 
-    var unitNote = document.createElement('p');
-    unitNote.className = 'table-unit';
-    unitNote.textContent = 'Values in ' + dataset.unit + '.';
-    wrap.appendChild(unitNote);
-    var totalRow = document.createElement('p');
-    totalRow.className = 'table-total';
-    totalRow.textContent = 'Total ' + NC.fmt.number(total, 0) + '.';
-    wrap.appendChild(totalRow);
+    var tfoot = document.createElement('tfoot');
+    var footRow = document.createElement('tr');
+    footRow.appendChild(makeCell('Total', 'row-head'));
+    var prevTotal = baseline ? baseline.values.reduce(function (sum, value) { return sum + value; }, 0) : null;
+    footRow.appendChild(makeCell(prevTotal == null ? '—' : NC.fmt.number(prevTotal, 0), 'num-cell'));
+    footRow.appendChild(makeCell(NC.fmt.number(total, 0), 'num-cell'));
+    var totalYoy = prevTotal ? (total - prevTotal) / prevTotal * 100 : null;
+    var totalYoyCell = makeCell(totalYoy == null ? '—' : (totalYoy >= 0 ? '+' : '') + NC.fmt.number(totalYoy, 1) + '%', 'num-cell yoy-cell');
+    if (totalYoy != null) totalYoyCell.classList.add(totalYoy >= 0 ? 'positive' : 'negative');
+    footRow.appendChild(totalYoyCell);
+    footRow.appendChild(makeCell('100%', 'num-cell'));
+    tfoot.appendChild(footRow);
+    table.appendChild(tfoot);
+
+    scroll.appendChild(table);
+    shell.appendChild(scroll);
+    var cue = document.createElement('p');
+    cue.className = 'table-scroll-cue';
+    cue.textContent = '左右滑动查看完整表格';
+    shell.appendChild(cue);
+    lab.plot.appendChild(shell);
+    lab.tableState = { rows: rows, current: current, baseline: baseline, dataset: dataset, max: max, shell: shell, scroll: scroll };
+    updateCue(lab);
+  }
+
+  function updateCue(lab) {
+    var state = lab.tableState;
+    if (!state) return;
+    var overflow = state.scroll.scrollWidth > state.scroll.clientWidth + 1;
+    state.shell.setAttribute('data-overflow', overflow ? 'true' : 'false');
   }
 
   function updateRow(lab, index, value) {
@@ -4557,8 +5710,24 @@ body.charts-page {
     state.rows.forEach(function (item, i) {
       item.share.textContent = NC.fmt.number(total > 0 ? state.current.values[i] / total * 100 : 0, 1) + '%';
     });
-    var totalNode = lab.plot.querySelector('.table-total');
-    if (totalNode) totalNode.textContent = 'Total ' + NC.fmt.number(total, 0) + ' · ' + state.dataset.unit;
+    updateTotals(lab, total);
+  }
+
+  function updateTotals(lab, total) {
+    var state = lab.tableState;
+    if (!state) return;
+    var foot = state.scroll.querySelector('tfoot tr');
+    if (!foot) return;
+    var cells = foot.querySelectorAll('td');
+    if (cells[1]) cells[1].textContent = NC.fmt.number(total, 0);
+    var prevTotal = state.baseline ? state.baseline.values.reduce(function (sum, value) { return sum + value; }, 0) : null;
+    var yoy = prevTotal ? (total - prevTotal) / prevTotal * 100 : null;
+    var yoyCell = foot.querySelector('.yoy-cell');
+    if (yoyCell) {
+      yoyCell.textContent = yoy == null ? '—' : (yoy >= 0 ? '+' : '') + NC.fmt.number(yoy, 1) + '%';
+      yoyCell.classList.toggle('positive', yoy != null && yoy >= 0);
+      yoyCell.classList.toggle('negative', yoy != null && yoy < 0);
+    }
   }
 
   function update(lab) {
@@ -4570,6 +5739,7 @@ body.charts-page {
         row.input.value = state.current.values[index];
       }
     });
+    updateCue(lab);
   }
 
   function describe(lab) {
@@ -4603,6 +5773,7 @@ body.charts-page {
     this.modelBox = section.querySelector('[data-model]');
     this.renderer = NC.renderers[type.renderer];
     this.mounted = false;
+    this.compact = false;
     this.result = null;
     NC.state.labs[type.id] = this;
 
@@ -4636,7 +5807,15 @@ body.charts-page {
         var open = toggle.getAttribute('aria-expanded') === 'true';
         toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
         self.modelBox.hidden = open;
-        if (!open) self.refreshModel();
+        if (!open) self.refreshModel(true);
+      });
+    }
+    var replay = this.section.querySelector('[data-replay]');
+    if (replay) {
+      replay.addEventListener('click', function () {
+        if (self.renderer.render) self.renderer.render(self);
+        self.refresh(false);
+        if (NC.motion) NC.motion.play(self);
       });
     }
   };
@@ -4651,48 +5830,43 @@ body.charts-page {
   };
 
   Lab.prototype.setDescription = function (result, commit) {
-    var host = this.descLines;
-    host.innerHTML = '';
-    result.live.forEach(function (sentence, index) {
-      var block = document.createElement('div');
-      block.className = 'sentence' + (index === 0 ? ' lead' : '');
-      block.setAttribute('data-role', sentence.role);
-      var en = document.createElement('p');
-      en.className = 'sentence-en';
-      en.lang = 'en';
-      en.textContent = sentence.en;
-      var zh = document.createElement('p');
-      zh.className = 'sentence-zh';
-      zh.lang = 'zh';
-      zh.textContent = sentence.zh;
-      block.appendChild(en);
-      block.appendChild(zh);
-      host.appendChild(block);
-    });
+    this.reconcile(this.descLines, result.live, true);
     if (commit && this.liveNode) {
       this.liveNode.textContent = result.live.map(function (sentence) { return sentence.en; }).join(' ');
     }
-    this.refreshModel();
+    this.refreshModel(false);
   };
 
-  Lab.prototype.refreshModel = function () {
+  Lab.prototype.reconcile = function (host, sentences, lead) {
+    if (!host) return;
+    while (host.children.length > sentences.length) host.removeChild(host.lastChild);
+    sentences.forEach(function (sentence, index) {
+      var block = host.children[index];
+      if (!block) {
+        block = document.createElement('div');
+        var en = document.createElement('p');
+        en.className = 'sentence-en';
+        en.lang = 'en';
+        var zh = document.createElement('p');
+        zh.className = 'sentence-zh';
+        zh.lang = 'zh';
+        block.appendChild(en);
+        block.appendChild(zh);
+        host.appendChild(block);
+      }
+      block.className = 'sentence' + (lead && index === 0 ? ' lead' : '');
+      block.setAttribute('data-role', sentence.role);
+      var enNode = block.querySelector('.sentence-en');
+      var zhNode = block.querySelector('.sentence-zh');
+      if (enNode.textContent !== sentence.en) enNode.textContent = sentence.en;
+      if (zhNode.textContent !== sentence.zh) zhNode.textContent = sentence.zh;
+    });
+  };
+
+  Lab.prototype.refreshModel = function (force) {
     if (!this.modelBody || !this.result) return;
-    this.modelBody.innerHTML = '';
-    this.result.sentences.forEach(function (sentence) {
-      var block = document.createElement('div');
-      block.className = 'sentence';
-      var en = document.createElement('p');
-      en.className = 'sentence-en';
-      en.lang = 'en';
-      en.textContent = sentence.en;
-      var zh = document.createElement('p');
-      zh.className = 'sentence-zh';
-      zh.lang = 'zh';
-      zh.textContent = sentence.zh;
-      block.appendChild(en);
-      block.appendChild(zh);
-      this.modelBody.appendChild(block);
-    }, this);
+    if (!force && this.modelBox && this.modelBox.hidden) return;
+    this.reconcile(this.modelBody, this.result.sentences, false);
   };
 
   Lab.prototype.changed = function (commit) {
@@ -4819,6 +5993,8 @@ body.charts-page {
     pie: 'Harbor Cloud · market share by channel'
   };
 
+  var REPLAY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v6h-6"/></svg>';
+
   var state = {
     typeId: null
   };
@@ -4851,37 +6027,48 @@ body.charts-page {
   }
 
   function panelHtml(type) {
+    var replay = type.renderer === 'table' ? '' :
+      '<button class="icon-btn" type="button" data-replay aria-label="重播动画" title="重播动画">' + REPLAY_ICON + '</button>';
     return '<header class="section-head">' +
         '<h2>' + NC.escapeHtml(type.label_zh) + ' <span class="h2-en">' + NC.escapeHtml(type.label_en) + '</span></h2>' +
         '<p class="definition">' + NC.escapeHtml(type.definition_zh) + '</p>' +
       '</header>' +
-      '<div class="chart-card">' +
-        '<div class="chart-toolbar">' +
-          '<span class="chart-scene">' + NC.escapeHtml(SCENES[type.id] || '') + '</span>' +
-          '<span class="chart-actions">' +
-            '<span class="chart-controls" data-chart-controls></span>' +
-            '<button class="pill compact" type="button" data-reset>重置</button>' +
-          '</span>' +
+      '<div class="panel-grid">' +
+        '<div class="panel-figure">' +
+          '<figure class="chart-card surface">' +
+            '<header class="figure-head">' +
+              '<span class="chart-scene">' + NC.escapeHtml(SCENES[type.id] || '') + '</span>' +
+              '<span class="figure-actions">' +
+                replay +
+                '<button class="text-link" type="button" data-reset>重置</button>' +
+              '</span>' +
+            '</header>' +
+            '<div class="plot" data-plot></div>' +
+            '<details class="data-panel" data-data-panel>' +
+              '<summary>数据</summary>' +
+              '<div class="data-table-host" data-table></div>' +
+            '</details>' +
+          '</figure>' +
         '</div>' +
-        '<div class="plot" data-plot></div>' +
-        '<div class="desc" data-desc>' +
-          '<div class="desc-lines" data-desc-lines></div>' +
-          '<p class="sr-only" data-live aria-live="polite"></p>' +
+        '<aside class="panel-reading">' +
+          '<section class="desc" data-desc>' +
+            '<div class="desc-lines" data-desc-lines></div>' +
+            '<p class="sr-only" data-live aria-live="polite"></p>' +
+          '</section>' +
+        '</aside>' +
+      '</div>' +
+      '<div class="panel-notes">' +
+        '<div class="section-notes">' +
+          '<div class="note"><h3>适合说明什么</h3><p>' + NC.escapeHtml(type.best_for_zh) + '</p></div>' +
+          '<div class="note"><h3>小心</h3><p>' + NC.escapeHtml(type.watch_out_zh) + '</p></div>' +
+          '<div class="note"><h3>雅思提示</h3><p>' + NC.escapeHtml(type.ielts_tip_zh) + '</p></div>' +
         '</div>' +
-        '<details class="data-panel" data-data-panel>' +
-          '<summary>数据</summary>' +
-          '<div class="data-table-host" data-table></div>' +
-        '</details>' +
+        '<div class="model">' +
+          '<button class="text-link" type="button" data-model-toggle aria-expanded="false">看一段范文 <span aria-hidden="true">→</span></button>' +
+          '<div class="model-box" data-model hidden><div class="model-body" data-model-body></div></div>' +
+        '</div>' +
       '</div>' +
-      '<div class="section-notes">' +
-        '<div class="note"><h3>适合说明什么</h3><p>' + NC.escapeHtml(type.best_for_zh) + '</p></div>' +
-        '<div class="note"><h3>小心</h3><p>' + NC.escapeHtml(type.watch_out_zh) + '</p></div>' +
-        '<div class="note"><h3>雅思提示</h3><p>' + NC.escapeHtml(type.ielts_tip_zh) + '</p></div>' +
-      '</div>' +
-      '<div class="focus-row">' + (type.focus || []).map(function (item) {
-        return '<span class="chip focus-chip"><span lang="en">' + NC.escapeHtml(item.en) + '</span><span class="chip-zh">' + NC.escapeHtml(item.zh) + '</span></span>';
-      }).join('') + '</div>' +
-      '<div class="patterns">' +
+      '<div class="pattern-section">' +
         '<h3>常用句型</h3>' +
         '<ul class="pattern-list" data-patterns></ul>' +
       '</div>' +
@@ -4895,11 +6082,7 @@ body.charts-page {
           (type.converter ? converterHtml() : '') +
           '<div class="grammar-list" data-grammar></div>' +
         '</div>' +
-      '</details>' +
-      '<div class="model">' +
-        '<button class="pill" type="button" data-model-toggle aria-expanded="false">看一段范文</button>' +
-        '<div class="model-box" data-model hidden><div class="model-body" data-model-body></div></div>' +
-      '</div>';
+      '</details>';
   }
 
   function buildPanels() {
@@ -4951,18 +6134,19 @@ body.charts-page {
         '<div class="vocab-list">' + items.map(vocabCard).join('') + '</div>' +
       '</div>';
     }).join('');
-    host.innerHTML = html || '<p class="empty">当前难度下没有词条，把难度调高试试。</p>';
+    host.innerHTML = html || '<p class="empty">暂无匹配内容。</p>';
   }
 
   function renderPatterns(type) {
     var section = NC.byId('chart-' + type.id);
     var list = section && section.querySelector('[data-patterns]');
     if (!list) return;
-    var visible = (type.patterns || []).slice();
-    list.innerHTML = visible.map(function (pattern) {
-      return '<li>' + levelBadge(pattern.level) +
+    list.innerHTML = (type.patterns || []).map(function (pattern) {
+      return '<li>' +
+        '<span class="pattern-level">' + NC.escapeHtml(pattern.level) + '</span>' +
         '<span class="pattern-en" lang="en">' + NC.escapeHtml(pattern.en) + '</span>' +
-        '<span class="pattern-zh">' + NC.escapeHtml(pattern.zh) + '</span></li>';
+        '<span class="pattern-zh">' + NC.escapeHtml(pattern.zh) + '</span>' +
+      '</li>';
     }).join('');
   }
 
@@ -4991,7 +6175,7 @@ body.charts-page {
     var patterns = NC.state.data.grammar.patterns.filter(function (pattern) {
       return allowed.indexOf(pattern.id) !== -1;
     });
-    host.innerHTML = patterns.map(grammarCard).join('');
+    host.innerHTML = patterns.map(grammarCard).join('') || '<p class="empty">暂无匹配内容。</p>';
   }
 
   function renderConverter(type) {
@@ -5048,14 +6232,13 @@ body.charts-page {
     var host = NC.byId('errors-list');
     if (!host) return;
     var errors = NC.state.data.errors.errors;
-    host.innerHTML = errors.map(function (item) {
+    host.innerHTML = '<div class="errors-grid">' + errors.map(function (item) {
       return '<article class="error-card">' +
-        '<div class="error-head">' + levelBadge(item.level) + '</div>' +
         '<div class="example wrong"><span class="mark">✕</span><p lang="en">' + NC.escapeHtml(item.wrong_en) + '</p></div>' +
         '<div class="example correct"><span class="mark">✓</span><p lang="en">' + NC.escapeHtml(item.right_en) + '</p></div>' +
         '<p class="error-why">' + NC.escapeHtml(item.why_zh) + '</p>' +
       '</article>';
-    }).join('');
+    }).join('') + '</div>';
   }
 
   function buildTypeSwitch() {
@@ -5102,10 +6285,17 @@ body.charts-page {
     return hash;
   }
 
+  function headerOffset() {
+    var head = NC.byId('site-head');
+    return (head ? head.getBoundingClientRect().height : 0) + 16;
+  }
+
   function activate(id) {
     var types = sortedTypes();
     var known = types.some(function (type) { return type.id === id; });
     if (!known) id = types[0].id;
+    var first = state.typeId == null;
+    var wasScrolled = window.scrollY > 80;
     state.typeId = id;
     types.forEach(function (type) {
       var panel = NC.byId('chart-' + type.id);
@@ -5117,8 +6307,30 @@ body.charts-page {
         tab.tabIndex = selected ? 0 : -1;
       }
     });
+
+    var scroller = NC.byId('type-buttons');
+    var tab = NC.byId('tab-' + id);
+    if (scroller && tab && scroller.scrollWidth > scroller.clientWidth) {
+      var left = tab.offsetLeft - 16;
+      scroller.scrollTo({ left: left, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+    }
+
     var lab = NC.state.labs[id];
     if (lab) lab.mount();
+    var panel = NC.byId('chart-' + id);
+    if (panel && !NC.state.reducedMotion) {
+      panel.classList.remove('is-entering');
+      void panel.offsetWidth;
+      panel.classList.add('is-entering');
+      window.setTimeout(function () { panel.classList.remove('is-entering'); }, 800);
+    }
+    if (!first && wasScrolled && panel) {
+      var top = panel.getBoundingClientRect().top + window.scrollY - headerOffset();
+      if (Math.abs(window.scrollY - top) > 8) {
+        window.scrollTo({ top: top, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+      }
+    }
+    if (NC.motion && lab) NC.motion.play(lab);
     try {
       window.history.replaceState(null, '', '#chart-' + id);
     } catch (err) {}
@@ -5140,31 +6352,124 @@ body.charts-page {
     });
   }
 
+  function setupHeader() {
+    var head = NC.byId('site-head');
+    if (!head) return;
+    var ticking = false;
+    function update() {
+      head.classList.toggle('is-scrolled', window.scrollY > 8);
+    }
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () {
+        ticking = false;
+        update();
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    update();
+    function measure() {
+      document.documentElement.style.setProperty('--header-h', head.getBoundingClientRect().height + 'px');
+    }
+    measure();
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(measure).observe(head);
+    } else {
+      window.addEventListener('resize', measure);
+    }
+  }
+
+  function setupTypeOverflow() {
+    var nav = document.querySelector('.type-switch');
+    var scroller = NC.byId('type-buttons');
+    if (!nav || !scroller) return;
+    var prev = nav.querySelector('[data-scroll="-1"]');
+    var next = nav.querySelector('[data-scroll="1"]');
+    var hover = !window.matchMedia || window.matchMedia('(hover: hover)').matches;
+    function update() {
+      var max = scroller.scrollWidth - scroller.clientWidth;
+      var x = scroller.scrollLeft;
+      var start = x > 2;
+      var end = max > 2 && x < max - 2;
+      var mode = !start && !end ? 'none' : start && end ? 'both' : start ? 'start' : 'end';
+      nav.setAttribute('data-overflow', mode);
+      if (prev) prev.hidden = !(hover && start);
+      if (next) next.hidden = !(hover && end);
+    }
+    scroller.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    if (prev) {
+      prev.addEventListener('click', function () {
+        scroller.scrollBy({ left: -180, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+      });
+    }
+    if (next) {
+      next.addEventListener('click', function () {
+        scroller.scrollBy({ left: 180, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+      });
+    }
+    update();
+  }
+
   function setupLevel() {
     var buttons = Array.prototype.slice.call(document.querySelectorAll('#level-switch [data-level]'));
+    var switchEl = NC.byId('level-switch');
     try {
       var saved = localStorage.getItem('npesl-charts-level');
       if (saved && NC.LEVELS.indexOf(saved) !== -1) NC.state.level = saved;
     } catch (err) {}
-    function apply(level) {
+    function apply(level, animate) {
       NC.state.level = level;
       document.documentElement.setAttribute('data-charts-level', level);
+      if (switchEl) switchEl.setAttribute('data-active', level);
       buttons.forEach(function (button) {
         button.setAttribute('aria-pressed', button.getAttribute('data-level') === level ? 'true' : 'false');
       });
       try { localStorage.setItem('npesl-charts-level', level); } catch (err) {}
       Object.keys(NC.state.labs).forEach(function (id) {
         var lab = NC.state.labs[id];
-        if (lab.mounted) lab.refresh(false);
+        if (!lab.mounted) return;
+        if (animate) {
+          var desc = lab.section.querySelector('[data-desc]');
+          if (desc) {
+            desc.classList.remove('is-level-switching');
+            void desc.offsetWidth;
+            desc.classList.add('is-level-switching');
+            window.setTimeout(function () { desc.classList.remove('is-level-switching'); }, 240);
+          }
+        }
+        lab.refresh(false);
       });
       renderAllLearning();
     }
     buttons.forEach(function (button) {
       button.addEventListener('click', function () {
-        apply(button.getAttribute('data-level'));
+        apply(button.getAttribute('data-level'), true);
       });
     });
-    apply(NC.state.level);
+    apply(NC.state.level, false);
+  }
+
+  function setupResize() {
+    var timer = null;
+    function fit() {
+      Object.keys(NC.state.labs).forEach(function (id) {
+        var lab = NC.state.labs[id];
+        if (!lab.mounted || !lab.svg || !NC.renderCommon || !NC.renderCommon.fit) return;
+        var compact = NC.renderCommon.fit(lab.svg);
+        if (lab.compact !== compact) {
+          lab.compact = compact;
+          lab.renderer.render(lab);
+          lab.refresh(false);
+          if (NC.motion) NC.motion.play(lab);
+        }
+      });
+    }
+    window.addEventListener('resize', function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(fit, 150);
+    });
   }
 
   function setupReducedMotion() {
@@ -5178,6 +6483,9 @@ body.charts-page {
     buildPanels();
     buildTypeSwitch();
     renderErrors();
+    setupHeader();
+    setupTypeOverflow();
+    setupResize();
     setupLevel();
     setupHash();
     activate(initialTypeId());

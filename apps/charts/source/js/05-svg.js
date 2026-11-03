@@ -75,17 +75,23 @@
 
   svg.mkHandle = function (node, x, y, opts) {
     var o = opts || {};
-    var g = svg.group(node, {
+    var attrs = {
       class: 'handle',
       tabindex: '0',
       role: 'slider',
       'aria-label': o.label || 'value',
-      'aria-orientation': o.orientation || 'vertical',
       'aria-valuemin': o.min,
       'aria-valuemax': o.max,
       'aria-valuenow': o.now,
       'aria-valuetext': o.valueText || String(o.now)
-    });
+    };
+    if (o.orientation) attrs['aria-orientation'] = o.orientation;
+    if (o.data) {
+      Object.keys(o.data).forEach(function (key) {
+        attrs['data-' + key] = o.data[key];
+      });
+    }
+    var g = svg.group(node, attrs);
     var hit = svg.circle(g, {
       cx: x, cy: y, r: o.hitRadius || 22, fill: 'transparent', class: 'hit'
     });

@@ -6,10 +6,11 @@
 
   common.width = 720;
   common.height = 380;
-  common.margin = { top: 30, right: 26, bottom: 52, left: 66 };
+  common.margin = { top: 18, right: 26, bottom: 52, left: 66 };
+  common.compactMargin = { top: 16, right: 18, bottom: 46, left: 56 };
 
-  common.plot = function (width, height) {
-    var m = common.margin;
+  common.plot = function (width, height, compact) {
+    var m = compact ? common.compactMargin : common.margin;
     return {
       left: m.left,
       right: width - m.right,
@@ -18,6 +19,80 @@
       width: width - m.left - m.right,
       height: height - m.top - m.bottom
     };
+  };
+
+  common.fit = function (root) {
+    if (!root || !root.getBoundingClientRect) return false;
+    var rect = root.getBoundingClientRect();
+    var box = root.viewBox && root.viewBox.baseVal;
+    var viewWidth = box && box.width ? box.width : common.width;
+    var scale = rect.width > 0 ? rect.width / viewWidth : 1;
+    root.style.fontSize = (13 / (scale || 1)) + 'px';
+    var compact = rect.width > 0 && rect.width < 520;
+    root.setAttribute('data-compact', compact ? 'true' : 'false');
+    return compact;
+  };
+
+  common.screenPx = function (root, px) {
+    var rect = root && root.getBoundingClientRect ? root.getBoundingClientRect() : null;
+    var box = root && root.viewBox ? root.viewBox.baseVal : null;
+    if (!rect || !rect.width || !box || !box.width) return px;
+    return px / (rect.width / box.width);
+  };
+
+  common.tip = function (plotHost) {
+    if (plotHost.__tip) return plotHost.__tip;
+    var node = document.createElement('div');
+    node.className = 'chart-tip';
+    node.setAttribute('aria-hidden', 'true');
+    plotHost.appendChild(node);
+    plotHost.__tip = node;
+    return node;
+  };
+
+  common.showTip = function (plotHost, text, root, x, y) {
+    if (!plotHost || !root) return;
+    var node = common.tip(plotHost);
+    node.textContent = text;
+    var rect = root.getBoundingClientRect();
+    var hostRect = plotHost.getBoundingClientRect();
+    var box = root.viewBox && root.viewBox.baseVal;
+    if (!box || !box.width || !box.height) return;
+    var left = (rect.left - hostRect.left) + (x / box.width) * rect.width;
+    var top = (rect.top - hostRect.top) + (y / box.height) * rect.height;
+    node.dataset.visible = 'true';
+    node.style.left = Math.max(10, Math.min(hostRect.width - 10, left)) + 'px';
+    node.style.top = Math.max(26, top) + 'px';
+  };
+
+  common.hideTip = function (plotHost) {
+    if (!plotHost || !plotHost.__tip) return;
+    plotHost.__tip.dataset.visible = 'false';
+  };
+
+  common.fitText = function (node, maxWidth) {
+    if (!node || !node.getComputedTextLength) return;
+    var full = node.textContent;
+    if (!full) return;
+    var old = node.querySelector('title');
+    if (old) old.remove();
+    if (node.getComputedTextLength() <= maxWidth) return;
+    var chars = full;
+    while (chars.length > 1 && node.getComputedTextLength() > maxWidth) {
+      chars = chars.slice(0, -1);
+      node.textContent = chars + '…';
+    }
+    var title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+    title.textContent = full;
+    node.appendChild(title);
+  };
+
+  common.empty = function (plotHost, message) {
+    var node = document.createElement('p');
+    node.className = 'chart-empty';
+    node.textContent = message;
+    plotHost.appendChild(node);
+    return node;
   };
 
   common.drawYAxis = function (root, opts) {
@@ -52,11 +127,24 @@
       x1: opts.left, x2: opts.right, y1: opts.bottom, y2: opts.bottom,
       class: 'axis-line'
     });
-    (opts.labels || []).forEach(function (label, index) {
+    var labels = opts.labels || [];
+    var every = opts.labelEvery || 1;
+    labels.forEach(function (label, index) {
       var x = opts.x(index);
+      if (opts.ticks !== false) {
+        svg.line(root, {
+          x1: x, x2: x, y1: opts.bottom, y2: opts.bottom + 4,
+          class: 'tick-line'
+        });
+      }
+      var lastIndex = labels.length - 1;
+      var show = index === 0 || index === lastIndex ||
+        (index % every === 0 && lastIndex - index >= 2);
+      if (!show) return;
+      var anchor = index === 0 ? 'start' : index === lastIndex ? 'end' : 'middle';
       svg.text(root, {
         x: x, y: opts.bottom + 20,
-        'text-anchor': opts.anchor || 'middle',
+        'text-anchor': anchor,
         class: 'axis-label'
       }, label);
     });
@@ -64,7 +152,7 @@
 
   common.caption = function (root, text, opts) {
     var o = opts || {};
-    svg.text(root, {
+    return svg.text(root, {
       x: o.x == null ? 0 : o.x,
       y: o.y == null ? 14 : o.y,
       'text-anchor': o.anchor || 'start',
@@ -76,9 +164,11 @@
     container.innerHTML = '';
     var box = document.createElement('div');
     box.className = 'legend';
+    var nodes = [];
     items.forEach(function (item) {
       var row = document.createElement('span');
       row.className = 'legend-item';
+      if (item.key) row.setAttribute('data-legend', item.key);
       var dot = document.createElement('span');
       dot.className = 'legend-dot';
       dot.style.background = item.color;
@@ -91,16 +181,32 @@
       row.appendChild(dot);
       row.appendChild(label);
       box.appendChild(row);
+      nodes.push(row);
     });
     container.appendChild(box);
+    return { box: box, items: nodes };
+  };
+
+  common.emphasize = function (plotHost, key) {
+    if (plotHost) plotHost.setAttribute('data-emphasis', key || '');
+  };
+
+  common.clearEmphasis = function (plotHost) {
+    if (plotHost) plotHost.removeAttribute('data-emphasis');
+  };
+
+  common.placeValueLabel = function (root, x, y, text, opts) {
+    var o = opts || {};
+    return svg.text(root, {
+      x: x,
+      y: Math.max(o.top == null ? 0 : o.top, y),
+      'text-anchor': o.anchor || 'middle',
+      class: o.class || 'value-label'
+    }, text);
   };
 
   common.valueLabel = function (root, x, y, text, cls) {
-    return svg.text(root, {
-      x: x, y: y,
-      'text-anchor': 'middle',
-      class: cls || 'value-label'
-    }, text);
+    return common.placeValueLabel(root, x, y, text, { class: cls });
   };
 
   common.describeValue = function (value, unit) {

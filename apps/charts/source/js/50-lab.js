@@ -15,6 +15,7 @@
     this.modelBox = section.querySelector('[data-model]');
     this.renderer = NC.renderers[type.renderer];
     this.mounted = false;
+    this.compact = false;
     this.result = null;
     NC.state.labs[type.id] = this;
 
@@ -48,7 +49,15 @@
         var open = toggle.getAttribute('aria-expanded') === 'true';
         toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
         self.modelBox.hidden = open;
-        if (!open) self.refreshModel();
+        if (!open) self.refreshModel(true);
+      });
+    }
+    var replay = this.section.querySelector('[data-replay]');
+    if (replay) {
+      replay.addEventListener('click', function () {
+        if (self.renderer.render) self.renderer.render(self);
+        self.refresh(false);
+        if (NC.motion) NC.motion.play(self);
       });
     }
   };
@@ -63,48 +72,43 @@
   };
 
   Lab.prototype.setDescription = function (result, commit) {
-    var host = this.descLines;
-    host.innerHTML = '';
-    result.live.forEach(function (sentence, index) {
-      var block = document.createElement('div');
-      block.className = 'sentence' + (index === 0 ? ' lead' : '');
-      block.setAttribute('data-role', sentence.role);
-      var en = document.createElement('p');
-      en.className = 'sentence-en';
-      en.lang = 'en';
-      en.textContent = sentence.en;
-      var zh = document.createElement('p');
-      zh.className = 'sentence-zh';
-      zh.lang = 'zh';
-      zh.textContent = sentence.zh;
-      block.appendChild(en);
-      block.appendChild(zh);
-      host.appendChild(block);
-    });
+    this.reconcile(this.descLines, result.live, true);
     if (commit && this.liveNode) {
       this.liveNode.textContent = result.live.map(function (sentence) { return sentence.en; }).join(' ');
     }
-    this.refreshModel();
+    this.refreshModel(false);
   };
 
-  Lab.prototype.refreshModel = function () {
+  Lab.prototype.reconcile = function (host, sentences, lead) {
+    if (!host) return;
+    while (host.children.length > sentences.length) host.removeChild(host.lastChild);
+    sentences.forEach(function (sentence, index) {
+      var block = host.children[index];
+      if (!block) {
+        block = document.createElement('div');
+        var en = document.createElement('p');
+        en.className = 'sentence-en';
+        en.lang = 'en';
+        var zh = document.createElement('p');
+        zh.className = 'sentence-zh';
+        zh.lang = 'zh';
+        block.appendChild(en);
+        block.appendChild(zh);
+        host.appendChild(block);
+      }
+      block.className = 'sentence' + (lead && index === 0 ? ' lead' : '');
+      block.setAttribute('data-role', sentence.role);
+      var enNode = block.querySelector('.sentence-en');
+      var zhNode = block.querySelector('.sentence-zh');
+      if (enNode.textContent !== sentence.en) enNode.textContent = sentence.en;
+      if (zhNode.textContent !== sentence.zh) zhNode.textContent = sentence.zh;
+    });
+  };
+
+  Lab.prototype.refreshModel = function (force) {
     if (!this.modelBody || !this.result) return;
-    this.modelBody.innerHTML = '';
-    this.result.sentences.forEach(function (sentence) {
-      var block = document.createElement('div');
-      block.className = 'sentence';
-      var en = document.createElement('p');
-      en.className = 'sentence-en';
-      en.lang = 'en';
-      en.textContent = sentence.en;
-      var zh = document.createElement('p');
-      zh.className = 'sentence-zh';
-      zh.lang = 'zh';
-      zh.textContent = sentence.zh;
-      block.appendChild(en);
-      block.appendChild(zh);
-      this.modelBody.appendChild(block);
-    }, this);
+    if (!force && this.modelBox && this.modelBox.hidden) return;
+    this.reconcile(this.modelBody, this.result.sentences, false);
   };
 
   Lab.prototype.changed = function (commit) {
