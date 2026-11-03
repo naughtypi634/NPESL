@@ -8,20 +8,20 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from paths import BUILD, PHRASAL_CONTENT  # noqa: E402
+from paths import BUILD, COLLOCATION_CONTENT  # noqa: E402
 
 
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    themes = json.loads((PHRASAL_CONTENT / "themes.json").read_text(encoding="utf-8"))["themes"]
+    themes = json.loads((COLLOCATION_CONTENT / "themes.json").read_text(encoding="utf-8"))["themes"]
     order = {t["id"]: i for i, t in enumerate(themes, 1)}
     title = {t["id"]: t["title_zh"] for t in themes}
     en = {t["id"]: t["title_en"] for t in themes}
 
     entries: dict[str, dict] = {}
     for theme in themes:
-        doc = json.loads((PHRASAL_CONTENT / f"{theme['id']}.json").read_text(encoding="utf-8"))
+        doc = json.loads((COLLOCATION_CONTENT / f"{theme['id']}.json").read_text(encoding="utf-8"))
         for e in doc["entries"]:
             entries[e["id"]] = {
                 "head": e["head"],

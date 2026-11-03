@@ -6,7 +6,7 @@ Outputs (gitignored):
     build/opposites-review/all.tsv           every entry on one line
 
 Usage:
-    .venv\\Scripts\\python.exe -I tools\\phrasal\\report_opposites.py
+    .venv\\Scripts\\python.exe -I tools\\collocation\\report_opposites.py
 """
 
 from __future__ import annotations
@@ -16,13 +16,13 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from paths import BUILD, PHRASAL_CONTENT  # noqa: E402
+from paths import BUILD, COLLOCATION_CONTENT  # noqa: E402
 
 
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    themes_doc = json.loads((PHRASAL_CONTENT / "themes.json").read_text(encoding="utf-8"))
+    themes_doc = json.loads((COLLOCATION_CONTENT / "themes.json").read_text(encoding="utf-8"))
     themes = themes_doc["themes"]
     out_dir = BUILD / "opposites-review"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -30,7 +30,7 @@ def main() -> int:
     all_lines = ["theme\ttheme_zh\tid\thead\tkind\tzh\tsenses"]
     total = 0
     for number, theme in enumerate(themes, 1):
-        doc = json.loads((PHRASAL_CONTENT / f"{theme['id']}.json").read_text(encoding="utf-8"))
+        doc = json.loads((COLLOCATION_CONTENT / f"{theme['id']}.json").read_text(encoding="utf-8"))
         entries = doc["entries"]
         total += len(entries)
         lines = [

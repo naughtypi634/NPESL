@@ -1,6 +1,6 @@
-# 短语动词内容规范
+# 短语搭配内容规范
 
-源文件在 `content/phrasal/`：`themes.json` 定主题，每个主题一个 `<theme>.json`
+源文件在 `content/collocation/`：`themes.json` 定主题，每个主题一个 `<theme>.json`
 （如 `getting-around.json`）。30 个场景主题，每章 32–74 条，新条目追加到对应主题文件
 末尾即可。页面由 `build.py` 生成。
 
@@ -9,8 +9,8 @@
 `separable` 为 false。
 
 ```powershell
-.venv\Scripts\python.exe -I apps\phrasal\source\validate.py   # 先过校验
-.venv\Scripts\python.exe -I apps\phrasal\source\build.py      # 合成音频 + 出页面
+.venv\Scripts\python.exe -I apps\collocation\source\validate.py   # 先过校验
+.venv\Scripts\python.exe -I apps\collocation\source\build.py      # 合成音频 + 出页面
 ```
 
 ## 一条词条
@@ -52,7 +52,7 @@
 
 ## 反义关系
 
-`content/phrasal/opposites.json` 单独存反义，不写进词条：
+`content/collocation/opposites.json` 单独存反义，不写进词条：
 
 ```json
 {

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Structural checks for content/phrasal/*.json. Does not touch audio.
+"""Structural checks for content/collocation/*.json. Does not touch audio.
 
-    python -I apps/phrasal/source/validate.py
+    python -I apps/collocation/source/validate.py
 
 Exit code 0 = no problems.
 """
@@ -12,7 +12,7 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
-CONTENT = ROOT / "content" / "phrasal"
+CONTENT = ROOT / "content" / "collocation"
 CHIPS = ROOT / "content" / "drill" / "chips.json"
 
 LEVELS = {"A2", "B1", "B2", "C1"}
@@ -134,7 +134,7 @@ def check_entries(entries, chapter, chips, seen_ids, seen_sentences, bad):
 
 
 def check_opposites(seen_ids, sense_counts, bad):
-    """Validate content/phrasal/opposites.json against the loaded entries."""
+    """Validate content/collocation/opposites.json against the loaded entries."""
     path = CONTENT / "opposites.json"
     if not path.exists():
         bad("opposites.json 不存在")

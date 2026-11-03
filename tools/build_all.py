@@ -2,7 +2,7 @@
 """Build every app and the deploy staging trees, in dependency order.
 
     python -I tools/build_all.py                    # everything
-    python -I tools/build_all.py --only phrasal,site
+    python -I tools/build_all.py --only collocation,site
     python -I tools/build_all.py --skip-site        # apps only, no staging
     python -I tools/build_all.py --refresh-ipa-audio
 
@@ -24,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.cli import run_step, utf8_stdout  # noqa: E402
 
-ORDER = ["ipa", "phonics", "phenomena", "phrasal", "conversation", "drill", "charts", "site"]
+ORDER = ["ipa", "phonics", "phenomena", "collocation", "conversation", "drill", "charts", "site"]
 
 
 def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple[str, list[str]]]]:
@@ -39,9 +39,9 @@ def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple[str, list[str]]]]:
         "phenomena": [
             ("发音现象", ["-I", "-X", "utf8", "apps/phenomena/source/build.py"]),
         ],
-        "phrasal": [
-            ("短语动词内容校验", ["-I", "apps/phrasal/source/validate.py"]),
-            ("短语动词页面", ["-I", "apps/phrasal/source/build.py"]),
+        "collocation": [
+            ("短语搭配内容校验", ["-I", "apps/collocation/source/validate.py"]),
+            ("短语搭配页面", ["-I", "apps/collocation/source/build.py"]),
         ],
         "conversation": [
             ("Conversation Starters", ["-I", "tools/conversation/build_site.py"]),

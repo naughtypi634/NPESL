@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Build the phrasal-verb app: one page per theme, one sprite per page.
+"""Build the collocation app: one page per theme, one sprite per page.
 
-Source of truth is content/phrasal/ — themes.json plus one <theme>.json per
+Source of truth is content/collocation/ — themes.json plus one <theme>.json per
 theme. Clips are content-addressed, so re-running only synthesizes what is
 new; pages never reference master clips, only the concatenated sprite.
 
-    python -I apps/phrasal/source/build.py
-    python -I apps/phrasal/source/build.py --only getting-around --skip-audio
+    python -I apps/collocation/source/build.py
+    python -I apps/collocation/source/build.py --only getting-around --skip-audio
 """
 
 import argparse
@@ -23,8 +23,8 @@ import sys
 from urllib.parse import quote
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
-CONTENT = ROOT / "content" / "phrasal"
-BASE = ROOT / "apps" / "phrasal"
+CONTENT = ROOT / "content" / "collocation"
+BASE = ROOT / "apps" / "collocation"
 AUDIO_DIR = BASE / "audio"
 
 sys.path.insert(0, str(ROOT / "tools"))
@@ -731,7 +731,7 @@ def build_index(themes, opp_map=None, word_map=None):
         if old.name != f"data.{digest}.js":
             old.unlink()
     (BASE / f"data.{digest}.js").write_text(
-        "window.PHRASAL_INDEX=" + payload + ";\n", encoding="utf-8")
+        "window.COLLOCATION_INDEX=" + payload + ";\n", encoding="utf-8")
 
     page = (
         '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n'
@@ -763,7 +763,7 @@ def build_index(themes, opp_map=None, word_map=None):
         f'<script src="data.{digest}.js"></script>\n'
         "<script>\n"
         "(function(){\n"
-        "var D=window.PHRASAL_INDEX;\n"
+        "var D=window.COLLOCATION_INDEX;\n"
         "var view=document.getElementById('view');\n"
         "var rowScene=document.querySelector('[data-chips=\"scene\"]');\n"
         "var rowPart=document.querySelector('[data-chips=\"particle\"]');\n"

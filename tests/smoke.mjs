@@ -373,7 +373,7 @@ const cases = [
     async run() {
       const links = await evaluate(
         "[...document.querySelectorAll('a')].map(a => new URL(a.getAttribute('href'), location.href).pathname)");
-      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/phrasal/'];
+      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/collocation/'];
       const missing = want.filter((w) => !links.some((h) => h && h.startsWith(w)));
       return { ok: missing.length === 0, detail: missing.length ? `缺少链接 ${missing}` : `${want.length} 个入口齐全` };
     },
@@ -723,7 +723,7 @@ const cases = [
     run: probeConversationLevels,
   },
   {
-    name: 'phrasal', path: '/phrasal/01-getting-around.html',
+    name: 'collocation', path: '/collocation/01-getting-around.html',
     async run() {
       // 每章一条 sprite：点一条不是开头的例句，确认跳到了它的位置。
       const start = await evaluate(`(() => {
@@ -787,7 +787,7 @@ const cases = [
     },
   },
   {
-    name: 'phrasal-index', path: '/phrasal/',
+    name: 'collocation-index', path: '/collocation/',
     async run() {
       // 默认场景+全部、chip 展开；两个模式的「全部」各自独立；无计数、无主题链接；点词条就地展开。
       const r = await evaluate(`(async () => {
@@ -1035,7 +1035,7 @@ const cases = [
     },
   },
   {
-    name: 'phrasal-opposite', path: '/phrasal/01-getting-around.html',
+    name: 'collocation-opposite', path: '/collocation/01-getting-around.html',
     async run() {
       // 同页反义：跳过去出现临时返回，点返回回到原词条且按钮消失。
       const start = await evaluate(`(() => {
@@ -1080,7 +1080,7 @@ const cases = [
     },
   },
   {
-    name: 'phrasal-opposite-cross', path: '/phrasal/01-getting-around.html',
+    name: 'collocation-opposite-cross', path: '/collocation/01-getting-around.html',
     async run() {
       // 跨页反义：目标页出现返回按钮，点返回回到原页原词条，按钮消失。
       const start = await evaluate(`(() => {
@@ -1132,11 +1132,11 @@ const cases = [
     },
   },
   {
-    name: 'phrasal-index-opposite', path: '/phrasal/',
+    name: 'collocation-index-opposite', path: '/collocation/',
     async run() {
       // 索引页展开卡片里的反义：跳转到目标卡片，返回后回到来源卡片。
       const pick = await evaluate(`(() => {
-        const D = window.PHRASAL_INDEX;
+        const D = window.COLLOCATION_INDEX;
         for (let i = 0; i < D.entries.length; i++) {
           const e = D.entries[i];
           if (e.opp && e.opp.length) {
@@ -1184,12 +1184,12 @@ const cases = [
     },
   },
   {
-    name: 'phrasal-editorial-opposite', path: '/phrasal/',
+    name: 'collocation-editorial-opposite', path: '/collocation/',
     async run() {
       // editorial 是直角主题，反义按钮不能还是胶囊。
       await evaluate(`document.documentElement.setAttribute('data-theme', 'editorial')`);
       const pick = await evaluate(`(() => {
-        const D = window.PHRASAL_INDEX;
+        const D = window.COLLOCATION_INDEX;
         for (let i = 0; i < D.entries.length; i++) {
           if (D.entries[i].opp && D.entries[i].opp.length) return i;
         }

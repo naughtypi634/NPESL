@@ -38,7 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import (AUDIO_OUT, AUDIO_URL, CONVERSATION_OUT, DRILL_APP,
-                   IPA_APP, PHENOMENA_APP, PHONICS_APP, PHRASAL_APP,
+                   IPA_APP, PHENOMENA_APP, PHONICS_APP, COLLOCATION_APP,
                    SITE_APP, SITE_OUT, SITE_URL)
 from themes import theme_boot
 
@@ -47,7 +47,7 @@ SITE_SRC = SITE_APP
 PHONICS = PHONICS_APP
 IPA = IPA_APP
 PHENOMENA = PHENOMENA_APP
-PHRASAL = PHRASAL_APP
+COLLOCATION = COLLOCATION_APP
 DRILL = DRILL_APP
 CONVERSATION = CONVERSATION_OUT
 OUT = SITE_OUT
@@ -69,7 +69,7 @@ HEADERS = """/phonics/audio/*
 /phenomena/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
-/phrasal/audio/*
+/collocation/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /conversation/eslse/audio/*
@@ -84,8 +84,10 @@ AUDIO_HEADERS = """/*
 """
 
 # 旧页面缓存里还是主站下的 /conversation/audio/Ava/… 或 ESLSE 的相对
-# audio/…，转给音频站。
-REDIRECTS = """/conversation/audio/Ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
+# audio/…，转给音频站。旧的 /phrasal/ 路径转给 /collocation/。
+REDIRECTS = """/phrasal/*  /collocation/:splat  301
+/phrasal  /collocation/  301
+/conversation/audio/Ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
 /conversation/audio/ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
 /conversation/eslse/audio/*  https://npesl-audio.pages.dev/audio/:splat  301
 """
@@ -223,11 +225,11 @@ def phenomena_ignore(directory, names):
     return skip
 
 
-def phrasal_ignore(directory, names):
+def collocation_ignore(directory, names):
     """只要拼好的 sprite；逐条录音（audio/f、audio/m）不进部署包。"""
     skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md", "*.pdf")(
         directory, names))
-    if Path(directory) == PHRASAL / "audio":
+    if Path(directory) == COLLOCATION / "audio":
         skip |= {"f", "m"}
     return skip
 
@@ -293,21 +295,21 @@ def main() -> int:
     else:
         print("警告：常见发音现象 目录不存在，未包含")
 
-    # 短语动词：主题页 + 每页一条 sprite
-    if PHRASAL.exists():
-        phrasal_out = OUT / "phrasal"
-        shutil.copytree(PHRASAL, phrasal_out, ignore=phrasal_ignore)
+    # 短语搭配：主题页 + 每页一条 sprite
+    if COLLOCATION.exists():
+        collocation_out = OUT / "collocation"
+        shutil.copytree(COLLOCATION, collocation_out, ignore=collocation_ignore)
         finish_group(PageGroup(
-            phrasal_out, "index.html", lambda _: "phrasal/",
+            collocation_out, "index.html", lambda _: "collocation/",
             "短语搭配 Collocations · 30 章", site_back))
         finish_group(PageGroup(
-            phrasal_out, "*.html", lambda name: f"phrasal/{name}",
+            collocation_out, "*.html", lambda name: f"collocation/{name}",
             "短语搭配 Collocations",
-            BackLink("/phrasal/", "短语搭配", replace=True),
+            BackLink("/collocation/", "短语搭配", replace=True),
             frozenset({"index.html"})))
         print("  短语搭配：已包含")
     else:
-        print("警告：短语动词目录不存在，未包含")
+        print("警告：短语搭配目录不存在，未包含")
 
     # Question Drill：目录页 + 男女音频
     drill_out = OUT / "drill"
@@ -362,7 +364,7 @@ def main() -> int:
     print(f"  美式英语音标表：{SITE_URL}/ipa/")
     print(f"  Question Drill：{SITE_URL}/drill/")
     print(f"  常见发音现象：{SITE_URL}/phenomena/")
-    print(f"  短语搭配：{SITE_URL}/phrasal/")
+    print(f"  短语搭配：{SITE_URL}/collocation/")
     if AUDIO_OUT.exists():
         afiles, asize = stats(AUDIO_OUT)
         print(f"音频站：{AUDIO_OUT.relative_to(ROOT)}")

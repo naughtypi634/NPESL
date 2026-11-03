@@ -47,7 +47,7 @@
 | `drill/tag_chips.py` | 打 `chip` 并把 `topup/` 合并进题库 |
 | `drill/prune_audio.py` | 删除题库不再引用的音频 |
 | `drill/test_app.mjs` | Question Drill 单文件版的行为测试 |
-| `apps/phrasal/source/validate.py` | 短语动词内容校验（改内容后必须先跑） |
+| `apps/collocation/source/validate.py` | 短语搭配内容校验（改内容后必须先跑） |
 | `apps/phonics/source/validate.py` | 自然拼读结构校验 |
 | `apps/phenomena/source/validate.py` | 发音现象标注校验 |
 

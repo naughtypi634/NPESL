@@ -1,6 +1,6 @@
 # 短语搭配内容源
 
-页面在 `apps/phrasal/`，由 `apps/phrasal/source/build.py` 生成。改内容只改这里。
+页面在 `apps/collocation/`，由 `apps/collocation/source/build.py` 生成。改内容只改这里。
 
 30 个主题，共 **1,279 条**：短语动词 1,122、介词搭配 98、习语/固定短语 59。
 每条都带 `kind`（phrasal / prep / idiom）；页面显示类型、语体（口语/中性/书面）和【可分】。
@@ -58,7 +58,7 @@ communication.json        沟通
 ```
 
 主题文件沿用原来的 30 个场景，不再固定每章 30 条。`tier` / `level` 是可选字段。
-写内容的规矩见 `apps/phrasal/source/AUTHORING.md`。
+写内容的规矩见 `apps/collocation/source/AUTHORING.md`。
 
 ## 来源与取舍
 

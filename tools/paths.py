@@ -29,7 +29,7 @@ PHONETICS_MD = CONTENT / "phonetics" / "Pronunciation音标表.md"
 PHONETICS_PDF = CONTENT / "phonetics" / "Pronunciation音标表.pdf"
 CONVERSATION_CONTENT = CONTENT / "conversation"
 DRILL_CONTENT = CONTENT / "drill"
-PHRASAL_CONTENT = CONTENT / "phrasal"
+COLLOCATION_CONTENT = CONTENT / "collocation"
 CHARTS_CONTENT = CONTENT / "charts"
 
 # ---- 应用 ----
@@ -38,7 +38,7 @@ PHONICS_APP = APPS / "phonics"
 IPA_APP = APPS / "ipa"
 DRILL_APP = APPS / "drill"
 PHENOMENA_APP = APPS / "phenomena"
-PHRASAL_APP = APPS / "phrasal"
+COLLOCATION_APP = APPS / "collocation"
 CHARTS_APP = APPS / "charts"
 
 PHONICS_AUDIO = PHONICS_APP / "audio"
@@ -46,7 +46,7 @@ PHONICS_SOURCE_AUDIO = PHONICS_APP / "source" / "audio"
 IPA_AUDIO = IPA_APP / "audio"
 DRILL_AUDIO = DRILL_APP / "audio"
 PHENOMENA_AUDIO = PHENOMENA_APP / "audio"
-PHRASAL_AUDIO = PHRASAL_APP / "audio"
+COLLOCATION_AUDIO = COLLOCATION_APP / "audio"
 
 # ---- 内容文件 ----
 DRILL_BANK_JSON = DRILL_CONTENT / "questions.json"

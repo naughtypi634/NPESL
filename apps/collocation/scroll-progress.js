@@ -220,7 +220,7 @@
     }
 
     function categoryName(group, particleMode) {
-      var data = window.PHRASAL_INDEX || {};
+      var data = window.COLLOCATION_INDEX || {};
       if (particleMode) {
         var particle = group.getAttribute('data-particle');
         var parts = data.particle || [];
