@@ -1,23 +1,17 @@
 // Headless Edge smoke test for the generated single-file app.
 // Usage: node tools/drill/test_app.mjs [--serve] [--screenshot]
 //   --serve  发布目录用本地 HTTP 打开，音档能正常加载（file:// 下音频会 404）
-import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import { rmSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 
+import { launchEdge } from '../edge.mjs';
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const EDGE_BY_PLATFORM = {
-  win32: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  darwin: '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-};
-const EDGE = process.env.EDGE_PATH || EDGE_BY_PLATFORM[process.platform];
 const APP = process.env.APP_PATH || join(ROOT, 'apps/drill/中译英问题生成器.html');
 const APP_NAME = APP.split(/[\\/]/).pop();
-const PORT = 9300 + (process.pid % 500);
-const PROFILE = join(ROOT, 'build', 'drill-tests', `edge-profile-${process.pid}`);
 
 let testServer = null;
 const url = await (async () => {
@@ -44,55 +38,24 @@ const url = await (async () => {
   testServer = server;
   return `http://127.0.0.1:${server.address().port}/${encodeURIComponent(APP_NAME)}`;
 })();
-try { rmSync(PROFILE, { recursive: true, force: true }); } catch {}
-const proc = spawn(EDGE, [
-  '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-  `--remote-debugging-port=${PORT}`, `--user-data-dir=${PROFILE}`, url,
-], { stdio: 'ignore' });
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function target() {
-  for (let i = 0; i < 80; i++) {
-    try {
-      const r = await fetch(`http://127.0.0.1:${PORT}/json`);
-      const list = await r.json();
-      const page = list.find((t) => t.type === 'page' && decodeURIComponent(t.url).includes(APP_NAME));
-      if (page) return page;
-    } catch {}
-    await sleep(250);
+// 只开这一个浏览器；edge.close() 把它整棵树收干净。
+const edge = await launchEdge({ name: `drill-tests/edge-profile-${process.pid}`, url });
+const { send, ws } = edge;
+
+const errors = [];
+edge.onEvent((msg) => {
+  if (msg.method === 'Runtime.exceptionThrown') {
+    errors.push(msg.params.exceptionDetails.text + ': '
+      + (msg.params.exceptionDetails.exception?.description || ''));
+  } else if (msg.method === 'Log.entryAdded' && msg.params.entry.level === 'error') {
+    errors.push(msg.params.entry.text);
   }
-  throw new Error('DevTools target never appeared');
-}
+});
 
-let ws;
 try {
-  const page = await target();
-  console.error('target:', page.url);
-  ws = new WebSocket(page.webSocketDebuggerUrl);
-  await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
-
-  let seq = 0;
-  const pending = new Map();
-  const errors = [];
-  ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
-    if (msg.id && pending.has(msg.id)) {
-      pending.get(msg.id)(msg);
-      pending.delete(msg.id);
-    } else if (msg.method === 'Runtime.exceptionThrown') {
-      errors.push(msg.params.exceptionDetails.text + ': ' + (msg.params.exceptionDetails.exception?.description || ''));
-    } else if (msg.method === 'Log.entryAdded' && msg.params.entry.level === 'error') {
-      errors.push(msg.params.entry.text);
-    }
-  };
-
-  const send = (method, params = {}) => new Promise((resolve) => {
-    const id = ++seq;
-    pending.set(id, resolve);
-    ws.send(JSON.stringify({ id, method, params }));
-  });
-
+  console.error('target:', url);
   await send('Runtime.enable');
   await send('Log.enable');
 
@@ -339,14 +302,6 @@ try {
   process.exitCode = checks.every((c) => c.ok) ? 0 : 1;
 } finally {
   try { ws?.close(); } catch {}
-  if (proc.pid) {
-    if (process.platform === 'win32') {
-      spawnSync('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
-    } else {
-      try { proc.kill(); } catch {}
-    }
-  }
-  await sleep(300);
-  try { rmSync(PROFILE, { recursive: true, force: true }); } catch {}
+  edge.close();
   try { testServer?.close(); } catch {}
 }

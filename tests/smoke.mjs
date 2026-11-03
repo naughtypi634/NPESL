@@ -11,21 +11,14 @@
 //
 // Exit code 0 = all passed.
 
-import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { rmSync } from 'node:fs';
-import { basename, dirname, extname, join, resolve } from 'node:path';
+import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { launchEdge } from '../tools/edge.mjs';
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const EDGE_BY_PLATFORM = {
-  win32: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  darwin: '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-};
-const EDGE = process.env.EDGE_PATH || EDGE_BY_PLATFORM[process.platform];
-const PORT = 9400 + (process.pid % 400);
-const PROFILE = join(ROOT, 'build', `edge-smoke-${process.pid}`);
 
 const args = process.argv.slice(2);
 const argOf = (name, fallback) => {
@@ -74,51 +67,23 @@ const server = createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}`;
 
-try { rmSync(PROFILE, { recursive: true, force: true }); } catch {}
-const proc = spawn(EDGE, [
-  '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-  '--mute-audio', '--autoplay-policy=no-user-gesture-required',
-  `--remote-debugging-port=${PORT}`, `--user-data-dir=${PROFILE}`, 'about:blank',
-], { stdio: 'ignore' });
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function target() {
-  for (let i = 0; i < 80; i++) {
-    try {
-      const list = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json();
-      const page = list.find((t) => t.type === 'page');
-      if (page) return page;
-    } catch {}
-    await sleep(250);
-  }
-  throw new Error('DevTools target never appeared');
-}
+// 整个测试只开这一个无头 Edge；edge.close() 会把它整棵树收干净。
+const edge = await launchEdge({ name: `edge-smoke-${process.pid}`, url: 'about:blank' });
+const { send, ws } = edge;
 
-const page = await target();
-const ws = new WebSocket(page.webSocketDebuggerUrl);
-await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
-
-let seq = 0;
-const pending = new Map();
 let errors = [];
-ws.onmessage = (ev) => {
-  const msg = JSON.parse(ev.data);
-  if (msg.id && pending.has(msg.id)) {
-    pending.get(msg.id)(msg);
-    pending.delete(msg.id);
-  } else if (msg.method === 'Runtime.exceptionThrown') {
+edge.onEvent((msg) => {
+  if (msg.method === 'Runtime.exceptionThrown') {
     errors.push(msg.params.exceptionDetails.text + ': '
       + (msg.params.exceptionDetails.exception?.description || ''));
   } else if (msg.method === 'Log.entryAdded' && msg.params.entry.level === 'error') {
     errors.push(msg.params.entry.text);
   }
-};
-const send = (method, params = {}) => new Promise((resolve) => {
-  const id = ++seq;
-  pending.set(id, resolve);
-  ws.send(JSON.stringify({ id, method, params }));
 });
+
+const evaluate = edge.evaluate;
 
 await send('Runtime.enable');
 await send('Log.enable');
@@ -142,17 +107,6 @@ const HOOK = `(() => {
   }, true);
 })();`;
 await send('Page.addScriptToEvaluateOnNewDocument', { source: HOOK });
-
-const evaluate = async (expression) => {
-  const r = await send('Runtime.evaluate', {
-    expression, returnByValue: true, awaitPromise: true,
-  });
-  if (r.result?.exceptionDetails) {
-    throw new Error(r.result.exceptionDetails.exception?.description
-      || r.result.exceptionDetails.text);
-  }
-  return r.result.result.value;
-};
 
 async function goto(path) {
   errors = [];
@@ -1126,27 +1080,8 @@ for (const c of cases) {
 }
 
 try { ws.close(); } catch {}
-try {
-  // Windows 上 proc.kill() / taskkill /T 都收不干净：Edge 的浏览器进程会
-  // 重新挂到别的父进程下，继续锁着 profile。按命令行里的 profile 名精确杀。
-  if (process.platform === 'win32') {
-    const tag = basename(PROFILE);
-    spawnSync('powershell', ['-NoProfile', '-Command',
-      `Get-CimInstance Win32_Process -Filter "Name='msedge.exe'" | Where-Object { $_.CommandLine -like '*${tag}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`,
-    ], { stdio: 'ignore' });
-  } else {
-    proc.kill('SIGKILL');
-  }
-} catch {}
+edge.close();
 server.close();
-for (let i = 0; i < 8; i++) {
-  try {
-    rmSync(PROFILE, { recursive: true, force: true });
-    break;
-  } catch {
-    await sleep(250);
-  }
-}
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} 通过`);
