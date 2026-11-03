@@ -5,7 +5,7 @@
 ## 结构
 
 ```
-lessons/            成品页面，每课一个自包含 HTML（音频内嵌）
+lessons/            成品页面，每课一个 HTML，音频是外部 ../audio/<hash>.mp3
 index.html          目录页
 source/
   content/*.json    课程内容（唯一源）

@@ -27,7 +27,7 @@
 | `apps/drill/` | 中译英练习网页（`index.html` + `audio/f,m/`）与独立单文件 HTML |
 | `apps/phenomena/` | 30 章发音现象课，逐词音素标注 + 男女声 |
 | `apps/phrasal/` | 短语动词章节页（`source/` 构建器 + `audio/`），每章一条 sprite |
-| `tools/` | 构建、部署、校验脚本；`tools/paths.py` 是路径的唯一来源 |
+| `tools/` | 构建、校验脚本；`tools/README.md` 是脚本索引，`tools/paths.py` 是路径的唯一来源 |
 | `tools/audio_sprite.py` | 把逐条录音拼成每页/每课/每题一条（不改码率，音质不变） |
 | `tools/conversation/` | Conversation Starters 页面与语音构建器 |
 | `tools/drill/` | Question Drill 题库工具 |
@@ -45,17 +45,25 @@ python -m venv .venv
 
 ## 构建
 
+日常只需要一条命令（按依赖顺序跑完六个应用和站点装配）：
+
 ```powershell
-# 音标表页面：从 PDF 抽内嵌录音，缺的另一性别用 Edge TTS 补齐
-.venv\Scripts\python.exe -I tools\build_ipa_site.py
+.venv\Scripts\python.exe -I tools\build_all.py
+```
+
+`--only ipa,phrasal` 只跑指定应用，`--skip-site` 不装配部署暂存。IPA 默认复用已有录音；要重新录制全部 300 个单词时加 `--refresh-ipa-audio`（会联网）。
+
+分步命令仍然可用：
+
+```powershell
+# 音标表页面（--skip-audio 只用缓存；去掉则让 Azure 重录全部单词）
+.venv\Scripts\python.exe -I tools\build_ipa_site.py --skip-audio
 
 # 自然拼读 48 课
-cd apps\phonics\source
-..\..\..\.venv\Scripts\python.exe -I -X utf8 build.py
+.venv\Scripts\python.exe -I -X utf8 apps\phonics\source\build.py
 
 # 常见发音现象 30 章
-cd apps\phenomena\source
-..\..\..\.venv\Scripts\python.exe -I -X utf8 build.py
+.venv\Scripts\python.exe -I -X utf8 apps\phenomena\source\build.py
 
 # 短语动词：校验内容，再合成音频并出章节页
 .venv\Scripts\python.exe -I apps\phrasal\source\validate.py
@@ -99,16 +107,15 @@ npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npe
 ## 自检
 
 ```powershell
-# 产物快照与比对（改构建脚本前后各跑一次）
-.venv\Scripts\python.exe -I tools\audit_build.py --label before
-.venv\Scripts\python.exe -I tools\audit_build.py --diff before now
+# 一次跑完：音频引用、英式英语、六个应用的冒烟测试
+.venv\Scripts\python.exe -I tools\verify.py
 
-# 六个应用的无头浏览器冒烟测试
-node tests\smoke.mjs
-
-# 英式英语检查
-.venv\Scripts\python.exe -I tools\check_bre.py apps content
+# 改构建脚本前后：拍快照，再比对（0 差异才算通过）
+.venv\Scripts\python.exe -I tools\verify.py --label before
+.venv\Scripts\python.exe -I tools\verify.py --diff before now
 ```
+
+单独跑某一项时仍可用原命令：`tools\audit_build.py`、`tools\check_assets.py`、`tools\check_bre.py`、`node tests\smoke.mjs`。
 
 ## 路径约定
 

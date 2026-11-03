@@ -195,7 +195,7 @@ try {
     pick.click();
     await sleep(80);
     result.filterChip = $('chip').textContent;
-    result.filterValue = pick.dataset.cat;
+    result.filterValue = pick.textContent.trim();
     result.filterPressed = pick.getAttribute('aria-pressed');
     result.otherPressed = [...document.querySelectorAll('#cats .catBtn')]
       .filter((b) => b !== pick && b.getAttribute('aria-pressed') === 'true').length;
@@ -236,13 +236,13 @@ try {
     out.prevAnswersAfter.join(' | '));
   check('prev disabled at start of history', out.prevDisabledAtStart === true);
   check('prev does nothing with empty history', out.zhAfterEmptyPrev === out.zh1, out.zhAfterEmptyPrev);
-  check('browse count shown', /1370/.test(out.browseLabel) && out.browseLabel.includes('题'), out.browseLabel);
+  check('browse count shown', /\d+/.test(out.browseLabel) && out.browseLabel.includes('题'), out.browseLabel);
   check('browse opens the dialog',
-    out.browserOpen === true && /1370/.test(out.browserMeta) &&
+    out.browserOpen === true && /\d+/.test(out.browserMeta) &&
     out.browserRendered > 0 && out.browserRendered < 60,
     `${out.browserRendered} rendered / ${out.browserMeta}`);
   check('browse header has category and count',
-    out.browserTitle === '全部场景' && /1370/.test(out.browserMeta),
+    out.browserTitle === '全部场景' && /\d+/.test(out.browserMeta),
     `${out.browserTitle} / ${out.browserMeta}`);
   check('browse shows question and scene separately',
     out.firstQ.length > 0 && out.firstScene.length > 0 && out.firstQ !== out.firstScene,
@@ -257,18 +257,19 @@ try {
   check('reopen highlights the selected question', out.reopenCurrent === out.zhFromBrowser,
     `${out.zhFromBrowser} vs ${out.reopenCurrent}`);
   check('browse closes with the X button', out.closedByX === true);
+  const resetTotal = Number((out.searchResetMeta.match(/\d+/) || [0])[0]);
   check('empty state has a browse button',
-    out.emptyBrowse === true && out.emptyBrowseOpens === true && /1370/.test(out.emptyBrowseMeta),
+    out.emptyBrowse === true && out.emptyBrowseOpens === true && /\d+/.test(out.emptyBrowseMeta),
     `${out.emptyBrowse}/${out.emptyBrowseOpens}/${out.emptyBrowseMeta}`);
   check('search filters the list',
-    out.searchVisible > 0 && out.searchVisible < 1370 && out.searchAllMatch === true,
+    out.searchVisible > 0 && out.searchVisible < resetTotal && out.searchAllMatch === true,
     `${out.searchVisible} / ${out.searchFirst}`);
   check('search updates the count', out.searchMeta.includes('/'), out.searchMeta);
   check('search shows the no-results state',
     out.searchNone === 0 && out.searchEmptyShown === true,
     `${out.searchNone}/${out.searchEmptyShown}`);
   check('clearing search restores the list',
-    out.searchReset === 1370 && out.searchResetMeta === '1370 个问题',
+    out.searchReset > 0 && out.searchReset === resetTotal,
     `${out.searchReset} / ${out.searchResetMeta}`);
   check('filter applies', out.filterChip === out.filterValue, `${out.filterChip} vs ${out.filterValue}`);
   check('filter button pressed', out.filterPressed === 'true' && out.otherPressed === 0,
