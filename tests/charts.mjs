@@ -105,6 +105,7 @@ try {
       externalScripts: document.querySelectorAll('script[src]').length,
       description: document.querySelector('[data-type="line"] [data-desc-lines]').textContent.trim(),
       hero: !!document.querySelector('.hero'),
+      footer: !!document.querySelector('.footer'),
       standaloneVocab: !!document.querySelector('#vocab'),
       standaloneGrammar: !!document.querySelector('#grammar'),
       lineVocab: document.querySelectorAll('#chart-line [data-vocab] .vocab-card').length,
@@ -122,7 +123,7 @@ try {
   check('first lab mounts', structure.firstMounted === 'true');
   check('no external scripts', structure.externalScripts === 0, String(structure.externalScripts));
   check('description is not empty', structure.description.length > 20, structure.description.slice(0, 40));
-  check('intro meta content is gone', structure.hero === false);
+  check('intro meta content is gone', structure.hero === false && structure.footer === false);
   check('vocabulary is not a standalone section', structure.standaloneVocab === false);
   check('grammar is not a standalone section', structure.standaloneGrammar === false);
   check('line panel carries vocabulary', structure.lineVocab > 0, String(structure.lineVocab));
