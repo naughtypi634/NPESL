@@ -1184,6 +1184,31 @@ const cases = [
     },
   },
   {
+    name: 'phrasal-editorial-opposite', path: '/phrasal/',
+    async run() {
+      // editorial 是直角主题，反义按钮不能还是胶囊。
+      await evaluate(`document.documentElement.setAttribute('data-theme', 'editorial')`);
+      const pick = await evaluate(`(() => {
+        const D = window.PHRASAL_INDEX;
+        for (let i = 0; i < D.entries.length; i++) {
+          if (D.entries[i].opp && D.entries[i].opp.length) return i;
+        }
+        return -1;
+      })()`);
+      if (pick < 0) return { ok: false, detail: '没有反义数据' };
+      await evaluate(`document.querySelector('.prow[data-i="${pick}"]').click()`);
+      await sleep(200);
+      const r = await evaluate(`(() => {
+        const b = document.querySelector('.card[data-card="${pick}"] .opp-btn');
+        if (!b) return null;
+        const cs = getComputedStyle(b);
+        return { radius: cs.borderRadius, font: cs.fontFamily };
+      })()`);
+      await evaluate(`document.documentElement.removeAttribute('data-theme')`);
+      return { ok: !!r && r.radius === '0px', detail: JSON.stringify(r) };
+    },
+  },
+  {
     name: 'phenomena-index', path: '/phenomena/',
     async run() {
       // 第 24 课有一条超长 tag；卡片不能被撑宽，页面也不许横向溢出。
