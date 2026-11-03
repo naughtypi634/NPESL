@@ -165,12 +165,18 @@ try {
   check('line x ticks match the periods', await edge.evaluate("document.querySelectorAll('#chart-line .tick-line').length") === 8);
 
   const quiet = await edge.evaluate(`(() => {
-    const style = (selector) => getComputedStyle(document.querySelector(selector));
+    const style = (selector) => {
+      const node = document.querySelector(selector);
+      return node ? getComputedStyle(node) : null;
+    };
     return {
       focusRow: !!document.querySelector('.focus-row'),
+      definition: !!document.querySelector('.definition'),
+      notes: !!document.querySelector('.note'),
+      model: !!document.querySelector('.model'),
+      pieLegend: !!document.querySelector('#chart-pie .pie-legend'),
       descBorder: style('#chart-line .desc').borderLeftWidth,
       sentenceBorder: style('#chart-line .sentence').borderTopWidth,
-      noteBorder: style('#chart-line .note').borderTopWidth,
       patternBorder: style('#chart-line .pattern-list li').borderTopWidth,
       vocabBorder: style('#chart-line .vocab-card').borderTopWidth,
       grammarBorder: style('#chart-line .grammar-card').borderTopWidth,
@@ -181,8 +187,9 @@ try {
       levelBg: style('#level-switch').backgroundColor
     };
   })()`);
-  check('focus chip row is removed', quiet.focusRow === false);
-  check('per-item dividers are gone', [quiet.descBorder, quiet.sentenceBorder, quiet.noteBorder, quiet.patternBorder, quiet.vocabBorder, quiet.grammarBorder, quiet.errorBorder].every((width) => width === '0px'), JSON.stringify(quiet));
+  check('redundant explanatory blocks are removed', !quiet.definition && !quiet.notes && !quiet.model && !quiet.focusRow, JSON.stringify(quiet));
+  check('duplicate pie legend is removed', quiet.pieLegend === false);
+  check('per-item dividers are gone', [quiet.descBorder, quiet.sentenceBorder, quiet.patternBorder, quiet.vocabBorder, quiet.grammarBorder, quiet.errorBorder].every((width) => width === '0px'), JSON.stringify(quiet));
   check('default chart surface is quiet', quiet.chartBorder === '0px' && quiet.chartBg === 'rgba(0, 0, 0, 0)', JSON.stringify({ border: quiet.chartBorder, background: quiet.chartBg }));
   check('difficulty control is unboxed', quiet.levelBorder === '0px' && quiet.levelBg === 'rgba(0, 0, 0, 0)', JSON.stringify({ border: quiet.levelBorder, background: quiet.levelBg }));
 

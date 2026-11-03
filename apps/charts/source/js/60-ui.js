@@ -49,7 +49,6 @@
       '<button class="icon-btn" type="button" data-replay aria-label="重播动画" title="重播动画">' + REPLAY_ICON + '</button>';
     return '<header class="section-head">' +
         '<h2>' + NC.escapeHtml(type.label_zh) + ' <span class="h2-en">' + NC.escapeHtml(type.label_en) + '</span></h2>' +
-        '<p class="definition">' + NC.escapeHtml(type.definition_zh) + '</p>' +
       '</header>' +
       '<div class="panel-grid">' +
         '<div class="panel-figure">' +
@@ -75,17 +74,21 @@
           '</section>' +
         '</aside>' +
       '</div>' +
-      '<div class="panel-notes">' +
-        '<div class="section-notes">' +
-          '<div class="note"><h3>适合说明什么</h3><p>' + NC.escapeHtml(type.best_for_zh) + '</p></div>' +
-          '<div class="note"><h3>小心</h3><p>' + NC.escapeHtml(type.watch_out_zh) + '</p></div>' +
-          '<div class="note"><h3>雅思提示</h3><p>' + NC.escapeHtml(type.ielts_tip_zh) + '</p></div>' +
-        '</div>' +
-        '<div class="model">' +
-          '<button class="text-link" type="button" data-model-toggle aria-expanded="false">看一段范文 <span aria-hidden="true">→</span></button>' +
-          '<div class="model-box" data-model hidden><div class="model-body" data-model-body></div></div>' +
-        '</div>' +
+      '<div class="pattern-section">' +
+        '<h3>常用句型</h3>' +
+        '<ul class="pattern-list" data-patterns></ul>' +
       '</div>' +
+      '<details class="learning" data-vocab-section>' +
+        '<summary>词汇</summary>' +
+        '<div class="learning-body"><div class="vocab-groups" data-vocab></div></div>' +
+      '</details>' +
+      '<details class="learning" data-grammar-section>' +
+        '<summary>句型与语法</summary>' +
+        '<div class="learning-body">' +
+          (type.converter ? converterHtml() : '') +
+          '<div class="grammar-list" data-grammar></div>' +
+        '</div>' +
+      '</details>';
       '<div class="pattern-section">' +
         '<h3>常用句型</h3>' +
         '<ul class="pattern-list" data-patterns></ul>' +

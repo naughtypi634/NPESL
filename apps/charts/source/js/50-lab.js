@@ -11,8 +11,6 @@
     this.liveNode = section.querySelector('[data-live]');
     this.tableHost = section.querySelector('[data-table]');
     this.dataPanel = section.querySelector('[data-data-panel]');
-    this.modelBody = section.querySelector('[data-model-body]');
-    this.modelBox = section.querySelector('[data-model]');
     this.renderer = NC.renderers[type.renderer];
     this.mounted = false;
     this.compact = false;
@@ -43,15 +41,6 @@
         NC.resetKey(self.key);
       });
     }
-    var toggle = this.section.querySelector('[data-model-toggle]');
-    if (toggle) {
-      toggle.addEventListener('click', function () {
-        var open = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
-        self.modelBox.hidden = open;
-        if (!open) self.refreshModel(true);
-      });
-    }
     var replay = this.section.querySelector('[data-replay]');
     if (replay) {
       replay.addEventListener('click', function () {
@@ -76,7 +65,6 @@
     if (commit && this.liveNode) {
       this.liveNode.textContent = result.live.map(function (sentence) { return sentence.en; }).join(' ');
     }
-    this.refreshModel(false);
   };
 
   Lab.prototype.reconcile = function (host, sentences, lead) {
@@ -103,12 +91,6 @@
       if (enNode.textContent !== sentence.en) enNode.textContent = sentence.en;
       if (zhNode.textContent !== sentence.zh) zhNode.textContent = sentence.zh;
     });
-  };
-
-  Lab.prototype.refreshModel = function (force) {
-    if (!this.modelBody || !this.result) return;
-    if (!force && this.modelBox && this.modelBox.hidden) return;
-    this.reconcile(this.modelBody, this.result.sentences, false);
   };
 
   Lab.prototype.changed = function (commit) {

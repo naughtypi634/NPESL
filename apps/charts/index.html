@@ -948,17 +948,6 @@ html[data-theme="glass"] .site-head {
   letter-spacing: 0;
 }
 
-.definition {
-  margin: var(--space-2) 0 0;
-  max-width: 66ch;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.65;
-  letter-spacing: 0;
-}
-
-/* ---------------------------------------------------------- two-column lab */
-
 .panel-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.95fr);
@@ -1189,17 +1178,6 @@ html[data-theme="glass"] .chart-card {
   opacity: 0.65;
 }
 
-.pie-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  margin-top: var(--space-2);
-  font-size: 12px;
-}
-
-.pie-legend .legend-name { color: var(--fg); }
-.pie-legend .legend-value { color: var(--muted); font-variant-numeric: tabular-nums; }
-
 .legend-host { margin-top: var(--space-2); }
 
 .legend {
@@ -1369,53 +1347,6 @@ html[data-theme="glass"] .chart-card {
   line-height: 1.6;
   letter-spacing: 0;
 }
-
-.section-notes {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-6);
-}
-
-.panel-notes {
-  margin-top: var(--space-7);
-  padding-top: 0;
-  border-top: 0;
-  display: grid;
-  gap: var(--space-4);
-}
-
-.note {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.note h3 {
-  margin: 0 0 var(--space-1);
-  color: var(--muted);
-  font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.note p {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.6;
-  letter-spacing: 0;
-}
-
-.model { margin-top: var(--space-1); }
-
-.model-box {
-  margin-top: var(--space-3);
-  padding-top: 0;
-  border-top: 0;
-}
-
-.model-box[hidden] { display: none; }
-
-.model-body .sentence:first-child { padding-top: 0; }
 
 /* ------------------------------------------------------- patterns / learning */
 
@@ -2017,7 +1948,6 @@ html[data-theme="glass"] .chart-card {
   .section-head { margin-bottom: var(--space-5); padding-bottom: 0; }
   .section-head h2 { font-size: 1.45rem; }
   .h2-en { display: block; width: 100%; margin-top: 1px; font-size: 0.6em; }
-  .definition { font-size: 14px; }
 
   .chart-card { padding: 0; }
   .chart-scene { font-size: 11px; }
@@ -2032,8 +1962,6 @@ html[data-theme="glass"] .chart-card {
     grid-template-columns: minmax(0, 1fr);
     column-gap: 0;
   }
-
-  .section-notes { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
 
   .vocab-groups { column-count: 1; }
 
@@ -5091,38 +5019,6 @@ html[data-theme="glass"] .chart-card {
     });
   }
 
-  function legendHost(lab) {
-    if (!lab.legendHost) {
-      lab.legendHost = document.createElement('div');
-      lab.legendHost.className = 'pie-legend';
-    }
-    if (!lab.legendHost.parentNode) lab.plot.appendChild(lab.legendHost);
-    return lab.legendHost;
-  }
-
-  function renderLegend(lab, items) {
-    var host = legendHost(lab);
-    host.innerHTML = '';
-    items.forEach(function (item) {
-      var row = document.createElement('span');
-      row.className = 'legend-item';
-      row.setAttribute('data-legend', item.id);
-      var dot = document.createElement('span');
-      dot.className = 'legend-dot';
-      dot.style.background = item.color;
-      var name = document.createElement('span');
-      name.className = 'legend-name';
-      name.textContent = item.name;
-      var value = document.createElement('span');
-      value.className = 'legend-value';
-      value.textContent = item.share;
-      row.appendChild(dot);
-      row.appendChild(name);
-      row.appendChild(value);
-      host.appendChild(row);
-    });
-  }
-
   function shareText(share) {
     if (share > 0 && share < 1) return '<1%';
     return NC.fmt.number(share, 0) + '%';
@@ -5164,9 +5060,6 @@ html[data-theme="glass"] .chart-card {
     var cumulative = start;
 
     if (sum <= 0) {
-      renderLegend(lab, dataset.parts.map(function (part, index) {
-        return { id: part.id, name: part.name_en, color: 'var(--' + part.color + ')', share: shareText(perc[index]) };
-      }));
       var ringLayer = svg.group(root, { class: 'pie-empty' });
       svg.circle(ringLayer, { cx: cx, cy: cy, r: radius, class: 'pie-empty-ring' });
       common.empty(lab.plot, 'No data · 份额为 0');
@@ -5174,10 +5067,6 @@ html[data-theme="glass"] .chart-card {
       lab.motion = null;
       return;
     }
-
-    renderLegend(lab, dataset.parts.map(function (part, index) {
-      return { id: part.id, name: part.name_en, color: 'var(--' + part.color + ')', share: shareText(perc[index]) };
-    }));
 
     var sliceLayer = svg.group(root, { class: 'pie-slices' });
     var leaderLayer = svg.group(root, { class: 'pie-leaders' });
@@ -5420,16 +5309,6 @@ html[data-theme="glass"] .chart-card {
       });
     });
 
-    var legendRows = legendHost(lab).querySelectorAll('[data-legend]');
-    legendRows.forEach(function (row, rowIndex) {
-      row.addEventListener('pointerenter', function () {
-        common.emphasize(lab.plot, row.getAttribute('data-legend'));
-        slices.forEach(function (slice, i) { slice.classList.toggle('is-active', i === rowIndex); });
-        showTip(rowIndex);
-      });
-      row.addEventListener('pointerleave', hideTip);
-    });
-
     lab.motion = { slices: slices, labels: labels.map(function (item) { return item.node; }), leaders: leaders, handles: handles.map(function (item) { return item.handle; }) };
   }
 
@@ -5494,11 +5373,6 @@ html[data-theme="glass"] .chart-card {
         state.parts[item.index].name_en + ' ' + NC.fmt.number(perc[item.index], 0) + '%, ' +
           state.parts[nextIndex].name_en + ' ' + NC.fmt.number(perc[nextIndex], 0) + '%'
       );
-    });
-
-    var rows = legendHost(lab).querySelectorAll('.legend-value');
-    rows.forEach(function (row, index) {
-      row.textContent = shareText(perc[index]);
     });
 
     if (typeof state.tipIndex === 'number') state.showTip(state.tipIndex);
@@ -5769,8 +5643,6 @@ html[data-theme="glass"] .chart-card {
     this.liveNode = section.querySelector('[data-live]');
     this.tableHost = section.querySelector('[data-table]');
     this.dataPanel = section.querySelector('[data-data-panel]');
-    this.modelBody = section.querySelector('[data-model-body]');
-    this.modelBox = section.querySelector('[data-model]');
     this.renderer = NC.renderers[type.renderer];
     this.mounted = false;
     this.compact = false;
@@ -5801,15 +5673,6 @@ html[data-theme="glass"] .chart-card {
         NC.resetKey(self.key);
       });
     }
-    var toggle = this.section.querySelector('[data-model-toggle]');
-    if (toggle) {
-      toggle.addEventListener('click', function () {
-        var open = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
-        self.modelBox.hidden = open;
-        if (!open) self.refreshModel(true);
-      });
-    }
     var replay = this.section.querySelector('[data-replay]');
     if (replay) {
       replay.addEventListener('click', function () {
@@ -5834,7 +5697,6 @@ html[data-theme="glass"] .chart-card {
     if (commit && this.liveNode) {
       this.liveNode.textContent = result.live.map(function (sentence) { return sentence.en; }).join(' ');
     }
-    this.refreshModel(false);
   };
 
   Lab.prototype.reconcile = function (host, sentences, lead) {
@@ -5861,12 +5723,6 @@ html[data-theme="glass"] .chart-card {
       if (enNode.textContent !== sentence.en) enNode.textContent = sentence.en;
       if (zhNode.textContent !== sentence.zh) zhNode.textContent = sentence.zh;
     });
-  };
-
-  Lab.prototype.refreshModel = function (force) {
-    if (!this.modelBody || !this.result) return;
-    if (!force && this.modelBox && this.modelBox.hidden) return;
-    this.reconcile(this.modelBody, this.result.sentences, false);
   };
 
   Lab.prototype.changed = function (commit) {
@@ -6031,7 +5887,6 @@ html[data-theme="glass"] .chart-card {
       '<button class="icon-btn" type="button" data-replay aria-label="重播动画" title="重播动画">' + REPLAY_ICON + '</button>';
     return '<header class="section-head">' +
         '<h2>' + NC.escapeHtml(type.label_zh) + ' <span class="h2-en">' + NC.escapeHtml(type.label_en) + '</span></h2>' +
-        '<p class="definition">' + NC.escapeHtml(type.definition_zh) + '</p>' +
       '</header>' +
       '<div class="panel-grid">' +
         '<div class="panel-figure">' +
@@ -6057,17 +5912,21 @@ html[data-theme="glass"] .chart-card {
           '</section>' +
         '</aside>' +
       '</div>' +
-      '<div class="panel-notes">' +
-        '<div class="section-notes">' +
-          '<div class="note"><h3>适合说明什么</h3><p>' + NC.escapeHtml(type.best_for_zh) + '</p></div>' +
-          '<div class="note"><h3>小心</h3><p>' + NC.escapeHtml(type.watch_out_zh) + '</p></div>' +
-          '<div class="note"><h3>雅思提示</h3><p>' + NC.escapeHtml(type.ielts_tip_zh) + '</p></div>' +
-        '</div>' +
-        '<div class="model">' +
-          '<button class="text-link" type="button" data-model-toggle aria-expanded="false">看一段范文 <span aria-hidden="true">→</span></button>' +
-          '<div class="model-box" data-model hidden><div class="model-body" data-model-body></div></div>' +
-        '</div>' +
+      '<div class="pattern-section">' +
+        '<h3>常用句型</h3>' +
+        '<ul class="pattern-list" data-patterns></ul>' +
       '</div>' +
+      '<details class="learning" data-vocab-section>' +
+        '<summary>词汇</summary>' +
+        '<div class="learning-body"><div class="vocab-groups" data-vocab></div></div>' +
+      '</details>' +
+      '<details class="learning" data-grammar-section>' +
+        '<summary>句型与语法</summary>' +
+        '<div class="learning-body">' +
+          (type.converter ? converterHtml() : '') +
+          '<div class="grammar-list" data-grammar></div>' +
+        '</div>' +
+      '</details>';
       '<div class="pattern-section">' +
         '<h3>常用句型</h3>' +
         '<ul class="pattern-list" data-patterns></ul>' +

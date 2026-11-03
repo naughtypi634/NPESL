@@ -48,38 +48,6 @@
     });
   }
 
-  function legendHost(lab) {
-    if (!lab.legendHost) {
-      lab.legendHost = document.createElement('div');
-      lab.legendHost.className = 'pie-legend';
-    }
-    if (!lab.legendHost.parentNode) lab.plot.appendChild(lab.legendHost);
-    return lab.legendHost;
-  }
-
-  function renderLegend(lab, items) {
-    var host = legendHost(lab);
-    host.innerHTML = '';
-    items.forEach(function (item) {
-      var row = document.createElement('span');
-      row.className = 'legend-item';
-      row.setAttribute('data-legend', item.id);
-      var dot = document.createElement('span');
-      dot.className = 'legend-dot';
-      dot.style.background = item.color;
-      var name = document.createElement('span');
-      name.className = 'legend-name';
-      name.textContent = item.name;
-      var value = document.createElement('span');
-      value.className = 'legend-value';
-      value.textContent = item.share;
-      row.appendChild(dot);
-      row.appendChild(name);
-      row.appendChild(value);
-      host.appendChild(row);
-    });
-  }
-
   function shareText(share) {
     if (share > 0 && share < 1) return '<1%';
     return NC.fmt.number(share, 0) + '%';
@@ -121,9 +89,6 @@
     var cumulative = start;
 
     if (sum <= 0) {
-      renderLegend(lab, dataset.parts.map(function (part, index) {
-        return { id: part.id, name: part.name_en, color: 'var(--' + part.color + ')', share: shareText(perc[index]) };
-      }));
       var ringLayer = svg.group(root, { class: 'pie-empty' });
       svg.circle(ringLayer, { cx: cx, cy: cy, r: radius, class: 'pie-empty-ring' });
       common.empty(lab.plot, 'No data · 份额为 0');
@@ -131,10 +96,6 @@
       lab.motion = null;
       return;
     }
-
-    renderLegend(lab, dataset.parts.map(function (part, index) {
-      return { id: part.id, name: part.name_en, color: 'var(--' + part.color + ')', share: shareText(perc[index]) };
-    }));
 
     var sliceLayer = svg.group(root, { class: 'pie-slices' });
     var leaderLayer = svg.group(root, { class: 'pie-leaders' });
@@ -377,16 +338,6 @@
       });
     });
 
-    var legendRows = legendHost(lab).querySelectorAll('[data-legend]');
-    legendRows.forEach(function (row, rowIndex) {
-      row.addEventListener('pointerenter', function () {
-        common.emphasize(lab.plot, row.getAttribute('data-legend'));
-        slices.forEach(function (slice, i) { slice.classList.toggle('is-active', i === rowIndex); });
-        showTip(rowIndex);
-      });
-      row.addEventListener('pointerleave', hideTip);
-    });
-
     lab.motion = { slices: slices, labels: labels.map(function (item) { return item.node; }), leaders: leaders, handles: handles.map(function (item) { return item.handle; }) };
   }
 
@@ -451,11 +402,6 @@
         state.parts[item.index].name_en + ' ' + NC.fmt.number(perc[item.index], 0) + '%, ' +
           state.parts[nextIndex].name_en + ' ' + NC.fmt.number(perc[nextIndex], 0) + '%'
       );
-    });
-
-    var rows = legendHost(lab).querySelectorAll('.legend-value');
-    rows.forEach(function (row, index) {
-      row.textContent = shareText(perc[index]);
     });
 
     if (typeof state.tipIndex === 'number') state.showTip(state.tipIndex);
