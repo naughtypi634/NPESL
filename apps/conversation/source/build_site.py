@@ -619,6 +619,41 @@ html[data-theme="dark"] {
   color:var(--muted); text-transform:uppercase; line-height:1.3;
 }
 .sec-head > .zh-toggle { flex:none; }
+/* 篇末翻页：左下上一篇、右下下一篇。颜色、圆角、阴影全部走主题 token，
+   editorial 是直角、brutal 是硬阴影、glass 是玻璃圆角，不用单独写。 */
+.pager {
+  display:flex; align-items:stretch; justify-content:space-between;
+  gap:14px; margin:40px 0 0;
+}
+.pager-btn {
+  display:flex; align-items:center; gap:12px;
+  flex:0 1 auto; max-width:min(48%, 340px);
+  padding:13px 16px; border:1px solid var(--rule);
+  border-radius:var(--radius-card, 24px);
+  background:var(--surface); color:var(--fg); text-decoration:none;
+  transition:background-color .15s ease, box-shadow .15s ease,
+    transform .15s ease, color .15s ease;
+}
+.pager-btn:hover {
+  background:var(--surface-strong); color:var(--blue);
+  transform:translateY(-1px); box-shadow:var(--shadow-card, none);
+}
+.pager-btn:active { transform:scale(.995); }
+.pager-btn:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+.pager-btn.prev { margin-right:auto; }
+.pager-btn.next { margin-left:auto; justify-content:flex-end; text-align:right; }
+.pager-copy { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.pager-kicker { color:var(--muted); font-size:12px; font-weight:600; letter-spacing:0.04em; }
+.pager-title {
+  font-size:15px; font-weight:600; line-height:1.35;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.pager-arrow { flex:none; width:18px; height:18px; color:var(--muted); }
+.pager-btn:hover .pager-arrow { color:var(--blue); }
+@media (max-width:600px) {
+  .pager { gap:10px; }
+  .pager-btn { max-width:calc(50% - 5px); padding:11px 13px; gap:8px; }
+}
 .vocab { display:grid; grid-template-columns:1fr 1fr; gap:0 28px; }
 .vocab ol { margin:0; padding-left:22px; }
 .vocab li { padding:3px 0; font-size:15px; line-height:1.45; }
@@ -776,6 +811,11 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
   content:counter(q) "."; flex:none; min-width:1.3em;
   color:var(--muted); font-size:15px; font-weight:500;
 }
+.q-body { flex:1; min-width:0; }
+.q-zh {
+  display:block; margin-top:2px; color:var(--muted);
+  font-size:14.5px; line-height:1.6; letter-spacing:0;
+}
 /* Karaoke: the spoken part of the sentence lights up word by word. */
 .s .w {
   border-radius:4px;
@@ -791,7 +831,9 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
   box-shadow:0 0 0 2px var(--blue-tint);
 }
 html.zh-hide-vocab .vocab-zh,
-html.zh-hide-body .story .zh { display:none; }
+html.zh-hide-body .story .zh,
+html.zh-hide-comp .qs-comp .q-zh,
+html.zh-hide-conv .qs-conv .q-zh { display:none; }
 .zh-float {
   position:fixed; z-index:80; display:flex;
   top:max(12px, env(safe-area-inset-top, 0px));
@@ -951,6 +993,8 @@ THEME_HEAD = theme_boot("__PREFIX__theme.css", extra_js=(
     "var z=JSON.parse(localStorage.getItem('npesl-zh')||'{}');"
     "if(z.vocab===false)document.documentElement.classList.add('zh-hide-vocab');"
     "if(z.body===false)document.documentElement.classList.add('zh-hide-body');"
+    "if(z.comp===false)document.documentElement.classList.add('zh-hide-comp');"
+    "if(z.conv===false)document.documentElement.classList.add('zh-hide-conv');"
 ))
 
 PLAY_JS = """
@@ -1005,19 +1049,25 @@ PLAY_JS = """
   var zhFloat = document.querySelector('[data-zh-float]');
   var zhFloatBtn = zhFloat ? zhFloat.querySelector('[data-zh-toggle]') : null;
   var ZH_KEY = 'npesl-zh';
-  var zh = { vocab: true, body: true };
+  var zh = { vocab: true, body: true, comp: true, conv: true };
   try {
     var savedZh = JSON.parse(localStorage.getItem(ZH_KEY) || '{}');
     if (savedZh.vocab === false) zh.vocab = false;
     if (savedZh.body === false) zh.body = false;
+    if (savedZh.comp === false) zh.comp = false;
+    if (savedZh.conv === false) zh.conv = false;
   } catch (e) {}
   var zhActive = null;
-  // 每个板块一颗板块内按钮（标题行右端）+ 右上角一颗浮钮，三颗长得一样。
+  // 每个板块一颗板块内按钮（标题行右端）+ 右上角一颗浮钮，长得都一样。
   var zhSections = [
     { key: 'vocab', el: document.querySelector('.vocab-card'),
       btn: document.querySelector('[data-zh-for="vocab"]') },
     { key: 'body', el: document.querySelector('.story'),
       btn: document.querySelector('[data-zh-for="body"]') },
+    { key: 'comp', el: document.querySelector('.qs-comp'),
+      btn: document.querySelector('[data-zh-for="comp"]') },
+    { key: 'conv', el: document.querySelector('.qs-conv'),
+      btn: document.querySelector('[data-zh-for="conv"]') },
   ];
   var zhSlotTop = null;        // 浮钮顶边的视口 y
   var zhHiddenBtn = null;      // 当前被浮钮顶替、用 visibility 藏起来的板块内按钮
@@ -1624,10 +1674,12 @@ PLAY_JS = """
   function applyZhClasses() {
     document.documentElement.classList.toggle('zh-hide-vocab', !zh.vocab);
     document.documentElement.classList.toggle('zh-hide-body', !zh.body);
+    document.documentElement.classList.toggle('zh-hide-comp', !zh.comp);
+    document.documentElement.classList.toggle('zh-hide-conv', !zh.conv);
   }
 
-  // The floating button follows the section crossing 35% of the viewport:
-  // Key Vocabulary → 词汇, story → 正文, anything else (questions) → hidden.
+  // The floating button follows whichever section crosses 35% of the
+  // viewport, so it carries that section's own label and state.
   function zhSectionAt() {
     var probe = window.innerHeight * 0.35;
     for (var i = 0; i < zhSections.length; i++) {
@@ -1641,7 +1693,8 @@ PLAY_JS = """
 
   function zhPaint(btn, key, on) {
     if (!btn || !key) return;
-    var name = key === 'vocab' ? '词汇' : '正文';
+    var names = { vocab: '词汇', body: '正文', comp: '阅读题', conv: '对话' };
+    var name = names[key] || '';
     var state = on ? '开' : '关';
     var labelEl = btn.querySelector('[data-zh-label]');
     var stateEl = btn.querySelector('[data-zh-state]');
@@ -1659,7 +1712,7 @@ PLAY_JS = """
     btn.classList.toggle('is-off', !on);
   }
 
-  // 三颗按钮状态一致；浮钮只在接管时露脸，露脸前先画好，避免换字闪一下。
+  // 所有板块按钮状态一致；浮钮只在接管时露脸，露脸前先画好，避免换字闪一下。
   function zhRefresh() {
     for (var i = 0; i < zhSections.length; i++) {
       var sec = zhSections[i];
@@ -2123,10 +2176,11 @@ def sentence_html(text: str, audio: PageAudio, extra_class: str = "",
 
 
 def zh_button(target: str, label: str) -> str:
-    """中 / 词汇|正文 / 开|关 药丸。
+    """中 / 词汇|正文|阅读题|对话 / 开|关 药丸。
 
-    ``target`` 为 ``float``（右上角那颗）或 ``vocab`` / ``body``（板块标题行
-    里的两颗）。板块内按钮用 data-zh-for 定位，浮钮沿用 data-zh-toggle。
+    ``target`` 为 ``float``（右上角那颗）或 ``vocab`` / ``body`` /
+    ``comp`` / ``conv``（板块标题行里的按钮）。板块内按钮用 data-zh-for
+    定位，浮钮沿用 data-zh-toggle。
     """
     hook = " data-zh-toggle" if target == "float" else f' data-zh-for="{target}"'
     return (
@@ -2235,9 +2289,46 @@ SPEAKER_SVG = (
 )
 
 
+def pager(prev_page: tuple | None, next_page: tuple | None) -> str:
+    """篇末翻页。``prev_page`` / ``next_page`` 为 (slug, title)。"""
+    if not prev_page and not next_page:
+        return ""
+    left = ('<svg class="pager-arrow" viewBox="0 0 24 24" fill="none" '
+            'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+            'stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M15 5l-7 7 7 7"/></svg>')
+    right = ('<svg class="pager-arrow" viewBox="0 0 24 24" fill="none" '
+             'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+             'stroke-linejoin="round" aria-hidden="true">'
+             '<path d="M9 5l7 7-7 7"/></svg>')
+
+    def link(page: tuple, direction: str) -> str:
+        slug, title = page
+        kicker = "上一篇" if direction == "prev" else "下一篇"
+        copy = (
+            '<span class="pager-copy">'
+            f'<span class="pager-kicker">{kicker}</span>'
+            f'<span class="pager-title">{html.escape(title)}</span>'
+            "</span>"
+        )
+        if direction == "prev":
+            inner = left + copy
+        else:
+            inner = copy + right
+        return (f'<a class="pager-btn {direction}" href="{slug}" '
+                f'rel="{direction}">{inner}</a>')
+
+    return ('<nav class="pager" aria-label="篇目翻页">'
+            + (link(prev_page, "prev") if prev_page else "")
+            + (link(next_page, "next") if next_page else "")
+            + "</nav>\n")
+
+
 def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
                audio_maps: dict, zh: dict, vocab_zh: dict,
-               out: Path, voices: list) -> str:
+               out: Path, voices: list,
+               prev_page: tuple | None = None,
+               next_page: tuple | None = None) -> str:
     en, cn = LEVEL_LABEL[level]
     key = f"{ui:02d}-{si:02d}-{slugify(story['title'])}"
     audio, sprites, wordmap = build_page_sprite(
@@ -2315,10 +2406,16 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
         # （sentence_html 会按顺序消耗 sprite 片段，重复调用会错位）。
         paragraphs.append('<div class="para">' + "".join(blocks) + "</div>")
 
-    def qlist(items):
-        return "<ol class=\"qlist\">" + "".join(
-            f"<li>{sentence_html(q, audio)}</li>" for q in items
-        ) + "</ol>"
+    def qlist(items, zh_items):
+        rows = []
+        for i, q in enumerate(items):
+            inner = sentence_html(q, audio)
+            zh_q = zh_items[i] if i < len(zh_items) else ""
+            if zh_q:
+                inner += ('<span class="q-zh" lang="zh-CN">'
+                          + html.escape(zh_q) + "</span>")
+            rows.append('<li><div class="q-body">' + inner + "</div></li>")
+        return '<ol class="qlist">' + "".join(rows) + "</ol>"
 
     # 线上这条页面是 /conversation/a1/01-01-family（Cloudflare Pages 去掉
     # .html 时是 308），浏览器按「文件」解析相对地址，写 ../ 会直接跳到
@@ -2339,12 +2436,15 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
         + zh_button("body", "正文") + '</div>'
         + '<section class="content-card"><div class="story">'
         + "".join(paragraphs) + "</div></section>\n"
-        + '<div class="sec-head"><h2>Comprehension Questions</h2></div>'
-        '<section class="content-card qs">'
-        + qlist(story["comp"]) + "</section>\n"
-        + '<div class="sec-head"><h2>Conversation Starters</h2></div>'
-        '<section class="content-card qs">'
-        + qlist(story["conv"]) + "</section>\n"
+        + '<div class="sec-head"><h2>Comprehension Questions</h2>'
+        + zh_button("comp", "阅读题") + '</div>'
+        '<section class="content-card qs qs-comp">'
+        + qlist(story["comp"], zh_entry.get("comp", [])) + "</section>\n"
+        + '<div class="sec-head"><h2>Conversation Starters</h2>'
+        + zh_button("conv", "对话") + '</div>'
+        '<section class="content-card qs qs-conv">'
+        + qlist(story["conv"], zh_entry.get("conv", [])) + "</section>\n"
+        + pager(prev_page, next_page)
         + tail("../../", audio_base_for(level), sprites, wordmap)
     )
     return body
@@ -2423,14 +2523,25 @@ def main() -> int:
     for lv in page_levels:
         units = data[lv]
         write(out / lv.lower() / "index.html", make_level(lv, units))
+        pages_in_level = []
         for ui, unit in enumerate(units, 1):
             for si, story in enumerate(unit["stories"], 1):
                 slug = f"{ui:02d}-{si:02d}-{slugify(story['title'])}"
-                write(out / lv.lower() / f"{slug}.html",
-                      make_story(lv, unit, ui, story, si, audio_maps,
-                                 zh_data.get(lv, {}), vocab_data.get(lv, {}),
-                                 out, voices))
-                stories += 1
+                pages_in_level.append((ui, unit, story, si, slug))
+        for idx, (ui, unit, story, si, slug) in enumerate(pages_in_level):
+            prev_page = None
+            next_page = None
+            if idx > 0:
+                prev_page = (pages_in_level[idx - 1][4],
+                             pages_in_level[idx - 1][2]["title"])
+            if idx + 1 < len(pages_in_level):
+                next_page = (pages_in_level[idx + 1][4],
+                             pages_in_level[idx + 1][2]["title"])
+            write(out / lv.lower() / f"{slug}.html",
+                  make_story(lv, unit, ui, story, si, audio_maps,
+                             zh_data.get(lv, {}), vocab_data.get(lv, {}),
+                             out, voices, prev_page, next_page))
+            stories += 1
 
     sprites = len(list(out.rglob("sprites/*.mp3")))
 

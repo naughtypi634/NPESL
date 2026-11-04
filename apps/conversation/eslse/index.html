@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="../../npesl-icon.png">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="preconnect" href="https://npesl-audio.pages.dev" crossorigin>
-<script>try{var t=localStorage.getItem('npesl-theme');document.documentElement.setAttribute('data-theme',t&&['auto','editorial','brutal','glass','mono','bright','sepia','dark'].indexOf(t)>-1?t:'auto');if(localStorage.getItem('npesl-marks')==='off')document.documentElement.classList.add('marks-off');var z=JSON.parse(localStorage.getItem('npesl-zh')||'{}');if(z.vocab===false)document.documentElement.classList.add('zh-hide-vocab');if(z.body===false)document.documentElement.classList.add('zh-hide-body');}catch(e){document.documentElement.setAttribute('data-theme','auto');}</script>
+<script>try{var t=localStorage.getItem('npesl-theme');document.documentElement.setAttribute('data-theme',t&&['auto','editorial','brutal','glass','mono','bright','sepia','dark'].indexOf(t)>-1?t:'auto');if(localStorage.getItem('npesl-marks')==='off')document.documentElement.classList.add('marks-off');var z=JSON.parse(localStorage.getItem('npesl-zh')||'{}');if(z.vocab===false)document.documentElement.classList.add('zh-hide-vocab');if(z.body===false)document.documentElement.classList.add('zh-hide-body');if(z.comp===false)document.documentElement.classList.add('zh-hide-comp');if(z.conv===false)document.documentElement.classList.add('zh-hide-conv');}catch(e){document.documentElement.setAttribute('data-theme','auto');}</script>
 <link rel="stylesheet" href="../../theme.css">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Noto+Serif+SC:wght@400;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;800&family=Noto+Sans+SC:wght@400;500;600&display=swap">
 <style>
@@ -163,19 +163,25 @@ a { color:inherit; }
   var zhFloat = document.querySelector('[data-zh-float]');
   var zhFloatBtn = zhFloat ? zhFloat.querySelector('[data-zh-toggle]') : null;
   var ZH_KEY = 'npesl-zh';
-  var zh = { vocab: true, body: true };
+  var zh = { vocab: true, body: true, comp: true, conv: true };
   try {
     var savedZh = JSON.parse(localStorage.getItem(ZH_KEY) || '{}');
     if (savedZh.vocab === false) zh.vocab = false;
     if (savedZh.body === false) zh.body = false;
+    if (savedZh.comp === false) zh.comp = false;
+    if (savedZh.conv === false) zh.conv = false;
   } catch (e) {}
   var zhActive = null;
-  // 每个板块一颗板块内按钮（标题行右端）+ 右上角一颗浮钮，三颗长得一样。
+  // 每个板块一颗板块内按钮（标题行右端）+ 右上角一颗浮钮，长得都一样。
   var zhSections = [
     { key: 'vocab', el: document.querySelector('.vocab-card'),
       btn: document.querySelector('[data-zh-for="vocab"]') },
     { key: 'body', el: document.querySelector('.story'),
       btn: document.querySelector('[data-zh-for="body"]') },
+    { key: 'comp', el: document.querySelector('.qs-comp'),
+      btn: document.querySelector('[data-zh-for="comp"]') },
+    { key: 'conv', el: document.querySelector('.qs-conv'),
+      btn: document.querySelector('[data-zh-for="conv"]') },
   ];
   var zhSlotTop = null;        // 浮钮顶边的视口 y
   var zhHiddenBtn = null;      // 当前被浮钮顶替、用 visibility 藏起来的板块内按钮
@@ -782,10 +788,12 @@ a { color:inherit; }
   function applyZhClasses() {
     document.documentElement.classList.toggle('zh-hide-vocab', !zh.vocab);
     document.documentElement.classList.toggle('zh-hide-body', !zh.body);
+    document.documentElement.classList.toggle('zh-hide-comp', !zh.comp);
+    document.documentElement.classList.toggle('zh-hide-conv', !zh.conv);
   }
 
-  // The floating button follows the section crossing 35% of the viewport:
-  // Key Vocabulary → 词汇, story → 正文, anything else (questions) → hidden.
+  // The floating button follows whichever section crosses 35% of the
+  // viewport, so it carries that section's own label and state.
   function zhSectionAt() {
     var probe = window.innerHeight * 0.35;
     for (var i = 0; i < zhSections.length; i++) {
@@ -799,7 +807,8 @@ a { color:inherit; }
 
   function zhPaint(btn, key, on) {
     if (!btn || !key) return;
-    var name = key === 'vocab' ? '词汇' : '正文';
+    var names = { vocab: '词汇', body: '正文', comp: '阅读题', conv: '对话' };
+    var name = names[key] || '';
     var state = on ? '开' : '关';
     var labelEl = btn.querySelector('[data-zh-label]');
     var stateEl = btn.querySelector('[data-zh-state]');
@@ -817,7 +826,7 @@ a { color:inherit; }
     btn.classList.toggle('is-off', !on);
   }
 
-  // 三颗按钮状态一致；浮钮只在接管时露脸，露脸前先画好，避免换字闪一下。
+  // 所有板块按钮状态一致；浮钮只在接管时露脸，露脸前先画好，避免换字闪一下。
   function zhRefresh() {
     for (var i = 0; i < zhSections.length; i++) {
       var sec = zhSections[i];
