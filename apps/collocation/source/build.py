@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Build the collocation app: one page per theme, one sprite per page.
+"""Build the collocation app: one index page, one sprite per theme.
 
 Source of truth is content/collocation/ — themes.json plus one <theme>.json per
 theme. Clips are content-addressed, so re-running only synthesizes what is
-new; pages never reference master clips, only the concatenated sprite.
+new; the index never references master clips, only the concatenated sprites.
+Entry details expand inline, so there are no per-theme pages.
 
     python -I apps/collocation/source/build.py
-    python -I apps/collocation/source/build.py --only getting-around --skip-audio
+    python -I apps/collocation/source/build.py --skip-audio
 """
 
 import argparse
@@ -238,9 +239,13 @@ class ClipCursor:
         self.spans = spans
         self.index = 0
 
-    def attrs(self, text):
+    def next_span(self):
         item = self.spans[self.index] if self.index < len(self.spans) else {}
         self.index += 1
+        return item
+
+    def attrs(self, text):
+        item = self.next_span()
         parts = []
         for voice, span in item.items():
             if span:
@@ -278,126 +283,6 @@ def build_sprites(plan):
         for (index, _, _), span in zip(picks, offsets):
             spans[index][voice] = span
     return ClipCursor(spans), urls
-
-
-def entry_html(entry, audio, opposites=None, page="", word_opposites=None):
-    kind = entry.get("kind", "phrasal")
-    badges = [
-        f'<span class="badge kind kind-{kind}">{KIND_ZH.get(kind, kind)}</span>',
-        f'<span class="badge reg">{REGISTER_ZH[entry["register"]]}</span>',
-    ]
-    if entry.get("separable"):
-        badges.append('<span class="badge split">可分</span>')
-
-    head = (
-        f'<button class="head say" type="button" {audio.attrs(entry["head"])}>'
-        f'<span class="w">{html.escape(entry["head"])}</span>'
-        f'<span class="ipa">/{html.escape(entry["ipa"])}/</span>'
-        '<span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" '
-        'fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></button>'
-    )
-
-    senses = []
-    for sense_index, sense in enumerate(entry.get("senses", []), 1):
-        example = sense.get("example") or {}
-        en = example.get("en", "")
-        word_line = ""
-        word_items = [w for w in (word_opposites or []) if w.get("sense") == sense_index]
-        if word_items:
-            word_line = '<p class="opp-word"><b>反义</b>' + " · ".join(
-                f'<span class="opp-word-en">{html.escape(w["word"])}</span>'
-                f'<span class="zh">{html.escape(w["zh"])}</span>'
-                for w in word_items
-            ) + '</p>'
-        senses.append(
-            '<div class="sense">'
-            f'<p class="sense-zh">{html.escape(sense.get("zh", ""))}</p>'
-            f'<button class="ex say" type="button" {audio.attrs(en)}>'
-            f'<span class="txt">{html.escape(en)}</span>'
-            f'<span class="zh">{html.escape(example.get("zh", ""))}</span></button>'
-            f'{word_line}'
-            '</div>'
-        )
-
-    extra = []
-    if entry.get("l1_note"):
-        extra.append(f'<p class="l1"><b>易错</b>{html.escape(entry["l1_note"])}</p>')
-    if entry.get("collocations"):
-        extra.append('<p class="colloc"><b>搭配</b>'
-                     + html.escape(" · ".join(entry["collocations"])) + "</p>")
-    if entry.get("confusables"):
-        extra.append('<p class="confuse"><b>易混</b>'
-                     + html.escape(" · ".join(entry["confusables"])) + "</p>")
-    if opposites:
-        links = []
-        for opp in opposites:
-            if opp["page"] == page:
-                href = f'#{opp["id"]}'
-                same = ' data-opp-same="1"'
-            else:
-                back = quote(f'{page}.html#{entry["id"]}', safe="")
-                href = f'{opp["page"]}.html?from={back}#{opp["id"]}'
-                same = ""
-            links.append(
-                f'<a class="opp-btn" href="{html.escape(href, quote=True)}"{same}>'
-                f'{html.escape(opp["head"])}'
-                f'<span class="zh">{html.escape(opp["zh"])}</span></a>'
-            )
-        extra.append('<p class="opp"><b>反义</b>'
-                     + '<span class="opp-sep">·</span>'.join(links) + '</p>')
-    details = ('<div class="note-card">' + "".join(extra) + "</div>") if extra else ""
-
-    chips = f' data-chip="{html.escape(entry["chip"])}"'
-    return (
-        f'<article class="entry" id="{html.escape(entry["id"])}"'
-        f' data-kind="{html.escape(kind)}"'
-        f' data-particle="{html.escape(entry["particle"])}"{chips}>'
-        f'<header class="entry-head">{head}<span class="badges">{"".join(badges)}</span></header>'
-        f'<p class="zh-line">{html.escape(entry["zh"])}</p>'
-        f'<div class="senses">{"".join(senses)}</div>'
-        f'{details}</article>'
-    )
-
-
-def build_page(chapter, number, total, opp_map=None, word_map=None):
-    template = (BASE / "source" / "template.html").read_text(encoding="utf-8")
-    page_name = f"{number:02d}-{slug(chapter['title_en'])}"
-    plan = ClipPlan()
-    for entry in chapter["entries"]:
-        for text in entry_texts(entry):
-            plan.attrs(text)
-    audio, sprites = build_sprites(plan)
-
-    categories = {c["id"]: c for c in json.loads(
-        (CONTENT / "themes.json").read_text(encoding="utf-8")).get("categories", [])}
-    cat = categories.get(chapter.get("category"), {})
-
-    rows = "\n      ".join(
-        entry_html(entry, audio, (opp_map or {}).get(entry["id"]), page_name,
-                   (word_map or {}).get(entry["id"]))
-        for entry in chapter["entries"]
-    )
-    page = template
-    page = page.replace("__CATEGORY_ID__", html.escape(chapter.get("category", "")))
-    page = page.replace("__CATEGORY_ZH__", html.escape(cat.get("title_zh", "短语搭配")))
-    page = page.replace("__NUM__", f"{number:02d}")
-    page = page.replace("__TITLE_EN__", html.escape(chapter["title_en"]))
-    page = page.replace("__TITLE_ZH__", html.escape(chapter["title_zh"]))
-    page = page.replace("__INTRO__", html.escape(chapter["intro_zh"]))
-    page = page.replace("__COUNT__", str(len(chapter["entries"])))
-    page = page.replace("__TOTAL__", str(total))
-    page = page.replace("<!--ENTRIES-->", rows)
-    page = page.replace(
-        "<!--SPRITES-->",
-        '<script id="spriteMap" type="application/json">'
-        + json.dumps(sprites, separators=(",", ":")) + "</script>",
-    )
-    name = f"{page_name}.html"
-    out = BASE / name
-    out.write_text(page, encoding="utf-8")
-    print(f"built {name} ({len(chapter['entries'])} entries, "
-          f"{out.stat().st_size / 1024:.0f} KB)")
-    return name
 
 
 INDEX_STYLE = """
@@ -606,22 +491,23 @@ PARTICLE_EXTRA = ["through", "over", "back", "around", "into", "onto", "away",
 REAL_PARTICLES = set(PARTICLE_ORDER + PARTICLE_EXTRA)
 
 
-def page_audio(path):
-    """从已生成的章节页里取 sprite 地址和每个词条的时间轴。"""
-    text = path.read_text(encoding="utf-8")
-    match = re.search(r'<script id="spriteMap"[^>]*>(.*?)</script>', text, re.S)
-    sprites = json.loads(match.group(1)) if match else {}
+def theme_audio(theme):
+    """Build this theme's sprite and per-entry clip spans for the index."""
+    plan = ClipPlan()
+    for entry in theme["entries"]:
+        for text in entry_texts(entry):
+            plan.attrs(text)
+    cursor, sprites = build_sprites(plan)
     spans = {}
-    for block in re.findall(r'<article class="entry"[^>]*>.*?</article>', text, re.S):
-        eid = re.search(r'id="([^"]+)"', block).group(1)
+    for entry in theme["entries"]:
         items = []
-        for button in re.findall(r'<button class="(?:head|ex) say"[^>]*>', block):
-            def num(name):
-                found = re.search(rf'data-{name}="([\d.]+)"', button)
-                return float(found.group(1)) if found else None
-            span = [num("start-f"), num("end-f"), num("start-m"), num("end-m")]
-            items.append(span if None not in span else None)
-        spans[eid] = items
+        for _ in entry_texts(entry):
+            item = cursor.next_span()
+            female = item.get("f")
+            male = item.get("m")
+            items.append([female[0], female[1], male[0], male[1]]
+                         if female and male else None)
+        spans[entry["id"]] = items
     return sprites, spans
 
 
@@ -629,14 +515,12 @@ def index_data(themes, opp_map=None, word_map=None):
     """整站数据一次写进 data.js（本地 file:// 打开时不能靠 fetch）。"""
     doc = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
     categories = doc.get("categories", [])
-    numbers = {theme["id"]: index + 1 for index, theme in enumerate(themes)}
 
     entries = []
     index_of = {}
     theme_rows = {}
     for theme in themes:
-        page = f"{numbers[theme['id']]:02d}-{slug(theme['title_en'])}"
-        sprites, spans = page_audio(BASE / f"{page}.html")
+        sprites, spans = theme_audio(theme)
         rows = []
         for entry in theme["entries"]:
             index_of[(theme["id"], entry["id"])] = len(entries)
@@ -1085,9 +969,7 @@ async def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser()
-    parser.add_argument("--only", nargs="*", help="chapter ids")
     parser.add_argument("--skip-audio", action="store_true")
-    parser.add_argument("--index-only", action="store_true")
     parser.add_argument("--tts", choices=["azure", "edge", "kokoro", "qwen"],
                         default="azure",
                         help="合成后端：azure（默认）/ edge / kokoro（本地 ONNX）"
@@ -1096,43 +978,28 @@ async def main():
 
     themes = load_themes()
     numbers = {theme["id"]: index + 1 for index, theme in enumerate(themes)}
-    total = sum(len(theme["entries"]) for theme in themes)
     opp_map, word_map, _ = opposite_maps(themes, numbers)
 
-    if args.index_only:
-        build_index(themes, opp_map, word_map)
-        return 0
-
-    selected = themes
-    if args.only:
-        unknown = [c for c in args.only if c not in numbers]
-        if unknown:
-            print(f"未知主题：{', '.join(unknown)}")
-            return 1
-        selected = [c for c in themes if c["id"] in args.only]
-
-    if not args.only and not args.skip_audio:
+    if not args.skip_audio:
         sprites = AUDIO_DIR / "sprites"
         if sprites.exists():
             shutil.rmtree(sprites)
+        failed = await ensure_clips(themes, args.tts)
+    else:
+        failed = []
 
-    failed = []
-    if not args.skip_audio:
-        failed = await ensure_clips(selected, args.tts)
+    missing = sum(
+        1 for theme in themes for rel, _, _ in chapter_jobs(theme)
+        if not (AUDIO_DIR / rel).exists()
+    )
+    if missing:
+        print(f"警告：{missing} 条音频缺失，相关词条暂不播放")
 
-    built = 0
-    for theme in selected:
-        missing = [rel for rel, text, voice in chapter_jobs(theme)
-                   if not (AUDIO_DIR / rel).exists()]
-        if missing:
-            print(f"skip {theme['id']}: {len(missing)} clips missing")
-            continue
-        build_page(theme, numbers[theme["id"]], total, opp_map, word_map)
-        built += 1
+    # 章节页已并入索引页；清掉旧构建留下的独立页面。
+    for path in BASE.glob("[0-9][0-9]-*.html"):
+        path.unlink()
 
-    if not args.only and built == len(selected):
-        all_themes = load_themes()
-        build_index(all_themes, opp_map, word_map)
+    build_index(themes, opp_map, word_map)
     return 1 if failed else 0
 
 

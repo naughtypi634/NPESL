@@ -321,17 +321,6 @@ def build_voice_pairs(
 
 
 # ---------------------------------------------------------------- 页面
-def sound_badge(sound: str) -> tuple[str, str]:
-    if sound in MONOPHTHONGS:
-        return "单元音", ""
-    if sound in DIPHTHONGS:
-        return "双元音", ""
-    manner = MANNER[sound]
-    if sound in VOICELESS:
-        return f"{manner} · 清", " voiceless"
-    return f"{manner} · 浊", " voiced"
-
-
 def build_card(
     sound: str,
     words: list[str],
@@ -374,7 +363,6 @@ def build_card(
             f'aria-label="{html.escape(plain, quote=True)}">'
             f"{render_word(marked)}</button>"
         )
-    badge, badge_class = sound_badge(sound)
     hint = HINTS.get(sound)
     hint_html = f'<p class="hint">{html.escape(hint)}</p>' if hint else ""
     sound_attr = html.escape(sound, quote=True)
@@ -384,7 +372,6 @@ def build_card(
         f'data-sprite-m="{html.escape(sprites["m"], quote=True)}">\n'
         f'  <div class="card-head">\n'
         f'    <span class="ipa">{html.escape(sound)}</span>\n'
-        f'    <span class="badge{badge_class}">{badge}</span>\n'
         f'    <div class="voice" role="group" '
         f'aria-label="{sound_attr} 的朗读声音">\n'
         f'      <span class="voice-ico" aria-hidden="true" '
@@ -408,7 +395,6 @@ def build_card(
 def section_html(
     section_id: str,
     title: str,
-    meta: str,
     inner: str,
     note: str = "",
 ) -> str:
@@ -417,7 +403,6 @@ def section_html(
         f'<section class="group" id="{section_id}">\n'
         f'  <div class="group-head">\n'
         f'    <h2>{title}</h2>\n'
-        f'    <span class="group-meta">{meta}</span>\n'
         f'  </div>\n'
         f'  {note_html}\n'
         f'  {inner}\n'
@@ -459,13 +444,13 @@ def build_page(
     by_sound = dict(groups)
     sections = [
         section_html(
-            "monophthongs", "单元音", f"{len(MONOPHTHONGS)} 个",
+            "monophthongs", "单元音",
             '<div class="grid">\n'
             + "\n".join(build_card(s, by_sound[s], pairs) for s in MONOPHTHONGS)
             + "\n  </div>",
         ),
         section_html(
-            "diphthongs", "双元音", f"{len(DIPHTHONGS)} 个",
+            "diphthongs", "双元音",
             '<div class="grid">\n'
             + "\n".join(build_card(s, by_sound[s], pairs) for s in DIPHTHONGS)
             + "\n  </div>",
@@ -478,14 +463,14 @@ def build_page(
     )
     sections.append(
         section_html(
-            "pairs", "清浊对比", f"{len(CONSONANT_PAIRS)} 对",
+            "pairs", "清浊对比",
             f'<div class="pairs">\n{pair_blocks}\n  </div>',
             "每对辅音口型相同，只差声带振动。",
         )
     )
     sections.append(
         section_html(
-            "other", "其他辅音", f"{len(OTHER_CONSONANTS)} 个",
+            "other", "其他辅音",
             '<div class="grid">\n'
             + "\n".join(build_card(s, by_sound[s], pairs) for s in OTHER_CONSONANTS)
             + "\n  </div>",
@@ -629,7 +614,6 @@ TEMPLATE = """<!doctype html>
     padding-bottom:12px; border-bottom:1px solid var(--rule); }
   .group-head h2 { margin:0; font-size:1.35rem; font-weight:700;
     letter-spacing:-0.02em; }
-  .group-meta { color:var(--muted); font-size:13px; letter-spacing:0.03em; }
   .group-note { margin:-4px 0 18px; color:var(--muted); font-size:14px;
     line-height:1.5; }
   .pairs { display:flex; flex-direction:column; gap:30px; }
@@ -657,11 +641,6 @@ TEMPLATE = """<!doctype html>
     padding-bottom:13px; border-bottom:1px solid var(--rule); }
   .ipa { font-family:var(--font-ipa); font-size:2rem; font-weight:600;
     line-height:1.1; letter-spacing:-0.02em; }
-  .badge { flex:none; padding:4px 10px; border-radius:999px;
-    background:var(--surface); color:var(--muted); font-size:12px;
-    font-weight:500; letter-spacing:0.02em; white-space:nowrap; }
-  .badge.voiceless { background:var(--blue-tint); color:var(--blue); }
-  .badge.voiced { background:var(--surface-strong); color:var(--fg); }
   .hint { margin:12px 0 0; padding:10px 12px; border-radius:12px;
     background:var(--surface); color:var(--muted); font-size:14px;
     line-height:1.5; }

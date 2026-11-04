@@ -34,8 +34,6 @@
       '.sp-context-sep{color:var(--muted);font-size:12px;flex:none}',
       '.sp-context-root:focus-visible,.sp-context-leaf:focus-visible{outline:2px solid var(--accent);',
       'outline-offset:2px}',
-      '.sp-context-pct{flex:none;min-width:3.1em;text-align:right;color:var(--muted);',
-      'font-size:12px;font-variant-numeric:tabular-nums}',
       '.sp-context-track{height:2px;overflow:hidden;background:var(--rule);border-radius:999px}',
       '.sp-context-fill{height:100%;width:0;background:var(--accent);transition:width .14s linear}',
       '.sp-context-mode{flex:none}',
@@ -43,14 +41,13 @@
       '.sp-context-mode .level1 button{padding:6px 10px;font-size:12px}',
       '.sp-inline{display:inline-flex;align-items:center;gap:6px;margin-left:auto;max-width:100%;',
       'padding:3px 4px;border:0;background:transparent;color:var(--muted);font:inherit;',
-      'font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-      '.sp-inline b{font-weight:600;color:var(--accent)}',
+      'font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '.sp-inline span{overflow:hidden;text-overflow:ellipsis}',
       '.sp-right{display:flex;align-items:center;gap:8px;margin-left:auto}',
       '.sp-right .sp-inline{margin-left:0;padding:3px 4px}',
       '@media(max-width:560px){.sp-context-row{flex-wrap:wrap;gap:5px 10px}',
       '.sp-context-path{flex-basis:100%;font-size:13px}',
-      '.sp-context-mode{order:2}.sp-context-pct{order:3;margin-left:auto}',
+      '.sp-context-mode{order:2}.sp-right{order:3}',
       '.sp-context-row.sp-has-back .sp-context-path{flex:1 1 130px}}',
       // 章节页没有横幅，返回胶囊不 sticky，免得压住粘性工具栏。
       '.sp-detail-back .npesl-back{position:static;top:auto;z-index:auto}',
@@ -79,11 +76,9 @@
     var contextRoot = null;
     var contextSep = null;
     var contextLeaf = null;
-    var contextPct = null;
     var contextFill = null;
     var chipHost = null;
     var inline = null;
-    var inlinePct = null;
     var inlinePos = null;
     var modeHost = null;
 
@@ -94,7 +89,7 @@
         '<button type="button" class="sp-context-root"></button>' +
         '<span class="sp-context-sep" aria-hidden="true">›</span>' +
         '<button type="button" class="sp-context-leaf"></button></div><div class="sp-context-mode"></div>' +
-        '<span class="sp-context-pct">0%</span></div>' +
+        '</div>' +
         '<div class="sp-context-chips" id="sp-context-chips"></div>' +
         '<div class="sp-context-track" role="progressbar" aria-label="当前主题阅读进度" ' +
         'aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="sp-context-fill"></div></div>';
@@ -102,9 +97,9 @@
       if (heading) heading.insertAdjacentElement('afterend', context);
       // 部署时注入的返回胶囊也是 sticky，会压在横幅上：收进横幅首行，
       // 滚动时两者不再重叠，返回入口还一直在。
+      var contextRow = context.querySelector('.sp-context-row');
       var back = page.querySelector('.npesl-back');
       if (back) {
-        var contextRow = context.querySelector('.sp-context-row');
         contextRow.classList.add('sp-has-back');
         contextRow.insertBefore(back, contextRow.firstChild);
       }
@@ -126,16 +121,16 @@
       if (chipHost && themeChips) chipHost.appendChild(themeChips);
       var topbar = document.querySelector('.topbar');
       var voice = topbar && topbar.querySelector('.voice-seg');
-      if (topbar && voice) {
+      if (voice) {
         var right = document.createElement('div');
         right.className = 'sp-right';
-        topbar.insertBefore(right, voice);
         right.appendChild(voice);
+        contextRow.appendChild(right);
       }
+      if (topbar) topbar.remove();
       contextRoot = context.querySelector('.sp-context-root');
       contextSep = context.querySelector('.sp-context-sep');
       contextLeaf = context.querySelector('.sp-context-leaf');
-      contextPct = context.querySelector('.sp-context-pct');
       contextFill = context.querySelector('.sp-context-fill');
       // 面包屑两段都是按钮：点分类回到上级，点主题跳到本节开头。
       // 页面自己的状态在 index.html 的 IIFE 里，这里只发事件，由它去跳。
@@ -167,11 +162,11 @@
       }
       inline = document.createElement('span');
       inline.className = 'sp-inline';
-      inline.innerHTML = '<b>0%</b><span></span>';
-      var inlineHost = document.querySelector('.toolbar');
+      inline.innerHTML = '<span></span>';
+      var inlineHost = document.querySelector('.toolbar-audio')
+        || document.querySelector('.toolbar');
       if (inlineHost) inlineHost.appendChild(inline);
       else page.insertBefore(inline, page.firstChild);
-      inlinePct = inline.querySelector('b');
       inlinePos = inline.querySelector('span');
     }
 
@@ -180,14 +175,6 @@
 
     function clamp(n, min, max) {
       return Math.max(min, Math.min(max, n));
-    }
-
-    function docH() {
-      return Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-    }
-
-    function maxScroll() {
-      return Math.max(0, docH() - window.innerHeight);
     }
 
     function visible(el) {
@@ -305,11 +292,10 @@
       contextSep.hidden = !leaf;
       contextLeaf.hidden = !leaf;
       var value = Math.round(clamp(pct, 0, 1) * 100);
-      contextPct.textContent = value + '%';
       contextFill.style.width = value + '%';
       var progress = context.querySelector('.sp-context-track');
       progress.setAttribute('aria-valuenow', String(value));
-      progress.setAttribute('aria-valuetext', (leaf ? root + ' › ' + leaf : root) + '：' + value + '%');
+      progress.setAttribute('aria-valuetext', (leaf ? root + ' › ' + leaf : root));
     }
 
     // 第三级 chip（分类下的主题）跟着滚动高亮当前主题。
@@ -336,12 +322,10 @@
         markThemeChip(current.theme);
         return;
       }
-      var max = maxScroll();
-      var pct = max ? Math.round(clamp(window.scrollY / max, 0, 1) * 100) : 0;
       var info = currentDetail();
-      inlinePct.textContent = pct + '%';
-      inlinePos.textContent = info.name ? '· ' + info.name : '';
-      inline.title = pct + '%' + (info.name ? ' · ' + info.name : '');
+      inlinePos.textContent = info.name;
+      inline.hidden = !info.name;
+      inline.title = info.name;
     }
 
     function layout() {
