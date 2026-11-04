@@ -126,7 +126,7 @@ def write_page(path: Path, text: str) -> None:
 
 def inject_back(path: Path, href: str, label: str) -> None:
     text = path.read_text(encoding="utf-8")
-    if "npesl-back" in text:
+    if 'class="npesl-back"' in text:
         return
     arrow = (
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
@@ -162,7 +162,8 @@ def inject_theme(path: Path) -> None:
 def replace_back(path: Path, href: str, label: str) -> None:
     """Swap a product's own back link for the shared NPESL one."""
     text = path.read_text(encoding="utf-8")
-    text = re.sub(r'\s*<a class="back" href="[^"]*">[^<]*</a>\n?', "\n", text, count=1)
+    text = re.sub(r'\s*<a class="back" href="[^"]*">.*?</a>\n?', "\n",
+                  text, count=1, flags=re.S)
     write_page(path, text)
     inject_back(path, href, label)
 
