@@ -45,6 +45,7 @@ def main() -> int:
                                 "--audio", args.audio], None))
     checks.append(("英式英语检查", ["-I", "tools/check_bre.py",
                                     "apps", "content"], None))
+    checks.append(("旅行英语内容", ["-I", "apps/travel/source/validate.py"], None))
     if not args.skip_smoke:
         checks.append(("无头浏览器冒烟", ["tests/smoke.mjs"], "node"))
 

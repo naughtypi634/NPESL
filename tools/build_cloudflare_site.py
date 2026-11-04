@@ -38,7 +38,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import (AUDIO_OUT, AUDIO_URL, CONVERSATION_APP, DRILL_APP,
                    IPA_APP, PHENOMENA_APP, PHONICS_APP, COLLOCATION_APP,
-                   SITE_APP, SITE_OUT, SITE_URL)
+                   TRAVEL_APP, SITE_APP, SITE_OUT, SITE_URL)
 from themes import theme_boot
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,6 +47,7 @@ PHONICS = PHONICS_APP
 IPA = IPA_APP
 PHENOMENA = PHENOMENA_APP
 COLLOCATION = COLLOCATION_APP
+TRAVEL = TRAVEL_APP
 DRILL = DRILL_APP
 CONVERSATION = CONVERSATION_APP
 OUT = SITE_OUT
@@ -69,6 +70,9 @@ HEADERS = """/phonics/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /collocation/audio/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/travel/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /conversation/eslse/audio/*
@@ -233,6 +237,15 @@ def collocation_ignore(directory, names):
     return skip
 
 
+def travel_ignore(directory, names):
+    """旅行英语同样只部署 sprite，母版留在 apps/travel/audio。"""
+    skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md", "*.pdf")(
+        directory, names))
+    if Path(directory) == TRAVEL / "audio":
+        skip |= {"f", "m"}
+    return skip
+
+
 def ipa_ignore(directory, names):
     """部署只要拼好的 sprite，不搬逐词母版。"""
     if Path(directory).name == "audio":
@@ -310,6 +323,22 @@ def main() -> int:
     else:
         print("警告：短语搭配目录不存在，未包含")
 
+    # 旅行英语：场景页 + 每页 sprite
+    if TRAVEL.exists():
+        travel_out = OUT / "travel"
+        shutil.copytree(TRAVEL, travel_out, ignore=travel_ignore)
+        finish_group(PageGroup(
+            travel_out, "index.html", lambda _: "travel/",
+            "旅行英语 Travel English", site_back))
+        finish_group(PageGroup(
+            travel_out, "*.html", lambda name: f"travel/{name}",
+            "旅行英语 Travel English",
+            BackLink("/travel/", "旅行英语", replace=True),
+            frozenset({"index.html"})))
+        print("  旅行英语：已包含")
+    else:
+        print("警告：apps/travel 不存在，旅行英语未包含")
+
     # Question Drill：目录页 + 男女音频
     drill_out = OUT / "drill"
     drill_out.mkdir()
@@ -368,6 +397,7 @@ def main() -> int:
     print(f"  Question Drill：{SITE_URL}/drill/")
     print(f"  常见发音现象：{SITE_URL}/phenomena/")
     print(f"  短语搭配：{SITE_URL}/collocation/")
+    print(f"  旅行英语：{SITE_URL}/travel/")
     if AUDIO_OUT.exists():
         afiles, asize = stats(AUDIO_OUT)
         print(f"音频站：{AUDIO_OUT.relative_to(ROOT)}")

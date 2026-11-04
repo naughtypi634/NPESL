@@ -373,7 +373,7 @@ const cases = [
     async run() {
       const links = await evaluate(
         "[...document.querySelectorAll('a')].map(a => new URL(a.getAttribute('href'), location.href).pathname)");
-      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/collocation/'];
+      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/collocation/', '/travel/'];
       const missing = want.filter((w) => !links.some((h) => h && h.startsWith(w)));
       return { ok: missing.length === 0, detail: missing.length ? `缺少链接 ${missing}` : `${want.length} 个入口齐全` };
     },
@@ -1238,6 +1238,115 @@ const cases = [
       return {
         ok: p.started && p.currentTime >= start - 0.1 && p.mediaErrors.length === 0,
         detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start}`,
+      };
+    },
+  },
+  {
+    name: 'travel-index', path: '/travel/',
+    async run() {
+      const r = await evaluate(`(() => {
+        const cards = [...document.querySelectorAll('a.scene-card')];
+        const text = document.body.textContent;
+        return {
+          stages: document.querySelectorAll('.stage-head').length,
+          cards: cards.length,
+          first: cards[0] ? cards[0].getAttribute('href') : '',
+          theme: !!document.querySelector('.npesl-theme-fab'),
+          countText: /\\d+\\s*(个场景|条|课|题)/.test(text),
+        };
+      })()`);
+      const ok = r && r.stages >= 1 && r.cards >= 1 && r.first
+        && r.theme && !r.countText;
+      return { ok, detail: JSON.stringify(r) };
+    },
+  },
+  {
+    name: 'travel', path: '/travel/01-airport.html',
+    async run() {
+      const first = await evaluate(`(() => {
+        const b = document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden]) .phrase');
+        if (!b) return null;
+        b.setAttribute('data-smoke', '1');
+        return {
+          text: b.querySelector('.en').textContent,
+          start: parseFloat(b.getAttribute('data-start-f')),
+        };
+      })()`);
+      if (!first) return { ok: false, detail: '没有短语按钮' };
+      const spoken = await playAndProbe('.phrase[data-smoke]');
+      const phraseOk = spoken.started
+        && spoken.currentTime >= first.start - 0.1
+        && spoken.mediaErrors.length === 0;
+
+      const hotspot = await evaluate(`(() => {
+        const b = document.querySelector('[data-hotspot="security"]');
+        if (!b) return null;
+        b.click();
+        const panel = document.querySelector('.encounter:not([hidden])');
+        return {
+          pressed: b.getAttribute('aria-pressed'),
+          panel: panel ? panel.getAttribute('data-encounter') : '',
+        };
+      })()`);
+      const hotspotOk = hotspot && hotspot.pressed === 'true'
+        && hotspot.panel === 'security';
+
+      await evaluate(`document.querySelector('[data-level="conversational"]').click()`);
+      const changed = await evaluate(`(() => {
+        const b = document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden]) .phrase');
+        return b ? {
+          text: b.querySelector('.en').textContent,
+          start: b.getAttribute('data-start-f'),
+        } : null;
+      })()`);
+      const levelOk = changed && changed.text !== first.text && changed.start !== null;
+
+      await evaluate(`document.querySelector('[data-play-dialogue]').click()`);
+      const playing = await waitFor("!!document.querySelector('.line.playing')", 6000);
+      const dialogueOk = playing;
+
+      await evaluate(`document.querySelector('[data-roleplay]').click()`);
+      const role = await evaluate(`(() => {
+        const line = document.querySelector('.line[data-role="you"]');
+        const en = line && line.querySelector('.en');
+        return {
+          body: document.body.classList.contains('roleplay'),
+          display: en ? getComputedStyle(en).display : '',
+        };
+      })()`);
+      const roleOk = role && role.body && role.display === 'none';
+
+      await evaluate(`document.querySelector('[data-zh-toggle]').click()`);
+      const zhOff = await evaluate(`(() => {
+        const zh = document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden]) .phrase .zh');
+        return { off: document.body.classList.contains('zh-off'),
+                 display: zh ? getComputedStyle(zh).display : '' };
+      })()`);
+      await evaluate(`document.querySelector('[data-zh-toggle]').click()`);
+
+      const layout = await evaluate(`(() => ({
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        fab: !!document.querySelector('.npesl-theme-fab'),
+      }))()`);
+
+      await evaluate(`document.documentElement.setAttribute('data-theme', 'glass')`);
+      const glass = await evaluate(`(() => {
+        const b = document.querySelector('[data-hotspot][aria-pressed="true"]');
+        return b ? getComputedStyle(b).backgroundColor : '';
+      })()`);
+      await evaluate(`document.documentElement.setAttribute('data-theme', 'auto')`);
+      const glassOk = glass && glass !== 'rgba(0, 0, 0, 0)'
+        && glass !== 'transparent';
+
+      const zhOk = zhOff && zhOff.off && zhOff.display === 'none';
+      const layoutOk = layout && layout.overflow <= 1 && layout.fab;
+      const ok = phraseOk && hotspotOk && levelOk && dialogueOk && roleOk
+        && zhOk && layoutOk && glassOk;
+      return {
+        ok,
+        detail: `phrase=${phraseOk}@${spoken.currentTime?.toFixed(2)} hotspot=${hotspotOk} `
+          + `level=${levelOk} dialogue=${dialogueOk} role=${roleOk} zh=${zhOk} `
+          + `layout=${JSON.stringify(layout)} glass=${glass}`,
       };
     },
   },

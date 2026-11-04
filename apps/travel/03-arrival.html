@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arrival &amp; customs · 旅行英语</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7; --surface-strong:#e8e8ed;
+    --blue:#0071e3; --blue-tint:#e8f2ff; --on-blue:#ffffff;
+    --radius-card:24px; --radius-control:12px; --radius-pill:999px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#000000; --fg:#f5f5f7; --muted:#98989d; --rule:#38383a;
+      --surface:#1c1c1e; --surface-strong:#2c2c2e;
+      --blue:#2997ff; --blue-tint:#102a43; --on-blue:#06131f;
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:760px; margin:0 auto;
+    padding:clamp(40px,7vh,72px) 24px 96px; }
+  .back { display:inline-block; margin-bottom:16px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--blue); }
+  .stage { margin:0 0 8px; color:var(--muted); font-size:12px;
+    letter-spacing:.1em; text-transform:uppercase; }
+  h1 { margin:0; font-size:clamp(2rem,6vw,2.8rem); font-weight:700;
+    letter-spacing:-.03em; line-height:1.08; }
+  .zh-title { margin:7px 0 0; color:var(--muted); font-size:17px; }
+  .toolbar { display:flex; flex-wrap:wrap; align-items:center;
+    justify-content:space-between; gap:10px; margin:20px 0 0; }
+  .level { display:flex; flex-wrap:wrap; gap:6px; }
+  .level button, .zh-toggle, .voice-seg button, .pill {
+    appearance:none; font:inherit; font-size:14px; padding:8px 14px;
+    border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
+    background:transparent; color:var(--fg); cursor:pointer; }
+  .level button:hover, .zh-toggle:hover, .voice-seg button:hover, .pill:hover {
+    background:var(--surface); }
+  .level button[aria-pressed="true"], .zh-toggle[aria-pressed="true"],
+  .voice-seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--blue); border-color:var(--blue); color:var(--on-blue); }
+  .tools { display:flex; align-items:center; gap:8px; }
+  .voice-seg { display:inline-flex; align-items:center; padding:3px;
+    border:1px solid var(--rule); border-radius:var(--radius-pill,999px); }
+  .voice-seg button { border:0; padding:6px 13px; }
+  .zh-toggle { padding:7px 13px; }
+  .map-card { margin:18px 0 0; padding:10px; border:1px solid var(--rule);
+    border-radius:var(--radius-card,24px); background:var(--bg); }
+  .map-wrap { position:relative; width:100%; aspect-ratio:640 / 400;
+    min-height:220px; }
+  .map-svg { display:block; width:100%; height:100%; }
+  .map-plate { fill:var(--surface); stroke:var(--rule); }
+  .map-zone-shape { fill:var(--surface-strong); stroke:var(--rule);
+    stroke-width:1; transition:fill .15s ease, stroke .15s ease; }
+  .map-zone-label { fill:var(--muted); font:600 11px var(--font);
+    letter-spacing:.08em; }
+  .map-fixture { fill:none; stroke:var(--muted); stroke-width:1.4; }
+  .map-fixture-line { fill:none; stroke:var(--muted); stroke-width:1; }
+  .map-fixture-soft { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
+  .map-counter, .map-shelf, .map-sofa, .map-bed, .map-train, .map-car,
+  .map-pump, .map-atm, .map-terminal, .map-booth, .map-machine {
+    fill:var(--surface); stroke:var(--rule); stroke-width:1.2; }
+  .map-counter-top, .map-sofa-seat, .map-pillow, .map-car-window,
+  .map-train-window { fill:var(--surface-strong); stroke:var(--rule);
+    stroke-width:1; }
+  .map-seat { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
+  .map-table { fill:var(--surface-strong); stroke:var(--rule); stroke-width:1; }
+  .map-person { fill:var(--muted); }
+  .map-pin { fill:var(--blue); }
+  .map-flag { fill:var(--blue); }
+  .map-route { fill:none; stroke:var(--blue); stroke-width:1.5;
+    stroke-dasharray:5 7; }
+  .map-zone.is-active .map-zone-shape { fill:var(--blue-tint);
+    stroke:var(--blue); stroke-width:1.8; }
+  .map-zone.is-active .map-zone-label { fill:var(--blue); }
+  .hotspot { position:absolute; left:var(--x); top:var(--y);
+    transform:translate(-50%,-50%); display:flex; flex-direction:column;
+    align-items:flex-start; gap:0; min-height:44px; padding:5px 9px;
+    border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
+    background:var(--bg); color:var(--fg); font:inherit; font-size:12px;
+    line-height:1.15; text-align:left; white-space:nowrap; cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  .hotspot .hs-en { font-weight:600; }
+  .hotspot .hs-zh { font-size:10px; color:var(--muted); }
+  .hotspot:hover { background:var(--surface); }
+  .hotspot[aria-pressed="true"] { background:var(--blue);
+    border-color:var(--blue); color:var(--on-blue); }
+  .hotspot[aria-pressed="true"] .hs-zh { color:var(--on-blue); opacity:.82; }
+  .hotspot:focus-visible, .level button:focus-visible, .zh-toggle:focus-visible,
+  .voice-seg button:focus-visible, .pill:focus-visible, .phrase:focus-visible,
+  .line .say:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+  .encounter { margin:30px 0 0; }
+  .encounter-head h2 { margin:0 0 14px; font-size:1.3rem; font-weight:650;
+    letter-spacing:-.01em; }
+  .encounter-head .zh { color:var(--muted); font-size:14px; font-weight:400;
+    margin-left:8px; }
+  .phrases { display:flex; flex-direction:column; gap:8px; }
+  .phrase { position:relative; width:100%; display:block; text-align:left;
+    font:inherit; padding:12px 42px 12px 14px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--bg);
+    color:inherit; cursor:pointer; }
+  .phrase:hover { background:var(--surface); }
+  .phrase .en { display:block; font-size:16px; line-height:1.45; }
+  .phrase .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:13px; }
+  .phrase .note { display:block; margin-top:4px; color:var(--muted);
+    font-size:12px; line-height:1.5; }
+  .play { position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    display:flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border:1px solid var(--rule); border-radius:50%;
+    color:var(--muted); font-size:9px; }
+  .play svg { display:block; }
+  .phrase.on { border-color:var(--blue); }
+  .phrase.on .play { background:var(--blue); border-color:var(--blue);
+    color:var(--on-blue); }
+  .dialogue { margin:24px 0 0; }
+  .dialogue-tools { display:flex; flex-wrap:wrap; align-items:center;
+    gap:8px; margin-bottom:12px; }
+  .dialogue-tools .pill { padding:7px 13px; font-size:13px; }
+  .turns { display:flex; flex-direction:column; gap:9px; }
+  .line { display:grid; grid-template-columns:52px minmax(0,1fr); gap:8px;
+    align-items:start; }
+  .who { padding-top:11px; color:var(--muted); font-size:12px; text-align:right;
+    overflow:hidden; text-overflow:ellipsis; }
+  .line .say { width:100%; display:block; text-align:left; font:inherit;
+    padding:10px 12px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--surface);
+    color:inherit; cursor:pointer; }
+  .line[data-role="you"] .say { background:var(--blue-tint); }
+  .line .say .en { display:block; font-size:15px; line-height:1.45; }
+  .line .say .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:12px; }
+  .line.playing .say { border-color:var(--blue); }
+  .reveal { display:none; color:var(--muted); font-size:13px; }
+  body.roleplay .line[data-role="you"] .say .en,
+  body.roleplay .line[data-role="you"] .say .zh { display:none; }
+  body.roleplay .line[data-role="you"]:not(.revealed) .reveal { display:block; }
+  body.zh-off .zh, body.zh-off .note, body.zh-off .zh-title { display:none; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  @media (max-width:480px) {
+    .page { padding-left:16px; padding-right:16px; }
+    .toolbar { align-items:flex-start; }
+    .level button { padding:7px 11px; font-size:13px; }
+    .hotspot { font-size:11px; padding:4px 7px; }
+    .hotspot .hs-zh { font-size:9px; }
+    .line { grid-template-columns:44px minmax(0,1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition:none !important; scroll-behavior:auto !important; }
+  }
+</style>
+</head>
+<body data-default-level="survival">
+<main class="page">
+  <a class="back" href="index.html">‹ 旅行英语</a>
+  <header>
+    <p class="stage">出发与抵达 · Departure &amp; arrival</p>
+    <h1>Arrival &amp; customs</h1>
+    <p class="zh-title">入境与海关</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="level" role="group" aria-label="难度">
+      <button type="button" data-level="survival" aria-pressed="true">Survival</button>
+      <button type="button" data-level="conversational" aria-pressed="false">Conversational</button>
+      <button type="button" data-level="advanced" aria-pressed="false">Advanced</button>
+    </div>
+    <div class="tools">
+      <div class="voice-seg" role="group" aria-label="短语音色">
+        <button type="button" data-voice="f" aria-pressed="true">女</button>
+        <button type="button" data-voice="m" aria-pressed="false">男</button>
+      </div>
+      <button class="zh-toggle" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    </div>
+  </div>
+
+  <figure class="card map-card" role="group" aria-label="场景平面图">
+    <div class="map-wrap">
+      <svg class="map-svg" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><g class="map-zone" data-zone="immigration"><rect class="map-zone-shape" x="36" y="44" width="260" height="104" rx="8"/><text class="map-zone-label" x="46" y="140">IMMIGRATION</text></g><g class="map-zone" data-zone="customs"><rect class="map-zone-shape" x="316" y="44" width="288" height="104" rx="8"/><text class="map-zone-label" x="326" y="140">CUSTOMS</text></g><g class="map-zone" data-zone="baggage"><rect class="map-zone-shape" x="36" y="178" width="300" height="178" rx="8"/><text class="map-zone-label" x="46" y="348">BAGGAGE</text></g><g class="map-zone" data-zone="lost"><rect class="map-zone-shape" x="356" y="178" width="248" height="178" rx="8"/><text class="map-zone-label" x="366" y="348">LOST &amp; FOUND</text></g><rect class="map-fixture map-fixture-soft" x="56.0" y="64.0" width="220.0" height="64.0" rx="3"/><path class="map-route" d="M56.0 80.0 L276.0 80.0"/><path class="map-route" d="M56.0 96.0 L276.0 96.0"/><path class="map-route" d="M56.0 112.0 L276.0 112.0"/><rect class="map-fixture map-counter" x="336.0" y="64.0" width="246.0" height="22.0" rx="6"/><circle class="map-fixture" cx="380.3" cy="75.0" r="4.8"/><rect class="map-fixture map-fixture-soft" x="60.0" y="220.0" width="250.0" height="72.0" rx="18"/><ellipse class="map-fixture map-belt" cx="185.0" cy="256.0" rx="95.0" ry="20.2"/><rect class="map-fixture map-counter" x="380.0" y="214.0" width="198.0" height="24.0" rx="6"/><circle class="map-fixture" cx="415.6" cy="226.0" r="5.3"/><rect class="map-fixture map-fixture-soft" x="540.0" y="300.0" width="44.0" height="34.0" rx="4"/><path class="map-fixture-line" d="M540.0 334.0 Q584.0 334.0 584.0 300.0"/></svg>
+      <button class="hotspot" type="button" style="--x:25.94%;--y:24.0%" data-hotspot="immigration" data-zone="immigration" data-encounter="immigration" aria-pressed="true" aria-controls="panel-immigration"><span class="hs-en">Immigration</span><span class="hs-zh">入境</span></button>
+      <button class="hotspot" type="button" style="--x:71.88%;--y:24.0%" data-hotspot="customs" data-zone="customs" data-encounter="customs" aria-pressed="false" aria-controls="panel-customs"><span class="hs-en">Customs</span><span class="hs-zh">海关</span></button>
+      <button class="hotspot" type="button" style="--x:29.06%;--y:66.75%" data-hotspot="baggage" data-zone="baggage" data-encounter="baggage" aria-pressed="false" aria-controls="panel-baggage"><span class="hs-en">Baggage</span><span class="hs-zh">行李转盘</span></button>
+      <button class="hotspot" type="button" style="--x:75.0%;--y:66.75%" data-hotspot="lost" data-zone="lost" data-encounter="lost" aria-pressed="false" aria-controls="panel-lost"><span class="hs-en">Lost bag</span><span class="hs-zh">行李丢失</span></button>
+    </div>
+  </figure>
+  <p class="sr-only" aria-live="polite" data-status></p>
+
+  <section class="encounter" id="panel-immigration" data-encounter="immigration"><header class="encounter-head"><h2>Immigration<span class="zh">入境审查</span></h2></header>
+
+  <div class="level-panel" data-level="survival"><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en">Tourism.</span><span class="zh">旅游。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="3.744"><span class="en">Ten days.</span><span class="zh">十天。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="3.744" data-end-f="5.616" data-start-m="3.744" data-end-m="5.616"><span class="en">I&#x27;m staying at a hotel.</span><span class="zh">我住酒店。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="5.616" data-end-f="7.608" data-start-m="5.616" data-end-m="7.488"><span class="en">Here is my round-trip ticket.</span><span class="zh">这是我的回程机票。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">Passport, please.</span><span class="zh">请出示护照。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="3.744"><span class="en">Here it is.</span><span class="zh">在这里。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="3.744" data-end="5.616"><span class="en">Purpose of your visit?</span><span class="zh">您此行的目的？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="5.616" data-end="7.488"><span class="en">It&#x27;s tourism.</span><span class="zh">旅游。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="7.488" data-end="9.360"><span class="en">How long will you stay?</span><span class="zh">您待多久？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="9.360" data-end="11.808"><span class="en">Ten days. I&#x27;m staying at a hotel.</span><span class="zh">十天。我住酒店。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="3.288" data-start-m="0.000" data-end-m="3.072"><span class="en">I&#x27;m here for a conference and a few days of vacation.</span><span class="zh">我来参加会议，再玩几天。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="3.288" data-end-f="6.648" data-start-m="3.072" data-end-m="6.120"><span class="en">I have a hotel reservation and a round-trip ticket.</span><span class="zh">我有酒店预订和回程机票。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="6.648" data-end-f="9.168" data-start-m="6.120" data-end-m="8.232"><span class="en">My friend is meeting me at the airport.</span><span class="zh">我朋友来机场接我。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="9.168" data-end-f="11.568" data-start-m="8.232" data-end-m="10.176"><span class="en">Do I need to fill out a customs form?</span><span class="zh">需要填海关申报表吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="11.568" data-end-f="13.512" data-start-m="10.176" data-end-m="12.048"><span class="en">Where do I pick up my luggage?</span><span class="zh">我在哪里取行李？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">What&#x27;s the purpose of your visit?</span><span class="zh">您此行的目的是什么？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="4.944"><span class="en">I&#x27;m here for a conference and a few days of vacation.</span><span class="zh">我来参加会议，再玩几天。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="4.944" data-end="6.936"><span class="en">How long will you be in the country?</span><span class="zh">您会在美国待多久？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="6.936" data-end="11.016"><span class="en">Twelve days. I have a hotel reservation and a round-trip ticket.</span><span class="zh">十二天。我有酒店预订和回程机票。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="11.016" data-end="12.888"><span class="en">Where will you be staying?</span><span class="zh">您住哪里？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="12.888" data-end="16.968"><span class="en">The Hyatt in downtown Seattle. My friend is meeting me at the airport.</span><span class="zh">西雅图市中心的凯悦。我朋友来机场接我。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="16.968" data-end="18.840"><span class="en">Do you have anything to declare?</span><span class="zh">有需要申报的物品吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="18.840" data-end="21.456"><span class="en">No. Do I need to fill out a customs form?</span><span class="zh">没有。需要填海关申报表吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="4.440" data-start-m="0.000" data-end-m="3.984"><span class="en">I&#x27;m traveling on a business visa. My company is sponsoring the trip.</span><span class="zh">我持商务签证，公司出资。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="4.440" data-end-f="7.344" data-start-m="3.984" data-end-m="6.888"><span class="en">I have a connecting flight to Denver in three hours.</span><span class="zh">我三小时后转机去丹佛。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="7.344" data-end-f="11.976" data-start-m="6.888" data-end-m="10.944"><span class="en">My prescription medication is in my carry-on. Do I need to declare it?</span><span class="zh">我的处方药在随身包里。需要申报吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="11.976" data-end-f="16.224" data-start-m="10.944" data-end-m="14.520"><span class="en">I was told I could use the mobile passport app. Is that faster?</span><span class="zh">有人说可以用手机护照应用。那个更快吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="16.224" data-end-f="20.352" data-start-m="14.520" data-end-m="18.408"><span class="en">My return flight is already booked. Here&#x27;s the confirmation.</span><span class="zh">回程已订好，这是确认单。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">Business or pleasure?</span><span class="zh">商务还是旅游？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="6.696"><span class="en">Business. I&#x27;m traveling on a business visa. My company is sponsoring the trip.</span><span class="zh">商务。我持商务签证，公司出资。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="6.696" data-end="8.568"><span class="en">How long do you plan to stay?</span><span class="zh">您计划待多久？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="8.568" data-end="12.384"><span class="en">Two weeks, but I have a connecting flight to Denver in three hours.</span><span class="zh">两周，但我三小时后转机去丹佛。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="12.384" data-end="15.744"><span class="en">Are you carrying any food or agricultural products?</span><span class="zh">有携带食品或农产品吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="15.744" data-end="21.552"><span class="en">Only some tea for my host. My prescription medication is in my carry-on—do I need to declare it?</span><span class="zh">只给房东带了点茶叶。我的处方药在随身包里，需要申报吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="21.552" data-end="25.032"><span class="en">Declare it on the form. Is your return flight booked?</span><span class="zh">在表上申报。回程订好了吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="25.032" data-end="27.336"><span class="en">Yes. Here&#x27;s the confirmation.</span><span class="zh">订好了，这是确认单。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="officer"><span class="who">Immigration officer</span><button class="say" type="button" data-part="d" data-start="27.336" data-end="30.816"><span class="en">Welcome to the United States. Enjoy your stay.</span><span class="zh">欢迎来美国，祝您愉快。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="30.816" data-end="33.312"><span class="en">Thank you. Which way is baggage claim?</span><span class="zh">谢谢。行李转盘往哪边走？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  </section>
+
+  <section class="encounter" id="panel-customs" data-encounter="customs" hidden><header class="encounter-head"><h2>Customs<span class="zh">海关申报</span></h2></header>
+
+  <div class="level-panel" data-level="survival"><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="7.608" data-end-f="9.480" data-start-m="7.488" data-end-m="9.360"><span class="en">I have nothing to declare.</span><span class="zh">我没有要申报的。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="9.480" data-end-f="11.352" data-start-m="9.360" data-end-m="11.232"><span class="en">I have some tea.</span><span class="zh">我带了一些茶叶。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="11.352" data-end-f="13.224" data-start-m="11.232" data-end-m="13.104"><span class="en">Do I need to pay duty?</span><span class="zh">我需要交税吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="13.224" data-end-f="15.096" data-start-m="13.104" data-end-m="14.976"><span class="en">Where do I put my bag?</span><span class="zh">我的包放哪里？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="11.808" data-end="13.680"><span class="en">Anything to declare?</span><span class="zh">有要申报的吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="13.680" data-end="15.552"><span class="en">I have some tea.</span><span class="zh">我带了一些茶叶。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="15.552" data-end="17.424"><span class="en">Is it for personal use?</span><span class="zh">自己用吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="17.424" data-end="19.512"><span class="en">Yes. Do I need to pay duty?</span><span class="zh">是的。需要交税吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="19.512" data-end="23.520"><span class="en">No, it&#x27;s under the limit. Please put your bag on the table.</span><span class="zh">不用，在限额内。请把包放桌上。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="23.520" data-end="26.088"><span class="en">Okay. I have nothing else to declare.</span><span class="zh">好的，我没有别的要申报。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="13.512" data-end-f="17.400" data-start-m="12.048" data-end-m="15.504"><span class="en">I brought gifts for my host family. Do I need to declare them?</span><span class="zh">我给寄宿家庭带了礼物。需要申报吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="17.400" data-end-f="19.296" data-start-m="15.504" data-end-m="17.376"><span class="en">Are these vitamins allowed?</span><span class="zh">这些维生素可以带吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="19.296" data-end-f="21.720" data-start-m="17.376" data-end-m="19.632"><span class="en">I have two bottles of Chinese liquor.</span><span class="zh">我带了两瓶中国白酒。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="21.720" data-end-f="23.592" data-start-m="19.632" data-end-m="21.504"><span class="en">What&#x27;s the duty-free limit?</span><span class="zh">免税限额是多少？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="23.592" data-end-f="25.536" data-start-m="21.504" data-end-m="23.424"><span class="en">Do I need a receipt for the gifts?</span><span class="zh">礼物需要收据吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="21.456" data-end="23.328"><span class="en">Please open your bag.</span><span class="zh">请打开包。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="23.328" data-end="27.552"><span class="en">Sure. I brought gifts for my host family. Do I need to declare them?</span><span class="zh">好的。我给寄宿家庭带了礼物，需要申报吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="27.552" data-end="29.424"><span class="en">What are they worth?</span><span class="zh">值多少钱？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="29.424" data-end="33.576"><span class="en">About a hundred dollars total. I have two bottles of Chinese liquor too.</span><span class="zh">一共大约一百美元。我还带了两瓶中国白酒。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="33.576" data-end="36.960"><span class="en">Alcohol has a limit. What&#x27;s in this bottle?</span><span class="zh">酒有额度。这瓶是什么？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="36.960" data-end="39.120"><span class="en">Vitamins. Are these allowed?</span><span class="zh">维生素。这些可以带吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="39.120" data-end="42.624"><span class="en">Yes, for personal use. Do you have receipts?</span><span class="zh">可以，自己用就行。有收据吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="42.624" data-end="45.720"><span class="en">I have them on my phone. What&#x27;s the duty-free limit?</span><span class="zh">手机里有。免税限额是多少？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="20.352" data-end-f="25.728" data-start-m="18.408" data-end-m="23.064"><span class="en">I&#x27;m carrying a wedding gift worth about three hundred dollars. How should I declare it?</span><span class="zh">我带了一件约三百美元的婚礼礼物。该怎么申报？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="25.728" data-end-f="30.168" data-start-m="23.064" data-end-m="26.976"><span class="en">I have a portable hard drive with work files. Do I need to declare it?</span><span class="zh">我有一个存工作文件的移动硬盘。需要申报吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="30.168" data-end-f="35.688" data-start-m="26.976" data-end-m="32.256"><span class="en">My medication is in pill organizers without the original bottles. Is that a problem?</span><span class="zh">我的药装在分药盒里，没有原瓶。有问题吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="35.688" data-end-f="40.104" data-start-m="32.256" data-end-m="36.456"><span class="en">I&#x27;m transiting to Canada tomorrow. Do I clear customs here or there?</span><span class="zh">我明天转机去加拿大。在这里还是那里清关？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="40.104" data-end-f="42.360" data-start-m="36.456" data-end-m="38.472"><span class="en">Can I pay the duty by credit card?</span><span class="zh">能刷卡付税吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="33.312" data-end="35.184"><span class="en">What&#x27;s in this box?</span><span class="zh">这个盒子里是什么？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="35.184" data-end="40.320"><span class="en">A wedding gift for a friend. It&#x27;s worth about three hundred dollars. How should I declare it?</span><span class="zh">给朋友的婚礼礼物，大约三百美元。该怎么申报？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="40.320" data-end="44.136"><span class="en">You&#x27;ll need to fill out a declaration form. Do you have the receipt?</span><span class="zh">需要填申报表。有收据吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="44.136" data-end="50.040"><span class="en">Yes, it&#x27;s in my email. I also have a portable hard drive with work files—do I need to declare it?</span><span class="zh">有，在邮件里。我还有一个存工作文件的移动硬盘，需要申报吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="50.040" data-end="54.960"><span class="en">No, personal electronics are fine. Are you carrying any medication?</span><span class="zh">不用，个人电子产品可以。有带药吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="54.960" data-end="59.760"><span class="en">Yes, in pill organizers without the original bottles. Is that a problem?</span><span class="zh">有，装在分药盒里，没有原瓶。有问题吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="59.760" data-end="63.600"><span class="en">Keep a copy of the prescription with you. Are you staying in the US?</span><span class="zh">随身带处方副本。您会留在美国吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="63.600" data-end="67.800"><span class="en">I&#x27;m transiting to Canada tomorrow. Do I clear customs here or there?</span><span class="zh">我明天转机去加拿大。在这里还是那里清关？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="customs"><span class="who">Customs officer</span><button class="say" type="button" data-part="d" data-start="67.800" data-end="72.576"><span class="en">You&#x27;ll clear Canadian customs in Canada. Can you pay the duty by credit card?</span><span class="zh">在加拿大清关。能刷卡付税吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="72.576" data-end="75.000"><span class="en">Yes, I can. Thanks for explaining.</span><span class="zh">可以。谢谢解释。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  </section>
+
+  <section class="encounter" id="panel-baggage" data-encounter="baggage" hidden><header class="encounter-head"><h2>Baggage claim<span class="zh">行李转盘</span></h2></header>
+
+  <div class="level-panel" data-level="survival"><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="15.096" data-end-f="16.968" data-start-m="14.976" data-end-m="16.848"><span class="en">Where is baggage claim?</span><span class="zh">行李转盘在哪里？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="16.968" data-end-f="19.584" data-start-m="16.848" data-end-m="19.368"><span class="en">Which carousel is for flight 88?</span><span class="zh">88 号航班在哪个转盘？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="19.584" data-end-f="21.456" data-start-m="19.368" data-end-m="21.240"><span class="en">My bag is not here.</span><span class="zh">我的行李不在这里。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="21.456" data-end-f="23.328" data-start-m="21.240" data-end-m="23.112"><span class="en">Can you help me find it?</span><span class="zh">能帮我找吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.088" data-end="29.568"><span class="en">Excuse me, which carousel is for flight 88?</span><span class="zh">打扰一下，88 号航班在哪个转盘？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="29.568" data-end="32.088"><span class="en">Carousel 6, on the lower level.</span><span class="zh">6 号转盘，在下一层。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="32.088" data-end="34.368"><span class="en">Thanks. My bag is not here.</span><span class="zh">谢谢。我的行李不在这里。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="34.368" data-end="36.240"><span class="en">What does it look like?</span><span class="zh">长什么样？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="36.240" data-end="38.472"><span class="en">A black suitcase with a red tag.</span><span class="zh">黑色行李箱，有红色标签。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="38.472" data-end="41.352"><span class="en">Let me check the belt. Please wait here.</span><span class="zh">我查一下传送带，请在这里等。</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="25.536" data-end-f="28.944" data-start-m="23.424" data-end-m="26.376"><span class="en">My suitcase came out, but the handle is broken.</span><span class="zh">我的行李箱出来了，但把手坏了。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="28.944" data-end-f="31.608" data-start-m="26.376" data-end-m="28.704"><span class="en">I think someone took my bag by mistake.</span><span class="zh">我觉得有人拿错了我的包。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="31.608" data-end-f="34.248" data-start-m="28.704" data-end-m="31.200"><span class="en">Can I file a report at the baggage office?</span><span class="zh">能在行李办公室登记吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="34.248" data-end-f="36.912" data-start-m="31.200" data-end-m="33.936"><span class="en">How long does it take to deliver a delayed bag?</span><span class="zh">延误行李多久能送到？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="36.912" data-end-f="38.784" data-start-m="33.936" data-end-m="35.808"><span class="en">Can you check the tag number?</span><span class="zh">能查一下标签号吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="45.720" data-end="48.672"><span class="en">My suitcase came out, but the handle is broken.</span><span class="zh">我的行李箱出来了，但把手坏了。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="48.672" data-end="51.864"><span class="en">I&#x27;m sorry. Do you want to file a damage report?</span><span class="zh">很抱歉。要登记损坏吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="51.864" data-end="55.440"><span class="en">Yes. I think someone took my bag by mistake, too.</span><span class="zh">要。我觉得还有人拿错了我的包。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="55.440" data-end="57.312"><span class="en">Which flight were you on?</span><span class="zh">您坐哪班？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="57.312" data-end="60.648"><span class="en">Flight 88 from Shanghai. Can you check the tag number?</span><span class="zh">从上海来的 88 号。能查一下标签号吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="60.648" data-end="64.080"><span class="en">It&#x27;s still on the belt. Let&#x27;s look at the baggage office.</span><span class="zh">还在传送带上。我们去行李办公室看看。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="64.080" data-end="67.560"><span class="en">Okay. How long does it take to deliver a delayed bag?</span><span class="zh">好。延误行李多久能送到？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="67.560" data-end="71.856"><span class="en">Usually within twenty-four hours. You can file the report there.</span><span class="zh">通常二十四小时内。可以在那里登记。</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="42.360" data-end-f="46.728" data-start-m="38.472" data-end-m="42.288"><span class="en">My bag was opened and something is missing. How do I report it?</span><span class="zh">我的包被打开过，少了东西。怎么报案？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="46.728" data-end-f="50.664" data-start-m="42.288" data-end-m="46.056"><span class="en">The carousel says my flight, but the bags are from another flight.</span><span class="zh">转盘显示我的航班，但行李是另一班的。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="50.664" data-end-f="53.592" data-start-m="46.056" data-end-m="48.720"><span class="en">Can I claim compensation for the damaged wheels?</span><span class="zh">轮子坏了能索赔吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="53.592" data-end-f="57.504" data-start-m="48.720" data-end-m="52.344"><span class="en">I have a connecting flight. Can you forward the bag to my hotel?</span><span class="zh">我还要转机。能把行李送到我酒店吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="57.504" data-end-f="60.288" data-start-m="52.344" data-end-m="54.936"><span class="en">Do I need a police report for the insurance claim?</span><span class="zh">保险理赔需要报警记录吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="75.000" data-end="78.816"><span class="en">My bag was opened and something is missing. How do I report it?</span><span class="zh">我的包被打开过，少了东西。怎么报案？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="78.816" data-end="82.920"><span class="en">Don&#x27;t leave the area. I&#x27;ll call a supervisor and security.</span><span class="zh">请不要离开，我叫主管和安保。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="82.920" data-end="87.456"><span class="en">Thank you. The carousel says my flight, but the bags are from another flight.</span><span class="zh">谢谢。转盘显示我的航班，但行李是另一班的。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="87.456" data-end="90.696"><span class="en">The belt may have been switched. We&#x27;ll check the tag.</span><span class="zh">传送带可能被切换了。我们查标签。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="90.696" data-end="93.360"><span class="en">Can I claim compensation for the damaged wheels?</span><span class="zh">轮子坏了能索赔吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="93.360" data-end="97.896"><span class="en">Yes, keep the bag and take photos. Do you have travel insurance?</span><span class="zh">可以，保留箱子并拍照。有旅行保险吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="97.896" data-end="100.800"><span class="en">Yes. Do I need a police report for the claim?</span><span class="zh">有。理赔需要报警记录吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="100.800" data-end="104.280"><span class="en">For theft, yes. I&#x27;ll print the report for you.</span><span class="zh">被盗的话需要。我给你打印记录。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="104.280" data-end="107.904"><span class="en">I have a connecting flight. Can you forward the bag to my hotel?</span><span class="zh">我还要转机。能把行李送到我酒店吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="107.904" data-end="112.032"><span class="en">If it&#x27;s found, we can courier it. Write your hotel address here.</span><span class="zh">找到的话可以快递。在这里写酒店地址。</span></button></div>
+
+  </div></div></div>
+
+  </section>
+
+  <section class="encounter" id="panel-lost" data-encounter="lost" hidden><header class="encounter-head"><h2>Lost luggage<span class="zh">行李丢失</span></h2></header>
+
+  <div class="level-panel" data-level="survival"><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="23.328" data-end-f="25.272" data-start-m="23.112" data-end-m="24.984"><span class="en">My bag didn&#x27;t arrive.</span><span class="zh">我的行李没到。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="25.272" data-end-f="27.192" data-start-m="24.984" data-end-m="26.856"><span class="en">Here is my baggage tag.</span><span class="zh">这是我的行李牌。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="27.192" data-end-f="29.496" data-start-m="26.856" data-end-m="29.088"><span class="en">My hotel address is on the form.</span><span class="zh">表上有我的酒店地址。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="29.496" data-end-f="31.368" data-start-m="29.088" data-end-m="30.960"><span class="en">Can I buy essentials?</span><span class="zh">我能买必需品吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="41.352" data-end="43.224"><span class="en">My bag didn&#x27;t arrive.</span><span class="zh">我的行李没到。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="43.224" data-end="46.104"><span class="en">I&#x27;m sorry. Do you have your baggage tag?</span><span class="zh">很抱歉。有行李牌吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="46.104" data-end="47.976"><span class="en">Yes, here it is.</span><span class="zh">有，在这里。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="47.976" data-end="50.928"><span class="en">I&#x27;ll file a report. Where are you staying?</span><span class="zh">我登记一下。您住哪里？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="50.928" data-end="53.160"><span class="en">My hotel address is on the form.</span><span class="zh">表上有我的酒店地址。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="53.160" data-end="56.664"><span class="en">We&#x27;ll deliver it when it arrives. Keep the receipts.</span><span class="zh">到了我们会送。请保留收据。</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="38.784" data-end-f="42.960" data-start-m="35.808" data-end-m="39.384"><span class="en">My bag was checked through from Shanghai, but it&#x27;s not on the belt.</span><span class="zh">我的行李从上海直挂，但没在传送带上。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="42.960" data-end-f="44.976" data-start-m="39.384" data-end-m="41.256"><span class="en">Can you track it with the tag number?</span><span class="zh">能按标签号追踪吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="44.976" data-end-f="48.912" data-start-m="41.256" data-end-m="44.712"><span class="en">I need my medication tonight. Is there a way to speed this up?</span><span class="zh">我今晚需要药。能加快吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="48.912" data-end-f="50.784" data-start-m="44.712" data-end-m="46.584"><span class="en">What&#x27;s the claim number?</span><span class="zh">申报号是多少？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="50.784" data-end-f="53.496" data-start-m="46.584" data-end-m="49.200"><span class="en">Will the airline cover my hotel toiletries?</span><span class="zh">航司会报销酒店的洗漱用品吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="71.856" data-end="75.432"><span class="en">My bag was checked through from Shanghai, but it&#x27;s not on the belt.</span><span class="zh">我的行李从上海直挂，但没在传送带上。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="75.432" data-end="78.960"><span class="en">Let me scan the tag. Can you track it with the tag number?</span><span class="zh">我扫一下标签。能按标签号追踪吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="78.960" data-end="83.496"><span class="en">Here&#x27;s the number. I need my medication tonight—is there a way to speed this up?</span><span class="zh">这是号码。我今晚需要药，能加快吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="83.496" data-end="86.856"><span class="en">I&#x27;ll mark it as urgent. What&#x27;s your phone number?</span><span class="zh">我标为加急。您的电话是多少？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="86.856" data-end="89.352"><span class="en">It&#x27;s on the form. What&#x27;s the claim number?</span><span class="zh">表上有。申报号是多少？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="89.352" data-end="93.528"><span class="en">I&#x27;ll print it for you. Will the airline cover my hotel toiletries?</span><span class="zh">我给您打印。航司会报销酒店的洗漱用品吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="93.528" data-end="95.904"><span class="en">I hope so. I only have a carry-on.</span><span class="zh">希望会。我只带了随身包。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="95.904" data-end="99.024"><span class="en">Keep the receipts and submit them with the claim.</span><span class="zh">保留收据，随申报一起提交。</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="60.288" data-end-f="65.952" data-start-m="54.936" data-end-m="60.024"><span class="en">The bag contains prescription medication and a work laptop. Can you escalate this?</span><span class="zh">行李里有处方药和工作电脑。能升级处理吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="65.952" data-end-f="70.368" data-start-m="60.024" data-end-m="64.224"><span class="en">I&#x27;m leaving the country in three days. What if the bag arrives after that?</span><span class="zh">我三天后出境。如果行李之后才到怎么办？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="70.368" data-end-f="73.296" data-start-m="64.224" data-end-m="67.032"><span class="en">Can the airline ship it to my home address in Shanghai?</span><span class="zh">航司能寄到我在上海的住址吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="73.296" data-end-f="77.184" data-start-m="67.032" data-end-m="70.680"><span class="en">What&#x27;s the maximum compensation under the Montreal Convention?</span><span class="zh">根据蒙特利尔公约，最高赔偿是多少？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="77.184" data-end-f="80.544" data-start-m="70.680" data-end-m="73.416"><span class="en">I need a written confirmation for my insurance company.</span><span class="zh">我需要一份书面证明给保险公司。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="112.032" data-end="115.464"><span class="en">I&#x27;ve located your bag. It&#x27;s still in Shanghai.</span><span class="zh">我找到您的行李了，还在上海。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="115.464" data-end="120.552"><span class="en">The bag contains prescription medication and a work laptop. Can you escalate this?</span><span class="zh">行李里有处方药和工作电脑。能升级处理吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="120.552" data-end="123.768"><span class="en">I&#x27;ll mark it priority and send it on the next flight.</span><span class="zh">我标为优先，安排下一班。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="123.768" data-end="127.968"><span class="en">I&#x27;m leaving the country in three days. What if the bag arrives after that?</span><span class="zh">我三天后出境。如果行李之后才到怎么办？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="127.968" data-end="132.096"><span class="en">We can ship it to your home address. Can the airline ship it to Shanghai?</span><span class="zh">我们可以寄到您家。航司能寄到上海吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="132.096" data-end="137.496"><span class="en">Yes, that&#x27;s what I need. What&#x27;s the maximum compensation under the Montreal Convention?</span><span class="zh">对，就需要这个。根据蒙特利尔公约，最高赔偿是多少？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="137.496" data-end="142.128"><span class="en">It&#x27;s about 1,700 dollars per passenger, with receipts.</span><span class="zh">每位乘客约一千七百美元，需要收据。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="142.128" data-end="144.864"><span class="en">I need a written confirmation for my insurance company.</span><span class="zh">我需要一份书面证明给保险公司。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="airline"><span class="who">Airline staff</span><button class="say" type="button" data-part="d" data-start="144.864" data-end="148.656"><span class="en">I&#x27;ll email it before you leave. Is this address correct?</span><span class="zh">您离开前我发邮件。这个地址对吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="148.656" data-end="151.296"><span class="en">Yes. Thank you for moving so quickly.</span><span class="zh">对。谢谢你们这么快处理。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  </section>
+
+  <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/5568dc0eabbf.mp3","survival-p-m":"sprites/5d5c21e15a6d.mp3","survival-d":"sprites/45020fea022b.mp3","conversational-p-f":"sprites/4d6e3cc0bc1f.mp3","conversational-p-m":"sprites/2ceede0e3318.mp3","conversational-d":"sprites/03d5d0c18a3d.mp3","advanced-p-f":"sprites/0d934d0b5430.mp3","advanced-p-m":"sprites/f35bffd89ae0.mp3","advanced-d":"sprites/90c4e9bd4f78.mp3"}</script>
+</main>
+
+<script>
+(function () {
+  var LEVELS = ['survival', 'conversational', 'advanced'];
+  var SPRITES = {};
+  try {
+    SPRITES = JSON.parse(document.getElementById('spriteMap').textContent || '{}');
+  } catch (e) { SPRITES = {}; }
+  var body = document.body;
+  var levelBtns = [].slice.call(document.querySelectorAll('[data-level]'));
+  var voiceBtns = [].slice.call(document.querySelectorAll('[data-voice]'));
+  var hotspots = [].slice.call(document.querySelectorAll('[data-hotspot]'));
+  var encounters = [].slice.call(document.querySelectorAll('.encounter'));
+  var zhToggle = document.querySelector('[data-zh-toggle]');
+  var rpToggle = document.querySelector('[data-roleplay]');
+  var speedBtn = document.querySelector('[data-speed]');
+  var playBtn = document.querySelector('[data-play-dialogue]');
+  var statusEl = document.querySelector('[data-status]');
+  var audio = new Audio();
+  audio.preload = 'none';
+  audio.preservesPitch = true;
+
+  var voice = 'f';
+  var level = body.getAttribute('data-default-level') || 'survival';
+  var speed = 0.9;
+  var zhOff = false;
+  var roleplay = false;
+  var selected = null;
+  var playToken = 0;
+  var seqRunning = false;
+  var srcCache = {};
+  var currentEl = null;
+
+  try {
+    var savedVoice = localStorage.getItem('npesl-voice');
+    if (savedVoice === 'f' || savedVoice === 'm') voice = savedVoice;
+  } catch (e) {}
+  try {
+    zhOff = localStorage.getItem('npesl-zh') === '0';
+  } catch (e) {}
+  try {
+    var savedSpeed = parseFloat(localStorage.getItem('npesl-speed'));
+    if ([0.8, 0.9, 1, 1.15].indexOf(savedSpeed) >= 0) speed = savedSpeed;
+  } catch (e) {}
+
+  var queryLevel = null;
+  try {
+    queryLevel = new URLSearchParams(location.search).get('level');
+  } catch (e) {}
+  if (LEVELS.indexOf(queryLevel) >= 0) {
+    level = queryLevel;
+  } else {
+    try {
+      var savedLevel = localStorage.getItem('travel-level');
+      if (LEVELS.indexOf(savedLevel) >= 0) level = savedLevel;
+    } catch (e) {}
+  }
+
+  function save(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) {}
+  }
+
+  function updateHash() {
+    var next = '?level=' + level + (selected
+      ? '#' + selected.getAttribute('data-hotspot') : '');
+    try { history.replaceState(null, '', next); } catch (e) {}
+  }
+
+  function applyLevelPanels() {
+    [].forEach.call(document.querySelectorAll('.level-panel'), function (panel) {
+      panel.hidden = panel.getAttribute('data-level') !== level;
+    });
+    levelBtns.forEach(function (btn) {
+      btn.setAttribute('aria-pressed',
+        btn.getAttribute('data-level') === level ? 'true' : 'false');
+    });
+  }
+
+  function setLevel(next, persist) {
+    if (LEVELS.indexOf(next) < 0) return;
+    level = next;
+    applyLevelPanels();
+    stopAudio();
+    if (persist !== false) save('travel-level', level);
+    updateHash();
+  }
+
+  function selectHotspot(btn, scroll) {
+    if (!btn) return;
+    selected = btn;
+    hotspots.forEach(function (spot) {
+      spot.setAttribute('aria-pressed', spot === btn ? 'true' : 'false');
+    });
+    var zone = btn.getAttribute('data-zone');
+    [].forEach.call(document.querySelectorAll('.map-zone'), function (node) {
+      node.classList.toggle('is-active', node.getAttribute('data-zone') === zone);
+    });
+    var target = btn.getAttribute('data-encounter');
+    encounters.forEach(function (panel) {
+      panel.hidden = panel.getAttribute('data-encounter') !== target;
+    });
+    applyLevelPanels();
+    stopAudio();
+    var zh = btn.querySelector('.hs-zh');
+    if (statusEl) statusEl.textContent = '已选择：' + (zh ? zh.textContent : '');
+    updateHash();
+    if (scroll && window.matchMedia('(max-width: 700px)').matches) {
+      var panel = document.getElementById('panel-' + target);
+      if (panel) {
+        setTimeout(function () {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 40);
+      }
+    }
+  }
+
+  function applyVoice(next, persist) {
+    voice = next === 'm' ? 'm' : 'f';
+    voiceBtns.forEach(function (btn) {
+      btn.setAttribute('aria-pressed',
+        btn.getAttribute('data-voice') === voice ? 'true' : 'false');
+    });
+    if (persist !== false) save('npesl-voice', voice);
+    stopAudio();
+  }
+
+  function applyZh(next, persist) {
+    zhOff = !!next;
+    body.classList.toggle('zh-off', zhOff);
+    if (zhToggle) zhToggle.setAttribute('aria-pressed', zhOff ? 'false' : 'true');
+    if (persist !== false) save('npesl-zh', zhOff ? '0' : '1');
+  }
+
+  function applySpeed(next, persist) {
+    speed = next;
+    if (speedBtn) speedBtn.textContent = speed + '×';
+    audio.playbackRate = speed;
+    if (persist !== false) save('npesl-speed', String(speed));
+  }
+
+  function applyRoleplay(next) {
+    roleplay = !!next;
+    body.classList.toggle('roleplay', roleplay);
+    if (rpToggle) rpToggle.setAttribute('aria-pressed', roleplay ? 'true' : 'false');
+    [].forEach.call(document.querySelectorAll('.line[data-role="you"]'),
+      function (line) { line.classList.remove('revealed'); });
+    stopAudio();
+  }
+
+  function stopAudio() {
+    playToken++;
+    seqRunning = false;
+    try { audio.pause(); } catch (e) {}
+    if (currentEl) {
+      currentEl.classList.remove('on', 'playing');
+      currentEl = null;
+    }
+    [].forEach.call(document.querySelectorAll('.phrase.on, .line.playing, .say.playing'),
+      function (node) { node.classList.remove('on', 'playing'); });
+    if (playBtn) playBtn.setAttribute('aria-pressed', 'false');
+  }
+
+  function srcFor(url) {
+    if (srcCache[url]) return srcCache[url];
+    if (location.protocol === 'file:' || !window.fetch || !window.URL
+        || !window.URL.createObjectURL) {
+      srcCache[url] = Promise.resolve(url);
+      return srcCache[url];
+    }
+    srcCache[url] = fetch(url).then(function (response) {
+      if (!response.ok) throw 0;
+      return response.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () { return url; });
+    return srcCache[url];
+  }
+
+  function loadSource(src) {
+    return new Promise(function (resolve) {
+      if (audio.src === src && audio.readyState >= 1) return resolve();
+      var done = false;
+      function finish() {
+        if (done) return;
+        done = true;
+        audio.removeEventListener('loadedmetadata', finish);
+        audio.removeEventListener('error', finish);
+        resolve();
+      }
+      audio.addEventListener('loadedmetadata', finish);
+      audio.addEventListener('error', finish);
+      audio.src = src;
+      audio.load();
+    });
+  }
+
+  function waitStop(end, token) {
+    return new Promise(function (resolve) {
+      function tick() {
+        if (token !== playToken) return resolve();
+        if (audio.paused || audio.currentTime >= end - 0.008) {
+          try { audio.pause(); } catch (e) {}
+          return resolve();
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  function playSprite(key, start, end, el, token) {
+    return new Promise(function (resolve) {
+      var rel = SPRITES[key];
+      if (!rel || !isFinite(start) || !isFinite(end)) return resolve(false);
+      srcFor('audio/' + rel).then(function (src) {
+        if (token !== playToken) return resolve(false);
+        return loadSource(src).then(function () {
+          if (token !== playToken) return resolve(false);
+          try { audio.currentTime = Math.max(0, start); } catch (e) {}
+          audio.playbackRate = speed;
+          if (currentEl) currentEl.classList.remove('on', 'playing');
+          currentEl = el;
+          if (el) {
+            if (el.classList.contains('phrase')) {
+              el.classList.add('on');
+            } else {
+              var line = el.closest('.line');
+              if (line) line.classList.add('playing');
+              else el.classList.add('playing');
+            }
+          }
+          var played;
+          try { played = audio.play(); } catch (e) { return resolve(false); }
+          Promise.resolve(played).then(function () {
+            if (token !== playToken) return resolve(false);
+            waitStop(end, token).then(function () {
+              resolve(token === playToken);
+            });
+          }, function () { resolve(false); });
+        });
+      });
+    });
+  }
+
+  function sleep(ms, token) {
+    return new Promise(function (resolve) {
+      var start = Date.now();
+      function tick() {
+        if (token !== playToken || Date.now() - start >= ms) return resolve();
+        setTimeout(tick, 100);
+      }
+      tick();
+    });
+  }
+
+  function playPhrase(btn) {
+    var panel = btn.closest('.level-panel');
+    if (!panel) return;
+    var start = parseFloat(btn.getAttribute('data-start-' + voice));
+    var end = parseFloat(btn.getAttribute('data-end-' + voice));
+    stopAudio();
+    var token = playToken;
+    playSprite(level + '-p-' + voice, start, end, btn, token);
+  }
+
+  function playLine(line, btn) {
+    var start = parseFloat(btn.getAttribute('data-start'));
+    var end = parseFloat(btn.getAttribute('data-end'));
+    stopAudio();
+    var token = playToken;
+    return playSprite(level + '-d', start, end, btn, token);
+  }
+
+  function currentPanel() {
+    return document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden])');
+  }
+
+  function playDialogue() {
+    if (seqRunning) { stopAudio(); return; }
+    var panel = currentPanel();
+    if (!panel) return;
+    var lines = [].slice.call(panel.querySelectorAll('.line'));
+    if (roleplay) {
+      lines = lines.filter(function (line) {
+        return line.getAttribute('data-role') !== 'you';
+      });
+    }
+    if (!lines.length) return;
+    stopAudio();
+    var token = playToken;
+    seqRunning = true;
+    if (playBtn) playBtn.setAttribute('aria-pressed', 'true');
+    var index = 0;
+    function next() {
+      if (token !== playToken || index >= lines.length) {
+        if (token === playToken) {
+          seqRunning = false;
+          if (playBtn) playBtn.setAttribute('aria-pressed', 'false');
+        }
+        return;
+      }
+      var line = lines[index++];
+      var btn = line.querySelector('.say');
+      if (!btn) return next();
+      var start = parseFloat(btn.getAttribute('data-start'));
+      var end = parseFloat(btn.getAttribute('data-end'));
+      if (line.scrollIntoView) {
+        try { line.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+      }
+      playSprite(level + '-d', start, end, btn, token).then(function () {
+        if (token !== playToken) return;
+        if (roleplay && index < lines.length) {
+          sleep(3000, token).then(next);
+        } else {
+          next();
+        }
+      });
+    }
+    next();
+  }
+
+  document.addEventListener('click', function (event) {
+    var hotspot = event.target.closest('[data-hotspot]');
+    if (hotspot) { selectHotspot(hotspot, true); return; }
+
+    var phrase = event.target.closest('.phrase');
+    if (phrase) { playPhrase(phrase); return; }
+
+    var playLineBtn = event.target.closest('.line .say');
+    if (playLineBtn) {
+      var line = playLineBtn.closest('.line');
+      if (roleplay && line.getAttribute('data-role') === 'you'
+          && !line.classList.contains('revealed')) {
+        line.classList.add('revealed');
+      }
+      playLine(line, playLineBtn);
+      return;
+    }
+
+    var levelBtn = event.target.closest('button[data-level]');
+    if (levelBtn) { setLevel(levelBtn.getAttribute('data-level')); return; }
+
+    var voiceBtn = event.target.closest('[data-voice]');
+    if (voiceBtn) { applyVoice(voiceBtn.getAttribute('data-voice')); return; }
+
+    if (event.target.closest('[data-zh-toggle]')) {
+      applyZh(!zhOff);
+      return;
+    }
+    if (event.target.closest('[data-roleplay]')) {
+      applyRoleplay(!roleplay);
+      return;
+    }
+    if (event.target.closest('[data-speed]')) {
+      var steps = [0.8, 0.9, 1, 1.15];
+      var index = steps.indexOf(speed);
+      applySpeed(steps[(index + 1) % steps.length]);
+      return;
+    }
+    if (event.target.closest('[data-play-dialogue]')) {
+      playDialogue();
+    }
+  });
+
+  applyVoice(voice, false);
+  applyZh(zhOff, false);
+  applySpeed(speed, false);
+  var hash = '';
+  try { hash = decodeURIComponent(location.hash.replace(/^#/, '')); } catch (e) {}
+  var initial = hotspots.filter(function (spot) {
+    return spot.getAttribute('data-hotspot') === hash;
+  })[0] || hotspots[0];
+  selectHotspot(initial, false);
+  setLevel(level, false);
+})();
+</script>
+</body>
+</html>

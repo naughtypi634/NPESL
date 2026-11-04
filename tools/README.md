@@ -15,9 +15,10 @@
 |---|---|
 | `build_all.py` | 按依赖顺序跑全部应用与站点装配；`--only`、`--skip-site`、`--refresh-ipa-audio` |
 | `verify.py` | 一次跑完产物比对、音频引用、英式英语、无头浏览器冒烟 |
-| `build_cloudflare_site.py` | 把六个应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/` |
+| `build_cloudflare_site.py` | 把七个应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/` |
 | `build_ipa_site.py` | 音标表页面 + 全部单词的男女两版录音；默认 `--tts azure`，`--skip-audio` 只用缓存 |
 | `apps/conversation/source/build_site.py` | Conversation Starters 页面与全部级别语音 |
+| `apps/travel/source/build.py` | 旅行英语页面、索引与每场景三层 sprite；`--only`、`--skip-audio`、`--index-only`、`--tts azure\|edge` |
 | `drill/make_audio.py` | Question Drill 逐句语音（读 `content/drill/questions.json`） |
 | `drill/assemble.py` | Question Drill 页面、题库脚本与 sprite；默认从 `questions.json` 重渲染 |
 | `clean_build.py` | 清 Edge 临时配置、日志、`__pycache__`；`--all` 连部署暂存；`--scratch` 清 build 顶层残留 |
@@ -48,6 +49,7 @@
 | `drill/prune_audio.py` | 删除题库不再引用的音频 |
 | `drill/test_app.mjs` | Question Drill 单文件版的行为测试 |
 | `apps/collocation/source/validate.py` | 短语搭配内容校验（改内容后必须先跑） |
+| `apps/travel/source/validate.py` | 旅行英语结构、地图热点、美式英语与跨场景重复检查 |
 | `apps/phonics/source/validate.py` | 自然拼读结构校验 |
 | `apps/phenomena/source/validate.py` | 发音现象标注校验 |
 
@@ -68,7 +70,7 @@
 
 ## 关于「pull 下来就能构建」
 
-仓库里 tracked 的是**已交付的母版音频**（IPA、Phenomena、Phrasal、Drill）。下面两个缓存是 gitignore 的，新克隆后第一次构建会联网合成：
+仓库里 tracked 的是**已交付的母版音频**（IPA、Phenomena、Phrasal、Drill、Travel）。下面两个缓存是 gitignore 的，新克隆后第一次构建会联网合成：
 
 - `apps/phonics/source/audio/` —— 自然拼读 96 条故事录音
 - `build/tts/cs/` —— Conversation 的逐句录音与 sidecar

@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Restaurant · 旅行英语</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
+    --surface:#f5f5f7; --surface-strong:#e8e8ed;
+    --blue:#0071e3; --blue-tint:#e8f2ff; --on-blue:#ffffff;
+    --radius-card:24px; --radius-control:12px; --radius-pill:999px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#000000; --fg:#f5f5f7; --muted:#98989d; --rule:#38383a;
+      --surface:#1c1c1e; --surface-strong:#2c2c2e;
+      --blue:#2997ff; --blue-tint:#102a43; --on-blue:#06131f;
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:760px; margin:0 auto;
+    padding:clamp(40px,7vh,72px) 24px 96px; }
+  .back { display:inline-block; margin-bottom:16px; color:var(--muted);
+    text-decoration:none; font-size:14px; }
+  .back:hover { color:var(--blue); }
+  .stage { margin:0 0 8px; color:var(--muted); font-size:12px;
+    letter-spacing:.1em; text-transform:uppercase; }
+  h1 { margin:0; font-size:clamp(2rem,6vw,2.8rem); font-weight:700;
+    letter-spacing:-.03em; line-height:1.08; }
+  .zh-title { margin:7px 0 0; color:var(--muted); font-size:17px; }
+  .toolbar { display:flex; flex-wrap:wrap; align-items:center;
+    justify-content:space-between; gap:10px; margin:20px 0 0; }
+  .level { display:flex; flex-wrap:wrap; gap:6px; }
+  .level button, .zh-toggle, .voice-seg button, .pill {
+    appearance:none; font:inherit; font-size:14px; padding:8px 14px;
+    border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
+    background:transparent; color:var(--fg); cursor:pointer; }
+  .level button:hover, .zh-toggle:hover, .voice-seg button:hover, .pill:hover {
+    background:var(--surface); }
+  .level button[aria-pressed="true"], .zh-toggle[aria-pressed="true"],
+  .voice-seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+    background:var(--blue); border-color:var(--blue); color:var(--on-blue); }
+  .tools { display:flex; align-items:center; gap:8px; }
+  .voice-seg { display:inline-flex; align-items:center; padding:3px;
+    border:1px solid var(--rule); border-radius:var(--radius-pill,999px); }
+  .voice-seg button { border:0; padding:6px 13px; }
+  .zh-toggle { padding:7px 13px; }
+  .map-card { margin:18px 0 0; padding:10px; border:1px solid var(--rule);
+    border-radius:var(--radius-card,24px); background:var(--bg); }
+  .map-wrap { position:relative; width:100%; aspect-ratio:640 / 400;
+    min-height:220px; }
+  .map-svg { display:block; width:100%; height:100%; }
+  .map-plate { fill:var(--surface); stroke:var(--rule); }
+  .map-zone-shape { fill:var(--surface-strong); stroke:var(--rule);
+    stroke-width:1; transition:fill .15s ease, stroke .15s ease; }
+  .map-zone-label { fill:var(--muted); font:600 11px var(--font);
+    letter-spacing:.08em; }
+  .map-fixture { fill:none; stroke:var(--muted); stroke-width:1.4; }
+  .map-fixture-line { fill:none; stroke:var(--muted); stroke-width:1; }
+  .map-fixture-soft { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
+  .map-counter, .map-shelf, .map-sofa, .map-bed, .map-train, .map-car,
+  .map-pump, .map-atm, .map-terminal, .map-booth, .map-machine {
+    fill:var(--surface); stroke:var(--rule); stroke-width:1.2; }
+  .map-counter-top, .map-sofa-seat, .map-pillow, .map-car-window,
+  .map-train-window { fill:var(--surface-strong); stroke:var(--rule);
+    stroke-width:1; }
+  .map-seat { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
+  .map-table { fill:var(--surface-strong); stroke:var(--rule); stroke-width:1; }
+  .map-person { fill:var(--muted); }
+  .map-pin { fill:var(--blue); }
+  .map-flag { fill:var(--blue); }
+  .map-route { fill:none; stroke:var(--blue); stroke-width:1.5;
+    stroke-dasharray:5 7; }
+  .map-zone.is-active .map-zone-shape { fill:var(--blue-tint);
+    stroke:var(--blue); stroke-width:1.8; }
+  .map-zone.is-active .map-zone-label { fill:var(--blue); }
+  .hotspot { position:absolute; left:var(--x); top:var(--y);
+    transform:translate(-50%,-50%); display:flex; flex-direction:column;
+    align-items:flex-start; gap:0; min-height:44px; padding:5px 9px;
+    border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
+    background:var(--bg); color:var(--fg); font:inherit; font-size:12px;
+    line-height:1.15; text-align:left; white-space:nowrap; cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  .hotspot .hs-en { font-weight:600; }
+  .hotspot .hs-zh { font-size:10px; color:var(--muted); }
+  .hotspot:hover { background:var(--surface); }
+  .hotspot[aria-pressed="true"] { background:var(--blue);
+    border-color:var(--blue); color:var(--on-blue); }
+  .hotspot[aria-pressed="true"] .hs-zh { color:var(--on-blue); opacity:.82; }
+  .hotspot:focus-visible, .level button:focus-visible, .zh-toggle:focus-visible,
+  .voice-seg button:focus-visible, .pill:focus-visible, .phrase:focus-visible,
+  .line .say:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+  .encounter { margin:30px 0 0; }
+  .encounter-head h2 { margin:0 0 14px; font-size:1.3rem; font-weight:650;
+    letter-spacing:-.01em; }
+  .encounter-head .zh { color:var(--muted); font-size:14px; font-weight:400;
+    margin-left:8px; }
+  .phrases { display:flex; flex-direction:column; gap:8px; }
+  .phrase { position:relative; width:100%; display:block; text-align:left;
+    font:inherit; padding:12px 42px 12px 14px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--bg);
+    color:inherit; cursor:pointer; }
+  .phrase:hover { background:var(--surface); }
+  .phrase .en { display:block; font-size:16px; line-height:1.45; }
+  .phrase .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:13px; }
+  .phrase .note { display:block; margin-top:4px; color:var(--muted);
+    font-size:12px; line-height:1.5; }
+  .play { position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    display:flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border:1px solid var(--rule); border-radius:50%;
+    color:var(--muted); font-size:9px; }
+  .play svg { display:block; }
+  .phrase.on { border-color:var(--blue); }
+  .phrase.on .play { background:var(--blue); border-color:var(--blue);
+    color:var(--on-blue); }
+  .dialogue { margin:24px 0 0; }
+  .dialogue-tools { display:flex; flex-wrap:wrap; align-items:center;
+    gap:8px; margin-bottom:12px; }
+  .dialogue-tools .pill { padding:7px 13px; font-size:13px; }
+  .turns { display:flex; flex-direction:column; gap:9px; }
+  .line { display:grid; grid-template-columns:52px minmax(0,1fr); gap:8px;
+    align-items:start; }
+  .who { padding-top:11px; color:var(--muted); font-size:12px; text-align:right;
+    overflow:hidden; text-overflow:ellipsis; }
+  .line .say { width:100%; display:block; text-align:left; font:inherit;
+    padding:10px 12px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--surface);
+    color:inherit; cursor:pointer; }
+  .line[data-role="you"] .say { background:var(--blue-tint); }
+  .line .say .en { display:block; font-size:15px; line-height:1.45; }
+  .line .say .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:12px; }
+  .line.playing .say { border-color:var(--blue); }
+  .reveal { display:none; color:var(--muted); font-size:13px; }
+  body.roleplay .line[data-role="you"] .say .en,
+  body.roleplay .line[data-role="you"] .say .zh { display:none; }
+  body.roleplay .line[data-role="you"]:not(.revealed) .reveal { display:block; }
+  body.zh-off .zh, body.zh-off .note, body.zh-off .zh-title { display:none; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  @media (max-width:480px) {
+    .page { padding-left:16px; padding-right:16px; }
+    .toolbar { align-items:flex-start; }
+    .level button { padding:7px 11px; font-size:13px; }
+    .hotspot { font-size:11px; padding:4px 7px; }
+    .hotspot .hs-zh { font-size:9px; }
+    .line { grid-template-columns:44px minmax(0,1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition:none !important; scroll-behavior:auto !important; }
+  }
+</style>
+</head>
+<body data-default-level="survival">
+<main class="page">
+  <a class="back" href="index.html">‹ 旅行英语</a>
+  <header>
+    <p class="stage">吃饭与购物 · Food &amp; shopping</p>
+    <h1>Restaurant</h1>
+    <p class="zh-title">餐厅</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="level" role="group" aria-label="难度">
+      <button type="button" data-level="survival" aria-pressed="true">Survival</button>
+      <button type="button" data-level="conversational" aria-pressed="false">Conversational</button>
+      <button type="button" data-level="advanced" aria-pressed="false">Advanced</button>
+    </div>
+    <div class="tools">
+      <div class="voice-seg" role="group" aria-label="短语音色">
+        <button type="button" data-voice="f" aria-pressed="true">女</button>
+        <button type="button" data-voice="m" aria-pressed="false">男</button>
+      </div>
+      <button class="zh-toggle" type="button" data-zh-toggle aria-pressed="true">中文</button>
+    </div>
+  </div>
+
+  <figure class="card map-card" role="group" aria-label="场景平面图">
+    <div class="map-wrap">
+      <svg class="map-svg" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><g class="map-zone" data-zone="host"><rect class="map-zone-shape" x="36" y="44" width="150" height="100" rx="8"/><text class="map-zone-label" x="46" y="136">HOST</text></g><g class="map-zone" data-zone="check"><rect class="map-zone-shape" x="206" y="44" width="130" height="100" rx="8"/><text class="map-zone-label" x="216" y="136">CHECK</text></g><g class="map-zone" data-zone="tables"><rect class="map-zone-shape" x="36" y="164" width="300" height="192" rx="8"/><text class="map-zone-label" x="46" y="348">DINING</text></g><g class="map-zone" data-zone="bar"><rect class="map-zone-shape" x="356" y="44" width="248" height="120" rx="8"/><text class="map-zone-label" x="366" y="156">BAR</text></g><g class="map-zone" data-zone="kitchen"><rect class="map-zone-shape" x="356" y="184" width="248" height="172" rx="8"/><text class="map-zone-label" x="366" y="348">KITCHEN</text></g><rect class="map-fixture map-counter" x="52.0" y="62.0" width="118.0" height="22.0" rx="6"/><circle class="map-fixture" cx="73.2" cy="73.0" r="4.8"/><rect class="map-fixture map-counter" x="222.0" y="62.0" width="98.0" height="18.0" rx="6"/><rect class="map-fixture map-counter-top" x="228.0" y="68.0" width="86.0" height="6.0" rx="2"/><circle class="map-fixture map-table" cx="84" cy="206" r="28"/><circle class="map-fixture map-seat" cx="49" cy="206" r="7"/><circle class="map-fixture map-seat" cx="119" cy="206" r="7"/><circle class="map-fixture map-table" cx="190" cy="206" r="28"/><circle class="map-fixture map-seat" cx="155" cy="206" r="7"/><circle class="map-fixture map-seat" cx="225" cy="206" r="7"/><circle class="map-fixture map-table" cx="84" cy="296" r="28"/><circle class="map-fixture map-seat" cx="49" cy="296" r="7"/><circle class="map-fixture map-seat" cx="119" cy="296" r="7"/><circle class="map-fixture map-table" cx="190" cy="296" r="28"/><circle class="map-fixture map-seat" cx="155" cy="296" r="7"/><circle class="map-fixture map-seat" cx="225" cy="296" r="7"/><rect class="map-fixture map-counter" x="376.0" y="64.0" width="208.0" height="18.0" rx="6"/><rect class="map-fixture map-fixture-soft" x="376.0" y="204.0" width="208.0" height="40.0" rx="3"/><rect class="map-fixture map-counter" x="388.0" y="212.0" width="184.0" height="24.0" rx="3"/></svg>
+      <button class="hotspot" type="button" style="--x:17.34%;--y:23.5%" data-hotspot="host" data-zone="host" data-encounter="host" aria-pressed="true" aria-controls="panel-host"><span class="hs-en">Table</span><span class="hs-zh">订位</span></button>
+      <button class="hotspot" type="button" style="--x:28.12%;--y:57.5%" data-hotspot="order" data-zone="tables" data-encounter="order" aria-pressed="false" aria-controls="panel-order"><span class="hs-en">Order</span><span class="hs-zh">点餐</span></button>
+      <button class="hotspot" type="button" style="--x:28.12%;--y:80.0%" data-hotspot="allergy" data-zone="tables" data-encounter="allergy" aria-pressed="false" aria-controls="panel-allergy"><span class="hs-en">Allergy</span><span class="hs-zh">忌口</span></button>
+      <button class="hotspot" type="button" style="--x:42.34%;--y:23.5%" data-hotspot="check" data-zone="check" data-encounter="check" aria-pressed="false" aria-controls="panel-check"><span class="hs-en">Check</span><span class="hs-zh">结账</span></button>
+    </div>
+  </figure>
+  <p class="sr-only" aria-live="polite" data-status></p>
+
+  <section class="encounter" id="panel-host" data-encounter="host"><header class="encounter-head"><h2>Getting a table<span class="zh">订位与等位</span></h2></header>
+
+  <div class="level-panel" data-level="survival"><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="2.016" data-start-m="0.000" data-end-m="2.040"><span class="en">A table for two, please.</span><span class="zh">两位，谢谢。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="2.016" data-end-f="3.888" data-start-m="2.040" data-end-m="3.912"><span class="en">Can we sit outside?</span><span class="zh">我们可以坐外面吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="3.888" data-end-f="5.760" data-start-m="3.912" data-end-m="5.784"><span class="en">How long is the wait?</span><span class="zh">要等多久？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="5.760" data-end-f="7.824" data-start-m="5.784" data-end-m="7.656"><span class="en">We have a reservation under Li.</span><span class="zh">我们有李先生的预订。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">Hi, how many?</span><span class="zh">你好，几位？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="3.744"><span class="en">Two, please.</span><span class="zh">两位。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="3.744" data-end="5.712"><span class="en">Inside or outside?</span><span class="zh">里面还是外面？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="5.712" data-end="7.584"><span class="en">Outside, please.</span><span class="zh">外面。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="7.584" data-end="10.296"><span class="en">Follow me. I&#x27;ll get you a menu.</span><span class="zh">跟我来，我给您拿菜单。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="10.296" data-end="12.624"><span class="en">Thanks. Can we sit by the window?</span><span class="zh">谢谢。能坐窗边吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="3.264" data-start-m="0.000" data-end-m="3.048"><span class="en">Do you have a table for two? We don&#x27;t have a reservation.</span><span class="zh">有两人桌吗？我们没预订。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="3.264" data-end-f="5.328" data-start-m="3.048" data-end-m="4.992"><span class="en">Could we sit somewhere a little quieter?</span><span class="zh">能坐安静一点的地方吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="5.328" data-end-f="7.272" data-start-m="4.992" data-end-m="6.984"><span class="en">How long is the wait for a booth?</span><span class="zh">等卡座要多久？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="7.272" data-end-f="9.144" data-start-m="6.984" data-end-m="8.856"><span class="en">Can we wait at the bar?</span><span class="zh">我们能在吧台等吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="9.144" data-end-f="11.016" data-start-m="8.856" data-end-m="10.728"><span class="en">Is the patio heated?</span><span class="zh">露台有暖气吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">Do you have a table reserved?</span><span class="zh">有订位吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="4.440"><span class="en">No, we don&#x27;t. Do you have a table for two?</span><span class="zh">没有。有两人桌吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="4.440" data-end="6.432"><span class="en">It&#x27;s about a twenty-minute wait.</span><span class="zh">大约等二十分钟。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="6.432" data-end="8.760"><span class="en">That&#x27;s fine. Can we wait at the bar?</span><span class="zh">可以。我们能在吧台等吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="8.760" data-end="11.376"><span class="en">Of course. I&#x27;ll come get you.</span><span class="zh">当然。我会来叫您。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="11.376" data-end="14.136"><span class="en">Thanks. Could we sit somewhere a little quieter?</span><span class="zh">谢谢。能坐安静一点的地方吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="14.136" data-end="16.152"><span class="en">I&#x27;ll save you a booth in the back.</span><span class="zh">我给您留后面的卡座。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="16.152" data-end="18.456"><span class="en">Perfect. Is the patio heated?</span><span class="zh">太好了。露台有暖气吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="3.696" data-start-m="0.000" data-end-m="3.288"><span class="en">I know we&#x27;re walk-ins, but is there any chance you could fit us in?</span><span class="zh">我知道我们没预订，但有可能安排吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="3.696" data-end-f="7.392" data-start-m="3.288" data-end-m="6.816"><span class="en">We&#x27;d asked for a quiet table—would it be possible to move?</span><span class="zh">我们要求安静的位置，能换一下吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="7.392" data-end-f="9.840" data-start-m="6.816" data-end-m="9.168"><span class="en">Is the tasting menu available at the bar?</span><span class="zh">吧台能点品鉴菜单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="9.840" data-end-f="13.824" data-start-m="9.168" data-end-m="12.816"><span class="en">We have a theater curtain at 8. Can we be done by 7:30?</span><span class="zh">我们 8 点要看戏。7 点半前能吃完吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="13.824" data-end-f="16.008" data-start-m="12.816" data-end-m="15.072"><span class="en">Could you seat us away from the kitchen door?</span><span class="zh">能安排我们远离厨房门吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">Do you have a reservation?</span><span class="zh">有预订吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="5.160"><span class="en">I know we&#x27;re walk-ins, but is there any chance you could fit us in?</span><span class="zh">我知道我们没预订，但有可能安排吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="5.160" data-end="10.104"><span class="en">Let me check. I can seat you at the bar, or a table in twenty-five minutes.</span><span class="zh">我看看。可以坐吧台，或者等二十五分钟有位子。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="10.104" data-end="13.512"><span class="en">We&#x27;ll take the table. Could you seat us away from the kitchen door?</span><span class="zh">我们等位子。能安排我们远离厨房门吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="13.512" data-end="16.920"><span class="en">I&#x27;ll do my best. I&#x27;ll save you a corner table.</span><span class="zh">我尽量。给您留角落的桌子。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="16.920" data-end="21.384"><span class="en">Thanks. We have a theater curtain at 8. Can we be done by 7:30?</span><span class="zh">谢谢。我们 8 点要看戏，7 点半前能吃完吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="21.384" data-end="23.256"><span class="en">I&#x27;ll note it for your server.</span><span class="zh">我给服务员备注。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="23.256" data-end="26.352"><span class="en">Great. Is the tasting menu available at the bar?</span><span class="zh">好。吧台能点品鉴菜单吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="host"><span class="who">Host</span><button class="say" type="button" data-part="d" data-start="26.352" data-end="29.136"><span class="en">Yes, but it&#x27;s a smaller portion.</span><span class="zh">可以，但分量小一些。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="29.136" data-end="31.368"><span class="en">Good to know. We&#x27;ll wait at the bar.</span><span class="zh">知道了。我们在吧台等。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  </section>
+
+  <section class="encounter" id="panel-order" data-encounter="order" hidden><header class="encounter-head"><h2>Ordering<span class="zh">点餐</span></h2></header>
+
+  <div class="level-panel" data-level="survival"><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="7.824" data-end-f="9.696" data-start-m="7.656" data-end-m="9.528"><span class="en">Can I see the menu?</span><span class="zh">能看菜单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="9.696" data-end-f="11.568" data-start-m="9.528" data-end-m="11.400"><span class="en">I&#x27;ll have the chicken.</span><span class="zh">我要鸡肉。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="11.568" data-end-f="13.752" data-start-m="11.400" data-end-m="13.272"><span class="en">A glass of water, please.</span><span class="zh">一杯水，谢谢。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="13.752" data-end-f="15.624" data-start-m="13.272" data-end-m="15.144"><span class="en">Can I get the check?</span><span class="zh">能买单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="12.624" data-end="14.496"><span class="en">Are you ready to order?</span><span class="zh">可以点餐了吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="14.496" data-end="16.512"><span class="en">Yes. I&#x27;ll have the chicken.</span><span class="zh">可以。我要鸡肉。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="16.512" data-end="18.384"><span class="en">Any sides?</span><span class="zh">要配菜吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="18.384" data-end="21.240"><span class="en">A salad, please. And a glass of water.</span><span class="zh">沙拉。还要一杯水。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="21.240" data-end="23.112"><span class="en">Coming right up.</span><span class="zh">马上来。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="23.112" data-end="25.464"><span class="en">Thanks. Can I see the menu again?</span><span class="zh">谢谢。能再看一下菜单吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="11.016" data-end-f="12.888" data-start-m="10.728" data-end-m="12.600"><span class="en">What do you recommend?</span><span class="zh">你推荐什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="12.888" data-end-f="14.760" data-start-m="12.600" data-end-m="14.472"><span class="en">Is the pasta spicy?</span><span class="zh">意面辣吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="14.760" data-end-f="16.752" data-start-m="14.472" data-end-m="16.344"><span class="en">Could I get the dressing on the side?</span><span class="zh">酱汁能放旁边吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="16.752" data-end-f="18.648" data-start-m="16.344" data-end-m="18.216"><span class="en">Can we get a few more minutes?</span><span class="zh">能再给我们几分钟吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="18.648" data-end-f="20.688" data-start-m="18.216" data-end-m="20.088"><span class="en">I&#x27;ll have the same as my friend.</span><span class="zh">我要和我朋友一样的。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="18.456" data-end="20.328"><span class="en">Have you decided yet?</span><span class="zh">您决定了吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="20.328" data-end="22.200"><span class="en">Could we get a few more minutes?</span><span class="zh">能再给我们几分钟吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="22.200" data-end="25.152"><span class="en">Of course. Can I get you something to drink?</span><span class="zh">当然。要喝点什么吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="25.152" data-end="28.344"><span class="en">Two iced teas, please. What do you recommend?</span><span class="zh">两杯冰茶。你推荐什么？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="28.344" data-end="32.184"><span class="en">The salmon is very popular. It&#x27;s not spicy.</span><span class="zh">三文鱼很受欢迎，不辣。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="32.184" data-end="34.056"><span class="en">Is the pasta spicy?</span><span class="zh">意面辣吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="34.056" data-end="37.584"><span class="en">A little. I can ask the kitchen to make it mild.</span><span class="zh">有点辣。我可以让厨房做温和一点。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="37.584" data-end="41.400"><span class="en">Great. I&#x27;ll have the salmon, and could I get the dressing on the side?</span><span class="zh">好。我要三文鱼，酱汁能放旁边吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="16.008" data-end-f="20.184" data-start-m="15.072" data-end-m="18.816"><span class="en">I have a dairy allergy. Can you confirm the sauce is dairy-free?</span><span class="zh">我乳制品过敏。能确认酱汁不含乳制品吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="20.184" data-end-f="22.680" data-start-m="18.816" data-end-m="21.240"><span class="en">Could the kitchen leave out the nuts in the salad?</span><span class="zh">能让厨房沙拉不放坚果吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="22.680" data-end-f="24.936" data-start-m="21.240" data-end-m="23.424"><span class="en">Is the fish sustainably sourced?</span><span class="zh">鱼是可持续来源吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="24.936" data-end-f="28.560" data-start-m="23.424" data-end-m="26.808"><span class="en">We&#x27;d like to share the appetizer. Could you split it in the kitchen?</span><span class="zh">我们想分前菜。能让厨房分好吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="28.560" data-end-f="31.704" data-start-m="26.808" data-end-m="29.520"><span class="en">Could you pace the courses? We&#x27;re not in a hurry.</span><span class="zh">能控制上菜节奏吗？我们不赶时间。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="31.368" data-end="33.240"><span class="en">Would you like to order?</span><span class="zh">您要点餐吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="33.240" data-end="37.824"><span class="en">Almost. I have a dairy allergy. Can you confirm the sauce is dairy-free?</span><span class="zh">快了。我乳制品过敏。能确认酱汁不含乳制品吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="37.824" data-end="44.616"><span class="en">The lemon sauce is dairy-free, but the cream sauce isn&#x27;t. I&#x27;ll mark it as an allergy and tell the chef.</span><span class="zh">柠檬酱不含乳制品，奶油酱含。我标成过敏并告诉厨师。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="44.616" data-end="49.224"><span class="en">Then I&#x27;ll have the fish with lemon sauce. Could the kitchen leave out the nuts in the salad?</span><span class="zh">那我要柠檬酱鱼。能让厨房沙拉不放坚果吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="49.224" data-end="53.352"><span class="en">Thank you. We&#x27;d like to share the appetizer. Could you split it in the kitchen?</span><span class="zh">谢谢。我们想分前菜。能让厨房分好吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="53.352" data-end="55.872"><span class="en">Of course, I&#x27;ll have the kitchen split it.</span><span class="zh">当然，我让厨房分好。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="55.872" data-end="58.776"><span class="en">Great. Is the fish sustainably sourced?</span><span class="zh">好。鱼是可持续来源吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="58.776" data-end="60.960"><span class="en">It&#x27;s wild-caught from Alaska.</span><span class="zh">是阿拉斯加野生捕捞的。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="60.960" data-end="64.512"><span class="en">Perfect. Could you pace the courses? We&#x27;re not in a hurry.</span><span class="zh">太好了。能控制上菜节奏吗？我们不赶时间。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="64.512" data-end="66.696"><span class="en">I&#x27;ll tell the kitchen to slow down.</span><span class="zh">我让厨房慢一点。</span></button></div>
+
+  </div></div></div>
+
+  </section>
+
+  <section class="encounter" id="panel-allergy" data-encounter="allergy" hidden><header class="encounter-head"><h2>Allergies &amp; dietary needs<span class="zh">忌口与过敏</span></h2></header>
+
+  <div class="level-panel" data-level="survival"><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="15.624" data-end-f="17.496" data-start-m="15.144" data-end-m="17.016"><span class="en">I can&#x27;t eat nuts.</span><span class="zh">我不能吃坚果。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="17.496" data-end-f="19.368" data-start-m="17.016" data-end-m="18.888"><span class="en">Is this dish spicy?</span><span class="zh">这道菜辣吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="19.368" data-end-f="21.240" data-start-m="18.888" data-end-m="20.760"><span class="en">I don&#x27;t eat meat.</span><span class="zh">我不吃肉。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="21.240" data-end-f="23.112" data-start-m="20.760" data-end-m="22.632"><span class="en">Can I get it without cheese?</span><span class="zh">能不加奶酪吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="25.464" data-end="27.336"><span class="en">How is everything?</span><span class="zh">一切都好吗？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="27.336" data-end="30.264"><span class="en">I can&#x27;t eat nuts. Does this dish have nuts?</span><span class="zh">我不能吃坚果。这道菜有坚果吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="30.264" data-end="33.840"><span class="en">It has almonds. I can ask the kitchen to remake it.</span><span class="zh">有杏仁。我可以让厨房重做。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="33.840" data-end="36.096"><span class="en">Please do. I don&#x27;t eat meat either.</span><span class="zh">麻烦。我也不吃肉。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="36.096" data-end="38.688"><span class="en">I&#x27;ll bring you the vegetable pasta instead.</span><span class="zh">我给您换蔬菜意面。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="38.688" data-end="41.208"><span class="en">Thanks. Can I get it without cheese?</span><span class="zh">谢谢。能不加奶酪吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="20.688" data-end-f="23.760" data-start-m="20.088" data-end-m="22.848"><span class="en">I&#x27;m gluten-free. Which dishes can I eat?</span><span class="zh">我无麸质。哪些菜我能吃？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="23.760" data-end-f="25.632" data-start-m="22.848" data-end-m="24.720"><span class="en">Does the soup contain dairy?</span><span class="zh">汤里有乳制品吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="25.632" data-end-f="27.528" data-start-m="24.720" data-end-m="26.592"><span class="en">Could you double-check with the chef?</span><span class="zh">能跟厨师再确认一下吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="27.528" data-end-f="29.808" data-start-m="26.592" data-end-m="28.656"><span class="en">Is there a vegetarian version of this?</span><span class="zh">这道菜有素食版吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="29.808" data-end-f="33.432" data-start-m="28.656" data-end-m="31.968"><span class="en">I&#x27;m allergic to shellfish. Is the fried rice safe?</span><span class="zh">我贝类过敏。炒饭安全吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="41.400" data-end="44.160"><span class="en">I&#x27;m gluten-free. Which dishes can I eat?</span><span class="zh">我无麸质。哪些菜我能吃？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="44.160" data-end="47.544"><span class="en">The grilled chicken and the rice bowls are gluten-free.</span><span class="zh">烤鸡和米饭碗无麸质。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="47.544" data-end="49.416"><span class="en">Does the soup contain dairy?</span><span class="zh">汤里有乳制品吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="49.416" data-end="53.424"><span class="en">It has a little cream. I can ask the chef to leave it out.</span><span class="zh">有一点奶油。我可以让厨师不加。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="53.424" data-end="55.296"><span class="en">Could you double-check with the chef?</span><span class="zh">能跟厨师再确认一下吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="55.296" data-end="57.168"><span class="en">I&#x27;ll check with the chef.</span><span class="zh">我跟厨师确认。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="57.168" data-end="60.048"><span class="en">Thanks. Is there a vegetarian version of this?</span><span class="zh">谢谢。这道菜有素食版吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="60.048" data-end="62.808"><span class="en">Yes, with tofu instead of chicken.</span><span class="zh">有，用豆腐代替鸡肉。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="62.808" data-end="66.120"><span class="en">I&#x27;m allergic to shellfish. Is the fried rice safe?</span><span class="zh">我贝类过敏。炒饭安全吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="66.120" data-end="68.904"><span class="en">The fried rice is made in a separate wok.</span><span class="zh">炒饭用单独的锅做。</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="31.704" data-end-f="36.168" data-start-m="29.520" data-end-m="33.672"><span class="en">I have a severe sesame allergy. Can you check the bread and the sauces?</span><span class="zh">我严重芝麻过敏。能查一下面包和酱汁吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="36.168" data-end-f="41.400" data-start-m="33.672" data-end-m="38.616"><span class="en">Cross-contamination is a real risk for me. Can the kitchen use clean utensils?</span><span class="zh">交叉污染对我很危险。厨房能用干净器具吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="41.400" data-end-f="43.560" data-start-m="38.616" data-end-m="40.656"><span class="en">Is the broth made with fish sauce?</span><span class="zh">汤底是鱼露做的吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="43.560" data-end-f="46.848" data-start-m="40.656" data-end-m="43.512"><span class="en">I&#x27;m pregnant. Which dishes are safe to eat?</span><span class="zh">我怀孕了。哪些菜可以吃？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="46.848" data-end-f="49.416" data-start-m="43.512" data-end-m="46.104"><span class="en">Could you show me the ingredient list for the dessert?</span><span class="zh">能给我看一下甜品的配料表吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="66.696" data-end="70.848"><span class="en">I have a severe sesame allergy. Can you check the bread and the sauces?</span><span class="zh">我严重芝麻过敏。能查一下面包和酱汁吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="70.848" data-end="75.144"><span class="en">The bread is baked in-house, but the hummus contains tahini.</span><span class="zh">面包是店里烤的，但鹰嘴豆泥含芝麻酱。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="75.144" data-end="80.088"><span class="en">Cross-contamination is a real risk for me. Can the kitchen use clean utensils?</span><span class="zh">交叉污染对我很危险。厨房能用干净器具吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="80.088" data-end="83.472"><span class="en">I&#x27;ll alert the chef and use a separate prep area.</span><span class="zh">我通知厨师，用单独的备餐区。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="83.472" data-end="86.280"><span class="en">Thank you. Is the broth made with fish sauce?</span><span class="zh">谢谢。汤底是鱼露做的吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="86.280" data-end="88.152"><span class="en">Yes, it is.</span><span class="zh">是的。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="88.152" data-end="91.704"><span class="en">Thanks. I&#x27;m pregnant—which dishes are safe to eat?</span><span class="zh">谢谢。我怀孕了，哪些菜可以吃？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="91.704" data-end="95.256"><span class="en">The grilled vegetables and the chicken are fully cooked.</span><span class="zh">烤蔬菜和鸡肉都全熟。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="95.256" data-end="98.520"><span class="en">Good. Could you show me the ingredient list for the dessert?</span><span class="zh">好。能给我看一下甜品的配料表吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="98.520" data-end="100.896"><span class="en">I&#x27;ll bring the package so you can read it.</span><span class="zh">我把包装拿来给您看。</span></button></div>
+
+  </div></div></div>
+
+  </section>
+
+  <section class="encounter" id="panel-check" data-encounter="check" hidden><header class="encounter-head"><h2>The check &amp; tip<span class="zh">结账与小费</span></h2></header>
+
+  <div class="level-panel" data-level="survival"><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="23.112" data-end-f="24.984" data-start-m="22.632" data-end-m="24.504"><span class="en">Can we get the check?</span><span class="zh">能买单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="24.984" data-end-f="26.856" data-start-m="24.504" data-end-m="26.376"><span class="en">Can we split it?</span><span class="zh">能分开付吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="26.856" data-end-f="28.728" data-start-m="26.376" data-end-m="28.248"><span class="en">Can I pay by card?</span><span class="zh">能刷卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="28.728" data-end-f="30.600" data-start-m="28.248" data-end-m="30.120"><span class="en">Keep the change.</span><span class="zh">不用找了。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="41.208" data-end="43.248"><span class="en">Excuse me, can we get the check?</span><span class="zh">打扰一下，能买单吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="43.248" data-end="45.888"><span class="en">Sure. Together or separate?</span><span class="zh">可以。一起还是分开？</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="45.888" data-end="48.648"><span class="en">Together, please. Can I pay by card?</span><span class="zh">一起。能刷卡吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="48.648" data-end="51.600"><span class="en">Of course. I&#x27;ll bring the card reader.</span><span class="zh">当然。我拿刷卡机来。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="51.600" data-end="53.520"><span class="en">Thanks. Can we split it?</span><span class="zh">谢谢。能分开付吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="53.520" data-end="56.496"><span class="en">No problem. I&#x27;ll bring two checks.</span><span class="zh">没问题。我拿两张单子。</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="33.432" data-end-f="35.520" data-start-m="31.968" data-end-m="34.032"><span class="en">Could we split the check three ways?</span><span class="zh">能分三份付吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="35.520" data-end-f="37.392" data-start-m="34.032" data-end-m="35.904"><span class="en">Is the tip included?</span><span class="zh">含小费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="37.392" data-end-f="39.600" data-start-m="35.904" data-end-m="37.968"><span class="en">Can I get a box for the leftovers?</span><span class="zh">能给我一个打包盒吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="39.600" data-end-f="41.664" data-start-m="37.968" data-end-m="40.056"><span class="en">Could you bring the check when you have a minute?</span><span class="zh">你有空时能把账单拿来吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="41.664" data-end-f="43.536" data-start-m="40.056" data-end-m="41.928"><span class="en">Do you take Apple Pay?</span><span class="zh">支持 Apple Pay 吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="68.904" data-end="70.968"><span class="en">Could we split the check three ways?</span><span class="zh">能分三份付吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="70.968" data-end="73.680"><span class="en">Sure. The tip isn&#x27;t included.</span><span class="zh">可以。小费不含在内。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="73.680" data-end="76.488"><span class="en">Okay. Can I get a box for the leftovers?</span><span class="zh">好。能给我一个打包盒吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="76.488" data-end="78.360"><span class="en">I&#x27;ll bring one.</span><span class="zh">我拿一个来。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="78.360" data-end="80.472"><span class="en">Thanks. Do you take Apple Pay?</span><span class="zh">谢谢。支持 Apple Pay 吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="80.472" data-end="82.344"><span class="en">Yes, we do.</span><span class="zh">支持。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="82.344" data-end="85.176"><span class="en">Great. Could you bring the check when you have a minute?</span><span class="zh">好。你有空时能把账单拿来吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="85.176" data-end="87.048"><span class="en">I&#x27;ll be right back.</span><span class="zh">马上来。</span></button></div>
+
+  </div></div></div>
+
+  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="49.416" data-end-f="53.832" data-start-m="46.104" data-end-m="50.136"><span class="en">Could you itemize the check? We need to split it by what each person ordered.</span><span class="zh">能把账单列明细吗？我们需要按各自点的分。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="53.832" data-end-f="57.024" data-start-m="50.136" data-end-m="52.968"><span class="en">I think we were charged for a bottle we didn&#x27;t order.</span><span class="zh">我觉得多收了一瓶我们没点的酒。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="57.024" data-end-f="59.232" data-start-m="52.968" data-end-m="54.984"><span class="en">Is the service charge mandatory?</span><span class="zh">服务费是强制的吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="59.232" data-end-f="62.976" data-start-m="54.984" data-end-m="58.392"><span class="en">Could you add a 20 percent tip and charge the rest to this card?</span><span class="zh">能加 20% 小费，其余刷这张卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="62.976" data-end-f="66.528" data-start-m="58.392" data-end-m="61.776"><span class="en">Can you email me an itemized receipt for my expense report?</span><span class="zh">能把明细收据发我邮箱报销吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="100.896" data-end="104.928"><span class="en">Could you itemize the check? We need to split it by what each person ordered.</span><span class="zh">能把账单列明细吗？我们需要按各自点的分。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="104.928" data-end="107.376"><span class="en">I&#x27;ll print an itemized copy.</span><span class="zh">我打一份明细。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="107.376" data-end="111.024"><span class="en">Thanks. I think we were charged for a bottle we didn&#x27;t order.</span><span class="zh">谢谢。我觉得多收了一瓶我们没点的酒。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="111.024" data-end="114.168"><span class="en">Let me check. You&#x27;re right—I&#x27;ll take it off.</span><span class="zh">我看看。您说得对，我去掉。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="114.168" data-end="117.264"><span class="en">Appreciate it. Is the service charge mandatory?</span><span class="zh">谢谢。服务费是强制的吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="117.264" data-end="120.240"><span class="en">No, it&#x27;s optional for parties under six.</span><span class="zh">不是，六人以下可选。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="120.240" data-end="123.816"><span class="en">Then could you add a 20 percent tip and charge the rest to this card?</span><span class="zh">那能加 20% 小费，其余刷这张卡吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="123.816" data-end="125.688"><span class="en">I&#x27;ll handle it.</span><span class="zh">我来处理。</span></button></div>
+
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="125.688" data-end="129.816"><span class="en">Great. Can you email me an itemized receipt for my expense report?</span><span class="zh">好。能把明细收据发我邮箱报销吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+
+  <div class="line" data-role="staff" data-spk="server"><span class="who">Server</span><button class="say" type="button" data-part="d" data-start="129.816" data-end="131.688"><span class="en">I&#x27;ll send it now.</span><span class="zh">我现在就发。</span></button></div>
+
+  </div></div></div>
+
+  </section>
+
+  <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/01ad89e540e0.mp3","survival-p-m":"sprites/6421687cd907.mp3","survival-d":"sprites/11217da4d4c3.mp3","conversational-p-f":"sprites/edfbc6064dd2.mp3","conversational-p-m":"sprites/fd055ca4bccd.mp3","conversational-d":"sprites/a3c875ad17fd.mp3","advanced-p-f":"sprites/4052763b61ed.mp3","advanced-p-m":"sprites/70e4dcde0edf.mp3","advanced-d":"sprites/f005ce68f93c.mp3"}</script>
+</main>
+
+<script>
+(function () {
+  var LEVELS = ['survival', 'conversational', 'advanced'];
+  var SPRITES = {};
+  try {
+    SPRITES = JSON.parse(document.getElementById('spriteMap').textContent || '{}');
+  } catch (e) { SPRITES = {}; }
+  var body = document.body;
+  var levelBtns = [].slice.call(document.querySelectorAll('[data-level]'));
+  var voiceBtns = [].slice.call(document.querySelectorAll('[data-voice]'));
+  var hotspots = [].slice.call(document.querySelectorAll('[data-hotspot]'));
+  var encounters = [].slice.call(document.querySelectorAll('.encounter'));
+  var zhToggle = document.querySelector('[data-zh-toggle]');
+  var rpToggle = document.querySelector('[data-roleplay]');
+  var speedBtn = document.querySelector('[data-speed]');
+  var playBtn = document.querySelector('[data-play-dialogue]');
+  var statusEl = document.querySelector('[data-status]');
+  var audio = new Audio();
+  audio.preload = 'none';
+  audio.preservesPitch = true;
+
+  var voice = 'f';
+  var level = body.getAttribute('data-default-level') || 'survival';
+  var speed = 0.9;
+  var zhOff = false;
+  var roleplay = false;
+  var selected = null;
+  var playToken = 0;
+  var seqRunning = false;
+  var srcCache = {};
+  var currentEl = null;
+
+  try {
+    var savedVoice = localStorage.getItem('npesl-voice');
+    if (savedVoice === 'f' || savedVoice === 'm') voice = savedVoice;
+  } catch (e) {}
+  try {
+    zhOff = localStorage.getItem('npesl-zh') === '0';
+  } catch (e) {}
+  try {
+    var savedSpeed = parseFloat(localStorage.getItem('npesl-speed'));
+    if ([0.8, 0.9, 1, 1.15].indexOf(savedSpeed) >= 0) speed = savedSpeed;
+  } catch (e) {}
+
+  var queryLevel = null;
+  try {
+    queryLevel = new URLSearchParams(location.search).get('level');
+  } catch (e) {}
+  if (LEVELS.indexOf(queryLevel) >= 0) {
+    level = queryLevel;
+  } else {
+    try {
+      var savedLevel = localStorage.getItem('travel-level');
+      if (LEVELS.indexOf(savedLevel) >= 0) level = savedLevel;
+    } catch (e) {}
+  }
+
+  function save(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) {}
+  }
+
+  function updateHash() {
+    var next = '?level=' + level + (selected
+      ? '#' + selected.getAttribute('data-hotspot') : '');
+    try { history.replaceState(null, '', next); } catch (e) {}
+  }
+
+  function applyLevelPanels() {
+    [].forEach.call(document.querySelectorAll('.level-panel'), function (panel) {
+      panel.hidden = panel.getAttribute('data-level') !== level;
+    });
+    levelBtns.forEach(function (btn) {
+      btn.setAttribute('aria-pressed',
+        btn.getAttribute('data-level') === level ? 'true' : 'false');
+    });
+  }
+
+  function setLevel(next, persist) {
+    if (LEVELS.indexOf(next) < 0) return;
+    level = next;
+    applyLevelPanels();
+    stopAudio();
+    if (persist !== false) save('travel-level', level);
+    updateHash();
+  }
+
+  function selectHotspot(btn, scroll) {
+    if (!btn) return;
+    selected = btn;
+    hotspots.forEach(function (spot) {
+      spot.setAttribute('aria-pressed', spot === btn ? 'true' : 'false');
+    });
+    var zone = btn.getAttribute('data-zone');
+    [].forEach.call(document.querySelectorAll('.map-zone'), function (node) {
+      node.classList.toggle('is-active', node.getAttribute('data-zone') === zone);
+    });
+    var target = btn.getAttribute('data-encounter');
+    encounters.forEach(function (panel) {
+      panel.hidden = panel.getAttribute('data-encounter') !== target;
+    });
+    applyLevelPanels();
+    stopAudio();
+    var zh = btn.querySelector('.hs-zh');
+    if (statusEl) statusEl.textContent = '已选择：' + (zh ? zh.textContent : '');
+    updateHash();
+    if (scroll && window.matchMedia('(max-width: 700px)').matches) {
+      var panel = document.getElementById('panel-' + target);
+      if (panel) {
+        setTimeout(function () {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 40);
+      }
+    }
+  }
+
+  function applyVoice(next, persist) {
+    voice = next === 'm' ? 'm' : 'f';
+    voiceBtns.forEach(function (btn) {
+      btn.setAttribute('aria-pressed',
+        btn.getAttribute('data-voice') === voice ? 'true' : 'false');
+    });
+    if (persist !== false) save('npesl-voice', voice);
+    stopAudio();
+  }
+
+  function applyZh(next, persist) {
+    zhOff = !!next;
+    body.classList.toggle('zh-off', zhOff);
+    if (zhToggle) zhToggle.setAttribute('aria-pressed', zhOff ? 'false' : 'true');
+    if (persist !== false) save('npesl-zh', zhOff ? '0' : '1');
+  }
+
+  function applySpeed(next, persist) {
+    speed = next;
+    if (speedBtn) speedBtn.textContent = speed + '×';
+    audio.playbackRate = speed;
+    if (persist !== false) save('npesl-speed', String(speed));
+  }
+
+  function applyRoleplay(next) {
+    roleplay = !!next;
+    body.classList.toggle('roleplay', roleplay);
+    if (rpToggle) rpToggle.setAttribute('aria-pressed', roleplay ? 'true' : 'false');
+    [].forEach.call(document.querySelectorAll('.line[data-role="you"]'),
+      function (line) { line.classList.remove('revealed'); });
+    stopAudio();
+  }
+
+  function stopAudio() {
+    playToken++;
+    seqRunning = false;
+    try { audio.pause(); } catch (e) {}
+    if (currentEl) {
+      currentEl.classList.remove('on', 'playing');
+      currentEl = null;
+    }
+    [].forEach.call(document.querySelectorAll('.phrase.on, .line.playing, .say.playing'),
+      function (node) { node.classList.remove('on', 'playing'); });
+    if (playBtn) playBtn.setAttribute('aria-pressed', 'false');
+  }
+
+  function srcFor(url) {
+    if (srcCache[url]) return srcCache[url];
+    if (location.protocol === 'file:' || !window.fetch || !window.URL
+        || !window.URL.createObjectURL) {
+      srcCache[url] = Promise.resolve(url);
+      return srcCache[url];
+    }
+    srcCache[url] = fetch(url).then(function (response) {
+      if (!response.ok) throw 0;
+      return response.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    }).catch(function () { return url; });
+    return srcCache[url];
+  }
+
+  function loadSource(src) {
+    return new Promise(function (resolve) {
+      if (audio.src === src && audio.readyState >= 1) return resolve();
+      var done = false;
+      function finish() {
+        if (done) return;
+        done = true;
+        audio.removeEventListener('loadedmetadata', finish);
+        audio.removeEventListener('error', finish);
+        resolve();
+      }
+      audio.addEventListener('loadedmetadata', finish);
+      audio.addEventListener('error', finish);
+      audio.src = src;
+      audio.load();
+    });
+  }
+
+  function waitStop(end, token) {
+    return new Promise(function (resolve) {
+      function tick() {
+        if (token !== playToken) return resolve();
+        if (audio.paused || audio.currentTime >= end - 0.008) {
+          try { audio.pause(); } catch (e) {}
+          return resolve();
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  function playSprite(key, start, end, el, token) {
+    return new Promise(function (resolve) {
+      var rel = SPRITES[key];
+      if (!rel || !isFinite(start) || !isFinite(end)) return resolve(false);
+      srcFor('audio/' + rel).then(function (src) {
+        if (token !== playToken) return resolve(false);
+        return loadSource(src).then(function () {
+          if (token !== playToken) return resolve(false);
+          try { audio.currentTime = Math.max(0, start); } catch (e) {}
+          audio.playbackRate = speed;
+          if (currentEl) currentEl.classList.remove('on', 'playing');
+          currentEl = el;
+          if (el) {
+            if (el.classList.contains('phrase')) {
+              el.classList.add('on');
+            } else {
+              var line = el.closest('.line');
+              if (line) line.classList.add('playing');
+              else el.classList.add('playing');
+            }
+          }
+          var played;
+          try { played = audio.play(); } catch (e) { return resolve(false); }
+          Promise.resolve(played).then(function () {
+            if (token !== playToken) return resolve(false);
+            waitStop(end, token).then(function () {
+              resolve(token === playToken);
+            });
+          }, function () { resolve(false); });
+        });
+      });
+    });
+  }
+
+  function sleep(ms, token) {
+    return new Promise(function (resolve) {
+      var start = Date.now();
+      function tick() {
+        if (token !== playToken || Date.now() - start >= ms) return resolve();
+        setTimeout(tick, 100);
+      }
+      tick();
+    });
+  }
+
+  function playPhrase(btn) {
+    var panel = btn.closest('.level-panel');
+    if (!panel) return;
+    var start = parseFloat(btn.getAttribute('data-start-' + voice));
+    var end = parseFloat(btn.getAttribute('data-end-' + voice));
+    stopAudio();
+    var token = playToken;
+    playSprite(level + '-p-' + voice, start, end, btn, token);
+  }
+
+  function playLine(line, btn) {
+    var start = parseFloat(btn.getAttribute('data-start'));
+    var end = parseFloat(btn.getAttribute('data-end'));
+    stopAudio();
+    var token = playToken;
+    return playSprite(level + '-d', start, end, btn, token);
+  }
+
+  function currentPanel() {
+    return document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden])');
+  }
+
+  function playDialogue() {
+    if (seqRunning) { stopAudio(); return; }
+    var panel = currentPanel();
+    if (!panel) return;
+    var lines = [].slice.call(panel.querySelectorAll('.line'));
+    if (roleplay) {
+      lines = lines.filter(function (line) {
+        return line.getAttribute('data-role') !== 'you';
+      });
+    }
+    if (!lines.length) return;
+    stopAudio();
+    var token = playToken;
+    seqRunning = true;
+    if (playBtn) playBtn.setAttribute('aria-pressed', 'true');
+    var index = 0;
+    function next() {
+      if (token !== playToken || index >= lines.length) {
+        if (token === playToken) {
+          seqRunning = false;
+          if (playBtn) playBtn.setAttribute('aria-pressed', 'false');
+        }
+        return;
+      }
+      var line = lines[index++];
+      var btn = line.querySelector('.say');
+      if (!btn) return next();
+      var start = parseFloat(btn.getAttribute('data-start'));
+      var end = parseFloat(btn.getAttribute('data-end'));
+      if (line.scrollIntoView) {
+        try { line.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+      }
+      playSprite(level + '-d', start, end, btn, token).then(function () {
+        if (token !== playToken) return;
+        if (roleplay && index < lines.length) {
+          sleep(3000, token).then(next);
+        } else {
+          next();
+        }
+      });
+    }
+    next();
+  }
+
+  document.addEventListener('click', function (event) {
+    var hotspot = event.target.closest('[data-hotspot]');
+    if (hotspot) { selectHotspot(hotspot, true); return; }
+
+    var phrase = event.target.closest('.phrase');
+    if (phrase) { playPhrase(phrase); return; }
+
+    var playLineBtn = event.target.closest('.line .say');
+    if (playLineBtn) {
+      var line = playLineBtn.closest('.line');
+      if (roleplay && line.getAttribute('data-role') === 'you'
+          && !line.classList.contains('revealed')) {
+        line.classList.add('revealed');
+      }
+      playLine(line, playLineBtn);
+      return;
+    }
+
+    var levelBtn = event.target.closest('button[data-level]');
+    if (levelBtn) { setLevel(levelBtn.getAttribute('data-level')); return; }
+
+    var voiceBtn = event.target.closest('[data-voice]');
+    if (voiceBtn) { applyVoice(voiceBtn.getAttribute('data-voice')); return; }
+
+    if (event.target.closest('[data-zh-toggle]')) {
+      applyZh(!zhOff);
+      return;
+    }
+    if (event.target.closest('[data-roleplay]')) {
+      applyRoleplay(!roleplay);
+      return;
+    }
+    if (event.target.closest('[data-speed]')) {
+      var steps = [0.8, 0.9, 1, 1.15];
+      var index = steps.indexOf(speed);
+      applySpeed(steps[(index + 1) % steps.length]);
+      return;
+    }
+    if (event.target.closest('[data-play-dialogue]')) {
+      playDialogue();
+    }
+  });
+
+  applyVoice(voice, false);
+  applyZh(zhOff, false);
+  applySpeed(speed, false);
+  var hash = '';
+  try { hash = decodeURIComponent(location.hash.replace(/^#/, '')); } catch (e) {}
+  var initial = hotspots.filter(function (spot) {
+    return spot.getAttribute('data-hotspot') === hash;
+  })[0] || hotspots[0];
+  selectHotspot(initial, false);
+  setLevel(level, false);
+})();
+</script>
+</body>
+</html>

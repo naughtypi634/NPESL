@@ -64,7 +64,7 @@ def check_page(page: Path, site: Path, audio_site: Path | None) -> list[str]:
     for voice, rel in sprites.items():
         if not isinstance(rel, str):
             continue
-        if rel_page.startswith(("phenomena/", "collocation/")):
+        if rel_page.startswith(("phenomena/", "collocation/", "travel/")):
             want("audio/" + rel, "页面自带 sprite")
         else:
             # 对话（含 ESLSE）和音标表都指向独立音频站
