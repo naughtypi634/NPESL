@@ -52,6 +52,10 @@ DRILL = DRILL_APP
 CONVERSATION = CONVERSATION_APP
 OUT = SITE_OUT
 
+# 旅行英语还没做完，暂时不上线：改回 True 并恢复 apps/site/index.html 的入口卡片
+# 就重新上线。关掉时 /travel/ 整块不进部署包，线上直接 404。
+TRAVEL_ENABLED = False
+
 ICON = f"{SITE_URL}/npesl-icon.png"
 
 HEADERS = """/phonics/audio/*
@@ -325,7 +329,9 @@ def main() -> int:
         print("警告：短语搭配目录不存在，未包含")
 
     # 旅行英语：场景页 + 每页 sprite
-    if TRAVEL.exists():
+    if not TRAVEL_ENABLED:
+        print("  旅行英语：暂未上线，未包含")
+    elif TRAVEL.exists():
         travel_out = OUT / "travel"
         shutil.copytree(TRAVEL, travel_out, ignore=travel_ignore)
         finish_group(PageGroup(
@@ -398,7 +404,8 @@ def main() -> int:
     print(f"  Question Drill：{SITE_URL}/drill/")
     print(f"  常见发音现象：{SITE_URL}/phenomena/")
     print(f"  短语搭配：{SITE_URL}/collocation/")
-    print(f"  旅行英语：{SITE_URL}/travel/")
+    if TRAVEL_ENABLED:
+        print(f"  旅行英语：{SITE_URL}/travel/")
     if AUDIO_OUT.exists():
         afiles, asize = stats(AUDIO_OUT)
         print(f"音频站：{AUDIO_OUT.relative_to(ROOT)}")
