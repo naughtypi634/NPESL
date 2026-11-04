@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import check_bre  # noqa: E402
 
 LEVELS = {"A2", "B1", "B2", "C1"}
-RENDERERS = {"line", "area", "bar", "hbar", "table", "pie"}
+RENDERERS = {"line", "bar", "pie", "table", "process", "map", "mixed"}
 ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 COUNT_RE = re.compile(r"\d+\s*(个|条|种|张)")
 CLICHES = [
@@ -87,8 +87,8 @@ def check_english(value, where: str, problems: Problems) -> None:
 
 def check_content(data: dict, problems: Problems) -> None:
     types = data.get("types", {}).get("sections", [])
-    if len(types) != 6:
-        problems.add("chart-types.json", "expected exactly six chart sections")
+    if len(types) != 7:
+        problems.add("chart-types.json", "expected exactly seven chart sections")
     seen = set()
     for section in types:
         where = f"chart-type {section.get('id', '?')}"
@@ -109,7 +109,7 @@ def check_content(data: dict, problems: Problems) -> None:
 
     labs = data.get("labs", {})
     datasets = labs.get("datasets", {})
-    for key in ("time", "category", "shares"):
+    for key in ("time", "category", "shares", "process", "map", "mixed"):
         if key not in datasets:
             problems.add("labs.json", f"dataset {key} is missing")
     shares = datasets.get("shares", {}).get("parts", [])
@@ -118,6 +118,47 @@ def check_content(data: dict, problems: Problems) -> None:
     for part in shares:
         if not ID_RE.match(str(part.get("id", ""))):
             problems.add("labs.json", f"bad pie part id {part.get('id')!r}")
+
+    process = datasets.get("process", {})
+    steps = process.get("steps", [])
+    if len(steps) < 4:
+        problems.add("labs.json", "process needs at least four steps")
+    for step in steps:
+        for key in ("id", "title_en", "title_zh", "detail_en", "detail_zh", "passive_en", "passive_zh", "icon"):
+            if not step.get(key):
+                problems.add("labs.json", f"process step {step.get('id', '?')}: missing {key}")
+        if not ID_RE.match(str(step.get("id", ""))):
+            problems.add("labs.json", f"bad process step id {step.get('id')!r}")
+
+    diagram = datasets.get("map", {})
+    features = diagram.get("features", [])
+    if len(features) < 4:
+        problems.add("labs.json", "map needs at least four features")
+    for feature in features:
+        where = f"map feature {feature.get('id', '?')}"
+        if not ID_RE.match(str(feature.get("id", ""))):
+            problems.add("labs.json", f"bad map feature id {feature.get('id')!r}")
+        for key in ("x", "y", "w", "h"):
+            if not isinstance(feature.get(key), (int, float)):
+                problems.add(where, f"{key} must be a number")
+        for side in ("before", "after"):
+            if not feature.get(side, {}).get("label_en"):
+                problems.add(where, f"missing {side} label")
+        if feature.get("change") not in {"replaced", "added", "unchanged"}:
+            problems.add(where, f"bad change type {feature.get('change')!r}")
+        for key in ("location_en", "location_zh"):
+            if not feature.get(key):
+                problems.add(where, f"missing {key}")
+
+    mixed = datasets.get("mixed", {})
+    periods = mixed.get("periods", [])
+    for key in ("bars", "line"):
+        series = mixed.get(key, {})
+        if len(series.get("values", [])) != len(periods):
+            problems.add("labs.json", f"mixed {key} values must match the period count")
+        for name in ("id", "name_en", "name_zh", "unit", "values"):
+            if not series.get(name):
+                problems.add("labs.json", f"mixed {key}: missing {name}")
 
     vocab = data.get("vocab", {})
     groups = {group.get("id") for group in vocab.get("groups", [])}

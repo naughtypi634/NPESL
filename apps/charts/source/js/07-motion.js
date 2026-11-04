@@ -83,7 +83,7 @@
     });
 
     (m.bars || []).forEach(function (bar, index) {
-      var horizontal = kind === 'hbar';
+      var horizontal = !!(lab.barState && lab.barState.direction === 'horizontal');
       bar.style.transformBox = 'fill-box';
       bar.style.transformOrigin = horizontal ? 'left center' : 'center bottom';
       var anim = bar.animate(

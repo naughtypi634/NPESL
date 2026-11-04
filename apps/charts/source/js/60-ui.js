@@ -2,20 +2,17 @@
   'use strict';
 
   var ui = NC.ui = {};
-  var SCENES = {
-    line: 'Nova Delivery · quarterly revenue',
-    area: 'Nova Delivery · quarterly revenue',
-    bar: 'Peak Coffee · revenue by region',
-    hbar: 'Peak Coffee · revenue by region',
-    table: 'Peak Coffee · revenue by region',
-    pie: 'Harbor Cloud · market share by channel'
-  };
 
   var REPLAY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v6h-6"/></svg>';
 
   var state = {
     typeId: null
   };
+
+  function sceneFor(type) {
+    var dataset = NC.state.datasets && type.dataset ? NC.state.datasets[type.dataset] : null;
+    return dataset && dataset.scene_en ? dataset.scene_en : '';
+  }
 
   function sortedTypes() {
     return NC.state.data.types.sections.slice().sort(function (a, b) {
@@ -45,16 +42,17 @@
   }
 
   function panelHtml(type) {
-    var replay = type.renderer === 'table' ? '' :
+    var replay = ['line', 'bar', 'pie', 'mixed'].indexOf(type.renderer) === -1 ? '' :
       '<button class="icon-btn" type="button" data-replay aria-label="重播动画" title="重播动画">' + REPLAY_ICON + '</button>';
     return '<header class="section-head">' +
         '<h2>' + NC.escapeHtml(type.label_zh) + ' <span class="h2-en">' + NC.escapeHtml(type.label_en) + '</span></h2>' +
       '</header>' +
       '<div class="panel-grid">' +
         '<div class="panel-figure">' +
-          '<figure class="chart-card surface">' +
+          '<figure class="chart-card">' +
             '<header class="figure-head">' +
-              '<span class="chart-scene">' + NC.escapeHtml(SCENES[type.id] || '') + '</span>' +
+              '<span class="chart-scene">' + NC.escapeHtml(sceneFor(type)) + '</span>' +
+              '<div class="figure-modes" data-modes></div>' +
               '<span class="figure-actions">' +
                 replay +
                 '<button class="text-link" type="button" data-reset>重置</button>' +
@@ -74,21 +72,6 @@
           '</section>' +
         '</aside>' +
       '</div>' +
-      '<div class="pattern-section">' +
-        '<h3>常用句型</h3>' +
-        '<ul class="pattern-list" data-patterns></ul>' +
-      '</div>' +
-      '<details class="learning" data-vocab-section>' +
-        '<summary>词汇</summary>' +
-        '<div class="learning-body"><div class="vocab-groups" data-vocab></div></div>' +
-      '</details>' +
-      '<details class="learning" data-grammar-section>' +
-        '<summary>句型与语法</summary>' +
-        '<div class="learning-body">' +
-          (type.converter ? converterHtml() : '') +
-          '<div class="grammar-list" data-grammar></div>' +
-        '</div>' +
-      '</details>';
       '<div class="pattern-section">' +
         '<h3>常用句型</h3>' +
         '<ul class="pattern-list" data-patterns></ul>' +
@@ -332,12 +315,18 @@
     var scroller = NC.byId('type-buttons');
     var tab = NC.byId('tab-' + id);
     if (scroller && tab && scroller.scrollWidth > scroller.clientWidth) {
-      var left = tab.offsetLeft - 16;
+      var left = tab.offsetLeft - (scroller.clientWidth - tab.offsetWidth) / 2;
+      left = Math.max(0, Math.min(left, scroller.scrollWidth - scroller.clientWidth));
       scroller.scrollTo({ left: left, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
     }
 
     var lab = NC.state.labs[id];
-    if (lab) lab.mount();
+    if (lab) {
+      lab.mount();
+      if (lab.renderer.render) lab.renderer.render(lab);
+      lab.refresh(false);
+      lab.refreshTable();
+    }
     var panel = NC.byId('chart-' + id);
     if (panel && !NC.state.reducedMotion) {
       panel.classList.remove('is-entering');

@@ -11,10 +11,12 @@
     this.liveNode = section.querySelector('[data-live]');
     this.tableHost = section.querySelector('[data-table]');
     this.dataPanel = section.querySelector('[data-data-panel]');
+    this.modesHost = section.querySelector('[data-modes]');
     this.renderer = NC.renderers[type.renderer];
     this.mounted = false;
     this.compact = false;
     this.result = null;
+    this.mode = {};
     NC.state.labs[type.id] = this;
 
     var self = this;
@@ -49,6 +51,15 @@
         if (NC.motion) NC.motion.play(self);
       });
     }
+  };
+
+  Lab.prototype.setMode = function (patch) {
+    var next = patch || {};
+    Object.keys(next).forEach(function (key) {
+      this.mode[key] = next[key];
+    }, this);
+    if (this.renderer.render) this.renderer.render(this);
+    this.refresh(false);
   };
 
   Lab.prototype.refresh = function (commit) {
@@ -86,6 +97,11 @@
       }
       block.className = 'sentence' + (lead && index === 0 ? ' lead' : '');
       block.setAttribute('data-role', sentence.role);
+      if (sentence.focus && sentence.focus.length) {
+        block.setAttribute('data-focus', sentence.focus.join(' '));
+      } else {
+        block.removeAttribute('data-focus');
+      }
       var enNode = block.querySelector('.sentence-en');
       var zhNode = block.querySelector('.sentence-zh');
       if (enNode.textContent !== sentence.en) enNode.textContent = sentence.en;

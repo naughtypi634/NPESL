@@ -4,288 +4,383 @@
   var svg = NC.svg;
   var common = NC.renderCommon;
 
-  function currentSeries(dataset) {
-    return dataset.series[dataset.series.length - 1];
+  function ensureMode(lab) {
+    if (!lab.mode.direction) lab.mode.direction = 'vertical';
+    if (!lab.mode.layout) lab.mode.layout = 'grouped';
   }
 
-  function baselineSeries(dataset) {
-    return dataset.series.length > 1 ? dataset.series[0] : null;
+  function totals(dataset) {
+    return dataset.categories.map(function (category, index) {
+      return dataset.series.reduce(function (sum, series) {
+        return sum + series.values[index];
+      }, 0);
+    });
   }
 
-  function tipText(dataset, current, baseline, index) {
-    var category = dataset.categories[index];
-    var text = category.label_en + ' · ' + current.name_en + ': ' + NC.fmt.value(current.values[index], dataset.unit, 0);
-    if (baseline) text += ' · ' + baseline.name_en + ': ' + NC.fmt.value(baseline.values[index], dataset.unit, 0);
-    return text;
+  function maxIndividual(dataset) {
+    var max = 0;
+    dataset.series.forEach(function (series) {
+      series.values.forEach(function (value) {
+        if (value > max) max = value;
+      });
+    });
+    return max;
   }
 
-  function tableSpec(lab) {
+  function niceMax(value) {
+    if (!isFinite(value) || value <= 0) return 100;
+    var step = Math.pow(10, Math.floor(Math.log10(value)));
+    var scaled = value / step;
+    var nice = scaled <= 1.2 ? 1.2 : scaled <= 2 ? 2 : scaled <= 2.5 ? 2.5 : scaled <= 3 ? 3 : scaled <= 5 ? 5 : 10;
+    return Math.ceil(nice * step);
+  }
+
+  function buildControls(lab) {
+    var host = lab.modesHost;
+    if (!host) return;
+    host.innerHTML = '';
+
+    var direction = document.createElement('div');
+    direction.className = 'mode-group';
+    var directionLabel = document.createElement('span');
+    directionLabel.className = 'mode-label';
+    directionLabel.textContent = '方向';
+    direction.appendChild(directionLabel);
+    var directionHost = document.createElement('div');
+    direction.appendChild(directionHost);
+    NC.segment(directionHost, {
+      label: '方向',
+      value: lab.mode.direction,
+      options: [{ value: 'vertical', zh: '竖向' }, { value: 'horizontal', zh: '横向' }]
+    }, function (value) {
+      lab.setMode({ direction: value });
+    });
+    host.appendChild(direction);
+
+    var layout = document.createElement('div');
+    layout.className = 'mode-group';
+    var layoutLabel = document.createElement('span');
+    layoutLabel.className = 'mode-label';
+    layoutLabel.textContent = '排列';
+    layout.appendChild(layoutLabel);
+    var layoutHost = document.createElement('div');
+    layout.appendChild(layoutHost);
+    NC.segment(layoutHost, {
+      label: '排列',
+      value: lab.mode.layout,
+      options: [{ value: 'grouped', zh: '分组' }, { value: 'stacked', zh: '堆叠' }]
+    }, function (value) {
+      lab.setMode({ layout: value });
+    });
+    host.appendChild(layout);
+  }
+
+  function legend(lab, dataset) {
+    var host = document.createElement('div');
+    host.className = 'legend-host';
+    lab.plot.appendChild(host);
+    return common.legend(host, dataset.series.map(function (series) {
+      return { label: series.name_en, color: 'var(--' + series.color + ')', key: series.id };
+    }));
+  }
+
+  function tipText(dataset, seriesIndex, categoryIndex) {
+    var series = dataset.series[seriesIndex];
+    var category = dataset.categories[categoryIndex];
+    return category.label_en + ' · ' + series.name_en + ': ' + NC.fmt.value(series.values[categoryIndex], dataset.unit, 0);
+  }
+
+  function hasSeries(dataset) {
+    return dataset.series && dataset.series.length > 0;
+  }
+
+  function bindBar(target, lab, seriesIndex, categoryIndex, handle, showTip) {
     var dataset = lab.dataset;
-    var current = currentSeries(dataset);
-    var baseline = baselineSeries(dataset);
-    return {
-      columns: [
-        { label: 'Market' },
-        { label: (baseline ? baseline.name_en : 'Last year') + ' · ' + dataset.unit },
-        { label: current.name_en + ' · ' + dataset.unit, editable: true, step: 5, decimals: 0, unit: '' },
-        { label: 'YoY' }
-      ],
-      rows: dataset.categories.map(function (category, index) {
-        var previous = baseline ? baseline.values[index] : null;
-        var value = current.values[index];
-        var yoy = previous ? (value - previous) / previous * 100 : null;
-        return {
-          key: category.id,
-          cells: [
-            { text: category.label_en + ' · ' + category.label_zh },
-            { text: previous == null ? '—' : NC.fmt.number(previous, 0) },
-            {
-              value: value,
-              unit: dataset.unit,
-              set: function (next) {
-                current.values[index] = next;
-              }
-            },
-            { text: yoy == null ? '—' : (yoy >= 0 ? '+' : '') + NC.fmt.number(yoy, 1) + '%' }
-          ]
-        };
-      })
-    };
-  }
-
-  function bindBarDrag(target, lab, categoryIndex, handle, showTip) {
-    var dataset = lab.dataset;
-    var current = currentSeries(dataset);
-    var baseline = baselineSeries(dataset);
-    var opts = {
-      axis: 'y',
+    var state = lab.barState;
+    var series = dataset.series[seriesIndex];
+    NC.drag.bind(target, {
+      axis: state.direction === 'horizontal' ? 'x' : 'y',
       min: 0,
-      max: dataset.max || 600,
-      step: 5,
-      pixelSpan: lab.barState ? lab.barState.plot.height : 520,
-      get: function () { return current.values[categoryIndex]; },
-      set: function (value) { current.values[categoryIndex] = value; },
+      max: state.max,
+      step: dataset.step || 5,
+      pixelSpan: state.direction === 'horizontal' ? state.plot.width : state.plot.height,
+      get: function () { return series.values[categoryIndex]; },
+      set: function (value) { series.values[categoryIndex] = value; },
       onStart: showTip,
       onUpdate: function () {
-        lab.changed(false);
+        if (lab.renderer && lab.renderer.update) lab.renderer.update(lab);
+        lab.refresh(false);
         showTip();
       },
-      onCommit: function () { lab.changed(true); },
+      onCommit: function () {
+        lab.changed(true);
+        if (state.direction === 'horizontal' && state.layout === 'grouped') {
+          var categoryId = dataset.categories[categoryIndex].id;
+          lab.renderer.render(lab);
+          var next = lab.plot.querySelector('.handle[data-category="' + categoryId + '"]');
+          if (next) {
+            try { next.focus({ preventScroll: true }); } catch (err) { next.focus(); }
+          }
+        }
+        showTip();
+      },
       onEnd: showTip,
       valueText: function (value) {
         return dataset.categories[categoryIndex].label_en + ', ' + NC.fmt.value(value, dataset.unit, 0);
       }
-    };
-    NC.drag.bind(target, opts);
+    });
   }
 
-  function renderVertical(lab) {
+  function showTipFactory(lab) {
+    return function (seriesIndex, categoryIndex, x, y, text) {
+      common.showTip(lab.plot, text || tipText(lab.dataset, seriesIndex, categoryIndex), lab.svg, x, y);
+    };
+  }
+
+  function drawVertical(lab) {
     var dataset = lab.dataset;
-    var current = currentSeries(dataset);
-    var baseline = baselineSeries(dataset);
+    var state = lab.barState;
     var width = 720;
     var height = 400;
-    var root = svg.create(lab.plot, width, height, 'Column chart of revenue by market. Drag a bar to change the value.');
+    var root = svg.create(lab.plot, width, height, 'Bar chart of revenue by region and product line. Drag a bar to change a value.');
     lab.svg = root;
     var compact = common.fit(root);
     lab.compact = compact;
     var plot = common.plot(width, height, compact);
     plot.bottom = height - 64;
     plot.height = plot.bottom - plot.top;
-    var max = dataset.max || 600;
+    var layout = lab.mode.layout;
+    var max = layout === 'stacked' ? dataset.max : niceMax(Math.max(maxIndividual(dataset), 1) * 1.12);
     var y = NC.scale.linear(0, max, plot.bottom, plot.top);
-    var band = NC.scale.band(dataset.categories.length, plot.left, plot.right, 0.24);
-    var barWidth = Math.min(34, band.width * 0.34);
+    var band = NC.scale.band(dataset.categories.length, plot.left, plot.right, 0.32);
 
-    lab.legendHost = lab.legendHost || document.createElement('div');
-    lab.legendHost.className = 'legend-host';
-    if (!lab.legendHost.parentNode) lab.plot.appendChild(lab.legendHost);
-    var legend = common.legend(lab.legendHost, [
-      { label: baseline ? baseline.name_en : 'Last year', color: 'var(--series-2)', outline: true, key: 'baseline' },
-      { label: current.name_en, color: 'var(--series-1)', key: 'current' }
-    ]);
+    state.direction = 'vertical';
+    state.layout = layout;
+    state.plot = plot;
+    state.y = y;
+    state.band = band;
+    state.max = max;
 
     common.drawYAxis(root, {
       left: plot.left, right: plot.right, top: plot.top, bottom: plot.bottom,
       min: 0, max: max, scale: y,
       format: function (value) { return NC.fmt.axis(value); }
     });
+    common.drawXAxis(root, {
+      left: plot.left, right: plot.right, bottom: plot.bottom,
+      labels: dataset.categories.map(function (category) { return category.label_en; }),
+      x: function (index) { return band.center(index); }
+    });
 
+    var seriesCount = dataset.series.length;
+    var barWidth = layout === 'stacked'
+      ? Math.min(46, band.width * 0.48)
+      : Math.min(18, band.width * 0.72 / seriesCount);
+    var barGap = 2;
+    var groupWidth = barWidth * seriesCount + barGap * (seriesCount - 1);
+    var groupTotals = totals(dataset);
     var bars = [];
-    var ghosts = [];
-    var labels = [];
-    var ghostLabels = [];
-    dataset.categories.forEach(function (category, index) {
-      var center = band.center(index);
-      var currentValue = current.values[index];
-      var previous = baseline ? baseline.values[index] : null;
-      if (previous != null) {
-        var ghost = svg.rect(root, {
-          x: center - barWidth - 2,
-          y: y(previous),
-          width: barWidth,
-          height: Math.max(0, plot.bottom - y(previous)),
-          rx: 3,
-          class: 'bar-ghost'
-        });
-        ghosts.push(ghost);
-        if (!compact) {
-          ghostLabels.push(common.placeValueLabel(root, center - barWidth / 2 - 2, y(previous) - 8, NC.fmt.number(previous, 0), {
-            class: 'value-label ghost',
-            top: plot.top + 12
-          }));
-        }
-      }
-      var bar = svg.rect(root, {
-        x: center + 2,
-        y: y(currentValue),
-        width: barWidth,
-        height: Math.max(0, plot.bottom - y(currentValue)),
-        rx: 3,
-        class: 'bar-current'
-      });
-      bars.push(bar);
-      svg.text(root, {
-        x: center, y: plot.bottom + 20,
-        'text-anchor': 'middle',
-        class: 'axis-label category-label'
-      }, category.label_en);
-      labels.push(common.placeValueLabel(root, center, y(currentValue) - 10, NC.fmt.number(currentValue, 0), {
-        top: plot.top + 12
-      }));
-    });
-
-    var handleLayer = svg.group(root, { class: 'handles' });
     var handles = [];
-    dataset.categories.forEach(function (category, index) {
-      var center = band.center(index) + 2 + barWidth / 2;
-      var currentValue = current.values[index];
-      var handle = svg.mkHandle(handleLayer, center, y(currentValue), {
-        min: 0,
-        max: max,
-        now: currentValue,
-        radius: common.screenPx(root, 6),
-        hitRadius: common.screenPx(root, 20),
-        label: category.label_en + ' ' + current.name_en,
-        valueText: tipText(dataset, current, baseline, index)
-      });
-      handle.group.setAttribute('data-index', index);
-      handles.push(handle);
-    });
+    var labels = [];
+    var handleLayer = svg.group(root, { class: 'handles' });
+    var showTip = showTipFactory(lab);
 
-    function showTip(index) {
-      var py = y(current.values[index]);
-      common.showTip(lab.plot, tipText(dataset, current, baseline, index), root, band.center(index), py);
-      lab.barState.tipIndex = index;
-    }
-
-    function hideTip() {
-      common.hideTip(lab.plot);
-      if (lab.barState) lab.barState.tipIndex = null;
-      common.clearEmphasis(lab.plot);
-    }
-
-    lab.barState = {
-      layout: 'vertical',
-      plot: plot,
-      y: y,
-      band: band,
-      barWidth: barWidth,
-      current: current,
-      baseline: baseline,
-      bars: bars,
-      ghosts: ghosts,
-      labels: labels,
-      ghostLabels: ghostLabels,
-      handles: handles,
-      max: max,
-      root: root,
-      tipIndex: null
-    };
-
-    dataset.categories.forEach(function (category, index) {
-      var handle = handles[index];
-      bindBarDrag(handle.group, lab, index, handle, function () { showTip(index); });
-      bindBarDrag(bars[index], lab, index, handle, function () { showTip(index); });
-      [handle.group, bars[index]].forEach(function (target) {
-        target.addEventListener('pointerenter', function () {
-          common.emphasize(lab.plot, 'current');
-          showTip(index);
+    dataset.categories.forEach(function (category, categoryIndex) {
+      var center = band.center(categoryIndex);
+      if (layout === 'stacked') {
+        var base = 0;
+        dataset.series.forEach(function (series, seriesIndex) {
+          var value = series.values[categoryIndex];
+          var bottom = y(base);
+          var top = y(base + value);
+          var rect = svg.rect(root, {
+            x: center - barWidth / 2,
+            y: top,
+            width: barWidth,
+            height: Math.max(0, bottom - top),
+            class: 'bar-segment',
+            fill: 'var(--' + series.color + ')',
+            'data-series': series.id,
+            'data-index': categoryIndex
+          });
+          rect.addEventListener('pointerenter', function () {
+            common.emphasize(lab.plot, series.id);
+            showTip(seriesIndex, categoryIndex, center, top);
+          });
+          rect.addEventListener('pointerleave', function () {
+            common.clearEmphasis(lab.plot);
+            common.hideTip(lab.plot);
+          });
+          bars.push(rect);
+          base += value;
         });
-        target.addEventListener('pointerleave', hideTip);
-      });
-      handle.group.addEventListener('focus', function () { showTip(index); });
-      handle.group.addEventListener('blur', hideTip);
-    });
-    legend.items.forEach(function (item) {
-      item.addEventListener('pointerenter', function () { common.emphasize(lab.plot, item.getAttribute('data-legend')); });
-      item.addEventListener('pointerleave', function () { common.clearEmphasis(lab.plot); });
+      } else {
+        var start = center - groupWidth / 2;
+        dataset.series.forEach(function (series, seriesIndex) {
+          var value = series.values[categoryIndex];
+          var x = start + seriesIndex * (barWidth + barGap);
+          var rect = svg.rect(root, {
+            x: x,
+            y: y(value),
+            width: barWidth,
+            height: Math.max(0, plot.bottom - y(value)),
+            class: 'bar-current',
+            fill: 'var(--' + series.color + ')',
+            'data-series': series.id,
+            'data-index': categoryIndex
+          });
+          rect.addEventListener('pointerenter', function () {
+            common.emphasize(lab.plot, series.id);
+            showTip(seriesIndex, categoryIndex, x + barWidth / 2, y(value));
+          });
+          rect.addEventListener('pointerleave', function () {
+            common.clearEmphasis(lab.plot);
+            common.hideTip(lab.plot);
+          });
+          bars.push(rect);
+
+          var handle = svg.mkHandle(handleLayer, x + barWidth / 2, y(value), {
+            min: 0,
+            max: max,
+            now: value,
+            radius: common.screenPx(root, 4.5),
+            hitRadius: common.screenPx(root, 15),
+            label: category.label_en + ' ' + series.name_en,
+            valueText: tipText(dataset, seriesIndex, categoryIndex),
+            data: { series: seriesIndex, index: categoryIndex, category: category.id }
+          });
+          bindBar(handle.group, lab, seriesIndex, categoryIndex, handle, function () {
+            showTip(seriesIndex, categoryIndex, x + barWidth / 2, y(series.values[categoryIndex]));
+          });
+          handle.group.addEventListener('pointerenter', function () {
+            showTip(seriesIndex, categoryIndex, x + barWidth / 2, y(series.values[categoryIndex]));
+          });
+          handle.group.addEventListener('pointerleave', function () { common.hideTip(lab.plot); });
+          handles.push({ handle: handle, seriesIndex: seriesIndex, categoryIndex: categoryIndex });
+        });
+      }
+
+      if (layout === 'stacked') {
+        labels.push({
+          node: common.placeValueLabel(root, center, y(groupTotals[categoryIndex]) - 10, NC.fmt.number(groupTotals[categoryIndex], 0), {
+            top: plot.top + 12
+          })
+        });
+      } else {
+        dataset.series.forEach(function (series, seriesIndex) {
+          if (compact && seriesIndex !== 0) return;
+          var start = center - groupWidth / 2;
+          var x = start + seriesIndex * (barWidth + barGap);
+          labels.push({
+            node: common.placeValueLabel(root, x + barWidth / 2, y(series.values[categoryIndex]) - 8, NC.fmt.number(series.values[categoryIndex], 0), {
+              top: plot.top + 12,
+              class: 'value-label'
+            }),
+            seriesIndex: seriesIndex,
+            categoryIndex: categoryIndex
+          });
+        });
+      }
     });
 
-    lab.motion = { bars: bars, ghosts: ghosts, handles: handles, labels: labels };
+    legend(lab, dataset);
+    state.bars = bars;
+    state.handles = handles;
+    state.labels = labels;
+    state.barWidth = barWidth;
+    state.barGap = barGap;
+    state.groupWidth = groupWidth;
+    state.groupTotals = groupTotals;
+    state.root = root;
+    lab.motion = { bars: bars, handles: handles.map(function (item) { return item.handle; }), labels: labels.map(function (item) { return item.node || item; }) };
+
+    handles.forEach(function (item) {
+      item.handle.group.addEventListener('focus', function () {
+        var center = state.band.center(item.categoryIndex);
+        var start = center - state.groupWidth / 2;
+        var x = start + item.seriesIndex * (state.barWidth + state.barGap) + state.barWidth / 2;
+        showTip(item.seriesIndex, item.categoryIndex, x, state.y(dataset.series[item.seriesIndex].values[item.categoryIndex]));
+      });
+      item.handle.group.addEventListener('blur', function () { common.hideTip(lab.plot); });
+    });
   }
 
   function updateVertical(lab) {
     var state = lab.barState;
-    if (!state || state.layout !== 'vertical') return;
-    lab.dataset.categories.forEach(function (category, index) {
-      var value = state.current.values[index];
-      var previous = state.baseline ? state.baseline.values[index] : null;
-      var center = state.band.center(index);
-      if (state.bars[index]) {
-        state.bars[index].setAttribute('y', state.y(value));
-        state.bars[index].setAttribute('height', Math.max(0, state.plot.bottom - state.y(value)));
-      }
-      if (previous != null && state.ghosts[index]) {
-        state.ghosts[index].setAttribute('y', state.y(previous));
-        state.ghosts[index].setAttribute('height', Math.max(0, state.plot.bottom - state.y(previous)));
-      }
-      svg.move(state.handles[index], center + 2 + state.barWidth / 2, state.y(value));
-      svg.setSlider(state.handles[index], value, category.label_en + ', ' + NC.fmt.value(value, lab.dataset.unit, 0));
-      if (state.labels[index]) {
-        state.labels[index].setAttribute('y', Math.max(state.plot.top + 12, state.y(value) - 10));
-        state.labels[index].textContent = NC.fmt.number(value, 0);
-      }
-      if (state.ghostLabels[index] && previous != null) {
-        state.ghostLabels[index].setAttribute('y', Math.max(state.plot.top + 12, state.y(previous) - 8));
-        state.ghostLabels[index].textContent = NC.fmt.number(previous, 0);
-      }
+    if (!state || state.direction !== 'vertical' || state.layout !== 'grouped') return;
+    var dataset = lab.dataset;
+    var y = state.y;
+    var band = state.band;
+    var barWidth = state.barWidth;
+    var barGap = state.barGap;
+    var groupWidth = state.groupWidth;
+    dataset.series.forEach(function (series, seriesIndex) {
+      series.values.forEach(function (value, categoryIndex) {
+        var center = band.center(categoryIndex);
+        var start = center - groupWidth / 2;
+        var x = start + seriesIndex * (barWidth + barGap);
+        var bar = state.bars[categoryIndex * dataset.series.length + seriesIndex];
+        if (bar) {
+          bar.setAttribute('y', y(value));
+          bar.setAttribute('height', Math.max(0, state.plot.bottom - y(value)));
+        }
+        var item = state.handles.filter(function (handle) {
+          return handle.seriesIndex === seriesIndex && handle.categoryIndex === categoryIndex;
+        })[0];
+        if (item) {
+          svg.move(item.handle, x + barWidth / 2, y(value));
+          svg.setSlider(item.handle, value, tipText(dataset, seriesIndex, categoryIndex));
+        }
+      });
     });
-    if (typeof state.tipIndex === 'number') {
-      common.showTip(lab.plot, tipText(lab.dataset, state.current, state.baseline, state.tipIndex), state.root, state.band.center(state.tipIndex), state.y(state.current.values[state.tipIndex]));
-    }
+    state.labels.forEach(function (item) {
+      if (!item.node || item.seriesIndex == null) return;
+      var value = dataset.series[item.seriesIndex].values[item.categoryIndex];
+      var center = band.center(item.categoryIndex);
+      var start = center - groupWidth / 2;
+      var x = start + item.seriesIndex * (barWidth + barGap);
+      item.node.setAttribute('x', x + barWidth / 2);
+      item.node.setAttribute('y', Math.max(state.plot.top + 12, y(value) - 8));
+      item.node.textContent = NC.fmt.number(value, 0);
+    });
   }
 
-  function renderHorizontal(lab) {
+  function drawHorizontal(lab) {
     var dataset = lab.dataset;
-    var current = currentSeries(dataset);
-    var baseline = baselineSeries(dataset);
+    var state = lab.barState;
     var width = 720;
     var height = 420;
-    var root = svg.create(lab.plot, width, height, 'Horizontal bar chart ranking markets by revenue. Drag a bar to change the value.');
+    var root = svg.create(lab.plot, width, height, 'Horizontal bar chart ranking regions by revenue. Drag a bar to change a value.');
     lab.svg = root;
     var compact = common.fit(root);
     lab.compact = compact;
     var plot = common.plot(width, height, compact);
-    plot.left = compact ? 96 : 126;
+    plot.left = compact ? 100 : 132;
     plot.top = 24;
-    plot.bottom = height - 40;
+    plot.bottom = height - 46;
     plot.width = plot.right - plot.left;
     plot.height = plot.bottom - plot.top;
-    var max = dataset.max || 600;
+    var layout = lab.mode.layout;
+    var max = layout === 'stacked' ? dataset.max : niceMax(Math.max(maxIndividual(dataset), 1) * 1.18);
     var x = NC.scale.linear(0, max, plot.left, plot.right);
+    var groupTotals = totals(dataset);
     var order = dataset.categories.map(function (category, index) { return index; })
-      .sort(function (a, b) { return current.values[b] - current.values[a]; });
-    var band = NC.scale.band(order.length, plot.top, plot.bottom, 0.26);
-    var barHeight = Math.min(28, band.width * 0.58);
+      .sort(function (a, b) { return groupTotals[b] - groupTotals[a]; });
+    var band = NC.scale.band(order.length, plot.top, plot.bottom, 0.28);
+    var seriesCount = dataset.series.length;
+    var barHeight = layout === 'stacked'
+      ? Math.min(30, band.width * 0.56)
+      : Math.min(13, band.width * 0.7 / seriesCount);
+    var barGap = 2;
+    var groupHeight = barHeight * seriesCount + barGap * (seriesCount - 1);
 
-    lab.legendHost = lab.legendHost || document.createElement('div');
-    lab.legendHost.className = 'legend-host';
-    if (!lab.legendHost.parentNode) lab.plot.appendChild(lab.legendHost);
-    var legend = common.legend(lab.legendHost, [
-      { label: baseline ? baseline.name_en : 'Last year', color: 'var(--series-2)', outline: true, key: 'baseline' },
-      { label: current.name_en, color: 'var(--series-1)', key: 'current' }
-    ]);
+    state.direction = 'horizontal';
+    state.layout = layout;
+    state.plot = plot;
+    state.x = x;
+    state.band = band;
+    state.order = order;
+    state.max = max;
 
     var ticks = NC.scale.ticks(0, max, 5);
     ticks.forEach(function (tick) {
@@ -294,191 +389,234 @@
       svg.text(root, { x: px, y: plot.bottom + 20, 'text-anchor': 'middle', class: 'axis-label' }, NC.fmt.axis(tick));
     });
 
-    var handleLayer = svg.group(root, { class: 'handles' });
     var bars = [];
-    var rules = [];
-    var labels = [];
     var handles = [];
+    var labels = [];
+    var handleLayer = svg.group(root, { class: 'handles' });
+    var showTip = showTipFactory(lab);
+
     order.forEach(function (categoryIndex, row) {
       var category = dataset.categories[categoryIndex];
-      var value = current.values[categoryIndex];
-      var previous = baseline ? baseline.values[categoryIndex] : null;
       var cy = band.center(row);
-      var label = svg.text(root, {
+      var name = svg.text(root, {
         x: plot.left - 12,
         y: cy,
         'text-anchor': 'end',
         'dominant-baseline': 'middle',
         class: 'axis-label category-label'
       }, category.label_en);
-      common.fitText(label, plot.left - 24);
-      if (previous != null) {
-        rules.push(svg.rect(root, {
-          x: plot.left,
-          y: cy + barHeight / 2 - 5,
-          width: Math.max(0, x(previous) - plot.left),
-          height: 3,
-          rx: 1.5,
-          class: 'bar-ghost-rule'
-        }));
-      } else {
-        rules.push(null);
-      }
-      var bar = svg.rect(root, {
-        x: plot.left,
-        y: cy - barHeight / 2,
-        width: Math.max(0, x(value) - plot.left),
-        height: barHeight,
-        rx: Math.min(4, barHeight / 2),
-        class: 'bar-current'
-      });
-      bars.push(bar);
-      var nearEnd = x(value) > plot.right - 50;
-      labels.push(common.placeValueLabel(root, nearEnd ? x(value) - 8 : x(value) + 8, cy, NC.fmt.number(value, 0), {
-        anchor: nearEnd ? 'end' : 'start',
-        class: nearEnd ? 'value-label inside' : 'value-label end'
-      }));
-      var handle = svg.mkHandle(handleLayer, x(value), cy, {
-        min: 0,
-        max: max,
-        now: value,
-        radius: common.screenPx(root, 6),
-        hitRadius: common.screenPx(root, compact ? 22 : 18),
-        orientation: 'horizontal',
-        label: category.label_en + ' ' + current.name_en,
-        valueText: tipText(dataset, current, baseline, categoryIndex)
-      });
-      handle.group.setAttribute('data-index', categoryIndex);
-      handle.group.setAttribute('data-category', category.id);
-      handles.push({ handle: handle, categoryIndex: categoryIndex, row: row });
-    });
+      common.fitText(name, plot.left - 22);
 
-    function showTip(categoryIndex, row) {
-      var cy = band.center(row);
-      common.showTip(lab.plot, tipText(dataset, current, baseline, categoryIndex), root, x(current.values[categoryIndex]), cy);
-      lab.barState.tipIndex = categoryIndex;
-      lab.barState.tipRow = row;
-    }
-
-    function hideTip() {
-      common.hideTip(lab.plot);
-      if (lab.barState) {
-        lab.barState.tipIndex = null;
-        lab.barState.tipRow = null;
-      }
-      common.clearEmphasis(lab.plot);
-    }
-
-    lab.barState = {
-      layout: 'horizontal',
-      plot: plot,
-      x: x,
-      band: band,
-      barHeight: barHeight,
-      order: order,
-      current: current,
-      baseline: baseline,
-      bars: bars,
-      rules: rules,
-      labels: labels,
-      handles: handles,
-      max: max,
-      root: root,
-      tipIndex: null,
-      tipRow: null
-    };
-
-    order.forEach(function (categoryIndex, row) {
-      var item = handles[row];
-      var category = dataset.categories[categoryIndex];
-      var show = function () { showTip(categoryIndex, row); };
-      var optsHandle = {
-        axis: 'x',
-        min: 0,
-        max: max,
-        step: 5,
-        pixelSpan: plot.width,
-        get: function () { return current.values[categoryIndex]; },
-        set: function (next) { current.values[categoryIndex] = next; },
-        onStart: show,
-        onUpdate: function () { lab.changed(false); show(); },
-        onCommit: function () {
-          lab.changed(true);
-          var categoryId = category.id;
-          renderHorizontal(lab);
-          var next = lab.svg.querySelector('.handle[data-category="' + categoryId + '"]');
-          if (next) {
-            try { next.focus({ preventScroll: true }); } catch (err) { next.focus(); }
-          }
-        },
-        onEnd: show,
-        valueText: function (next) {
-          return category.label_en + ', ' + NC.fmt.value(next, dataset.unit, 0);
-        }
-      };
-      NC.drag.bind(item.handle.group, optsHandle);
-      NC.drag.bind(bars[row], optsHandle);
-      [item.handle.group, bars[row]].forEach(function (target) {
-        target.addEventListener('pointerenter', function () {
-          common.emphasize(lab.plot, 'current');
-          show();
+      if (layout === 'stacked') {
+        var cumulative = 0;
+        dataset.series.forEach(function (series, seriesIndex) {
+          var value = series.values[categoryIndex];
+          var rect = svg.rect(root, {
+            x: x(cumulative),
+            y: cy - barHeight / 2,
+            width: Math.max(0, x(cumulative + value) - x(cumulative)),
+            height: barHeight,
+            class: 'bar-segment',
+            fill: 'var(--' + series.color + ')',
+            'data-series': series.id,
+            'data-index': categoryIndex
+          });
+          rect.addEventListener('pointerenter', function () {
+            common.emphasize(lab.plot, series.id);
+            showTip(seriesIndex, categoryIndex, x(cumulative + value / 2), cy);
+          });
+          rect.addEventListener('pointerleave', function () {
+            common.clearEmphasis(lab.plot);
+            common.hideTip(lab.plot);
+          });
+          bars.push(rect);
+          cumulative += value;
         });
-        target.addEventListener('pointerleave', hideTip);
-      });
-      item.handle.group.addEventListener('focus', show);
-      item.handle.group.addEventListener('blur', hideTip);
-    });
-    legend.items.forEach(function (item) {
-      item.addEventListener('pointerenter', function () { common.emphasize(lab.plot, item.getAttribute('data-legend')); });
-      item.addEventListener('pointerleave', function () { common.clearEmphasis(lab.plot); });
+      } else {
+        var top = cy - groupHeight / 2;
+        dataset.series.forEach(function (series, seriesIndex) {
+          var value = series.values[categoryIndex];
+          var by = top + seriesIndex * (barHeight + barGap);
+          var rect = svg.rect(root, {
+            x: plot.left,
+            y: by,
+            width: Math.max(0, x(value) - plot.left),
+            height: barHeight,
+            rx: Math.min(3, barHeight / 2),
+            class: 'bar-current',
+            fill: 'var(--' + series.color + ')',
+            'data-series': series.id,
+            'data-index': categoryIndex
+          });
+          rect.addEventListener('pointerenter', function () {
+            common.emphasize(lab.plot, series.id);
+            showTip(seriesIndex, categoryIndex, x(value), by + barHeight / 2);
+          });
+          rect.addEventListener('pointerleave', function () {
+            common.clearEmphasis(lab.plot);
+            common.hideTip(lab.plot);
+          });
+          bars.push(rect);
+          if (compact && seriesIndex !== 0) {
+            // Keep the compact chart quiet: only the leading series is labeled.
+          } else {
+          var nearEndBar = x(value) > plot.right - 44;
+          labels.push({
+            node: common.placeValueLabel(root, nearEndBar ? x(value) - 6 : x(value) + 8, by + barHeight / 2, NC.fmt.number(value, 0), {
+              anchor: nearEndBar ? 'end' : 'start',
+              class: nearEndBar ? 'value-label inside' : 'value-label end'
+            }),
+            seriesIndex: seriesIndex,
+            categoryIndex: categoryIndex,
+            row: row
+          });
+          }
+
+          var handle = svg.mkHandle(handleLayer, x(value), by + barHeight / 2, {
+            min: 0,
+            max: max,
+            now: value,
+            radius: common.screenPx(root, 4),
+            hitRadius: common.screenPx(root, compact ? 16 : 13),
+            orientation: 'horizontal',
+            label: category.label_en + ' ' + series.name_en,
+            valueText: tipText(dataset, seriesIndex, categoryIndex),
+            data: { series: seriesIndex, index: categoryIndex, category: category.id }
+          });
+          bindBar(handle.group, lab, seriesIndex, categoryIndex, handle, function () {
+            showTip(seriesIndex, categoryIndex, x(series.values[categoryIndex]), by + barHeight / 2);
+          });
+          handle.group.addEventListener('pointerenter', function () {
+            showTip(seriesIndex, categoryIndex, x(series.values[categoryIndex]), by + barHeight / 2);
+          });
+          handle.group.addEventListener('pointerleave', function () { common.hideTip(lab.plot); });
+          handles.push({ handle: handle, seriesIndex: seriesIndex, categoryIndex: categoryIndex, row: row });
+        });
+      }
+
+      if (layout === 'stacked') {
+        var total = groupTotals[categoryIndex];
+        var nearEnd = x(total) > plot.right - 48;
+        labels.push({
+          node: common.placeValueLabel(root, nearEnd ? x(total) - 8 : x(total) + 8, cy, NC.fmt.number(total, 0), {
+            anchor: nearEnd ? 'end' : 'start',
+            class: nearEnd ? 'value-label inside' : 'value-label end'
+          })
+        });
+      }
     });
 
-    lab.motion = { bars: bars, rules: rules, handles: handles.map(function (item) { return item.handle; }), labels: labels };
+    legend(lab, dataset);
+    state.bars = bars;
+    state.handles = handles;
+    state.labels = labels;
+    state.barHeight = barHeight;
+    state.barGap = barGap;
+    state.groupHeight = groupHeight;
+    state.groupTotals = groupTotals;
+    state.root = root;
+    lab.motion = { bars: bars, handles: handles.map(function (item) { return item.handle; }), labels: labels.map(function (item) { return item.node || item; }) };
+
+    handles.forEach(function (item) {
+      item.handle.group.addEventListener('focus', function () {
+        showTip(item.seriesIndex, item.categoryIndex, x(dataset.series[item.seriesIndex].values[item.categoryIndex]), band.center(item.row));
+      });
+      item.handle.group.addEventListener('blur', function () { common.hideTip(lab.plot); });
+    });
   }
 
   function updateHorizontal(lab) {
     var state = lab.barState;
-    if (!state || state.layout !== 'horizontal') return;
-    state.order.forEach(function (categoryIndex, row) {
-      var value = state.current.values[categoryIndex];
-      var previous = state.baseline ? state.baseline.values[categoryIndex] : null;
-      var nearEnd = state.x(value) > state.plot.right - 50;
-      if (state.bars[row]) state.bars[row].setAttribute('width', Math.max(0, state.x(value) - state.plot.left));
-      if (previous != null && state.rules[row]) state.rules[row].setAttribute('width', Math.max(0, state.x(previous) - state.plot.left));
-      var item = state.handles[row];
-      if (item) {
-        svg.move(item.handle, state.x(value), state.band.center(item.row));
-        svg.setSlider(item.handle, value, lab.dataset.categories[categoryIndex].label_en + ', ' + NC.fmt.value(value, lab.dataset.unit, 0));
-      }
-      var label = state.labels[row];
-      if (label) {
-        label.setAttribute('x', nearEnd ? state.x(value) - 8 : state.x(value) + 8);
-        label.setAttribute('text-anchor', nearEnd ? 'end' : 'start');
-        label.setAttribute('class', nearEnd ? 'value-label inside' : 'value-label end');
-        label.textContent = NC.fmt.number(value, 0);
-      }
+    if (!state || state.direction !== 'horizontal' || state.layout !== 'grouped') return;
+    var dataset = lab.dataset;
+    var x = state.x;
+    var band = state.band;
+    dataset.series.forEach(function (series, seriesIndex) {
+      series.values.forEach(function (value, categoryIndex) {
+        var item = state.handles.filter(function (handle) {
+          return handle.seriesIndex === seriesIndex && handle.categoryIndex === categoryIndex;
+        })[0];
+        if (!item) return;
+        var cy = band.center(item.row);
+        var top = cy - state.groupHeight / 2;
+        var by = top + seriesIndex * (state.barHeight + state.barGap);
+        var bar = state.bars.filter(function (node) {
+          return node.getAttribute('data-series') === series.id && Number(node.getAttribute('data-index')) === categoryIndex;
+        })[0];
+        if (bar) bar.setAttribute('width', Math.max(0, x(value) - state.plot.left));
+        svg.move(item.handle, x(value), by + state.barHeight / 2);
+        svg.setSlider(item.handle, value, tipText(dataset, seriesIndex, categoryIndex));
+      });
     });
-    if (typeof state.tipIndex === 'number' && state.tipRow != null) {
-      common.showTip(lab.plot, tipText(lab.dataset, state.current, state.baseline, state.tipIndex), state.root, state.x(state.current.values[state.tipIndex]), state.band.center(state.tipRow));
+    state.labels.forEach(function (item) {
+      if (!item.node || item.seriesIndex == null) return;
+      var value = dataset.series[item.seriesIndex].values[item.categoryIndex];
+      var nearEnd = x(value) > state.plot.right - 44;
+      item.node.setAttribute('x', nearEnd ? x(value) - 6 : x(value) + 8);
+      item.node.setAttribute('text-anchor', nearEnd ? 'end' : 'start');
+      item.node.setAttribute('class', nearEnd ? 'value-label inside' : 'value-label end');
+      item.node.textContent = NC.fmt.number(value, 0);
+    });
+  }
+
+  function render(lab) {
+    ensureMode(lab);
+    buildControls(lab);
+    lab.barState = {};
+    if (lab.mode.direction === 'horizontal') {
+      drawHorizontal(lab);
+    } else {
+      drawVertical(lab);
+    }
+  }
+
+  function update(lab) {
+    if (lab.mode.direction === 'horizontal') {
+      updateHorizontal(lab);
+    } else {
+      updateVertical(lab);
     }
   }
 
   function describe(lab) {
-    return NC.desc.category(lab.dataset, NC.state.level, { style: lab.type.renderer === 'hbar' ? 'ranking' : 'bar' });
+    return NC.desc.bar(lab.dataset, NC.state.level, lab.mode);
+  }
+
+  function tableSpec(lab) {
+    var dataset = lab.dataset;
+    var groupTotals = totals(dataset);
+    return {
+      columns: [
+        { label: 'Region' }
+      ].concat(dataset.series.map(function (series) {
+        return { label: series.name_en + ' · ' + dataset.unit, editable: true, step: 5, decimals: 0, unit: '' };
+      })).concat([
+        { label: 'Total · ' + dataset.unit },
+        { label: 'Share' }
+      ]),
+      rows: dataset.categories.map(function (category, index) {
+        var cells = [{ text: category.label_en + ' · ' + category.label_zh }];
+        dataset.series.forEach(function (series, seriesIndex) {
+          cells.push({
+            value: series.values[index],
+            unit: dataset.unit,
+            set: function (value) {
+              dataset.series[seriesIndex].values[index] = value;
+            }
+          });
+        });
+        cells.push({ text: NC.fmt.number(groupTotals[index], 0) });
+        var share = groupTotals.reduce(function (sum, value) { return sum + value; }, 0);
+        cells.push({ text: NC.fmt.number(share > 0 ? groupTotals[index] / share * 100 : 0, 1) + '%' });
+        return { key: category.id, cells: cells };
+      })
+    };
   }
 
   NC.renderers.bar = {
-    mount: function (lab) { renderVertical(lab); },
-    render: renderVertical,
-    update: updateVertical,
-    describe: describe,
-    table: tableSpec
-  };
-
-  NC.renderers.hbar = {
-    mount: function (lab) { renderHorizontal(lab); },
-    render: renderHorizontal,
-    update: updateHorizontal,
+    mount: function (lab) { render(lab); },
+    render: render,
+    update: update,
     describe: describe,
     table: tableSpec
   };

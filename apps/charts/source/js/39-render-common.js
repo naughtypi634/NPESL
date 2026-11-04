@@ -138,7 +138,7 @@
         });
       }
       var lastIndex = labels.length - 1;
-      var show = index === 0 || index === lastIndex ||
+      var show = labels.length <= 8 || index === 0 || index === lastIndex ||
         (index % every === 0 && lastIndex - index >= 2);
       if (!show) return;
       var anchor = index === 0 ? 'start' : index === lastIndex ? 'end' : 'middle';
