@@ -10,9 +10,9 @@
 
 ```
 content/   phonetics/ conversation/ drill/ collocation/   写内容只看这里
-apps/      site/ phonics/ ipa/ drill/ phenomena/ collocation/
-tools/     paths.py 与所有构建脚本
-build/     cloudflare-site/ cloudflare-audio/ conversation-site/ …（gitignore）
+apps/      site/ phonics/ ipa/ drill/ phenomena/ collocation/ conversation/
+tools/     paths.py 与构建脚本
+build/     cloudflare-site/ cloudflare-audio/ …（gitignore）
 ```
 
 - 所有构建从库根目录运行。
@@ -38,11 +38,11 @@ build/     cloudflare-site/ cloudflare-audio/ conversation-site/ …（gitignore
 
 构建命令见 [README.md](README.md) 的「构建」「部署」两节。几条硬规则：
 
-- **不要手改生成物**：`apps/phonics/lessons/`、该系列的 `index.html`、`apps/ipa/index.html`、`apps/drill/index.html`、`apps/phenomena/*.html`、`apps/collocation/*.html`、`build/conversation-site/`、`build/cloudflare-*/` 都是脚本产物。改内容改源（`content/`、`apps/phonics/source/content/`、`content/drill/*.json`、`content/collocation/*.json`），再重新构建。
+- **不要手改生成物**：`apps/phonics/lessons/`、该系列的 `index.html`、`apps/ipa/index.html`、`apps/drill/index.html`、`apps/phenomena/*.html`、`apps/collocation/*.html`、`apps/conversation/*.html`、`build/cloudflare-*/` 都是脚本产物。改内容改源（`content/`、`apps/phonics/source/content/`、`content/drill/*.json`、`content/collocation/*.json`、`content/conversation/`），再重新构建。
 - **Question Drill 的权威题库是 `content/drill/questions.json`**（2,247 题）。批次 JSON 复现不出它——`extra-questions.json` 里还有 192 道补充题，所以 `assemble.py` 默认从 `questions.json` 重渲染，只有显式 `--from-batches` 才从批次重建。音频由 `make_audio.py` 按内容哈希写入 `apps/drill/audio/`。
 - **Question Drill 用两级场景筛选**：一级是旅游 / 日常生活 / 工作商务，二级是 21 个 chip（机场、车站、住宿、景点、交通、餐厅、购物、买药、办事、居住、看病、家务、社交、休闲、学习、数码、面试、办公室、会议、客户、行政），定义在 `content/drill/chips.json`，每题有 `chip` 字段。交通、餐厅、购物、买药、办事 5 个 chip 由旅游和日常共用，题目只写一份。补题写进 `content/drill/topup/*.json`，先跑 `tools/drill/check_dup.py` 和 `check_text.py`，再用 `tools/drill/tag_chips.py --merge` 合并；每个 chip 至少 100 题。
 - **语音缓存不要删**：`build/tts/cs/`（Conversation Starters）和 `apps/phonics/source/audio/` 是本地缓存，gitignore，但删了就得重新联网合成。内容没变的音频会自动跳过。
-- **音频交付分两层**：逐条录音是母版（`apps/drill/audio/{f,m}/`、`apps/ipa/audio/*.mp3`、`apps/phenomena/audio/{f,m}/`、`apps/collocation/audio/{f,m}/`、`build/tts/cs/`），部署只带构建时拼出来的 `sprites/`（每页/每课/每题每音色一条）。改一句读音：删掉该条母版再跑对应构建，只重合成这一条，然后只重拼那一页的 sprite；部署按内容哈希只上传变化的文件。
+- **音频交付分两层**：逐条录音是母版（`apps/drill/audio/{f,m}/`、`apps/ipa/audio/*.mp3`、`apps/phenomena/audio/{f,m}/`、`apps/collocation/audio/{f,m}/`、`build/tts/cs/`），部署只带构建时拼出来的 `sprites/`（每页/每课/每题每音色一条，`apps/conversation/audio/` 下同样只有 sprite）。改一句读音：删掉该条母版再跑对应构建，只重合成这一条，然后只重拼那一页的 sprite；部署按内容哈希只上传变化的文件。
 - **短语搭配**：内容源是 `content/collocation/themes.json` 加每个主题一个 JSON（**30 个主题，共 1,279 条**，分 6 大类），反义关系在 `content/collocation/opposites.json`（`pairs` 成对跳转，`word_opposites` 是单词反义提示），页面在 `apps/collocation/`。音频默认 Azure（Ava/Andrew）；`--tts qwen` 是本地 Qwen3-TTS 备选，同一站点不要混用两种音源。页面只显示【口语】【可分】两个徽章，不显示等级和编号。改内容后先跑 `apps/collocation/source/validate.py`（英式词、例句长度、IPA、chip、l1_note 都在这里拦），再跑 `build.py`。音频后端可选 `--tts azure|edge|kokoro|qwen`：`qwen` 用本地 Qwen3-TTS（ROCm 环境在 `F:\AIProject\tts-lab`，女声 vivian、男声 aiden，短句约 6–8 秒/条）；`kokoro` 是本地 ONNX 备选。两种都输出 24kHz/48kbps 定长 MP3，sprite 直接可用。**同一个页面必须用同一个音色来源，不要新旧混用**；换后端要先清空 `apps/collocation/audio/{f,m}` 再全量重跑。例句一律美式、2026 中国成年人场景，不搬参考书原句。
 - **Conversation 正文的逐词时间**和 mp3 用同一次 Edge TTS 请求生成，存在 mp3 旁的 `.json` sidecar（WordBoundary）。删母版时连 sidecar 一起删；只删 mp3 也能工作，构建会重新合成并补上。sprite 文件名带音频 sha1，重合成后旧的长缓存不会和新页面错配。
 - **Azure 语音**：Phenomena 一直用 Azure；Phonics 和 IPA 也已迁到 Azure F0（凭证 `~/.azure-speech/key.txt`，每月 50 万字符）。Phonics 用 Speech SDK 的 word boundary 保留分块时间轴；IPA 默认全量 300 词 × 男女两版（Ava/Andrew，REST），PDF 录音只用于核对顺序，`--tts edge` 可回退旧混合方案。Azure 输出同样是 24kHz/48kbps MP3，sprite 拼接不用改。

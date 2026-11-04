@@ -24,7 +24,6 @@ from paths import BUILD, ROOT  # noqa: E402
 STAGING = [
     "cloudflare-site",
     "cloudflare-audio",
-    "conversation-site",
     "audit",
 ]
 

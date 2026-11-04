@@ -39,6 +39,7 @@ IPA_APP = APPS / "ipa"
 DRILL_APP = APPS / "drill"
 PHENOMENA_APP = APPS / "phenomena"
 COLLOCATION_APP = APPS / "collocation"
+CONVERSATION_APP = APPS / "conversation"
 CHARTS_APP = APPS / "charts"
 
 PHONICS_AUDIO = PHONICS_APP / "audio"
@@ -60,6 +61,8 @@ AUDIO_URL = "https://npesl-audio.pages.dev"
 # ---- 暂存产物（gitignore）----
 SITE_OUT = BUILD / "cloudflare-site"
 AUDIO_OUT = BUILD / "cloudflare-audio"
-CONVERSATION_OUT = BUILD / "conversation-site"
+# Conversation Starters 的页面就是应用目录本身（source/ 在旁边），
+# 不再经过 build/ 暂存。
+CONVERSATION_OUT = CONVERSATION_APP
 TTS_CACHE = BUILD / "tts" / "cs"
 AUDIT_DIR = BUILD / "audit"

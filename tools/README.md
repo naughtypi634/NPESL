@@ -17,7 +17,7 @@
 | `verify.py` | 一次跑完产物比对、音频引用、英式英语、无头浏览器冒烟 |
 | `build_cloudflare_site.py` | 把六个应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/` |
 | `build_ipa_site.py` | 音标表页面 + 全部单词的男女两版录音；默认 `--tts azure`，`--skip-audio` 只用缓存 |
-| `conversation/build_site.py` | Conversation Starters 页面与全部级别语音 |
+| `apps/conversation/source/build_site.py` | Conversation Starters 页面与全部级别语音 |
 | `drill/make_audio.py` | Question Drill 逐句语音（读 `content/drill/questions.json`） |
 | `drill/assemble.py` | Question Drill 页面、题库脚本与 sprite；默认从 `questions.json` 重渲染 |
 | `clean_build.py` | 清 Edge 临时配置、日志、`__pycache__`；`--all` 连部署暂存；`--scratch` 清 build 顶层残留 |
@@ -36,7 +36,7 @@
 | `audio_sprite.py` | 把逐条 MP3 拼成每页一条 sprite |
 | `azure_speech.py` | Azure TTS（REST 与 Speech SDK） |
 | `lib/cli.py` | UTF-8 输出、子进程步骤执行 |
-| `conversation/pron.py` | Conversation 的发音标注 |
+| `apps/conversation/source/pron.py` | Conversation 的发音标注 |
 
 ## 内容工具
 

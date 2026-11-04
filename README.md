@@ -7,7 +7,7 @@
 | 自然拼读阅读训练 48 课 | https://npesl.pages.dev/phonics/ | `apps/phonics/` |
 | 美式英语音标表 | https://npesl.pages.dev/ipa/ | `apps/ipa/` |
 | Question Drill 中译英随机练习 | https://npesl.pages.dev/drill/ | `apps/drill/` |
-| Conversation Starters A1–C2 + ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `build/conversation-site/` |
+| Conversation Starters A1–C2 + ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `apps/conversation/` |
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
 | 短语搭配 Collocations 30 主题 | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
 
@@ -27,9 +27,9 @@
 | `apps/drill/` | 中译英练习网页（`index.html` + `audio/f,m/`）与独立单文件 HTML |
 | `apps/phenomena/` | 30 章发音现象课，逐词音素标注 + 男女声 |
 | `apps/collocation/` | 短语搭配章节页（`source/` 构建器 + `audio/`），每章一条 sprite |
+| `apps/conversation/` | Conversation Starters 页面与 `audio/`（`source/` 构建器，内容源在 `content/conversation/`） |
 | `tools/` | 构建、校验脚本；`tools/README.md` 是脚本索引，`tools/paths.py` 是路径的唯一来源 |
 | `tools/audio_sprite.py` | 把逐条录音拼成每页/每课/每题一条（不改码率，音质不变） |
-| `tools/conversation/` | Conversation Starters 页面与语音构建器 |
 | `tools/drill/` | Question Drill 题库工具 |
 | `build/` | 暂存产物（gitignore，脚本可重建） |
 | `tests/` | 无头浏览器冒烟测试 |
@@ -70,7 +70,7 @@ python -m venv .venv
 .venv\Scripts\python.exe -I apps\collocation\source\build.py
 
 # Conversation Starters：页面 + 全部级别男女两套语音（缓存命中就不重新合成）
-.venv\Scripts\python.exe -I tools\conversation\build_site.py
+.venv\Scripts\python.exe -I apps\conversation\source\build_site.py
 
 # Question Drill：先补语音，再拼 sprite 并重渲染页面
 .venv\Scripts\python.exe -I tools\drill\make_audio.py

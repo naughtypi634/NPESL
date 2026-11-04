@@ -11,15 +11,14 @@ splits into two deploy roots:
         phonics/                    自然拼读 48 课（index + lessons）
         ipa/                        美式英语音标表（index + audio）
         drill/                      Question Drill（index + audio/f,m）
-        conversation/               Conversation Starters 页面
-        conversation/eslse/audio/   ESLSE 语音（放主站，音频站装不下第七级）
+        conversation/               Conversation Starters 页面（A1–C2 + ESLSE）
 
     build/cloudflare-audio/         音频站 → 项目 npesl-audio
-        audio/ava/…                  A1–C2 女声
-        audio/andrew/…               A1–C2 男声
+        audio/ava/sprites/…         全部级别女声（每页一条 sprite）
+        audio/andrew/sprites/…      全部级别男声
         _headers                    长缓存
 
-页面里的音频地址由 tools/conversation/build_site.py 写入：
+页面里的音频地址由 apps/conversation/source/build_site.py 写入：
 所有级别（含 ESLSE）都用 https://npesl-audio.pages.dev/audio/。
 
 The directories are gitignored: they are deploy staging areas, not sources.
@@ -37,7 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from paths import (AUDIO_OUT, AUDIO_URL, CONVERSATION_OUT, DRILL_APP,
+from paths import (AUDIO_OUT, AUDIO_URL, CONVERSATION_APP, DRILL_APP,
                    IPA_APP, PHENOMENA_APP, PHONICS_APP, COLLOCATION_APP,
                    SITE_APP, SITE_OUT, SITE_URL)
 from themes import theme_boot
@@ -49,7 +48,7 @@ IPA = IPA_APP
 PHENOMENA = PHENOMENA_APP
 COLLOCATION = COLLOCATION_APP
 DRILL = DRILL_APP
-CONVERSATION = CONVERSATION_OUT
+CONVERSATION = CONVERSATION_APP
 OUT = SITE_OUT
 
 ICON = f"{SITE_URL}/npesl-icon.png"
@@ -322,13 +321,18 @@ def main() -> int:
         drill_out, "index.html", lambda _: "drill/",
         "中译英随机练习 · 2,247 题", site_back))
 
-    # Conversation Starters：页面和 ESLSE 语音进主站，A1–C2 两套语音进音频站
-    def skip_top_audio(directory, names):
-        return {"audio"} if Path(directory) == CONVERSATION else set()
+    # Conversation Starters：页面进主站，全部级别的两套语音进音频站。
+    # 应用目录里的 source/ 是构建器，不属于部署内容。
+    def conversation_ignore(directory, names):
+        skip = set(shutil.ignore_patterns("source", "__pycache__", "*.py", "*.md")(
+            directory, names))
+        if Path(directory) == CONVERSATION:
+            skip |= {"audio"}
+        return skip
 
     if CONVERSATION.exists():
         shutil.copytree(CONVERSATION, OUT / "conversation",
-                        ignore=skip_top_audio)
+                        ignore=conversation_ignore)
         audio_src = CONVERSATION / "audio"
         if audio_src.exists():
             shutil.copytree(audio_src, AUDIO_OUT / "audio")
@@ -340,8 +344,7 @@ def main() -> int:
         print(f"警告：{CONVERSATION.relative_to(ROOT)} 不存在，"
               "Conversation Starters 未包含；先运行 build_site.py")
 
-    # ESLSE 第七级与其余级别同源生成，语音是它自己目录下的 sprite，
-    # 留在主站（音频站只放 A1–C2）。
+    # ESLSE 第七级与其余级别同源生成，页面同样进主站。
     eslse_dest = OUT / "conversation" / "eslse"
     if eslse_dest.exists():
         print("  Conversation Starters ESLSE：已包含")

@@ -44,7 +44,8 @@ def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple[str, list[str]]]]:
             ("短语搭配页面", ["-I", "apps/collocation/source/build.py"]),
         ],
         "conversation": [
-            ("Conversation Starters", ["-I", "tools/conversation/build_site.py"]),
+            ("Conversation Starters",
+             ["-I", "apps/conversation/source/build_site.py"]),
         ],
         "drill": [
             ("Question Drill 语音", ["-I", "tools/drill/make_audio.py"]),
