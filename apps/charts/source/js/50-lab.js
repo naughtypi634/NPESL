@@ -9,12 +9,12 @@
     this.plot = section.querySelector('[data-plot]');
     this.descLines = section.querySelector('[data-desc-lines]');
     this.liveNode = section.querySelector('[data-live]');
-    this.tableHost = section.querySelector('[data-table]');
-    this.dataPanel = section.querySelector('[data-data-panel]');
+    this.modesHost = section.querySelector('[data-modes]');
     this.renderer = NC.renderers[type.renderer];
     this.mounted = false;
     this.compact = false;
     this.result = null;
+    this.mode = {};
     NC.state.labs[type.id] = this;
 
     var self = this;
@@ -28,7 +28,6 @@
     this.mounted = true;
     this.section.setAttribute('data-mounted', 'true');
     this.renderer.mount(this);
-    this.buildTable();
     this.bindControls();
     this.refresh(true);
   };
@@ -49,6 +48,15 @@
         if (NC.motion) NC.motion.play(self);
       });
     }
+  };
+
+  Lab.prototype.setMode = function (patch) {
+    var next = patch || {};
+    Object.keys(next).forEach(function (key) {
+      this.mode[key] = next[key];
+    }, this);
+    if (this.renderer.render) this.renderer.render(this);
+    this.refresh(false);
   };
 
   Lab.prototype.refresh = function (commit) {
@@ -86,6 +94,11 @@
       }
       block.className = 'sentence' + (lead && index === 0 ? ' lead' : '');
       block.setAttribute('data-role', sentence.role);
+      if (sentence.focus && sentence.focus.length) {
+        block.setAttribute('data-focus', sentence.focus.join(' '));
+      } else {
+        block.removeAttribute('data-focus');
+      }
       var enNode = block.querySelector('.sentence-en');
       var zhNode = block.querySelector('.sentence-zh');
       if (enNode.textContent !== sentence.en) enNode.textContent = sentence.en;
@@ -97,7 +110,6 @@
     this.renderer.update(this);
     this.refresh(commit);
     if (commit) {
-      this.refreshTable();
       NC.emit(this.key, { source: this.type.id });
     }
   };
@@ -108,83 +120,6 @@
     if (!this.mounted) return;
     this.renderer.render(this);
     this.refresh(false);
-    this.refreshTable();
-  };
-
-  Lab.prototype.buildTable = function () {
-    this.refreshTable();
-  };
-
-  Lab.prototype.refreshTable = function () {
-    if (!this.tableHost) return;
-    var spec = this.renderer.table ? this.renderer.table(this) : null;
-    if (!spec) {
-      if (this.dataPanel) this.dataPanel.hidden = true;
-      return;
-    }
-    if (this.dataPanel) this.dataPanel.hidden = false;
-
-    var active = document.activeElement;
-    var focusKey = active && this.tableHost.contains(active) ? active.getAttribute('data-key') : null;
-
-    this.tableHost.innerHTML = '';
-    var table = document.createElement('table');
-    table.className = 'data-table';
-    var thead = document.createElement('thead');
-    var headRow = document.createElement('tr');
-    spec.columns.forEach(function (column) {
-      var th = document.createElement('th');
-      th.textContent = column.label;
-      headRow.appendChild(th);
-    });
-    thead.appendChild(headRow);
-    table.appendChild(thead);
-
-    var tbody = document.createElement('tbody');
-    var lab = this;
-    spec.rows.forEach(function (row) {
-      var tr = document.createElement('tr');
-      row.cells.forEach(function (cell, columnIndex) {
-        var td = document.createElement('td');
-        if (cell.set) {
-          td.className = 'edit-cell';
-          var input = document.createElement('input');
-          input.type = 'number';
-          input.inputMode = 'decimal';
-          input.step = String(spec.columns[columnIndex].step || 1);
-          input.value = cell.value;
-          input.setAttribute('data-key', row.key + '-' + columnIndex);
-          input.setAttribute('aria-label', spec.columns[columnIndex].label + ' ' + row.key);
-          input.addEventListener('input', function () {
-            var next = Number(input.value);
-            if (!isFinite(next)) return;
-            cell.set(next);
-            lab.changed(false);
-          });
-          input.addEventListener('change', function () {
-            lab.changed(true);
-          });
-          td.appendChild(input);
-          if (spec.columns[columnIndex].unit) {
-            var unit = document.createElement('span');
-            unit.className = 'cell-unit';
-            unit.textContent = spec.columns[columnIndex].unit === '%' ? '%' : '';
-            if (unit.textContent) td.appendChild(unit);
-          }
-        } else {
-          td.textContent = cell.text;
-        }
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    this.tableHost.appendChild(table);
-
-    if (focusKey) {
-      var target = this.tableHost.querySelector('[data-key="' + focusKey + '"]');
-      if (target) target.focus();
-    }
   };
 
   NC.Lab = Lab;
@@ -198,7 +133,6 @@
       if (!lab.mounted) return;
       lab.renderer.render(lab);
       lab.refresh(true);
-      lab.refreshTable();
     });
   };
 })(window.NPESLCharts);

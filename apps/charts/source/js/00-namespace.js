@@ -2,7 +2,7 @@
   'use strict';
 
   var NC = global.NPESLCharts = global.NPESLCharts || {};
-  NC.version = '1.0.0';
+  NC.version = '2.0.0';
   NC.LEVELS = ['B1', 'C1'];
   NC.renderers = {};
   NC.desc = NC.desc || {};
@@ -94,6 +94,29 @@
     listeners.slice().forEach(function (fn) {
       fn(payload);
     });
+  };
+
+  // A quiet segmented control: one row of text buttons, no boxes.
+  NC.segment = function (host, spec, onPick) {
+    if (!host) return;
+    host.innerHTML = '';
+    var group = document.createElement('div');
+    group.className = 'segment';
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', spec.label || '');
+    spec.options.forEach(function (option) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'segment-btn';
+      button.textContent = option.zh || option.label;
+      button.setAttribute('data-value', option.value);
+      button.setAttribute('aria-pressed', option.value === spec.value ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        onPick(option.value);
+      });
+      group.appendChild(button);
+    });
+    host.appendChild(group);
   };
 
   NC.bus = {};

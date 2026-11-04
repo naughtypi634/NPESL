@@ -107,7 +107,24 @@
         var lx = index === first ? x(index) + 6 : index === last ? x(index) - 6 : x(index);
         labels[index] = common.placeValueLabel(root, lx, y(values[index]) - 12, NC.fmt.number(values[index], series.decimals), {
           top: plot.top + 12,
-          anchor: anchor
+          anchor: anchor,
+          class: 'value-label editable-value'
+        });
+        NC.bindValueClick(labels[index], lab, function () {
+          var i = index;
+          return {
+            root: root,
+            x: x(i),
+            y: y(series.values[i]),
+            value: series.values[i],
+            min: 0,
+            max: max,
+            step: series.step || 1,
+            label: periods[i].label_en,
+            unit: series.unit,
+            set: function (value) { series.values[i] = value; },
+            onCommit: function () { lab.changed(true); showPoint(i); }
+          };
         });
       });
 
@@ -181,6 +198,21 @@
           valueText: function (v) {
             return periods[index].label_en + ', ' + NC.fmt.value(v, series.unit, series.decimals);
           }
+        });
+        NC.bindValueClick(handle.group, lab, function () {
+          return {
+            root: root,
+            x: x(index),
+            y: y(series.values[index]),
+            value: series.values[index],
+            min: 0,
+            max: max,
+            step: series.step || 1,
+            label: periods[index].label_en,
+            unit: series.unit,
+            set: function (value) { series.values[index] = value; },
+            onCommit: function () { lab.changed(true); showPoint(index); }
+          };
         });
         handle.group.addEventListener('focus', function () { showPoint(index); });
         handle.group.addEventListener('blur', hidePoint);
