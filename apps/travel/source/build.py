@@ -7,7 +7,9 @@
 
 Source of truth is content/travel/ — scenes.json plus one <scene>.json per
 scene.  Audio masters are content-addressed; each scene/level gets three
-sprites (phrase female, phrase male, dialogue).
+sprites (phrase female, phrase male, dialogue), and each scene gets two
+listening sprites (how-they-might-ask, female/male).  Maps render both a 2D
+architectural plan and a 3D isometric model from the same layout data.
 """
 
 from __future__ import annotations
@@ -166,6 +168,10 @@ def text_jobs(content: dict) -> dict[tuple[str, str], str]:
             for line in data.get("dialogue", []):
                 voice = speaker_voice(content, line["spk"])
                 jobs[(line["en"], voice)] = clip_rel(line["en"], voice)
+        for intent in enc.get("listening", []):
+            for item in [*intent["asks"], intent["reply"]]:
+                for voice in ("f", "m"):
+                    jobs[(item["en"], voice)] = clip_rel(item["en"], voice)
     return jobs
 
 
@@ -278,29 +284,119 @@ def build_level_audio(content: dict, level: str) -> dict:
     return {"sprites": sprites, "spans": spans}
 
 
+def build_listening_audio(content: dict) -> dict:
+    """One sprite per voice for all "how they might ask" lines in a scene."""
+    items = []
+    for enc in content["encounters"]:
+        for intent in enc.get("listening", []):
+            for index, ask in enumerate(intent["asks"]):
+                items.append((enc["id"], intent["id"], "ask", index, ask["en"]))
+            items.append((enc["id"], intent["id"], "reply", 0,
+                          intent["reply"]["en"]))
+
+    sprites: dict[str, str] = {}
+    spans: dict[tuple[str, str, str, int], dict[str, tuple[float, float]]] = {}
+    if not items:
+        return {"sprites": sprites, "spans": spans}
+
+    for voice in ("f", "m"):
+        picks = [(clip_rel(text, voice), AUDIO / clip_rel(text, voice))
+                 for _, _, _, _, text in items]
+        rel, offsets = concat_sprite(picks)
+        sprites[f"listen-{voice}"] = rel
+        for (eid, iid, kind, index, _), span in zip(items, offsets):
+            spans.setdefault((eid, iid, kind, index), {})[voice] = span
+    return {"sprites": sprites, "spans": spans}
+
+
+
 def esc(text: str) -> str:
     return html.escape(str(text), quote=True)
 
 
+def span_attrs(span: dict | None) -> str:
+    attrs = ""
+    for voice in ("f", "m"):
+        value = (span or {}).get(voice)
+        if value:
+            attrs += f' data-start-{voice}="{value[0]:.3f}"' \
+                     f' data-end-{voice}="{value[1]:.3f}"'
+    return attrs
+
+
+def mark_keys(text: str, keys: list[str]) -> str:
+    for key in keys or []:
+        match = re.search(re.escape(key), text, re.I)
+        if match:
+            return (esc(text[:match.start()])
+                    + f'<mark class="key">{esc(match.group(0))}</mark>'
+                    + esc(text[match.end():]))
+    return esc(text)
+
+
 def render_hotspots(hotspots: list[dict]) -> str:
     out = []
-    for index, spot in enumerate(hotspots):
+    for index, spot in enumerate(hotspots, 1):
         out.append(
             f'<button class="hotspot" type="button" '
-            f'style="--x:{spot["left"]}%;--y:{spot["top"]}%" '
+            f'style="--x2d:{spot["left"]}%;--y2d:{spot["top"]}%;'
+            f'--x3d:{spot.get("left3d", spot["left"])}%;'
+            f'--y3d:{spot.get("top3d", spot["top"])}%" '
             f'data-hotspot="{esc(spot["id"])}" data-zone="{esc(spot["zone"])}" '
             f'data-encounter="{esc(spot["encounter"])}" '
-            f'aria-pressed="{"true" if index == 0 else "false"}" '
+            f'aria-pressed="{"true" if index == 1 else "false"}" '
             f'aria-controls="panel-{esc(spot["encounter"])}">'
-            f'<span class="hs-en">{esc(spot.get("short_en", ""))}</span>'
-            f'<span class="hs-zh">{esc(spot.get("short_zh", ""))}</span>'
+            f'<span class="hs-num">{index}</span>'
+            f'<span class="hs-text"><span class="hs-en">'
+            f'{esc(spot.get("short_en", ""))}</span>'
+            f'<span class="hs-zh">{esc(spot.get("short_zh", ""))}</span></span>'
             f'</button>'
         )
     return "\n      ".join(out)
 
 
-def render_encounters(content: dict, level_audio: dict, default_level: str) -> str:
+def render_listening(enc: dict, spans: dict) -> str:
+    intents = enc.get("listening") or []
+    if not intents:
+        return ""
+    out = ['<section class="listening"><h2>对方可能这样问</h2>'
+           '<div class="intents">']
+    for intent in intents:
+        out.append('<article class="intent">')
+        out.append(f'<h3>{esc(intent["intent_zh"])}</h3>')
+        out.append('<div class="asks">')
+        for index, ask in enumerate(intent["asks"]):
+            attrs = span_attrs(spans.get(
+                (enc["id"], intent["id"], "ask", index)))
+            out.append(
+                f'<button class="ask" type="button" data-sprite="listen"{attrs}>'
+                f'<span class="en">{mark_keys(ask["en"], intent.get("keys", []))}</span>'
+                f'<span class="zh">{esc(ask["zh"])}</span>'
+                f'<span class="play" aria-hidden="true">{PLAY_SVG}</span></button>'
+            )
+        out.append('</div>')
+        reply = intent["reply"]
+        attrs = span_attrs(spans.get((enc["id"], intent["id"], "reply", 0)))
+        out.append(
+            f'<button class="reply" type="button" data-sprite="listen"{attrs}>'
+            f'<span class="reply-tag">答</span>'
+            f'<span class="reply-body"><span class="en">{esc(reply["en"])}</span>'
+            f'<span class="zh">{esc(reply["zh"])}</span></span>'
+            f'<span class="play" aria-hidden="true">{PLAY_SVG}</span></button>'
+        )
+        out.append(f'<p class="pattern"><span class="plabel">句型</span>'
+                   f'{esc(intent["pattern"])}</p>')
+        if intent.get("note"):
+            out.append(f'<p class="listen-note">{esc(intent["note"])}</p>')
+        out.append('</article>')
+    out.append('</div></section>')
+    return "".join(out)
+
+
+def render_encounters(content: dict, level_audio: dict, default_level: str,
+                      listen_audio: dict | None = None) -> str:
     speakers = {sp["id"]: sp for sp in content.get("speakers", [])}
+    listen_spans = (listen_audio or {}).get("spans", {})
     out = []
     for enc_index, enc in enumerate(content["encounters"]):
         hidden = "" if enc_index == 0 else " hidden"
@@ -319,14 +415,7 @@ def render_encounters(content: dict, level_audio: dict, default_level: str) -> s
                 f'<div class="phrases">'
             )
             for index, phrase in enumerate(data["phrases"]):
-                span = spans.get((enc["id"], "p", index), {})
-                sf = span.get("f")
-                sm = span.get("m")
-                attrs = ""
-                if sf:
-                    attrs += f' data-start-f="{sf[0]:.3f}" data-end-f="{sf[1]:.3f}"'
-                if sm:
-                    attrs += f' data-start-m="{sm[0]:.3f}" data-end-m="{sm[1]:.3f}"'
+                attrs = span_attrs(spans.get((enc["id"], "p", index)))
                 note = (f'<span class="note">{esc(phrase["note"])}</span>'
                         if phrase.get("note") else "")
                 out.append(
@@ -338,8 +427,6 @@ def render_encounters(content: dict, level_audio: dict, default_level: str) -> s
             out.append('</div><div class="dialogue"><div class="dialogue-tools">'
                        '<button class="pill play-all" type="button" '
                        'data-play-dialogue aria-pressed="false">播放对话</button>'
-                       '<button class="pill rp-toggle" type="button" '
-                       'data-roleplay aria-pressed="false">角色扮演</button>'
                        '<button class="pill speed" type="button" '
                        'data-speed>0.9×</button></div><div class="turns">')
             for index, line in enumerate(data["dialogue"]):
@@ -350,17 +437,16 @@ def render_encounters(content: dict, level_audio: dict, default_level: str) -> s
                 speaker = speakers.get(line["spk"], {})
                 role = speaker.get("role", "staff")
                 who = speaker.get("en", line["spk"])
-                reveal = ('<span class="reveal">轮到你 · Your turn</span>'
-                          if role == "you" else "")
                 out.append(
                     f'<div class="line" data-role="{role}" '
                     f'data-spk="{esc(line["spk"])}">'
                     f'<span class="who">{esc(who)}</span>'
                     f'<button class="say" type="button" data-part="d"{attrs}>'
                     f'<span class="en">{esc(line["en"])}</span>'
-                    f'<span class="zh">{esc(line["zh"])}</span>{reveal}</button></div>'
+                    f'<span class="zh">{esc(line["zh"])}</span></button></div>'
                 )
             out.append('</div></div></div>')
+        out.append(render_listening(enc, listen_spans))
         out.append('</section>')
     return "\n\n  ".join(out)
 
@@ -372,6 +458,7 @@ def build_scene(scene: dict, scenes_doc: dict, numbers: dict[str, int],
     map_data = render_map(scene)
 
     level_audio: dict[str, dict] = {}
+    listen_audio: dict = {"sprites": {}, "spans": {}}
     if not skip_audio:
         for level in LEVELS:
             try:
@@ -382,10 +469,18 @@ def build_scene(scene: dict, scenes_doc: dict, numbers: dict[str, int],
                     level_audio[level] = {"sprites": {}, "spans": {}}
                 else:
                     raise
+        try:
+            listen_audio = build_listening_audio(content)
+        except RuntimeError as error:
+            if allow_missing:
+                print(f"warn {sid}/listening: {error}")
+            else:
+                raise
 
     sprite_map: dict[str, str] = {}
     for level, audio in level_audio.items():
         sprite_map.update(audio.get("sprites", {}))
+    sprite_map.update(listen_audio.get("sprites", {}))
 
     default_level = scenes_doc.get("default_level", "survival")
     stage = next((s for s in scenes_doc["stages"] if s["id"] == scene["stage"]), {})
@@ -397,9 +492,11 @@ def build_scene(scene: dict, scenes_doc: dict, numbers: dict[str, int],
         "<!--STAGE-->": esc(f'{stage.get("title_zh", "")} · {stage.get("title_en", "")}'),
         "<!--TITLE_EN-->": esc(scene["title_en"]),
         "<!--TITLE_ZH-->": esc(scene["title_zh"]),
-        "<!--MAP_SVG-->": map_data["svg"],
+        "<!--MAP_SVG_2D-->": map_data["svg2d"],
+        "<!--MAP_SVG_3D-->": map_data["svg3d"],
         "<!--HOTSPOTS-->": render_hotspots(map_data["hotspots"]),
-        "<!--ENCOUNTERS-->": render_encounters(content, level_audio, default_level),
+        "<!--ENCOUNTERS-->": render_encounters(content, level_audio,
+                                               default_level, listen_audio),
         "<!--SPRITES-->": json.dumps(sprite_map, ensure_ascii=False,
                                      separators=(",", ":")).replace("</", "<\\/"),
     }

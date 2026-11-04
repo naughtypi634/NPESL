@@ -21,7 +21,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools"))
 
 import check_bre  # noqa: E402
-from maps import ARCHETYPES, VIEW_H, VIEW_W  # noqa: E402
+from maps import ARCHETYPES, VIEW_H, VIEW_W, render_map  # noqa: E402
 from paths import TRAVEL_CONTENT  # noqa: E402
 
 LEVELS = ("survival", "conversational", "advanced")
@@ -195,6 +195,16 @@ def check_scene(p: Problems, scene: dict, doc: dict,
         for b, bx, by in positions[i + 1:]:
             if ((ax - bx) ** 2 + (ay - by) ** 2) ** 0.5 < 90:
                 p.warn(f"scene {sid}: 热点 {a} 与 {b} 相距太近，手机上可能重叠")
+    try:
+        projected = render_map(scene)["hotspots"]
+        for i, a in enumerate(projected):
+            for b in projected[i + 1:]:
+                if ((a["x3d"] - b["x3d"]) ** 2
+                        + (a["y3d"] - b["y3d"]) ** 2) ** 0.5 < 70:
+                    p.warn(f"scene {sid}: 3D 视图里热点 {a['id']} 与 "
+                           f"{b['id']} 相距太近")
+    except Exception:  # noqa: BLE001 - structural errors are reported above
+        pass
 
     path = TRAVEL_CONTENT / f"{sid}.json"
     if not path.exists():
@@ -311,6 +321,76 @@ def check_scene(p: Problems, scene: dict, doc: dict,
                 if run > 2:
                     p.bad(f"{sid}/{eid}/{level}: 同一角色连续超过 2 轮")
                     break
+
+        listening = enc.get("listening")
+        if not isinstance(listening, list) or not 2 <= len(listening) <= 4:
+            p.bad(f"{sid}/{eid}: listening 要 2–4 组意图"
+                  f"（现在 {len(listening) if isinstance(listening, list) else 0}）")
+            continue
+        intent_ids = set()
+        for index, intent in enumerate(listening, 1):
+            where = f"{sid}/{eid}/listen{index}"
+            iid = str(intent.get("id", "")).strip()
+            if not iid or iid in intent_ids:
+                p.bad(f"{where}: 意图 id 缺失或重复 {iid!r}")
+            intent_ids.add(iid)
+            intent_zh = str(intent.get("intent_zh", "")).strip()
+            if not intent_zh:
+                p.bad(f"{where}: 缺 intent_zh")
+            else:
+                check_text(p, where, intent_zh, False)
+            asks = intent.get("asks") or []
+            if not 3 <= len(asks) <= 5:
+                p.bad(f"{where}: 问法 {len(asks)} 条（要 3–5）")
+            seen_asks = set()
+            ask_text = " ".join(str(a.get("en", "")) for a in asks)
+            for ask_index, ask in enumerate(asks, 1):
+                aw = f"{where}/ask{ask_index}"
+                en = str(ask.get("en", "")).strip()
+                zh = str(ask.get("zh", "")).strip()
+                if not en or not zh:
+                    p.bad(f"{aw}: 缺英文或中文")
+                    continue
+                if en == zh:
+                    p.bad(f"{aw}: en 与 zh 相同")
+                n = words(en)
+                if not 2 <= n <= 20:
+                    p.bad(f"{aw}: {n} 词（要 2–20）")
+                check_text(p, aw, en, True)
+                check_text(p, aw, zh, False)
+                key = norm(en)
+                if key in seen_asks:
+                    p.bad(f"{aw}: 同一组意图里问法重复")
+                seen_asks.add(key)
+            reply = intent.get("reply") or {}
+            rw = f"{where}/reply"
+            ren = str(reply.get("en", "")).strip()
+            rzh = str(reply.get("zh", "")).strip()
+            if not ren or not rzh:
+                p.bad(f"{rw}: 缺英文或中文")
+            else:
+                n = words(ren)
+                if not 1 <= n <= 15:
+                    p.bad(f"{rw}: {n} 词（要 1–15）")
+                check_text(p, rw, ren, True)
+                check_text(p, rw, rzh, False)
+            pattern = str(intent.get("pattern", "")).strip()
+            if not pattern:
+                p.bad(f"{where}: 缺 pattern")
+            else:
+                check_text(p, f"{where}/pattern", pattern, True)
+            keys = intent.get("keys") or []
+            if not isinstance(keys, list):
+                p.bad(f"{where}: keys 必须是数组")
+            else:
+                for key_word in keys:
+                    if str(key_word).lower() not in ask_text.lower():
+                        p.warn(f"{where}: 关键词 {key_word!r} 没在任何问法里出现")
+            note = str(intent.get("note", "")).strip()
+            if note:
+                check_text(p, f"{where}/note", note, False)
+                if len(note) > 40:
+                    p.bad(f"{where}: note 超过 40 字")
 
 
 def check_built(p: Problems) -> None:

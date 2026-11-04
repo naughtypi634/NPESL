@@ -55,44 +55,106 @@
     border-radius:var(--radius-card,24px); background:var(--bg); }
   .map-wrap { position:relative; width:100%; aspect-ratio:640 / 400;
     min-height:220px; }
+  .map-stage { position:absolute; inset:0; }
   .map-svg { display:block; width:100%; height:100%; }
-  .map-plate { fill:var(--surface); stroke:var(--rule); }
-  .map-zone-shape { fill:var(--surface-strong); stroke:var(--rule);
-    stroke-width:1; transition:fill .15s ease, stroke .15s ease; }
-  .map-zone-label { fill:var(--muted); font:600 11px var(--font);
-    letter-spacing:.08em; }
+  .map-svg { display:block; width:100%; height:100%;
+    --map-floor:light-dark(#f3f3f6,#1c262b);
+    --map-floor-2:light-dark(#e9e9ee,#232f35);
+    --map-floor-3:light-dark(#fafafb,#182024);
+    --map-top:light-dark(#e4e4ea,#35434a);
+    --map-top-2:light-dark(#d6d6de,#415159);
+    --map-side:light-dark(#c9c9d2,#1f292e);
+    --map-side-2:light-dark(#b4b4bf,#151c20);
+    --map-edge:light-dark(rgba(20,24,30,.12),rgba(238,243,244,.14));
+    --map-wall:light-dark(rgba(20,24,30,.22),rgba(238,243,244,.22)); }
+  .map-plate { fill:var(--bg); stroke:var(--map-wall); }
+  .map-plate-inner { fill:none; stroke:var(--map-edge); stroke-width:1; }
+  .map-dot-field { opacity:.5; }
+  .map-dot { fill:var(--map-edge); }
+  .map-wall { fill:none; stroke:var(--map-wall); stroke-width:2; }
+  .map-zone-shape { stroke:var(--map-edge); stroke-width:1;
+    transition:fill .15s ease, stroke .15s ease; }
+  .map-zone-shape.tone-1 { fill:var(--map-floor); }
+  .map-zone-shape.tone-2 { fill:var(--map-floor-2); }
+  .map-zone-shape.tone-3 { fill:var(--map-floor-3); }
+  .map-zone-label { fill:var(--muted); font:600 10px var(--font);
+    letter-spacing:.11em; }
+  .map-zone-dot { fill:var(--blue); opacity:.75; }
   .map-fixture { fill:none; stroke:var(--muted); stroke-width:1.4; }
   .map-fixture-line { fill:none; stroke:var(--muted); stroke-width:1; }
-  .map-fixture-soft { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
+  .map-fixture-soft { fill:var(--map-floor-2); stroke:var(--map-edge);
+    stroke-width:1; }
   .map-counter, .map-shelf, .map-sofa, .map-bed, .map-train, .map-car,
   .map-pump, .map-atm, .map-terminal, .map-booth, .map-machine {
-    fill:var(--surface); stroke:var(--rule); stroke-width:1.2; }
+    fill:var(--map-top); stroke:var(--map-edge); stroke-width:1.2; }
   .map-counter-top, .map-sofa-seat, .map-pillow, .map-car-window,
-  .map-train-window { fill:var(--surface-strong); stroke:var(--rule);
+  .map-train-window { fill:var(--map-top-2); stroke:var(--map-edge);
     stroke-width:1; }
-  .map-seat { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
-  .map-table { fill:var(--surface-strong); stroke:var(--rule); stroke-width:1; }
+  .map-seat { fill:var(--map-top); stroke:var(--map-edge); stroke-width:1; }
+  .map-table { fill:var(--map-top-2); stroke:var(--map-edge); stroke-width:1; }
   .map-person { fill:var(--muted); }
-  .map-pin { fill:var(--blue); }
-  .map-flag { fill:var(--blue); }
+  .map-pin, .map-flag { fill:var(--blue); }
   .map-route { fill:none; stroke:var(--blue); stroke-width:1.5;
-    stroke-dasharray:5 7; }
-  .map-zone.is-active .map-zone-shape { fill:var(--blue-tint);
-    stroke:var(--blue); stroke-width:1.8; }
+    stroke-dasharray:5 7; opacity:.45; }
+  .map-arrow { fill:var(--blue); }
+  .map-street-dash, .map-queue-line, .map-tactile { fill:none;
+    stroke:var(--muted); stroke-width:1; stroke-dasharray:5 7; opacity:.55; }
+  .map-tactile { stroke:var(--blue); stroke-width:2; stroke-dasharray:2 3; }
+  .map-window { fill:none; stroke:var(--muted); stroke-width:1; opacity:.5; }
+  .map-wc { fill:var(--muted); font:600 9px var(--font);
+    letter-spacing:.06em; }
+  .map-plant { fill:var(--surface-strong); stroke:var(--rule); }
+  .map-leaf { fill:var(--blue); opacity:.22; }
+  .map-bowl { fill:var(--surface-strong); stroke:var(--rule); }
+  .map-blanket, .map-burner, .map-sofa-seam, .map-seat-back,
+  .map-stock, .map-belt-slat, .map-curtain, .map-train-door,
+  .map-door-leaf { fill:none; stroke:var(--muted); stroke-width:1;
+    opacity:.55; }
+  .map-curtain { stroke-width:1.5; }
+  .map-train-door { stroke:var(--rule); stroke-width:1.5; opacity:1; }
+  .map-wheel, .map-headlight { fill:var(--muted); opacity:.65; }
+  .map-screen { fill:var(--blue-tint); stroke:var(--blue); }
+  .map-stool { fill:var(--surface); stroke:var(--rule); }
+  .map-3d-slab { fill:var(--map-floor-3); stroke:var(--map-edge);
+    stroke-width:1; }
+  .map-3d-slab-side { fill:var(--map-side); }
+  .map-3d-floor { stroke:var(--map-edge); stroke-width:.8; }
+  .map-3d-floor.tone-0 { fill:var(--map-floor); }
+  .map-3d-floor.tone-1 { fill:var(--map-floor-2); }
+  .map-3d-floor.tone-2 { fill:var(--map-floor-3); }
+  .map-3d-top.tone-1 { fill:var(--map-top); }
+  .map-3d-top.tone-2 { fill:var(--map-top-2); }
+  .map-3d-top.tone-3 { fill:var(--map-side); }
+  .map-3d-side { fill:var(--map-side); }
+  .map-3d-side-2 { fill:var(--map-side-2); }
+  .map-3d-label { fill:var(--muted); font:600 10px var(--font);
+    letter-spacing:.08em; paint-order:stroke; stroke:var(--bg);
+    stroke-width:3px; }
+  .map-zone.is-active .map-zone-shape { fill:var(--blue);
+    fill-opacity:.14; stroke:var(--blue); stroke-width:1.8; }
   .map-zone.is-active .map-zone-label { fill:var(--blue); }
-  .hotspot { position:absolute; left:var(--x); top:var(--y);
-    transform:translate(-50%,-50%); display:flex; flex-direction:column;
-    align-items:flex-start; gap:0; min-height:44px; padding:5px 9px;
+  .map-zone.is-active .map-3d-floor { fill:var(--blue);
+    fill-opacity:.24; stroke:var(--blue); stroke-width:1.6; }
+  .map-zone.is-active .map-3d-label { fill:var(--blue); }
+  .hotspot { position:absolute; left:var(--x2d); top:var(--y2d);
+    transform:translate(-50%,-50%); display:flex; align-items:center;
+    gap:7px; min-height:32px; padding:4px 10px 4px 4px;
     border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
     background:var(--bg); color:var(--fg); font:inherit; font-size:12px;
     line-height:1.15; text-align:left; white-space:nowrap; cursor:pointer;
-    box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    box-shadow:0 4px 14px rgba(0,0,0,.10); z-index:2; }
+  body.view-3d .hotspot { left:var(--x3d); top:var(--y3d); }
+  .hs-num { flex:none; display:inline-flex; align-items:center;
+    justify-content:center; width:24px; height:24px; border-radius:50%;
+    background:var(--blue); color:var(--on-blue); font-size:11px;
+    font-weight:700; }
+  .hs-text { display:flex; flex-direction:column; gap:0; }
   .hotspot .hs-en { font-weight:600; }
   .hotspot .hs-zh { font-size:10px; color:var(--muted); }
   .hotspot:hover { background:var(--surface); }
-  .hotspot[aria-pressed="true"] { background:var(--blue);
-    border-color:var(--blue); color:var(--on-blue); }
-  .hotspot[aria-pressed="true"] .hs-zh { color:var(--on-blue); opacity:.82; }
+  .hotspot[aria-pressed="true"] { border-color:var(--blue);
+    box-shadow:0 0 0 2px var(--blue-tint), 0 6px 18px rgba(0,0,0,.12); }
+  .hotspot[aria-pressed="true"] .hs-zh { color:var(--muted); }
   .hotspot:focus-visible, .level button:focus-visible, .zh-toggle:focus-visible,
   .voice-seg button:focus-visible, .pill:focus-visible, .phrase:focus-visible,
   .line .say:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
@@ -138,10 +200,47 @@
   .line .say .zh { display:block; margin-top:2px; color:var(--muted);
     font-size:12px; }
   .line.playing .say { border-color:var(--blue); }
-  .reveal { display:none; color:var(--muted); font-size:13px; }
-  body.roleplay .line[data-role="you"] .say .en,
-  body.roleplay .line[data-role="you"] .say .zh { display:none; }
-  body.roleplay .line[data-role="you"]:not(.revealed) .reveal { display:block; }
+  .listening { margin:36px 0 0; }
+  .listening h2 { margin:0 0 14px; font-size:1.3rem; font-weight:650;
+    letter-spacing:-.01em; }
+  .intents { display:flex; flex-direction:column; gap:12px; }
+  .intent { padding:15px 16px 16px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--surface); }
+  .intent h3 { margin:0 0 10px; font-size:13px; font-weight:650;
+    letter-spacing:.02em; }
+  .asks { display:flex; flex-direction:column; gap:6px; }
+  .ask { position:relative; width:100%; display:block; text-align:left;
+    font:inherit; padding:10px 38px 10px 12px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--bg);
+    color:inherit; cursor:pointer; }
+  .ask:hover { background:var(--surface-strong); }
+  .ask .en { display:block; font-size:15px; line-height:1.45; }
+  .ask .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:12px; }
+  .ask.on, .reply.on { border-color:var(--blue); }
+  .ask.on .play, .reply.on .play { background:var(--blue);
+    border-color:var(--blue); color:var(--on-blue); }
+  .key { background:none; color:var(--blue); font-weight:650; }
+  .reply { position:relative; width:100%; display:flex; align-items:flex-start;
+    gap:10px; margin-top:9px; padding:10px 38px 10px 11px;
+    border:1px solid var(--blue); border-radius:var(--radius-control,12px);
+    background:var(--blue-tint); color:inherit; font:inherit;
+    text-align:left; cursor:pointer; }
+  .reply-tag { flex:none; display:inline-flex; align-items:center;
+    justify-content:center; width:22px; height:22px; border-radius:50%;
+    background:var(--blue); color:var(--on-blue); font-size:12px;
+    font-weight:650; }
+  .reply-body { flex:1; min-width:0; }
+  .reply .en { display:block; font-size:15px; line-height:1.45; }
+  .reply .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:12px; }
+  .pattern { margin:11px 0 0; color:var(--muted); font-size:13px;
+    line-height:1.55; }
+  .plabel { display:inline-block; margin-right:7px; padding:1px 6px;
+    border-radius:4px; background:var(--surface-strong); color:var(--fg);
+    font-size:11px; font-weight:600; }
+  .listen-note { margin:7px 0 0; color:var(--muted); font-size:12px;
+    line-height:1.55; }
   body.zh-off .zh, body.zh-off .note, body.zh-off .zh-title { display:none; }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
     overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
@@ -149,8 +248,10 @@
     .page { padding-left:16px; padding-right:16px; }
     .toolbar { align-items:flex-start; }
     .level button { padding:7px 11px; font-size:13px; }
-    .hotspot { font-size:11px; padding:4px 7px; }
-    .hotspot .hs-zh { font-size:9px; }
+    .hotspot { font-size:11px; padding:3px 8px 3px 3px; gap:5px; }
+    .hs-num { width:20px; height:20px; font-size:10px; }
+    .hotspot .hs-zh { display:none; }
+    .intent { padding:13px; }
     .line { grid-template-columns:44px minmax(0,1fr); }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -174,6 +275,10 @@
       <button type="button" data-level="advanced" aria-pressed="false">Advanced</button>
     </div>
     <div class="tools">
+      <div class="voice-seg view-seg" role="group" aria-label="地图视图">
+        <button type="button" data-view="2d" aria-pressed="true">2D</button>
+        <button type="button" data-view="3d" aria-pressed="false">3D</button>
+      </div>
       <div class="voice-seg" role="group" aria-label="短语音色">
         <button type="button" data-voice="f" aria-pressed="true">女</button>
         <button type="button" data-voice="m" aria-pressed="false">男</button>
@@ -184,10 +289,11 @@
 
   <figure class="card map-card" role="group" aria-label="场景平面图">
     <div class="map-wrap">
-      <svg class="map-svg" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><g class="map-zone" data-zone="desk"><rect class="map-zone-shape" x="36" y="44" width="240" height="120" rx="8"/><text class="map-zone-label" x="46" y="156">FRONT DESK</text></g><g class="map-zone" data-zone="waiting"><rect class="map-zone-shape" x="36" y="184" width="240" height="172" rx="8"/><text class="map-zone-label" x="46" y="348">WAITING</text></g><g class="map-zone" data-zone="records"><rect class="map-zone-shape" x="296" y="44" width="180" height="140" rx="8"/><text class="map-zone-label" x="306" y="176">REPORTS</text></g><g class="map-zone" data-zone="lounge"><rect class="map-zone-shape" x="296" y="204" width="308" height="152" rx="8"/><text class="map-zone-label" x="306" y="348">PHONE / LOUNGE</text></g><rect class="map-fixture map-counter" x="52.0" y="62.0" width="208.0" height="24.0" rx="6"/><circle class="map-fixture" cx="89.4" cy="74.0" r="5.3"/><rect class="map-fixture map-seat" x="56.0" y="206.0" width="44.0" height="56.0" rx="4"/><rect class="map-fixture map-seat" x="108.0" y="206.0" width="44.0" height="56.0" rx="4"/><rect class="map-fixture map-seat" x="160.0" y="206.0" width="44.0" height="56.0" rx="4"/><rect class="map-fixture map-seat" x="212.0" y="206.0" width="44.0" height="56.0" rx="4"/><rect class="map-fixture map-seat" x="56.0" y="270.0" width="44.0" height="56.0" rx="4"/><rect class="map-fixture map-seat" x="108.0" y="270.0" width="44.0" height="56.0" rx="4"/><rect class="map-fixture map-seat" x="160.0" y="270.0" width="44.0" height="56.0" rx="4"/><rect class="map-fixture map-seat" x="212.0" y="270.0" width="44.0" height="56.0" rx="4"/><rect class="map-fixture map-shelf" x="312.0" y="64.0" width="148.0" height="18.0" rx="2"/><path class="map-fixture-line" d="M361.3 64.0 L361.3 82.0"/><path class="map-fixture-line" d="M410.7 64.0 L410.7 82.0"/><rect class="map-fixture map-sofa" x="320.0" y="228.0" width="260.0" height="30.0" rx="10"/><rect class="map-fixture map-sofa-seat" x="328.0" y="234.0" width="244.0" height="18.0" rx="6"/></svg>
-      <button class="hotspot" type="button" style="--x:24.38%;--y:26.0%" data-hotspot="report" data-zone="desk" data-encounter="report" aria-pressed="true" aria-controls="panel-report"><span class="hs-en">Report</span><span class="hs-zh">报案</span></button>
-      <button class="hotspot" type="button" style="--x:60.31%;--y:28.5%" data-hotspot="lost-passport" data-zone="records" data-encounter="lost-passport" aria-pressed="false" aria-controls="panel-lost-passport"><span class="hs-en">Passport</span><span class="hs-zh">护照丢失</span></button>
-      <button class="hotspot" type="button" style="--x:70.31%;--y:70.0%" data-hotspot="insurance" data-zone="lounge" data-encounter="insurance" aria-pressed="false" aria-controls="panel-insurance"><span class="hs-en">Insurance</span><span class="hs-zh">保险理赔</span></button>
+      <div class="map-stage" data-map-view="2d"><svg class="map-svg map-svg-2d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><pattern id="mapDots2d" width="18" height="18" patternUnits="userSpaceOnUse"><circle class="map-dot" cx="1" cy="1" r=".9"/></pattern><clipPath id="mapClip2d"><rect x="16" y="16" width="608" height="368" rx="16"/></clipPath></defs><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><rect class="map-plate-inner" x="16" y="16" width="608" height="368" rx="16"/><rect class="map-dot-field" x="16" y="16" width="608" height="368" fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/><g class="map-zone" data-zone="desk"><rect class="map-zone-shape tone-1" x="36" y="44" width="240" height="120" rx="8"/></g><g class="map-zone" data-zone="waiting"><rect class="map-zone-shape tone-1" x="36" y="184" width="240" height="172" rx="8"/></g><g class="map-zone" data-zone="records"><rect class="map-zone-shape tone-2" x="296" y="44" width="180" height="140" rx="8"/></g><g class="map-zone" data-zone="lounge"><rect class="map-zone-shape tone-3" x="296" y="204" width="308" height="152" rx="8"/></g><rect class="map-wall" x="15.5" y="15.5" width="609" height="369" rx="16"/><rect class="map-fixture map-counter" x="52.0" y="62.0" width="208.0" height="24.0" rx="6"/><circle class="map-fixture" cx="89.4" cy="74.0" r="5.3"/><rect class="map-fixture map-counter-top" x="58.0" y="67.0" width="196.0" height="14.0" rx="2"/><path class="map-fixture-line" d="M166.4 69.2 L222.6 69.2"/><rect class="map-fixture map-seat" x="56.0" y="206.0" width="44.0" height="56.0" rx="4"/><path class="map-seat-back" d="M59.0 209.0 L97.0 209.0"/><rect class="map-fixture map-seat" x="108.0" y="206.0" width="44.0" height="56.0" rx="4"/><path class="map-seat-back" d="M111.0 209.0 L149.0 209.0"/><rect class="map-fixture map-seat" x="160.0" y="206.0" width="44.0" height="56.0" rx="4"/><path class="map-seat-back" d="M163.0 209.0 L201.0 209.0"/><rect class="map-fixture map-seat" x="212.0" y="206.0" width="44.0" height="56.0" rx="4"/><path class="map-seat-back" d="M215.0 209.0 L253.0 209.0"/><rect class="map-fixture map-seat" x="56.0" y="270.0" width="44.0" height="56.0" rx="4"/><path class="map-seat-back" d="M59.0 273.0 L97.0 273.0"/><rect class="map-fixture map-seat" x="108.0" y="270.0" width="44.0" height="56.0" rx="4"/><path class="map-seat-back" d="M111.0 273.0 L149.0 273.0"/><rect class="map-fixture map-seat" x="160.0" y="270.0" width="44.0" height="56.0" rx="4"/><path class="map-seat-back" d="M163.0 273.0 L201.0 273.0"/><rect class="map-fixture map-seat" x="212.0" y="270.0" width="44.0" height="56.0" rx="4"/><path class="map-seat-back" d="M215.0 273.0 L253.0 273.0"/><rect class="map-fixture map-shelf" x="312.0" y="64.0" width="148.0" height="18.0" rx="2"/><path class="map-fixture-line" d="M361.3 64.0 L361.3 82.0"/><path class="map-fixture-line" d="M410.7 64.0 L410.7 82.0"/><path class="map-stock" d="M364.3 70.3 L364.3 75.7"/><path class="map-stock" d="M413.7 70.3 L413.7 75.7"/><rect class="map-fixture map-sofa" x="320.0" y="228.0" width="260.0" height="30.0" rx="10"/><rect class="map-fixture map-sofa-seat" x="328.0" y="234.0" width="244.0" height="18.0" rx="6"/><path class="map-sofa-seam" d="M450.0 236.0 L450.0 250.0"/><path class="map-route" d="M156.0 104.0 L386.0 114.0 L450.0 280.0"/><g class="map-zone" data-zone="desk"><circle class="map-zone-dot" cx="48.0" cy="151.0" r="2.2"/><text class="map-zone-label" x="55.0" y="155.0">FRONT DESK</text></g><g class="map-zone" data-zone="waiting"><circle class="map-zone-dot" cx="48.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="55.0" y="347.0">WAITING</text></g><g class="map-zone" data-zone="records"><circle class="map-zone-dot" cx="308.0" cy="171.0" r="2.2"/><text class="map-zone-label" x="315.0" y="175.0">REPORTS</text></g><g class="map-zone" data-zone="lounge"><circle class="map-zone-dot" cx="308.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="315.0" y="347.0">PHONE / LOUNGE</text></g></svg></div>
+      <div class="map-stage" data-map-view="3d" hidden><svg class="map-svg map-svg-3d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><filter id="mapShadow3d" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity=".16"/></filter></defs><g filter="url(#mapShadow3d)"><polygon class="map-3d-slab-side" points="620.2,248.7 389.3,382.0 389.3,391.3 620.2,258.0"/><polygon class="map-3d-slab-side" points="19.8,168.7 389.3,382.0 389.3,391.3 19.8,178.0"/><polygon class="map-3d-slab" points="250.7,35.3 620.2,248.7 389.3,382.0 19.8,168.7"/></g><g class="map-zone" data-zone="desk"><polygon class="map-3d-floor tone-0" points="246.1,61.7 384.7,141.7 315.4,181.7 176.8,101.7"/></g><g class="map-zone" data-zone="waiting"><polygon class="map-3d-floor tone-0" points="165.3,108.4 303.8,188.4 204.5,245.7 66.0,165.7"/></g><g class="map-zone" data-zone="records"><polygon class="map-3d-floor tone-1" points="396.2,148.4 500.1,208.4 419.3,255.1 315.4,195.1"/></g><g class="map-zone" data-zone="lounge"><polygon class="map-3d-floor tone-2" points="303.8,201.7 481.7,304.4 393.9,355.1 216.1,252.4"/></g><polygon class="map-3d-top tone-1" points="244.9,64.7 365.0,134.0 351.2,142.0 231.1,72.7"/><polygon class="map-3d-side" points="365.0,134.0 351.2,142.0 351.2,150.7 365.0,142.7"/><polygon class="map-3d-side-2" points="231.1,72.7 351.2,142.0 351.2,150.7 231.1,81.3"/><polygon class="map-3d-top tone-2" points="164.1,118.0 189.5,132.7 157.2,151.3 131.8,136.7"/><polygon class="map-3d-side" points="189.5,132.7 157.2,151.3 157.2,156.0 189.5,137.3"/><polygon class="map-3d-side-2" points="131.8,136.7 157.2,151.3 157.2,156.0 131.8,141.3"/><polygon class="map-3d-top tone-2" points="194.1,135.3 219.5,150.0 187.2,168.7 161.8,154.0"/><polygon class="map-3d-side" points="219.5,150.0 187.2,168.7 187.2,173.3 219.5,154.7"/><polygon class="map-3d-side-2" points="161.8,154.0 187.2,168.7 187.2,173.3 161.8,158.7"/><polygon class="map-3d-top tone-2" points="127.2,139.3 152.6,154.0 120.2,172.7 94.8,158.0"/><polygon class="map-3d-side" points="152.6,154.0 120.2,172.7 120.2,177.3 152.6,158.7"/><polygon class="map-3d-side-2" points="94.8,158.0 120.2,172.7 120.2,177.3 94.8,162.7"/><polygon class="map-3d-top tone-2" points="224.2,152.7 249.6,167.3 217.2,186.0 191.8,171.3"/><polygon class="map-3d-side" points="249.6,167.3 217.2,186.0 217.2,190.7 249.6,172.0"/><polygon class="map-3d-side-2" points="191.8,171.3 217.2,186.0 217.2,190.7 191.8,176.0"/><polygon class="map-3d-top tone-2" points="157.2,156.7 182.6,171.3 150.3,190.0 124.9,175.3"/><polygon class="map-3d-side" points="182.6,171.3 150.3,190.0 150.3,194.7 182.6,176.0"/><polygon class="map-3d-side-2" points="124.9,175.3 150.3,190.0 150.3,194.7 124.9,180.0"/><polygon class="map-3d-top tone-1" points="393.9,147.3 479.3,196.7 469.0,202.7 383.5,153.3"/><polygon class="map-3d-side" points="479.3,196.7 469.0,202.7 469.0,216.0 479.3,210.0"/><polygon class="map-3d-side-2" points="383.5,153.3 469.0,202.7 469.0,216.0 383.5,166.7"/><polygon class="map-3d-top tone-2" points="254.2,170.0 279.6,184.7 247.3,203.3 221.9,188.7"/><polygon class="map-3d-side" points="279.6,184.7 247.3,203.3 247.3,208.0 279.6,189.3"/><polygon class="map-3d-side-2" points="221.9,188.7 247.3,203.3 247.3,208.0 221.9,193.3"/><polygon class="map-3d-top tone-2" points="187.2,174.0 212.6,188.7 180.3,207.3 154.9,192.7"/><polygon class="map-3d-side" points="212.6,188.7 180.3,207.3 180.3,212.0 212.6,193.3"/><polygon class="map-3d-side-2" points="154.9,192.7 180.3,207.3 180.3,212.0 154.9,197.3"/><polygon class="map-3d-top tone-2" points="217.2,191.3 242.6,206.0 210.3,224.7 184.9,210.0"/><polygon class="map-3d-side" points="242.6,206.0 210.3,224.7 210.3,229.3 242.6,210.7"/><polygon class="map-3d-side-2" points="184.9,210.0 210.3,224.7 210.3,229.3 184.9,214.7"/><polygon class="map-3d-top tone-2" points="303.8,212.7 453.9,299.3 436.6,309.3 286.5,222.7"/><polygon class="map-3d-side" points="453.9,299.3 436.6,309.3 436.6,314.7 453.9,304.7"/><polygon class="map-3d-side-2" points="286.5,222.7 436.6,309.3 436.6,314.7 286.5,228.0"/><g class="map-zone" data-zone="desk"><text class="map-3d-label" x="187.8" y="101.9">FRONT DESK</text></g><g class="map-zone" data-zone="waiting"><text class="map-3d-label" x="76.9" y="165.9">WAITING</text></g><g class="map-zone" data-zone="records"><text class="map-3d-label" x="326.4" y="195.3">REPORTS</text></g><g class="map-zone" data-zone="lounge"><text class="map-3d-label" x="227.0" y="252.6">PHONE / LOUNGE</text></g></svg></div>
+      <button class="hotspot" type="button" style="--x2d:24.38%;--y2d:26.0%;--x3d:43.87%;--y3d:30.5%" data-hotspot="report" data-zone="desk" data-encounter="report" aria-pressed="true" aria-controls="panel-report"><span class="hs-num">1</span><span class="hs-text"><span class="hs-en">Report</span><span class="hs-zh">报案</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:60.31%;--y2d:28.5%;--x3d:63.71%;--y3d:50.5%" data-hotspot="lost-passport" data-zone="records" data-encounter="lost-passport" aria-pressed="false" aria-controls="panel-lost-passport"><span class="hs-num">2</span><span class="hs-text"><span class="hs-en">Passport</span><span class="hs-zh">护照丢失</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:70.31%;--y2d:70.0%;--x3d:54.51%;--y3d:69.67%" data-hotspot="insurance" data-zone="lounge" data-encounter="insurance" aria-pressed="false" aria-controls="panel-insurance"><span class="hs-num">3</span><span class="hs-text"><span class="hs-en">Insurance</span><span class="hs-zh">保险理赔</span></span></button>
     </div>
   </figure>
   <p class="sr-only" aria-live="polite" data-status></p>
@@ -204,19 +310,19 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="5.760" data-end-f="7.632" data-start-m="5.616" data-end-m="7.488"><span class="en">Can I get a police report?</span><span class="zh">能给我报警记录吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">What can I do for you?</span><span class="zh">我能为您做什么？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="4.824"><span class="en">I need to report a theft. My wallet was stolen.</span><span class="zh">我要报盗窃案。我的钱包被偷了。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="4.824"><span class="en">I need to report a theft. My wallet was stolen.</span><span class="zh">我要报盗窃案。我的钱包被偷了。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="4.824" data-end="6.696"><span class="en">Where did it happen?</span><span class="zh">在哪里发生的？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="6.696" data-end="8.568"><span class="en">It happened on the subway.</span><span class="zh">发生在地铁上。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="6.696" data-end="8.568"><span class="en">It happened on the subway.</span><span class="zh">发生在地铁上。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="8.568" data-end="10.440"><span class="en">What was in the wallet?</span><span class="zh">钱包里有什么？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="10.440" data-end="13.992"><span class="en">My ID, two cards, and about a hundred dollars.</span><span class="zh">身份证、两张卡和大约一百美元。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="10.440" data-end="13.992"><span class="en">My ID, two cards, and about a hundred dollars.</span><span class="zh">身份证、两张卡和大约一百美元。</span></button></div>
 
   </div></div></div>
 
@@ -232,25 +338,25 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="10.344" data-end-f="12.696" data-start-m="9.456" data-end-m="11.496"><span class="en">Do I need to cancel my cards first?</span><span class="zh">我需要先挂失银行卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="2.352"><span class="en">Someone took my backpack from the café.</span><span class="zh">有人从咖啡店拿走了我的背包。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="2.352"><span class="en">Someone took my backpack from the café.</span><span class="zh">有人从咖啡店拿走了我的背包。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="2.352" data-end="4.344"><span class="en">Do you have a description of the person?</span><span class="zh">您能描述那个人吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="4.344" data-end="6.720"><span class="en">I saw the person run toward the station.</span><span class="zh">我看到那个人往车站跑了。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="4.344" data-end="6.720"><span class="en">I saw the person run toward the station.</span><span class="zh">我看到那个人往车站跑了。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="6.720" data-end="8.592"><span class="en">What time was that?</span><span class="zh">几点？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="8.592" data-end="12.816"><span class="en">About ten minutes ago. Can I file the report in English and Chinese?</span><span class="zh">大约十分钟前。能用中英文报案吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="8.592" data-end="12.816"><span class="en">About ten minutes ago. Can I file the report in English and Chinese?</span><span class="zh">大约十分钟前。能用中英文报案吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="12.816" data-end="16.968"><span class="en">The report will be in English, but I can add a Chinese summary.</span><span class="zh">报告是英文，但我可以加中文摘要。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="16.968" data-end="19.752"><span class="en">Thank you. Will I get a copy of the report today?</span><span class="zh">谢谢。今天能拿到报告副本吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="16.968" data-end="19.752"><span class="en">Thank you. Will I get a copy of the report today?</span><span class="zh">谢谢。今天能拿到报告副本吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="19.752" data-end="21.864"><span class="en">I&#x27;ll email it within an hour.</span><span class="zh">一小时内发邮件。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="21.864" data-end="24.576"><span class="en">Good. Do I need to cancel my cards first?</span><span class="zh">好。我需要先挂失银行卡吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="21.864" data-end="24.576"><span class="en">Good. Do I need to cancel my cards first?</span><span class="zh">好。我需要先挂失银行卡吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="24.576" data-end="26.952"><span class="en">Yes, call your bank right away.</span><span class="zh">需要，马上打给银行。</span></button></div>
 
@@ -268,29 +374,31 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="17.880" data-end-f="20.496" data-start-m="15.936" data-end-m="18.384"><span class="en">Can you give me a case number I can track online?</span><span class="zh">能给我一个可以在线查询的案件号吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="4.584"><span class="en">My passport and laptop were stolen from my rental car. How do I report it?</span><span class="zh">我的护照和电脑从租车里被偷了。怎么报案？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="4.584"><span class="en">My passport and laptop were stolen from my rental car. How do I report it?</span><span class="zh">我的护照和电脑从租车里被偷了。怎么报案？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="4.584" data-end="8.496"><span class="en">Don&#x27;t touch the car. I&#x27;ll send an officer to dust for prints.</span><span class="zh">别碰车。我派警员去采集指纹。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="8.496" data-end="11.592"><span class="en">I have the thief on video. Can I send you the footage?</span><span class="zh">我拍到了小偷的视频。能发给你们吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="8.496" data-end="11.592"><span class="en">I have the thief on video. Can I send you the footage?</span><span class="zh">我拍到了小偷的视频。能发给你们吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="11.592" data-end="14.760"><span class="en">Upload it to this link and include the case number.</span><span class="zh">上传到这个链接，附上案件号。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="14.760" data-end="20.040"><span class="en">Okay. The hotel says they can&#x27;t release the security footage without a police request.</span><span class="zh">好。酒店说没有警方要求不能提供监控。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="14.760" data-end="20.040"><span class="en">Okay. The hotel says they can&#x27;t release the security footage without a police request.</span><span class="zh">好。酒店说没有警方要求不能提供监控。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="20.040" data-end="22.296"><span class="en">I&#x27;ll send them a formal request.</span><span class="zh">我给他们发正式要求。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="22.296" data-end="26.760"><span class="en">Thank you. I need the report for my insurance claim and passport replacement.</span><span class="zh">谢谢。我需要报告用于保险理赔和补办护照。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="22.296" data-end="26.760"><span class="en">Thank you. I need the report for my insurance claim and passport replacement.</span><span class="zh">谢谢。我需要报告用于保险理赔和补办护照。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="26.760" data-end="28.920"><span class="en">I&#x27;ll give you a certified copy.</span><span class="zh">我给您一份认证副本。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="28.920" data-end="32.112"><span class="en">Great. Can you give me a case number I can track online?</span><span class="zh">好。能给我一个可以在线查询的案件号吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="28.920" data-end="32.112"><span class="en">Great. Can you give me a case number I can track online?</span><span class="zh">好。能给我一个可以在线查询的案件号吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="32.112" data-end="34.032"><span class="en">It&#x27;s on the top of the report.</span><span class="zh">在报告顶部。</span></button></div>
 
   </div></div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>报案</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en"><mark class="key">What happened</mark>?</span><span class="zh">发生什么事了？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="3.744"><span class="en"><mark class="key">When did</mark> this happen?</span><span class="zh">什么时候发生的？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="3.744" data-end-f="5.616" data-start-m="3.744" data-end-m="5.616"><span class="en"><mark class="key">Where were you</mark> when it happened?</span><span class="zh">事发时您在哪里？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="5.616" data-end-f="8.064" data-start-m="5.616" data-end-m="7.752"><span class="reply-tag">答</span><span class="reply-body"><span class="en">My wallet was stolen on the subway.</span><span class="zh">我的钱包在地铁上被偷了。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>What happened? / When did…? / Where were you…?</p></article><article class="intent"><h3>描述失物</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="8.064" data-end-f="9.936" data-start-m="7.752" data-end-m="9.624"><span class="en">Can you <mark class="key">describe the item</mark>?</span><span class="zh">能描述一下失物吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="9.936" data-end-f="11.808" data-start-m="9.624" data-end-m="11.496"><span class="en">Do you have a <mark class="key">photo</mark>?</span><span class="zh">您有照片吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="11.808" data-end-f="13.680" data-start-m="11.496" data-end-m="13.368"><span class="en">Was <mark class="key">anything else taken</mark>?</span><span class="zh">还丢了别的东西吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="13.680" data-end-f="16.440" data-start-m="13.368" data-end-m="15.912"><span class="reply-tag">答</span><span class="reply-body"><span class="en">A black wallet with my ID and cards.</span><span class="zh">一个黑色钱包，里面有证件和银行卡。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Can you describe…? / Do you have…? / Was anything else…?</p></article><article class="intent"><h3>立案/编号</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="16.440" data-end-f="18.312" data-start-m="15.912" data-end-m="17.784"><span class="en">I&#x27;ll <mark class="key">file a report</mark>.</span><span class="zh">我给您立案。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="18.312" data-end-f="20.184" data-start-m="17.784" data-end-m="19.656"><span class="en">Here&#x27;s your <mark class="key">report number</mark>.</span><span class="zh">这是您的案件编号。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="20.184" data-end-f="22.440" data-start-m="19.656" data-end-m="21.576"><span class="en">You can <mark class="key">use this for your insurance</mark>.</span><span class="zh">您可以用这个报保险。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="22.440" data-end-f="24.312" data-start-m="21.576" data-end-m="23.448"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Thanks.</span><span class="zh">谢谢。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>I&#x27;ll file… / Here&#x27;s your… / You can use this…</p></article></div></section>
 
   </section>
 
@@ -306,17 +414,17 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="13.560" data-end-f="16.008" data-start-m="13.104" data-end-m="15.408"><span class="en">Can I get an emergency travel document?</span><span class="zh">能办紧急旅行证件吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="13.992" data-end="15.864"><span class="en">I lost my passport.</span><span class="zh">我的护照丢了。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="13.992" data-end="15.864"><span class="en">I lost my passport.</span><span class="zh">我的护照丢了。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="15.864" data-end="17.736"><span class="en">When did you last see it?</span><span class="zh">最后一次看到是什么时候？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="17.736" data-end="19.608"><span class="en">Yesterday, at the hotel.</span><span class="zh">昨天，在酒店。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="17.736" data-end="19.608"><span class="en">Yesterday, at the hotel.</span><span class="zh">昨天，在酒店。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="19.608" data-end="22.920"><span class="en">I&#x27;ll make a report. You&#x27;ll need it for the consulate.</span><span class="zh">我做个记录。领事馆需要。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="22.920" data-end="24.792"><span class="en">Where is the Chinese consulate?</span><span class="zh">中国领事馆在哪里？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="22.920" data-end="24.792"><span class="en">Where is the Chinese consulate?</span><span class="zh">中国领事馆在哪里？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="24.792" data-end="27.072"><span class="en">Downtown, on 12th Street.</span><span class="zh">市中心，12 街。</span></button></div>
 
@@ -334,25 +442,25 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="23.808" data-end-f="26.424" data-start-m="21.816" data-end-m="24.192"><span class="en">What documents should I bring to the consulate?</span><span class="zh">去领事馆要带什么文件？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.952" data-end="29.544"><span class="en">My passport was in my bag when it was stolen.</span><span class="zh">我的护照在包里一起被偷了。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.952" data-end="29.544"><span class="en">My passport was in my bag when it was stolen.</span><span class="zh">我的护照在包里一起被偷了。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="29.544" data-end="31.416"><span class="en">Was anything else taken?</span><span class="zh">还丢了别的吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="31.416" data-end="35.616"><span class="en">My wallet and phone. Can the consulate issue a replacement in two days?</span><span class="zh">钱包和手机。领事馆能两天内补发吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="31.416" data-end="35.616"><span class="en">My wallet and phone. Can the consulate issue a replacement in two days?</span><span class="zh">钱包和手机。领事馆能两天内补发吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="35.616" data-end="38.496"><span class="en">They can issue an emergency travel document.</span><span class="zh">他们能办紧急旅行证件。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="38.496" data-end="40.848"><span class="en">Do I need new photos for the application?</span><span class="zh">申请需要新照片吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="38.496" data-end="40.848"><span class="en">Do I need new photos for the application?</span><span class="zh">申请需要新照片吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="40.848" data-end="43.608"><span class="en">Yes, and a copy of the police report.</span><span class="zh">需要，还要报警记录副本。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="43.608" data-end="46.848"><span class="en">Okay. Can I fly domestically without my passport?</span><span class="zh">好。没有护照能坐国内航班吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="43.608" data-end="46.848"><span class="en">Okay. Can I fly domestically without my passport?</span><span class="zh">好。没有护照能坐国内航班吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="46.848" data-end="50.112"><span class="en">You&#x27;ll need a government ID or the travel document.</span><span class="zh">需要政府证件或旅行证件。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="50.112" data-end="53.160"><span class="en">Good. What documents should I bring to the consulate?</span><span class="zh">好。去领事馆要带什么文件？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="50.112" data-end="53.160"><span class="en">Good. What documents should I bring to the consulate?</span><span class="zh">好。去领事馆要带什么文件？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="53.160" data-end="57.096"><span class="en">Bring the report, photos, and proof of citizenship.</span><span class="zh">带报告、照片和国籍证明。</span></button></div>
 
@@ -370,29 +478,31 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="38.040" data-end-f="41.448" data-start-m="34.752" data-end-m="37.920"><span class="en">Can you verify my identity with my Chinese ID card?</span><span class="zh">能用我的中国身份证核实身份吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="34.032" data-end="39.288"><span class="en">My passport was stolen, and I have a flight in three days. Can the consulate expedite it?</span><span class="zh">我的护照被偷了，三天后有航班。领事馆能加急吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="34.032" data-end="39.288"><span class="en">My passport was stolen, and I have a flight in three days. Can the consulate expedite it?</span><span class="zh">我的护照被偷了，三天后有航班。领事馆能加急吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="39.288" data-end="43.728"><span class="en">I&#x27;ll mark the report urgent. Call the consulate first thing tomorrow.</span><span class="zh">我把报告标为加急。明早第一时间打领事馆。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="43.728" data-end="48.648"><span class="en">I will. I need a police report that states the passport number. Can you include it?</span><span class="zh">好。我需要写明护照号的报警记录。能加上吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="43.728" data-end="48.648"><span class="en">I will. I need a police report that states the passport number. Can you include it?</span><span class="zh">好。我需要写明护照号的报警记录。能加上吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="48.648" data-end="50.616"><span class="en">I&#x27;ll add it to the description.</span><span class="zh">我加到描述里。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="50.616" data-end="54.816"><span class="en">Thank you. Can I travel to Canada with an emergency travel document?</span><span class="zh">谢谢。能用紧急旅行证件去加拿大吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="50.616" data-end="54.816"><span class="en">Thank you. Can I travel to Canada with an emergency travel document?</span><span class="zh">谢谢。能用紧急旅行证件去加拿大吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="54.816" data-end="57.696"><span class="en">You&#x27;ll need to check with Canadian border services.</span><span class="zh">需要问加拿大边境服务。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="57.696" data-end="61.992"><span class="en">Okay. The consulate is closed today. Is there an emergency line?</span><span class="zh">好。领事馆今天关门。有紧急电话吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="57.696" data-end="61.992"><span class="en">Okay. The consulate is closed today. Is there an emergency line?</span><span class="zh">好。领事馆今天关门。有紧急电话吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="61.992" data-end="65.328"><span class="en">There&#x27;s a 24-hour line for citizens abroad.</span><span class="zh">有海外公民二十四小时热线。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="65.328" data-end="69.144"><span class="en">Good. Can you verify my identity with my Chinese ID card?</span><span class="zh">好。能用我的中国身份证核实身份吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="65.328" data-end="69.144"><span class="en">Good. Can you verify my identity with my Chinese ID card?</span><span class="zh">好。能用我的中国身份证核实身份吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="69.144" data-end="72.624"><span class="en">That helps, but the consulate will make the final call.</span><span class="zh">有帮助，但最终由领事馆决定。</span></button></div>
 
   </div></div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>护照丢失</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="24.312" data-end-f="26.184" data-start-m="23.448" data-end-m="25.320"><span class="en">What&#x27;s your <mark class="key">nationality</mark>?</span><span class="zh">您的国籍是什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="26.184" data-end-f="28.224" data-start-m="25.320" data-end-m="27.192"><span class="en">Do you have a <mark class="key">copy of your passport</mark>?</span><span class="zh">您有护照复印件吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="28.224" data-end-f="30.096" data-start-m="27.192" data-end-m="29.064"><span class="en">When did you <mark class="key">last see it</mark>?</span><span class="zh">您最后一次看到是什么时候？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="30.096" data-end-f="33.360" data-start-m="29.064" data-end-m="31.656"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Chinese. I have a photo on my phone.</span><span class="zh">中国籍。我手机里有照片。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>What&#x27;s your…? / Do you have…? / When did you last…?</p></article><article class="intent"><h3>报警证明</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="33.360" data-end-f="35.976" data-start-m="31.656" data-end-m="33.960"><span class="en">You&#x27;ll need a <mark class="key">police report</mark> for the embassy.</span><span class="zh">大使馆需要报警证明。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="35.976" data-end-f="37.848" data-start-m="33.960" data-end-m="35.832"><span class="en">I can <mark class="key">give you a copy</mark>.</span><span class="zh">我可以给您一份副本。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="37.848" data-end-f="39.720" data-start-m="35.832" data-end-m="37.704"><span class="en">Take this to the <mark class="key">consulate</mark>.</span><span class="zh">把这个带到领事馆。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="39.720" data-end-f="41.592" data-start-m="37.704" data-end-m="39.576"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Where&#x27;s the consulate?</span><span class="zh">领事馆在哪里？</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>You&#x27;ll need… / I can give you… / Take this to…</p></article><article class="intent"><h3>临时证件</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="41.592" data-end-f="44.712" data-start-m="39.576" data-end-m="42.384"><span class="en">The embassy can issue an <mark class="key">emergency passport</mark>.</span><span class="zh">大使馆可以办临时护照。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="44.712" data-end-f="46.584" data-start-m="42.384" data-end-m="44.256"><span class="en">Do you have <mark class="key">another ID</mark>?</span><span class="zh">您有别的证件吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="46.584" data-end-f="48.456" data-start-m="44.256" data-end-m="46.128"><span class="en">Do you need a <mark class="key">translator</mark>?</span><span class="zh">您需要翻译吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="48.456" data-end-f="50.736" data-start-m="46.128" data-end-m="48.360"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, I need help with the embassy.</span><span class="zh">需要，我需要大使馆方面的帮助。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>The embassy can… / Do you have…? / Do you need…?</p></article></div></section>
 
   </section>
 
@@ -408,21 +518,21 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="22.656" data-end-f="24.528" data-start-m="21.408" data-end-m="23.280"><span class="en">How long does it take?</span><span class="zh">要多久？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="27.072" data-end="29.208"><span class="en">I need a copy of the police report.</span><span class="zh">我需要报警记录副本。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="27.072" data-end="29.208"><span class="en">I need a copy of the police report.</span><span class="zh">我需要报警记录副本。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="29.208" data-end="31.080"><span class="en">Do you have the case number?</span><span class="zh">有案件号吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="31.080" data-end="34.776"><span class="en">Yes, it&#x27;s on this card. My insurance company asked for it.</span><span class="zh">有，在这张卡上。我的保险公司要。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="31.080" data-end="34.776"><span class="en">Yes, it&#x27;s on this card. My insurance company asked for it.</span><span class="zh">有，在这张卡上。我的保险公司要。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="34.776" data-end="36.648"><span class="en">I&#x27;ll print a copy.</span><span class="zh">我打印一份。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="36.648" data-end="38.640"><span class="en">Thanks. Can you stamp it?</span><span class="zh">谢谢。能盖章吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="36.648" data-end="38.640"><span class="en">Thanks. Can you stamp it?</span><span class="zh">谢谢。能盖章吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="38.640" data-end="41.928"><span class="en">We don&#x27;t stamp copies, but I can certify it.</span><span class="zh">副本不盖章，但我可以认证。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="41.928" data-end="43.992"><span class="en">Good. How long does it take?</span><span class="zh">好。要多久？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="41.928" data-end="43.992"><span class="en">Good. How long does it take?</span><span class="zh">好。要多久？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="43.992" data-end="45.864"><span class="en">About ten minutes.</span><span class="zh">大约十分钟。</span></button></div>
 
@@ -440,25 +550,25 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="37.656" data-end-f="40.152" data-start-m="35.016" data-end-m="37.344"><span class="en">Can I get a second copy for the consulate?</span><span class="zh">能再给我一份给领事馆吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="57.096" data-end="60.240"><span class="en">Does the report include the value of the stolen items?</span><span class="zh">报告包含被盗物品价值吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="57.096" data-end="60.240"><span class="en">Does the report include the value of the stolen items?</span><span class="zh">报告包含被盗物品价值吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="60.240" data-end="63.456"><span class="en">It lists the items and estimated values.</span><span class="zh">列出了物品和估值。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="63.456" data-end="67.008"><span class="en">Good. Can you email the report directly to my insurer?</span><span class="zh">好。能把报告直接发给我保险公司吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="63.456" data-end="67.008"><span class="en">Good. Can you email the report directly to my insurer?</span><span class="zh">好。能把报告直接发给我保险公司吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="67.008" data-end="69.696"><span class="en">I can email it to the address you provide.</span><span class="zh">可以发到您提供的邮箱。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="69.696" data-end="73.224"><span class="en">Thanks. I need the officer&#x27;s name and badge number.</span><span class="zh">谢谢。我需要警官姓名和警号。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="69.696" data-end="73.224"><span class="en">Thanks. I need the officer&#x27;s name and badge number.</span><span class="zh">谢谢。我需要警官姓名和警号。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="73.224" data-end="75.096"><span class="en">It&#x27;s on the last page.</span><span class="zh">在最后一页。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="75.096" data-end="77.952"><span class="en">Okay. Will the report be available online?</span><span class="zh">好。报告能在网上查到吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="75.096" data-end="77.952"><span class="en">Okay. Will the report be available online?</span><span class="zh">好。报告能在网上查到吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="77.952" data-end="80.496"><span class="en">Only with the case number and your ID.</span><span class="zh">需要案件号和证件。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="80.496" data-end="83.472"><span class="en">Good. Can I get a second copy for the consulate?</span><span class="zh">好。能再给我一份给领事馆吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="80.496" data-end="83.472"><span class="en">Good. Can I get a second copy for the consulate?</span><span class="zh">好。能再给我一份给领事馆吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="83.472" data-end="85.344"><span class="en">I&#x27;ll print two.</span><span class="zh">我打两份。</span></button></div>
 
@@ -476,33 +586,35 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="60.048" data-end-f="63.312" data-start-m="55.512" data-end-m="58.632"><span class="en">Can you confirm the report is complete before I submit it?</span><span class="zh">提交前能确认报告完整吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="72.624" data-end="76.944"><span class="en">My insurer requires a notarized police report. Can you provide one?</span><span class="zh">我的保险公司要求公证的报警记录。能提供吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="72.624" data-end="76.944"><span class="en">My insurer requires a notarized police report. Can you provide one?</span><span class="zh">我的保险公司要求公证的报警记录。能提供吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="76.944" data-end="80.856"><span class="en">We can certify it, but notarization is done at a bank.</span><span class="zh">我们可以认证，但公证要在银行办。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="80.856" data-end="84.960"><span class="en">I see. The report lists the wrong date. Can you correct it?</span><span class="zh">明白。报告日期写错了。能改吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="80.856" data-end="84.960"><span class="en">I see. The report lists the wrong date. Can you correct it?</span><span class="zh">明白。报告日期写错了。能改吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="84.960" data-end="87.072"><span class="en">I&#x27;ll issue a corrected version.</span><span class="zh">我出一份更正版。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="87.072" data-end="92.928"><span class="en">Thank you. I need the report translated into Chinese for my insurer. Do you have a translation service?</span><span class="zh">谢谢。我需要把报告翻译成中文给保险公司。你们有翻译服务吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="87.072" data-end="92.928"><span class="en">Thank you. I need the report translated into Chinese for my insurer. Do you have a translation service?</span><span class="zh">谢谢。我需要把报告翻译成中文给保险公司。你们有翻译服务吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="92.928" data-end="96.240"><span class="en">We don&#x27;t, but the consulate can recommend one.</span><span class="zh">我们没有，但领事馆可以推荐。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="96.240" data-end="101.856"><span class="en">Okay. The stolen item was a rental laptop. The rental company needs the report too.</span><span class="zh">好。被偷的是租来的电脑。租车公司也要报告。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="96.240" data-end="101.856"><span class="en">Okay. The stolen item was a rental laptop. The rental company needs the report too.</span><span class="zh">好。被偷的是租来的电脑。租车公司也要报告。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="101.856" data-end="104.160"><span class="en">I&#x27;ll add them as an interested party.</span><span class="zh">我把他们加为相关方。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="104.160" data-end="108.000"><span class="en">Great. Can you confirm the report is complete before I submit it?</span><span class="zh">好。提交前能确认报告完整吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="104.160" data-end="108.000"><span class="en">Great. Can you confirm the report is complete before I submit it?</span><span class="zh">好。提交前能确认报告完整吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="officer"><span class="who">Police officer</span><button class="say" type="button" data-part="d" data-start="108.000" data-end="109.872"><span class="en">I&#x27;ll review it with you now.</span><span class="zh">我现在和您一起核对。</span></button></div>
 
   </div></div></div>
 
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>保险报案</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="50.736" data-end-f="52.632" data-start-m="48.360" data-end-m="50.232"><span class="en">Do you need a <mark class="key">copy of the report</mark>?</span><span class="zh">您要一份案件报告吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="52.632" data-end-f="54.624" data-start-m="50.232" data-end-m="52.104"><span class="en">Is this for an <mark class="key">insurance claim</mark>?</span><span class="zh">这是用于保险理赔吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="54.624" data-end-f="56.496" data-start-m="52.104" data-end-m="53.976"><span class="en">What&#x27;s your <mark class="key">insurance company</mark>?</span><span class="zh">您的保险公司是哪家？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="56.496" data-end-f="59.064" data-start-m="53.976" data-end-m="56.232"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, for my travel insurance.</span><span class="zh">是的，用于旅行保险。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Do you need…? / Is this for…? / What&#x27;s your…?</p></article><article class="intent"><h3>损失清单</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="59.064" data-end-f="61.176" data-start-m="56.232" data-end-m="58.224"><span class="en">Can you <mark class="key">list the items</mark> that were taken?</span><span class="zh">能列一下被偷的东西吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="61.176" data-end-f="63.312" data-start-m="58.224" data-end-m="60.168"><span class="en">Do you have <mark class="key">receipts or photos</mark>?</span><span class="zh">您有收据或照片吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="63.312" data-end-f="65.184" data-start-m="60.168" data-end-m="62.040"><span class="en">What&#x27;s the <mark class="key">total value</mark>?</span><span class="zh">总价值是多少？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="65.184" data-end-f="67.992" data-start-m="62.040" data-end-m="64.560"><span class="reply-tag">答</span><span class="reply-body"><span class="en">My phone and about three hundred dollars.</span><span class="zh">我的手机和大约三百美元。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Can you list…? / Do you have…? / What&#x27;s the total…?</p></article><article class="intent"><h3>后续</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="67.992" data-end-f="69.864" data-start-m="64.560" data-end-m="66.432"><span class="en">We&#x27;ll <mark class="key">email you the report</mark>.</span><span class="zh">我们会把报告邮件发给您。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="69.864" data-end-f="72.120" data-start-m="66.432" data-end-m="68.472"><span class="en"><mark class="key">Call this number</mark> if you find anything.</span><span class="zh">有线索请打这个电话。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="72.120" data-end-f="73.992" data-start-m="68.472" data-end-m="70.344"><span class="en">Do you have <mark class="key">any questions</mark>?</span><span class="zh">您还有什么问题吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="73.992" data-end-f="75.864" data-start-m="70.344" data-end-m="72.216"><span class="reply-tag">答</span><span class="reply-body"><span class="en">No, thank you.</span><span class="zh">没有了，谢谢。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>We&#x27;ll email… / Call this number… / Do you have any questions?</p></article></div></section>
+
   </section>
 
-  <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/1ea773e8ddf3.mp3","survival-p-m":"sprites/adaca68b6087.mp3","survival-d":"sprites/5b2d1c47e088.mp3","conversational-p-f":"sprites/9d5f9a53f2b5.mp3","conversational-p-m":"sprites/3905422e71d1.mp3","conversational-d":"sprites/0929c0de23fa.mp3","advanced-p-f":"sprites/2c20c06c5e24.mp3","advanced-p-m":"sprites/047da5979a99.mp3","advanced-d":"sprites/20d5156bea85.mp3"}</script>
+  <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/1ea773e8ddf3.mp3","survival-p-m":"sprites/adaca68b6087.mp3","survival-d":"sprites/5b2d1c47e088.mp3","conversational-p-f":"sprites/9d5f9a53f2b5.mp3","conversational-p-m":"sprites/3905422e71d1.mp3","conversational-d":"sprites/0929c0de23fa.mp3","advanced-p-f":"sprites/2c20c06c5e24.mp3","advanced-p-m":"sprites/047da5979a99.mp3","advanced-d":"sprites/20d5156bea85.mp3","listen-f":"sprites/f66b6b4866bf.mp3","listen-m":"sprites/49cd2d571ad3.mp3"}</script>
 </main>
 
 <script>
@@ -515,10 +627,10 @@
   var body = document.body;
   var levelBtns = [].slice.call(document.querySelectorAll('[data-level]'));
   var voiceBtns = [].slice.call(document.querySelectorAll('[data-voice]'));
+  var viewBtns = [].slice.call(document.querySelectorAll('[data-view]'));
   var hotspots = [].slice.call(document.querySelectorAll('[data-hotspot]'));
   var encounters = [].slice.call(document.querySelectorAll('.encounter'));
   var zhToggle = document.querySelector('[data-zh-toggle]');
-  var rpToggle = document.querySelector('[data-roleplay]');
   var speedBtn = document.querySelector('[data-speed]');
   var playBtn = document.querySelector('[data-play-dialogue]');
   var statusEl = document.querySelector('[data-status]');
@@ -527,10 +639,10 @@
   audio.preservesPitch = true;
 
   var voice = 'f';
+  var view = '2d';
   var level = body.getAttribute('data-default-level') || 'survival';
   var speed = 0.9;
   var zhOff = false;
-  var roleplay = false;
   var selected = null;
   var playToken = 0;
   var seqRunning = false;
@@ -540,6 +652,10 @@
   try {
     var savedVoice = localStorage.getItem('npesl-voice');
     if (savedVoice === 'f' || savedVoice === 'm') voice = savedVoice;
+  } catch (e) {}
+  try {
+    var savedView = localStorage.getItem('travel-view');
+    if (savedView === '2d' || savedView === '3d') view = savedView;
   } catch (e) {}
   try {
     zhOff = localStorage.getItem('npesl-zh') === '0';
@@ -630,6 +746,20 @@
     stopAudio();
   }
 
+  function applyView(next, persist) {
+    view = next === '3d' ? '3d' : '2d';
+    body.classList.toggle('view-3d', view === '3d');
+    [].forEach.call(document.querySelectorAll('[data-map-view]'),
+      function (stage) {
+        stage.hidden = stage.getAttribute('data-map-view') !== view;
+      });
+    viewBtns.forEach(function (btn) {
+      btn.setAttribute('aria-pressed',
+        btn.getAttribute('data-view') === view ? 'true' : 'false');
+    });
+    if (persist !== false) save('travel-view', view);
+  }
+
   function applyZh(next, persist) {
     zhOff = !!next;
     body.classList.toggle('zh-off', zhOff);
@@ -642,15 +772,6 @@
     if (speedBtn) speedBtn.textContent = speed + '×';
     audio.playbackRate = speed;
     if (persist !== false) save('npesl-speed', String(speed));
-  }
-
-  function applyRoleplay(next) {
-    roleplay = !!next;
-    body.classList.toggle('roleplay', roleplay);
-    if (rpToggle) rpToggle.setAttribute('aria-pressed', roleplay ? 'true' : 'false');
-    [].forEach.call(document.querySelectorAll('.line[data-role="you"]'),
-      function (line) { line.classList.remove('revealed'); });
-    stopAudio();
   }
 
   function stopAudio() {
@@ -727,7 +848,8 @@
           if (currentEl) currentEl.classList.remove('on', 'playing');
           currentEl = el;
           if (el) {
-            if (el.classList.contains('phrase')) {
+            if (el.classList.contains('phrase') || el.classList.contains('ask')
+                || el.classList.contains('reply')) {
               el.classList.add('on');
             } else {
               var line = el.closest('.line');
@@ -748,25 +870,14 @@
     });
   }
 
-  function sleep(ms, token) {
-    return new Promise(function (resolve) {
-      var start = Date.now();
-      function tick() {
-        if (token !== playToken || Date.now() - start >= ms) return resolve();
-        setTimeout(tick, 100);
-      }
-      tick();
-    });
-  }
-
   function playPhrase(btn) {
-    var panel = btn.closest('.level-panel');
-    if (!panel) return;
+    var sprite = btn.getAttribute('data-sprite');
+    if (!sprite) sprite = level + '-p';
     var start = parseFloat(btn.getAttribute('data-start-' + voice));
     var end = parseFloat(btn.getAttribute('data-end-' + voice));
     stopAudio();
     var token = playToken;
-    playSprite(level + '-p-' + voice, start, end, btn, token);
+    playSprite(sprite + '-' + voice, start, end, btn, token);
   }
 
   function playLine(line, btn) {
@@ -786,11 +897,6 @@
     var panel = currentPanel();
     if (!panel) return;
     var lines = [].slice.call(panel.querySelectorAll('.line'));
-    if (roleplay) {
-      lines = lines.filter(function (line) {
-        return line.getAttribute('data-role') !== 'you';
-      });
-    }
     if (!lines.length) return;
     stopAudio();
     var token = playToken;
@@ -815,11 +921,7 @@
       }
       playSprite(level + '-d', start, end, btn, token).then(function () {
         if (token !== playToken) return;
-        if (roleplay && index < lines.length) {
-          sleep(3000, token).then(next);
-        } else {
-          next();
-        }
+        next();
       });
     }
     next();
@@ -829,17 +931,12 @@
     var hotspot = event.target.closest('[data-hotspot]');
     if (hotspot) { selectHotspot(hotspot, true); return; }
 
-    var phrase = event.target.closest('.phrase');
+    var phrase = event.target.closest('.phrase, .ask, .reply');
     if (phrase) { playPhrase(phrase); return; }
 
     var playLineBtn = event.target.closest('.line .say');
     if (playLineBtn) {
-      var line = playLineBtn.closest('.line');
-      if (roleplay && line.getAttribute('data-role') === 'you'
-          && !line.classList.contains('revealed')) {
-        line.classList.add('revealed');
-      }
-      playLine(line, playLineBtn);
+      playLine(playLineBtn.closest('.line'), playLineBtn);
       return;
     }
 
@@ -849,12 +946,11 @@
     var voiceBtn = event.target.closest('[data-voice]');
     if (voiceBtn) { applyVoice(voiceBtn.getAttribute('data-voice')); return; }
 
+    var viewBtn = event.target.closest('[data-view]');
+    if (viewBtn) { applyView(viewBtn.getAttribute('data-view')); return; }
+
     if (event.target.closest('[data-zh-toggle]')) {
       applyZh(!zhOff);
-      return;
-    }
-    if (event.target.closest('[data-roleplay]')) {
-      applyRoleplay(!roleplay);
       return;
     }
     if (event.target.closest('[data-speed]')) {
@@ -869,6 +965,7 @@
   });
 
   applyVoice(voice, false);
+  applyView(view, false);
   applyZh(zhOff, false);
   applySpeed(speed, false);
   var hash = '';

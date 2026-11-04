@@ -55,44 +55,106 @@
     border-radius:var(--radius-card,24px); background:var(--bg); }
   .map-wrap { position:relative; width:100%; aspect-ratio:640 / 400;
     min-height:220px; }
+  .map-stage { position:absolute; inset:0; }
   .map-svg { display:block; width:100%; height:100%; }
-  .map-plate { fill:var(--surface); stroke:var(--rule); }
-  .map-zone-shape { fill:var(--surface-strong); stroke:var(--rule);
-    stroke-width:1; transition:fill .15s ease, stroke .15s ease; }
-  .map-zone-label { fill:var(--muted); font:600 11px var(--font);
-    letter-spacing:.08em; }
+  .map-svg { display:block; width:100%; height:100%;
+    --map-floor:light-dark(#f3f3f6,#1c262b);
+    --map-floor-2:light-dark(#e9e9ee,#232f35);
+    --map-floor-3:light-dark(#fafafb,#182024);
+    --map-top:light-dark(#e4e4ea,#35434a);
+    --map-top-2:light-dark(#d6d6de,#415159);
+    --map-side:light-dark(#c9c9d2,#1f292e);
+    --map-side-2:light-dark(#b4b4bf,#151c20);
+    --map-edge:light-dark(rgba(20,24,30,.12),rgba(238,243,244,.14));
+    --map-wall:light-dark(rgba(20,24,30,.22),rgba(238,243,244,.22)); }
+  .map-plate { fill:var(--bg); stroke:var(--map-wall); }
+  .map-plate-inner { fill:none; stroke:var(--map-edge); stroke-width:1; }
+  .map-dot-field { opacity:.5; }
+  .map-dot { fill:var(--map-edge); }
+  .map-wall { fill:none; stroke:var(--map-wall); stroke-width:2; }
+  .map-zone-shape { stroke:var(--map-edge); stroke-width:1;
+    transition:fill .15s ease, stroke .15s ease; }
+  .map-zone-shape.tone-1 { fill:var(--map-floor); }
+  .map-zone-shape.tone-2 { fill:var(--map-floor-2); }
+  .map-zone-shape.tone-3 { fill:var(--map-floor-3); }
+  .map-zone-label { fill:var(--muted); font:600 10px var(--font);
+    letter-spacing:.11em; }
+  .map-zone-dot { fill:var(--blue); opacity:.75; }
   .map-fixture { fill:none; stroke:var(--muted); stroke-width:1.4; }
   .map-fixture-line { fill:none; stroke:var(--muted); stroke-width:1; }
-  .map-fixture-soft { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
+  .map-fixture-soft { fill:var(--map-floor-2); stroke:var(--map-edge);
+    stroke-width:1; }
   .map-counter, .map-shelf, .map-sofa, .map-bed, .map-train, .map-car,
   .map-pump, .map-atm, .map-terminal, .map-booth, .map-machine {
-    fill:var(--surface); stroke:var(--rule); stroke-width:1.2; }
+    fill:var(--map-top); stroke:var(--map-edge); stroke-width:1.2; }
   .map-counter-top, .map-sofa-seat, .map-pillow, .map-car-window,
-  .map-train-window { fill:var(--surface-strong); stroke:var(--rule);
+  .map-train-window { fill:var(--map-top-2); stroke:var(--map-edge);
     stroke-width:1; }
-  .map-seat { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
-  .map-table { fill:var(--surface-strong); stroke:var(--rule); stroke-width:1; }
+  .map-seat { fill:var(--map-top); stroke:var(--map-edge); stroke-width:1; }
+  .map-table { fill:var(--map-top-2); stroke:var(--map-edge); stroke-width:1; }
   .map-person { fill:var(--muted); }
-  .map-pin { fill:var(--blue); }
-  .map-flag { fill:var(--blue); }
+  .map-pin, .map-flag { fill:var(--blue); }
   .map-route { fill:none; stroke:var(--blue); stroke-width:1.5;
-    stroke-dasharray:5 7; }
-  .map-zone.is-active .map-zone-shape { fill:var(--blue-tint);
-    stroke:var(--blue); stroke-width:1.8; }
+    stroke-dasharray:5 7; opacity:.45; }
+  .map-arrow { fill:var(--blue); }
+  .map-street-dash, .map-queue-line, .map-tactile { fill:none;
+    stroke:var(--muted); stroke-width:1; stroke-dasharray:5 7; opacity:.55; }
+  .map-tactile { stroke:var(--blue); stroke-width:2; stroke-dasharray:2 3; }
+  .map-window { fill:none; stroke:var(--muted); stroke-width:1; opacity:.5; }
+  .map-wc { fill:var(--muted); font:600 9px var(--font);
+    letter-spacing:.06em; }
+  .map-plant { fill:var(--surface-strong); stroke:var(--rule); }
+  .map-leaf { fill:var(--blue); opacity:.22; }
+  .map-bowl { fill:var(--surface-strong); stroke:var(--rule); }
+  .map-blanket, .map-burner, .map-sofa-seam, .map-seat-back,
+  .map-stock, .map-belt-slat, .map-curtain, .map-train-door,
+  .map-door-leaf { fill:none; stroke:var(--muted); stroke-width:1;
+    opacity:.55; }
+  .map-curtain { stroke-width:1.5; }
+  .map-train-door { stroke:var(--rule); stroke-width:1.5; opacity:1; }
+  .map-wheel, .map-headlight { fill:var(--muted); opacity:.65; }
+  .map-screen { fill:var(--blue-tint); stroke:var(--blue); }
+  .map-stool { fill:var(--surface); stroke:var(--rule); }
+  .map-3d-slab { fill:var(--map-floor-3); stroke:var(--map-edge);
+    stroke-width:1; }
+  .map-3d-slab-side { fill:var(--map-side); }
+  .map-3d-floor { stroke:var(--map-edge); stroke-width:.8; }
+  .map-3d-floor.tone-0 { fill:var(--map-floor); }
+  .map-3d-floor.tone-1 { fill:var(--map-floor-2); }
+  .map-3d-floor.tone-2 { fill:var(--map-floor-3); }
+  .map-3d-top.tone-1 { fill:var(--map-top); }
+  .map-3d-top.tone-2 { fill:var(--map-top-2); }
+  .map-3d-top.tone-3 { fill:var(--map-side); }
+  .map-3d-side { fill:var(--map-side); }
+  .map-3d-side-2 { fill:var(--map-side-2); }
+  .map-3d-label { fill:var(--muted); font:600 10px var(--font);
+    letter-spacing:.08em; paint-order:stroke; stroke:var(--bg);
+    stroke-width:3px; }
+  .map-zone.is-active .map-zone-shape { fill:var(--blue);
+    fill-opacity:.14; stroke:var(--blue); stroke-width:1.8; }
   .map-zone.is-active .map-zone-label { fill:var(--blue); }
-  .hotspot { position:absolute; left:var(--x); top:var(--y);
-    transform:translate(-50%,-50%); display:flex; flex-direction:column;
-    align-items:flex-start; gap:0; min-height:44px; padding:5px 9px;
+  .map-zone.is-active .map-3d-floor { fill:var(--blue);
+    fill-opacity:.24; stroke:var(--blue); stroke-width:1.6; }
+  .map-zone.is-active .map-3d-label { fill:var(--blue); }
+  .hotspot { position:absolute; left:var(--x2d); top:var(--y2d);
+    transform:translate(-50%,-50%); display:flex; align-items:center;
+    gap:7px; min-height:32px; padding:4px 10px 4px 4px;
     border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
     background:var(--bg); color:var(--fg); font:inherit; font-size:12px;
     line-height:1.15; text-align:left; white-space:nowrap; cursor:pointer;
-    box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    box-shadow:0 4px 14px rgba(0,0,0,.10); z-index:2; }
+  body.view-3d .hotspot { left:var(--x3d); top:var(--y3d); }
+  .hs-num { flex:none; display:inline-flex; align-items:center;
+    justify-content:center; width:24px; height:24px; border-radius:50%;
+    background:var(--blue); color:var(--on-blue); font-size:11px;
+    font-weight:700; }
+  .hs-text { display:flex; flex-direction:column; gap:0; }
   .hotspot .hs-en { font-weight:600; }
   .hotspot .hs-zh { font-size:10px; color:var(--muted); }
   .hotspot:hover { background:var(--surface); }
-  .hotspot[aria-pressed="true"] { background:var(--blue);
-    border-color:var(--blue); color:var(--on-blue); }
-  .hotspot[aria-pressed="true"] .hs-zh { color:var(--on-blue); opacity:.82; }
+  .hotspot[aria-pressed="true"] { border-color:var(--blue);
+    box-shadow:0 0 0 2px var(--blue-tint), 0 6px 18px rgba(0,0,0,.12); }
+  .hotspot[aria-pressed="true"] .hs-zh { color:var(--muted); }
   .hotspot:focus-visible, .level button:focus-visible, .zh-toggle:focus-visible,
   .voice-seg button:focus-visible, .pill:focus-visible, .phrase:focus-visible,
   .line .say:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
@@ -138,10 +200,47 @@
   .line .say .zh { display:block; margin-top:2px; color:var(--muted);
     font-size:12px; }
   .line.playing .say { border-color:var(--blue); }
-  .reveal { display:none; color:var(--muted); font-size:13px; }
-  body.roleplay .line[data-role="you"] .say .en,
-  body.roleplay .line[data-role="you"] .say .zh { display:none; }
-  body.roleplay .line[data-role="you"]:not(.revealed) .reveal { display:block; }
+  .listening { margin:36px 0 0; }
+  .listening h2 { margin:0 0 14px; font-size:1.3rem; font-weight:650;
+    letter-spacing:-.01em; }
+  .intents { display:flex; flex-direction:column; gap:12px; }
+  .intent { padding:15px 16px 16px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--surface); }
+  .intent h3 { margin:0 0 10px; font-size:13px; font-weight:650;
+    letter-spacing:.02em; }
+  .asks { display:flex; flex-direction:column; gap:6px; }
+  .ask { position:relative; width:100%; display:block; text-align:left;
+    font:inherit; padding:10px 38px 10px 12px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--bg);
+    color:inherit; cursor:pointer; }
+  .ask:hover { background:var(--surface-strong); }
+  .ask .en { display:block; font-size:15px; line-height:1.45; }
+  .ask .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:12px; }
+  .ask.on, .reply.on { border-color:var(--blue); }
+  .ask.on .play, .reply.on .play { background:var(--blue);
+    border-color:var(--blue); color:var(--on-blue); }
+  .key { background:none; color:var(--blue); font-weight:650; }
+  .reply { position:relative; width:100%; display:flex; align-items:flex-start;
+    gap:10px; margin-top:9px; padding:10px 38px 10px 11px;
+    border:1px solid var(--blue); border-radius:var(--radius-control,12px);
+    background:var(--blue-tint); color:inherit; font:inherit;
+    text-align:left; cursor:pointer; }
+  .reply-tag { flex:none; display:inline-flex; align-items:center;
+    justify-content:center; width:22px; height:22px; border-radius:50%;
+    background:var(--blue); color:var(--on-blue); font-size:12px;
+    font-weight:650; }
+  .reply-body { flex:1; min-width:0; }
+  .reply .en { display:block; font-size:15px; line-height:1.45; }
+  .reply .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:12px; }
+  .pattern { margin:11px 0 0; color:var(--muted); font-size:13px;
+    line-height:1.55; }
+  .plabel { display:inline-block; margin-right:7px; padding:1px 6px;
+    border-radius:4px; background:var(--surface-strong); color:var(--fg);
+    font-size:11px; font-weight:600; }
+  .listen-note { margin:7px 0 0; color:var(--muted); font-size:12px;
+    line-height:1.55; }
   body.zh-off .zh, body.zh-off .note, body.zh-off .zh-title { display:none; }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
     overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
@@ -149,8 +248,10 @@
     .page { padding-left:16px; padding-right:16px; }
     .toolbar { align-items:flex-start; }
     .level button { padding:7px 11px; font-size:13px; }
-    .hotspot { font-size:11px; padding:4px 7px; }
-    .hotspot .hs-zh { font-size:9px; }
+    .hotspot { font-size:11px; padding:3px 8px 3px 3px; gap:5px; }
+    .hs-num { width:20px; height:20px; font-size:10px; }
+    .hotspot .hs-zh { display:none; }
+    .intent { padding:13px; }
     .line { grid-template-columns:44px minmax(0,1fr); }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -174,6 +275,10 @@
       <button type="button" data-level="advanced" aria-pressed="false">Advanced</button>
     </div>
     <div class="tools">
+      <div class="voice-seg view-seg" role="group" aria-label="地图视图">
+        <button type="button" data-view="2d" aria-pressed="true">2D</button>
+        <button type="button" data-view="3d" aria-pressed="false">3D</button>
+      </div>
       <div class="voice-seg" role="group" aria-label="短语音色">
         <button type="button" data-voice="f" aria-pressed="true">女</button>
         <button type="button" data-voice="m" aria-pressed="false">男</button>
@@ -184,10 +289,11 @@
 
   <figure class="card map-card" role="group" aria-label="场景平面图">
     <div class="map-wrap">
-      <svg class="map-svg" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><g class="map-zone" data-zone="counter"><rect class="map-zone-shape" x="36" y="44" width="240" height="120" rx="8"/><text class="map-zone-label" x="46" y="156">COUNTER</text></g><g class="map-zone" data-zone="rx"><rect class="map-zone-shape" x="296" y="44" width="308" height="120" rx="8"/><text class="map-zone-label" x="306" y="156">PRESCRIPTIONS</text></g><g class="map-zone" data-zone="consult"><rect class="map-zone-shape" x="36" y="184" width="240" height="172" rx="8"/><text class="map-zone-label" x="46" y="348">CONSULT</text></g><g class="map-zone" data-zone="shelves"><rect class="map-zone-shape" x="296" y="184" width="308" height="172" rx="8"/><text class="map-zone-label" x="306" y="348">SHELVES</text></g><rect class="map-fixture map-counter" x="52.0" y="62.0" width="208.0" height="18.0" rx="6"/><rect class="map-fixture map-counter-top" x="58.0" y="68.0" width="196.0" height="6.0" rx="2"/><rect class="map-fixture map-counter" x="312.0" y="62.0" width="274.0" height="24.0" rx="6"/><circle class="map-fixture" cx="361.3" cy="74.0" r="5.3"/><rect class="map-fixture map-counter" x="52.0" y="204.0" width="208.0" height="24.0" rx="6"/><circle class="map-fixture" cx="89.4" cy="216.0" r="5.3"/><rect class="map-fixture map-shelf" x="312.0" y="204.0" width="274.0" height="18.0" rx="2"/><path class="map-fixture-line" d="M380.5 204.0 L380.5 222.0"/><path class="map-fixture-line" d="M449.0 204.0 L449.0 222.0"/><path class="map-fixture-line" d="M517.5 204.0 L517.5 222.0"/><rect class="map-fixture map-shelf" x="312.0" y="248.0" width="274.0" height="18.0" rx="2"/><path class="map-fixture-line" d="M380.5 248.0 L380.5 266.0"/><path class="map-fixture-line" d="M449.0 248.0 L449.0 266.0"/><path class="map-fixture-line" d="M517.5 248.0 L517.5 266.0"/></svg>
-      <button class="hotspot" type="button" style="--x:24.38%;--y:26.0%" data-hotspot="symptoms" data-zone="counter" data-encounter="symptoms" aria-pressed="true" aria-controls="panel-symptoms"><span class="hs-en">Symptoms</span><span class="hs-zh">说症状</span></button>
-      <button class="hotspot" type="button" style="--x:70.31%;--y:67.5%" data-hotspot="otc" data-zone="shelves" data-encounter="otc" aria-pressed="false" aria-controls="panel-otc"><span class="hs-en">Medicine</span><span class="hs-zh">非处方药</span></button>
-      <button class="hotspot" type="button" style="--x:70.31%;--y:26.0%" data-hotspot="prescription" data-zone="rx" data-encounter="prescription" aria-pressed="false" aria-controls="panel-prescription"><span class="hs-en">Prescription</span><span class="hs-zh">处方</span></button>
+      <div class="map-stage" data-map-view="2d"><svg class="map-svg map-svg-2d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><pattern id="mapDots2d" width="18" height="18" patternUnits="userSpaceOnUse"><circle class="map-dot" cx="1" cy="1" r=".9"/></pattern><clipPath id="mapClip2d"><rect x="16" y="16" width="608" height="368" rx="16"/></clipPath></defs><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><rect class="map-plate-inner" x="16" y="16" width="608" height="368" rx="16"/><rect class="map-dot-field" x="16" y="16" width="608" height="368" fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/><g class="map-zone" data-zone="counter"><rect class="map-zone-shape tone-1" x="36" y="44" width="240" height="120" rx="8"/></g><g class="map-zone" data-zone="rx"><rect class="map-zone-shape tone-2" x="296" y="44" width="308" height="120" rx="8"/></g><g class="map-zone" data-zone="consult"><rect class="map-zone-shape tone-3" x="36" y="184" width="240" height="172" rx="8"/></g><g class="map-zone" data-zone="shelves"><rect class="map-zone-shape tone-2" x="296" y="184" width="308" height="172" rx="8"/></g><rect class="map-wall" x="15.5" y="15.5" width="609" height="369" rx="16"/><rect class="map-fixture map-counter" x="52.0" y="62.0" width="208.0" height="18.0" rx="6"/><rect class="map-fixture map-counter-top" x="58.0" y="68.0" width="196.0" height="6.0" rx="2"/><path class="map-fixture-line" d="M104.0 65.0 L104.0 77.0"/><path class="map-fixture-line" d="M156.0 65.0 L156.0 77.0"/><path class="map-fixture-line" d="M208.0 65.0 L208.0 77.0"/><rect class="map-fixture map-counter" x="312.0" y="62.0" width="274.0" height="24.0" rx="6"/><circle class="map-fixture" cx="361.3" cy="74.0" r="5.3"/><rect class="map-fixture map-counter-top" x="318.0" y="67.0" width="262.0" height="14.0" rx="2"/><path class="map-fixture-line" d="M462.7 69.2 L536.7 69.2"/><rect class="map-fixture map-counter" x="52.0" y="204.0" width="208.0" height="24.0" rx="6"/><circle class="map-fixture" cx="89.4" cy="216.0" r="5.3"/><rect class="map-fixture map-counter-top" x="58.0" y="209.0" width="196.0" height="14.0" rx="2"/><path class="map-fixture-line" d="M166.4 211.2 L222.6 211.2"/><rect class="map-fixture map-shelf" x="312.0" y="204.0" width="274.0" height="18.0" rx="2"/><path class="map-fixture-line" d="M380.5 204.0 L380.5 222.0"/><path class="map-fixture-line" d="M449.0 204.0 L449.0 222.0"/><path class="map-fixture-line" d="M517.5 204.0 L517.5 222.0"/><path class="map-stock" d="M383.5 210.3 L383.5 215.7"/><path class="map-stock" d="M452.0 210.3 L452.0 215.7"/><path class="map-stock" d="M520.5 210.3 L520.5 215.7"/><rect class="map-fixture map-shelf" x="312.0" y="248.0" width="274.0" height="18.0" rx="2"/><path class="map-fixture-line" d="M380.5 248.0 L380.5 266.0"/><path class="map-fixture-line" d="M449.0 248.0 L449.0 266.0"/><path class="map-fixture-line" d="M517.5 248.0 L517.5 266.0"/><path class="map-stock" d="M383.5 254.3 L383.5 259.7"/><path class="map-stock" d="M452.0 254.3 L452.0 259.7"/><path class="map-stock" d="M520.5 254.3 L520.5 259.7"/><path class="map-route" d="M156.0 104.0 L450.0 270.0 L450.0 104.0"/><g class="map-zone" data-zone="counter"><circle class="map-zone-dot" cx="48.0" cy="151.0" r="2.2"/><text class="map-zone-label" x="55.0" y="155.0">COUNTER</text></g><g class="map-zone" data-zone="rx"><circle class="map-zone-dot" cx="308.0" cy="151.0" r="2.2"/><text class="map-zone-label" x="315.0" y="155.0">PRESCRIPTIONS</text></g><g class="map-zone" data-zone="consult"><circle class="map-zone-dot" cx="48.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="55.0" y="347.0">CONSULT</text></g><g class="map-zone" data-zone="shelves"><circle class="map-zone-dot" cx="308.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="315.0" y="347.0">SHELVES</text></g></svg></div>
+      <div class="map-stage" data-map-view="3d" hidden><svg class="map-svg map-svg-3d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><filter id="mapShadow3d" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity=".16"/></filter></defs><g filter="url(#mapShadow3d)"><polygon class="map-3d-slab-side" points="620.2,248.7 389.3,382.0 389.3,391.3 620.2,258.0"/><polygon class="map-3d-slab-side" points="19.8,168.7 389.3,382.0 389.3,391.3 19.8,178.0"/><polygon class="map-3d-slab" points="250.7,35.3 620.2,248.7 389.3,382.0 19.8,168.7"/></g><g class="map-zone" data-zone="counter"><polygon class="map-3d-floor tone-0" points="246.1,61.7 384.7,141.7 315.4,181.7 176.8,101.7"/></g><g class="map-zone" data-zone="rx"><polygon class="map-3d-floor tone-1" points="396.2,148.4 574.0,251.1 504.8,291.1 326.9,188.4"/></g><g class="map-zone" data-zone="consult"><polygon class="map-3d-floor tone-2" points="165.3,108.4 303.8,188.4 204.5,245.7 66.0,165.7"/></g><g class="map-zone" data-zone="shelves"><polygon class="map-3d-floor tone-1" points="315.4,195.1 493.2,297.7 393.9,355.1 216.1,252.4"/></g><polygon class="map-3d-top tone-1" points="244.9,64.7 365.0,134.0 354.6,140.0 234.6,70.7"/><polygon class="map-3d-side" points="365.0,134.0 354.6,140.0 354.6,148.7 365.0,142.7"/><polygon class="map-3d-side-2" points="234.6,70.7 354.6,140.0 354.6,148.7 234.6,79.3"/><polygon class="map-3d-top tone-1" points="163.0,112.0 283.0,181.3 269.2,189.3 149.1,120.0"/><polygon class="map-3d-side" points="283.0,181.3 269.2,189.3 269.2,198.0 283.0,190.0"/><polygon class="map-3d-side-2" points="149.1,120.0 269.2,189.3 269.2,198.0 149.1,128.7"/><polygon class="map-3d-top tone-1" points="395.1,151.3 553.2,242.7 539.4,250.7 381.2,159.3"/><polygon class="map-3d-side" points="553.2,242.7 539.4,250.7 539.4,259.3 553.2,251.3"/><polygon class="map-3d-side-2" points="381.2,159.3 539.4,250.7 539.4,259.3 381.2,168.0"/><polygon class="map-3d-top tone-1" points="313.1,194.0 471.3,285.3 460.9,291.3 302.7,200.0"/><polygon class="map-3d-side" points="471.3,285.3 460.9,291.3 460.9,304.7 471.3,298.7"/><polygon class="map-3d-side-2" points="302.7,200.0 460.9,291.3 460.9,304.7 302.7,213.3"/><polygon class="map-3d-top tone-1" points="287.7,208.7 445.9,300.0 435.5,306.0 277.3,214.7"/><polygon class="map-3d-side" points="445.9,300.0 435.5,306.0 435.5,319.3 445.9,313.3"/><polygon class="map-3d-side-2" points="277.3,214.7 435.5,306.0 435.5,319.3 277.3,228.0"/><g class="map-zone" data-zone="counter"><text class="map-3d-label" x="187.8" y="101.9">COUNTER</text></g><g class="map-zone" data-zone="rx"><text class="map-3d-label" x="337.9" y="188.6">PRESCRIPTIONS</text></g><g class="map-zone" data-zone="consult"><text class="map-3d-label" x="76.9" y="165.9">CONSULT</text></g><g class="map-zone" data-zone="shelves"><text class="map-3d-label" x="227.0" y="252.6">SHELVES</text></g></svg></div>
+      <button class="hotspot" type="button" style="--x2d:24.38%;--y2d:26.0%;--x3d:43.87%;--y3d:30.5%" data-hotspot="symptoms" data-zone="counter" data-encounter="symptoms" aria-pressed="true" aria-controls="panel-symptoms"><span class="hs-num">1</span><span class="hs-text"><span class="hs-en">Symptoms</span><span class="hs-zh">说症状</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:70.31%;--y2d:67.5%;--x3d:55.41%;--y3d:68.83%" data-hotspot="otc" data-zone="shelves" data-encounter="otc" aria-pressed="false" aria-controls="panel-otc"><span class="hs-num">2</span><span class="hs-text"><span class="hs-en">Medicine</span><span class="hs-zh">非处方药</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:70.31%;--y2d:26.0%;--x3d:70.39%;--y3d:55.0%" data-hotspot="prescription" data-zone="rx" data-encounter="prescription" aria-pressed="false" aria-controls="panel-prescription"><span class="hs-num">3</span><span class="hs-text"><span class="hs-en">Prescription</span><span class="hs-zh">处方</span></span></button>
     </div>
   </figure>
   <p class="sr-only" aria-live="polite" data-status></p>
@@ -204,19 +310,19 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="5.616" data-end-f="7.488" data-start-m="5.616" data-end-m="7.488"><span class="en">How often should I take it?</span><span class="zh">多久吃一次？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">How can I help you?</span><span class="zh">需要什么帮助？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="3.744"><span class="en">I have a sore throat.</span><span class="zh">我嗓子疼。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="3.744"><span class="en">I have a sore throat.</span><span class="zh">我嗓子疼。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="3.744" data-end="5.616"><span class="en">How long have you had it?</span><span class="zh">多久了？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="5.616" data-end="8.256"><span class="en">Three days. Do you have something for a cold?</span><span class="zh">三天。有治感冒的吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="5.616" data-end="8.256"><span class="en">Three days. Do you have something for a cold?</span><span class="zh">三天。有治感冒的吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="8.256" data-end="11.688"><span class="en">This should help. Take one every eight hours.</span><span class="zh">这个应该有用。每八小时一片。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="11.688" data-end="14.376"><span class="en">Got it. Do you have something for a headache too?</span><span class="zh">明白。还有治头疼的吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="11.688" data-end="14.376"><span class="en">Got it. Do you have something for a headache too?</span><span class="zh">明白。还有治头疼的吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="14.376" data-end="16.584"><span class="en">Yes, this small box.</span><span class="zh">有，这个小盒。</span></button></div>
 
@@ -234,25 +340,25 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="9.912" data-end-f="12.168" data-start-m="9.192" data-end-m="11.160"><span class="en">Can I take this on an empty stomach?</span><span class="zh">能空腹吃吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="2.856"><span class="en">I&#x27;ve had a cough for a week, and it&#x27;s getting worse.</span><span class="zh">我咳嗽一周了，越来越严重。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="2.856"><span class="en">I&#x27;ve had a cough for a week, and it&#x27;s getting worse.</span><span class="zh">我咳嗽一周了，越来越严重。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="2.856" data-end="5.016"><span class="en">Any fever or chest pain?</span><span class="zh">有发烧或胸痛吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="5.016" data-end="7.968"><span class="en">No fever. Do you have anything for allergies?</span><span class="zh">没发烧。有抗过敏的吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="5.016" data-end="7.968"><span class="en">No fever. Do you have anything for allergies?</span><span class="zh">没发烧。有抗过敏的吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="7.968" data-end="12.240"><span class="en">This antihistamine works well. Are you taking any other medication?</span><span class="zh">这个抗组胺药效果不错。您在吃别的药吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="12.240" data-end="16.536"><span class="en">Yes, for blood pressure. Is this safe with my blood pressure medication?</span><span class="zh">有，血压药。这个和我血压药一起吃安全吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="12.240" data-end="16.536"><span class="en">Yes, for blood pressure. Is this safe with my blood pressure medication?</span><span class="zh">有，血压药。这个和我血压药一起吃安全吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="16.536" data-end="19.560"><span class="en">Let me check. It can raise your heart rate.</span><span class="zh">我查一下。它可能让心率升高。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="19.560" data-end="21.816"><span class="en">I&#x27;m allergic to penicillin, too.</span><span class="zh">我还对青霉素过敏。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="19.560" data-end="21.816"><span class="en">I&#x27;m allergic to penicillin, too.</span><span class="zh">我还对青霉素过敏。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="21.816" data-end="24.864"><span class="en">Noted. This one is penicillin-free.</span><span class="zh">记下了。这个不含青霉素。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="24.864" data-end="27.504"><span class="en">Good. Can I take this on an empty stomach?</span><span class="zh">好。能空腹吃吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="24.864" data-end="27.504"><span class="en">Good. Can I take this on an empty stomach?</span><span class="zh">好。能空腹吃吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="27.504" data-end="29.880"><span class="en">Take it with food to avoid nausea.</span><span class="zh">随餐吃，避免恶心。</span></button></div>
 
@@ -270,29 +376,31 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="16.272" data-end-f="20.592" data-start-m="14.712" data-end-m="18.504"><span class="en">My doctor prescribed this in China. Can you check if it&#x27;s available here?</span><span class="zh">我的医生在中国开的这个药。能查一下这里有吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="3.864"><span class="en">I&#x27;m on blood thinners. Is there an interaction with this cold medicine?</span><span class="zh">我在吃抗凝药。和这个感冒药有相互作用吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="3.864"><span class="en">I&#x27;m on blood thinners. Is there an interaction with this cold medicine?</span><span class="zh">我在吃抗凝药。和这个感冒药有相互作用吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="3.864" data-end="9.192"><span class="en">Yes, this one can increase bleeding risk. I&#x27;d recommend a different option.</span><span class="zh">有，这个会增加出血风险。我建议换一种。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="9.192" data-end="14.256"><span class="en">Thank you. I&#x27;ve been taking ibuprofen for three days, but the pain hasn&#x27;t improved.</span><span class="zh">谢谢。我吃了三天布洛芬，但疼痛没好转。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="9.192" data-end="14.256"><span class="en">Thank you. I&#x27;ve been taking ibuprofen for three days, but the pain hasn&#x27;t improved.</span><span class="zh">谢谢。我吃了三天布洛芬，但疼痛没好转。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="14.256" data-end="17.040"><span class="en">You may need to see a doctor if the pain persists.</span><span class="zh">如果疼痛持续，可能需要看医生。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="17.040" data-end="20.928"><span class="en">I have a penicillin allergy. Is there a non-penicillin alternative?</span><span class="zh">我青霉素过敏。有非青霉素的替代药吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="17.040" data-end="20.928"><span class="en">I have a penicillin allergy. Is there a non-penicillin alternative?</span><span class="zh">我青霉素过敏。有非青霉素的替代药吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="20.928" data-end="23.664"><span class="en">This antibiotic is in a different class.</span><span class="zh">这种抗生素属于不同类别。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="23.664" data-end="26.976"><span class="en">Good. Can I get the generic version instead of the brand?</span><span class="zh">好。能要仿制药而不是原研药吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="23.664" data-end="26.976"><span class="en">Good. Can I get the generic version instead of the brand?</span><span class="zh">好。能要仿制药而不是原研药吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="26.976" data-end="30.192"><span class="en">The generic is the same ingredient and cheaper.</span><span class="zh">仿制药成分一样，更便宜。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="30.192" data-end="33.984"><span class="en">My doctor prescribed this in China. Can you check if it&#x27;s available here?</span><span class="zh">我的医生在中国开的这个药。能查一下这里有吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="30.192" data-end="33.984"><span class="en">My doctor prescribed this in China. Can you check if it&#x27;s available here?</span><span class="zh">我的医生在中国开的这个药。能查一下这里有吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="33.984" data-end="37.296"><span class="en">Let me search the database. Do you have the packaging?</span><span class="zh">我查一下数据库。有包装吗？</span></button></div>
 
   </div></div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>问症状</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en">What are your <mark class="key">symptoms</mark>?</span><span class="zh">您有什么症状？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="3.744"><span class="en">What&#x27;s <mark class="key">wrong</mark>?</span><span class="zh">哪里不舒服？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="3.744" data-end-f="5.616" data-start-m="3.744" data-end-m="5.616"><span class="en"><mark class="key">How long</mark> have you had this?</span><span class="zh">这样多久了？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="5.616" data-end-f="7.944" data-start-m="5.616" data-end-m="7.704"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I have a sore throat and a cough.</span><span class="zh">我喉咙痛，还咳嗽。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>What are your symptoms? / What&#x27;s wrong? / How long have you…?</p></article><article class="intent"><h3>过敏/用药</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="7.944" data-end-f="9.816" data-start-m="7.704" data-end-m="9.576"><span class="en">Are you <mark class="key">allergic</mark> to anything?</span><span class="zh">您对什么过敏吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="9.816" data-end-f="11.904" data-start-m="9.576" data-end-m="11.640"><span class="en">Are you <mark class="key">taking any other medication</mark>?</span><span class="zh">您还在吃别的药吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="11.904" data-end-f="13.848" data-start-m="11.640" data-end-m="13.656"><span class="en">Do you have any <mark class="key">medical conditions</mark>?</span><span class="zh">您有什么病史吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="13.848" data-end-f="15.720" data-start-m="13.656" data-end-m="15.528"><span class="reply-tag">答</span><span class="reply-body"><span class="en">No allergies.</span><span class="zh">没有过敏。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Are you allergic…? / Are you taking…? / Do you have…?</p></article><article class="intent"><h3>推荐药</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="15.720" data-end-f="17.616" data-start-m="15.528" data-end-m="17.400"><span class="en">Do you want something <mark class="key">for the cough</mark>?</span><span class="zh">您要止咳的药吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="17.616" data-end-f="20.616" data-start-m="17.400" data-end-m="20.232"><span class="en">Would you like a <mark class="key">daytime or nighttime</mark> formula?</span><span class="zh">您要白天用的还是晚上用的？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="20.616" data-end-f="22.896" data-start-m="20.232" data-end-m="22.272"><span class="en">This one <mark class="key">works well</mark> for colds.</span><span class="zh">这个治感冒效果不错。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="22.896" data-end-f="25.032" data-start-m="22.272" data-end-m="24.480"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Something for the cough, please.</span><span class="zh">要止咳的，谢谢。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Do you want…? / Would you like…? / This one works…</p></article></div></section>
 
   </section>
 
@@ -308,17 +416,17 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="13.368" data-end-f="15.240" data-start-m="13.104" data-end-m="14.976"><span class="en">What&#x27;s the price?</span><span class="zh">多少钱？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="16.584" data-end="19.200"><span class="en">Excuse me, where is the pain reliever?</span><span class="zh">打扰一下，止痛药在哪里？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="16.584" data-end="19.200"><span class="en">Excuse me, where is the pain reliever?</span><span class="zh">打扰一下，止痛药在哪里？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="19.200" data-end="21.864"><span class="en">Aisle three, next to the vitamins.</span><span class="zh">三号货道，维生素旁边。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="21.864" data-end="24.528"><span class="en">Thanks. I need something for a stomachache.</span><span class="zh">谢谢。我需要治胃疼的药。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="21.864" data-end="24.528"><span class="en">Thanks. I need something for a stomachache.</span><span class="zh">谢谢。我需要治胃疼的药。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="24.528" data-end="26.640"><span class="en">Try these chewable tablets.</span><span class="zh">试试这种咀嚼片。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.640" data-end="28.512"><span class="en">Is this the generic brand?</span><span class="zh">这是仿制药吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.640" data-end="28.512"><span class="en">Is this the generic brand?</span><span class="zh">这是仿制药吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="28.512" data-end="31.800"><span class="en">Yes, it&#x27;s the same ingredient as the name brand.</span><span class="zh">是，成分和原研药一样。</span></button></div>
 
@@ -336,25 +444,25 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="19.896" data-end-f="21.768" data-start-m="18.696" data-end-m="20.568"><span class="en">Do you have a smaller pack?</span><span class="zh">有小包装吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="29.880" data-end="31.752"><span class="en">Do you have a children&#x27;s version?</span><span class="zh">有儿童版吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="29.880" data-end="31.752"><span class="en">Do you have a children&#x27;s version?</span><span class="zh">有儿童版吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="31.752" data-end="35.040"><span class="en">Yes, the liquid is for kids over six.</span><span class="zh">有，液体版适合六岁以上。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="35.040" data-end="36.912"><span class="en">Which one works faster?</span><span class="zh">哪种起效快？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="35.040" data-end="36.912"><span class="en">Which one works faster?</span><span class="zh">哪种起效快？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="36.912" data-end="40.008"><span class="en">The liquid absorbs faster than the tablets.</span><span class="zh">液体比片剂吸收快。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="40.008" data-end="41.928"><span class="en">Is this safe for pregnant women?</span><span class="zh">孕妇可以吃吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="40.008" data-end="41.928"><span class="en">Is this safe for pregnant women?</span><span class="zh">孕妇可以吃吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="41.928" data-end="44.256"><span class="en">She should check with her doctor first.</span><span class="zh">她应该先问医生。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="44.256" data-end="46.560"><span class="en">Okay. Can I take this with coffee?</span><span class="zh">好。能跟咖啡一起吃吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="44.256" data-end="46.560"><span class="en">Okay. Can I take this with coffee?</span><span class="zh">好。能跟咖啡一起吃吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="46.560" data-end="49.392"><span class="en">It&#x27;s fine, but it may upset your stomach.</span><span class="zh">可以，但可能刺激胃。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="49.392" data-end="51.264"><span class="en">Do you have a smaller pack?</span><span class="zh">有小包装吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="49.392" data-end="51.264"><span class="en">Do you have a smaller pack?</span><span class="zh">有小包装吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="51.264" data-end="53.760"><span class="en">The travel pack has ten tablets.</span><span class="zh">旅行装有十片。</span></button></div>
 
@@ -372,29 +480,31 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="32.736" data-end-f="35.856" data-start-m="30.096" data-end-m="33.000"><span class="en">How long can I take this before I need to see a doctor?</span><span class="zh">最多能吃多久就需要看医生？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="37.296" data-end="40.536"><span class="en">I&#x27;m on blood thinners. Is this pain reliever safe?</span><span class="zh">我在吃抗凝药。这种止痛药安全吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="37.296" data-end="40.536"><span class="en">I&#x27;m on blood thinners. Is this pain reliever safe?</span><span class="zh">我在吃抗凝药。这种止痛药安全吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="40.536" data-end="45.360"><span class="en">No, it can increase bleeding risk. Try acetaminophen instead.</span><span class="zh">不安全，会增加出血风险。改用对乙酰氨基酚。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="45.360" data-end="47.448"><span class="en">Can I take this with my antidepressant?</span><span class="zh">能和我抗抑郁药一起吃吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="45.360" data-end="47.448"><span class="en">Can I take this with my antidepressant?</span><span class="zh">能和我抗抑郁药一起吃吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="47.448" data-end="51.840"><span class="en">There&#x27;s a mild interaction. Ask your doctor before combining them.</span><span class="zh">有轻微相互作用。合用前问医生。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="51.840" data-end="56.232"><span class="en">The label says &#x27;may cause drowsiness.&#x27; Can I drive after taking it?</span><span class="zh">标签写“可能引起嗜睡”。吃药后能开车吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="51.840" data-end="56.232"><span class="en">The label says &#x27;may cause drowsiness.&#x27; Can I drive after taking it?</span><span class="zh">标签写“可能引起嗜睡”。吃药后能开车吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="56.232" data-end="58.824"><span class="en">Don&#x27;t drive until you know how it affects you.</span><span class="zh">在确定影响前别开车。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="58.824" data-end="61.440"><span class="en">Understood. Do you have a sugar-free version?</span><span class="zh">明白。有无糖版吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="58.824" data-end="61.440"><span class="en">Understood. Do you have a sugar-free version?</span><span class="zh">明白。有无糖版吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="61.440" data-end="64.080"><span class="en">Yes, the capsules are sugar-free.</span><span class="zh">有，胶囊无糖。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="64.080" data-end="67.632"><span class="en">Good. How long can I take this before I need to see a doctor?</span><span class="zh">好。最多能吃多久就需要看医生？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="64.080" data-end="67.632"><span class="en">Good. How long can I take this before I need to see a doctor?</span><span class="zh">好。最多能吃多久就需要看医生？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="67.632" data-end="70.680"><span class="en">No more than ten days without a doctor&#x27;s advice.</span><span class="zh">没有医生建议不要超过十天。</span></button></div>
 
   </div></div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>找药</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="25.032" data-end-f="27.192" data-start-m="24.480" data-end-m="26.424"><span class="en">Are you <mark class="key">looking for</mark> something specific?</span><span class="zh">您在找特定的药吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="27.192" data-end-f="29.064" data-start-m="26.424" data-end-m="28.296"><span class="en">What are you <mark class="key">trying to treat</mark>?</span><span class="zh">您想治什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="29.064" data-end-f="30.984" data-start-m="28.296" data-end-m="30.168"><span class="en">Do you need <mark class="key">help finding</mark> anything?</span><span class="zh">需要帮您找吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="30.984" data-end-f="33.000" data-start-m="30.168" data-end-m="32.040"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I&#x27;m looking for pain reliever.</span><span class="zh">我在找止痛药。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Are you looking for…? / What are you trying to…? / Do you need help…?</p></article><article class="intent"><h3>剂量</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="33.000" data-end-f="35.016" data-start-m="32.040" data-end-m="33.912"><span class="en"><mark class="key">How often</mark> can I take this?</span><span class="zh">这个多久吃一次？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="35.016" data-end-f="36.888" data-start-m="33.912" data-end-m="35.784"><span class="en"><mark class="key">How many</mark> should I take?</span><span class="zh">一次吃几片？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="36.888" data-end-f="38.760" data-start-m="35.784" data-end-m="37.656"><span class="en">Do you need the <mark class="key">children&#x27;s dose</mark>?</span><span class="zh">您要儿童剂量吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="38.760" data-end-f="40.632" data-start-m="37.656" data-end-m="39.528"><span class="reply-tag">答</span><span class="reply-body"><span class="en">How often can I take it?</span><span class="zh">多久能吃一次？</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>How often…? / How many…? / Do you need…?</p></article><article class="intent"><h3>非处方/处方</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="40.632" data-end-f="42.504" data-start-m="39.528" data-end-m="41.400"><span class="en">Is this <mark class="key">over the counter</mark>?</span><span class="zh">这是非处方药吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="42.504" data-end-f="44.472" data-start-m="41.400" data-end-m="43.296"><span class="en">Do you need a <mark class="key">prescription</mark> for this?</span><span class="zh">这个需要处方吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="44.472" data-end-f="46.752" data-start-m="43.296" data-end-m="45.240"><span class="en">This one doesn&#x27;t need a <mark class="key">prescription</mark>.</span><span class="zh">这个不需要处方。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="46.752" data-end-f="48.624" data-start-m="45.240" data-end-m="47.112"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Good, I&#x27;ll take it.</span><span class="zh">好，我买这个。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Is this over the counter? / Do you need a prescription…? / This one doesn&#x27;t need…</p></article></div></section>
 
   </section>
 
@@ -410,17 +520,17 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="21.120" data-end-f="22.992" data-start-m="20.592" data-end-m="22.464"><span class="en">Are there side effects?</span><span class="zh">有副作用吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="31.800" data-end="34.200"><span class="en">Hi, I&#x27;m here to pick up a prescription.</span><span class="zh">你好，我来取处方药。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="31.800" data-end="34.200"><span class="en">Hi, I&#x27;m here to pick up a prescription.</span><span class="zh">你好，我来取处方药。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="34.200" data-end="36.072"><span class="en">Name on the prescription?</span><span class="zh">处方上的名字是？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="36.072" data-end="37.944"><span class="en">It&#x27;s under Zhang.</span><span class="zh">姓张。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="36.072" data-end="37.944"><span class="en">It&#x27;s under Zhang.</span><span class="zh">姓张。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="37.944" data-end="41.304"><span class="en">Here it is. Take one tablet twice a day.</span><span class="zh">在这里。每天两次，每次一片。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="41.304" data-end="43.176"><span class="en">Are there side effects?</span><span class="zh">有副作用吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="41.304" data-end="43.176"><span class="en">Are there side effects?</span><span class="zh">有副作用吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="43.176" data-end="46.680"><span class="en">It may make you drowsy. Don&#x27;t drive after taking it.</span><span class="zh">可能让你犯困。吃药后别开车。</span></button></div>
 
@@ -438,25 +548,25 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="31.536" data-end-f="33.576" data-start-m="29.664" data-end-m="31.752"><span class="en">What should I do if I miss a dose?</span><span class="zh">如果漏服怎么办？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="53.760" data-end="57.192"><span class="en">The doctor sent the prescription electronically. Is it ready?</span><span class="zh">医生电子处方发过来了。好了吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="53.760" data-end="57.192"><span class="en">The doctor sent the prescription electronically. Is it ready?</span><span class="zh">医生电子处方发过来了。好了吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="57.192" data-end="60.528"><span class="en">Let me check. It should be ready in ten minutes.</span><span class="zh">我查一下。十分钟后好。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="60.528" data-end="62.976"><span class="en">Great. Can I get a three-month supply?</span><span class="zh">好。能开三个月的量吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="60.528" data-end="62.976"><span class="en">Great. Can I get a three-month supply?</span><span class="zh">好。能开三个月的量吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="62.976" data-end="66.552"><span class="en">The insurance only covers one month at a time.</span><span class="zh">保险一次只覆盖一个月。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="66.552" data-end="68.472"><span class="en">Is there a generic version of this?</span><span class="zh">这个有仿制药吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="66.552" data-end="68.472"><span class="en">Is there a generic version of this?</span><span class="zh">这个有仿制药吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="68.472" data-end="70.392"><span class="en">Yes, and it&#x27;s cheaper.</span><span class="zh">有，而且更便宜。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="70.392" data-end="72.264"><span class="en">Does my insurance cover it?</span><span class="zh">我的保险覆盖吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="70.392" data-end="72.264"><span class="en">Does my insurance cover it?</span><span class="zh">我的保险覆盖吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="72.264" data-end="75.240"><span class="en">The generic is covered with a small co-pay.</span><span class="zh">仿制药覆盖，少量自付。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="75.240" data-end="77.976"><span class="en">Good. What should I do if I miss a dose?</span><span class="zh">好。如果漏服怎么办？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="75.240" data-end="77.976"><span class="en">Good. What should I do if I miss a dose?</span><span class="zh">好。如果漏服怎么办？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="77.976" data-end="81.720"><span class="en">Take it when you remember, unless it&#x27;s almost time for the next dose.</span><span class="zh">想起来就吃，除非快到下一次。</span></button></div>
 
@@ -474,33 +584,35 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="51.888" data-end-f="56.280" data-start-m="48.024" data-end-m="51.936"><span class="en">I need a refill authorization from my doctor. Can you contact them?</span><span class="zh">我需要医生续开授权。能联系他们吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="70.680" data-end="74.592"><span class="en">The pharmacy only has half the quantity. Can I get the rest tomorrow?</span><span class="zh">药店只有一半的量。剩下的明天能取吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="70.680" data-end="74.592"><span class="en">The pharmacy only has half the quantity. Can I get the rest tomorrow?</span><span class="zh">药店只有一半的量。剩下的明天能取吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="74.592" data-end="76.992"><span class="en">Yes, I&#x27;ll set aside the rest for you.</span><span class="zh">可以，我把剩下的留给您。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="76.992" data-end="80.808"><span class="en">This is a controlled substance. Do I need to show ID every time?</span><span class="zh">这是管制药品。每次都要出示证件吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="76.992" data-end="80.808"><span class="en">This is a controlled substance. Do I need to show ID every time?</span><span class="zh">这是管制药品。每次都要出示证件吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="80.808" data-end="84.960"><span class="en">Yes, and only the person named on the prescription can pick it up.</span><span class="zh">要，而且只能处方上的人来取。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="84.960" data-end="90.600"><span class="en">Understood. The label says take with food, but the doctor said without. Which is right?</span><span class="zh">明白。标签说随餐，医生说不随餐。哪个对？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="84.960" data-end="90.600"><span class="en">Understood. The label says take with food, but the doctor said without. Which is right?</span><span class="zh">明白。标签说随餐，医生说不随餐。哪个对？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="90.600" data-end="94.608"><span class="en">Follow the doctor&#x27;s instructions. I&#x27;ll update the label.</span><span class="zh">按医生的。我更新标签。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="94.608" data-end="97.992"><span class="en">Thank you. Can you check for interactions with my supplements?</span><span class="zh">谢谢。能查一下和我保健品的相互作用吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="94.608" data-end="97.992"><span class="en">Thank you. Can you check for interactions with my supplements?</span><span class="zh">谢谢。能查一下和我保健品的相互作用吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="97.992" data-end="100.344"><span class="en">List them here and I&#x27;ll run a check.</span><span class="zh">写在这里，我查一下。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="100.344" data-end="104.256"><span class="en">I need a refill authorization from my doctor. Can you contact them?</span><span class="zh">我需要医生续开授权。能联系他们吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="100.344" data-end="104.256"><span class="en">I need a refill authorization from my doctor. Can you contact them?</span><span class="zh">我需要医生续开授权。能联系他们吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="pharmacist"><span class="who">Pharmacist</span><button class="say" type="button" data-part="d" data-start="104.256" data-end="106.632"><span class="en">I&#x27;ll fax the request this afternoon.</span><span class="zh">我下午传真申请。</span></button></div>
 
   </div></div></div>
 
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>取处方</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="48.624" data-end-f="50.496" data-start-m="47.112" data-end-m="48.984"><span class="en">Are you <mark class="key">picking up</mark> a prescription?</span><span class="zh">您是来取处方药的吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="50.496" data-end-f="52.584" data-start-m="48.984" data-end-m="50.856"><span class="en">What&#x27;s your <mark class="key">name and date of birth</mark>?</span><span class="zh">您的姓名和出生日期？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="52.584" data-end-f="54.456" data-start-m="50.856" data-end-m="52.728"><span class="en">Do you have your <mark class="key">insurance card</mark>?</span><span class="zh">您有保险卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="54.456" data-end-f="58.080" data-start-m="52.728" data-end-m="56.496"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, under Wang, May 12, 1990.</span><span class="zh">有，姓王，1990 年 5 月 12 日。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Are you picking up…? / What&#x27;s your name…? / Do you have…?</p></article><article class="intent"><h3>等药</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="58.080" data-end-f="60.384" data-start-m="56.496" data-end-m="58.632"><span class="en">It&#x27;ll be ready in <mark class="key">fifteen minutes</mark>.</span><span class="zh">十五分钟后好。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="60.384" data-end-f="62.256" data-start-m="58.632" data-end-m="60.504"><span class="en">Would you like to <mark class="key">wait</mark>?</span><span class="zh">您要等吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="62.256" data-end-f="64.128" data-start-m="60.504" data-end-m="62.376"><span class="en">We&#x27;ll <mark class="key">text you</mark> when it&#x27;s ready.</span><span class="zh">好了我们会发短信给您。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="64.128" data-end-f="66.000" data-start-m="62.376" data-end-m="64.248"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I&#x27;ll wait.</span><span class="zh">我等。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>It&#x27;ll be ready… / Would you like to…? / We&#x27;ll text you…</p></article><article class="intent"><h3>保险/自费</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="66.000" data-end-f="67.872" data-start-m="64.248" data-end-m="66.120"><span class="en">Do you have <mark class="key">insurance</mark>?</span><span class="zh">您有保险吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="67.872" data-end-f="69.816" data-start-m="66.120" data-end-m="67.992"><span class="en">Would you like to use your <mark class="key">insurance</mark>?</span><span class="zh">您要用保险吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="69.816" data-end-f="72.408" data-start-m="67.992" data-end-m="70.368"><span class="en">The <mark class="key">cash price</mark> is twenty dollars.</span><span class="zh">自费价是二十美元。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="72.408" data-end-f="74.520" data-start-m="70.368" data-end-m="72.240"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, I have insurance.</span><span class="zh">有，我有保险。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Do you have…? / Would you like to use…? / The cash price is…</p></article></div></section>
+
   </section>
 
-  <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/1a1bcb77be86.mp3","survival-p-m":"sprites/8b8150443cac.mp3","survival-d":"sprites/763a04a2e834.mp3","conversational-p-f":"sprites/04219423dd4d.mp3","conversational-p-m":"sprites/255aea89279f.mp3","conversational-d":"sprites/415a6c30eff8.mp3","advanced-p-f":"sprites/389169d4dd07.mp3","advanced-p-m":"sprites/fc8a14767eba.mp3","advanced-d":"sprites/b8683450543e.mp3"}</script>
+  <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/1a1bcb77be86.mp3","survival-p-m":"sprites/8b8150443cac.mp3","survival-d":"sprites/763a04a2e834.mp3","conversational-p-f":"sprites/04219423dd4d.mp3","conversational-p-m":"sprites/255aea89279f.mp3","conversational-d":"sprites/415a6c30eff8.mp3","advanced-p-f":"sprites/389169d4dd07.mp3","advanced-p-m":"sprites/fc8a14767eba.mp3","advanced-d":"sprites/b8683450543e.mp3","listen-f":"sprites/777938f72227.mp3","listen-m":"sprites/c6d53091767e.mp3"}</script>
 </main>
 
 <script>
@@ -513,10 +625,10 @@
   var body = document.body;
   var levelBtns = [].slice.call(document.querySelectorAll('[data-level]'));
   var voiceBtns = [].slice.call(document.querySelectorAll('[data-voice]'));
+  var viewBtns = [].slice.call(document.querySelectorAll('[data-view]'));
   var hotspots = [].slice.call(document.querySelectorAll('[data-hotspot]'));
   var encounters = [].slice.call(document.querySelectorAll('.encounter'));
   var zhToggle = document.querySelector('[data-zh-toggle]');
-  var rpToggle = document.querySelector('[data-roleplay]');
   var speedBtn = document.querySelector('[data-speed]');
   var playBtn = document.querySelector('[data-play-dialogue]');
   var statusEl = document.querySelector('[data-status]');
@@ -525,10 +637,10 @@
   audio.preservesPitch = true;
 
   var voice = 'f';
+  var view = '2d';
   var level = body.getAttribute('data-default-level') || 'survival';
   var speed = 0.9;
   var zhOff = false;
-  var roleplay = false;
   var selected = null;
   var playToken = 0;
   var seqRunning = false;
@@ -538,6 +650,10 @@
   try {
     var savedVoice = localStorage.getItem('npesl-voice');
     if (savedVoice === 'f' || savedVoice === 'm') voice = savedVoice;
+  } catch (e) {}
+  try {
+    var savedView = localStorage.getItem('travel-view');
+    if (savedView === '2d' || savedView === '3d') view = savedView;
   } catch (e) {}
   try {
     zhOff = localStorage.getItem('npesl-zh') === '0';
@@ -628,6 +744,20 @@
     stopAudio();
   }
 
+  function applyView(next, persist) {
+    view = next === '3d' ? '3d' : '2d';
+    body.classList.toggle('view-3d', view === '3d');
+    [].forEach.call(document.querySelectorAll('[data-map-view]'),
+      function (stage) {
+        stage.hidden = stage.getAttribute('data-map-view') !== view;
+      });
+    viewBtns.forEach(function (btn) {
+      btn.setAttribute('aria-pressed',
+        btn.getAttribute('data-view') === view ? 'true' : 'false');
+    });
+    if (persist !== false) save('travel-view', view);
+  }
+
   function applyZh(next, persist) {
     zhOff = !!next;
     body.classList.toggle('zh-off', zhOff);
@@ -640,15 +770,6 @@
     if (speedBtn) speedBtn.textContent = speed + '×';
     audio.playbackRate = speed;
     if (persist !== false) save('npesl-speed', String(speed));
-  }
-
-  function applyRoleplay(next) {
-    roleplay = !!next;
-    body.classList.toggle('roleplay', roleplay);
-    if (rpToggle) rpToggle.setAttribute('aria-pressed', roleplay ? 'true' : 'false');
-    [].forEach.call(document.querySelectorAll('.line[data-role="you"]'),
-      function (line) { line.classList.remove('revealed'); });
-    stopAudio();
   }
 
   function stopAudio() {
@@ -725,7 +846,8 @@
           if (currentEl) currentEl.classList.remove('on', 'playing');
           currentEl = el;
           if (el) {
-            if (el.classList.contains('phrase')) {
+            if (el.classList.contains('phrase') || el.classList.contains('ask')
+                || el.classList.contains('reply')) {
               el.classList.add('on');
             } else {
               var line = el.closest('.line');
@@ -746,25 +868,14 @@
     });
   }
 
-  function sleep(ms, token) {
-    return new Promise(function (resolve) {
-      var start = Date.now();
-      function tick() {
-        if (token !== playToken || Date.now() - start >= ms) return resolve();
-        setTimeout(tick, 100);
-      }
-      tick();
-    });
-  }
-
   function playPhrase(btn) {
-    var panel = btn.closest('.level-panel');
-    if (!panel) return;
+    var sprite = btn.getAttribute('data-sprite');
+    if (!sprite) sprite = level + '-p';
     var start = parseFloat(btn.getAttribute('data-start-' + voice));
     var end = parseFloat(btn.getAttribute('data-end-' + voice));
     stopAudio();
     var token = playToken;
-    playSprite(level + '-p-' + voice, start, end, btn, token);
+    playSprite(sprite + '-' + voice, start, end, btn, token);
   }
 
   function playLine(line, btn) {
@@ -784,11 +895,6 @@
     var panel = currentPanel();
     if (!panel) return;
     var lines = [].slice.call(panel.querySelectorAll('.line'));
-    if (roleplay) {
-      lines = lines.filter(function (line) {
-        return line.getAttribute('data-role') !== 'you';
-      });
-    }
     if (!lines.length) return;
     stopAudio();
     var token = playToken;
@@ -813,11 +919,7 @@
       }
       playSprite(level + '-d', start, end, btn, token).then(function () {
         if (token !== playToken) return;
-        if (roleplay && index < lines.length) {
-          sleep(3000, token).then(next);
-        } else {
-          next();
-        }
+        next();
       });
     }
     next();
@@ -827,17 +929,12 @@
     var hotspot = event.target.closest('[data-hotspot]');
     if (hotspot) { selectHotspot(hotspot, true); return; }
 
-    var phrase = event.target.closest('.phrase');
+    var phrase = event.target.closest('.phrase, .ask, .reply');
     if (phrase) { playPhrase(phrase); return; }
 
     var playLineBtn = event.target.closest('.line .say');
     if (playLineBtn) {
-      var line = playLineBtn.closest('.line');
-      if (roleplay && line.getAttribute('data-role') === 'you'
-          && !line.classList.contains('revealed')) {
-        line.classList.add('revealed');
-      }
-      playLine(line, playLineBtn);
+      playLine(playLineBtn.closest('.line'), playLineBtn);
       return;
     }
 
@@ -847,12 +944,11 @@
     var voiceBtn = event.target.closest('[data-voice]');
     if (voiceBtn) { applyVoice(voiceBtn.getAttribute('data-voice')); return; }
 
+    var viewBtn = event.target.closest('[data-view]');
+    if (viewBtn) { applyView(viewBtn.getAttribute('data-view')); return; }
+
     if (event.target.closest('[data-zh-toggle]')) {
       applyZh(!zhOff);
-      return;
-    }
-    if (event.target.closest('[data-roleplay]')) {
-      applyRoleplay(!roleplay);
       return;
     }
     if (event.target.closest('[data-speed]')) {
@@ -867,6 +963,7 @@
   });
 
   applyVoice(voice, false);
+  applyView(view, false);
   applyZh(zhOff, false);
   applySpeed(speed, false);
   var hash = '';

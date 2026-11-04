@@ -32,11 +32,34 @@ Survival / Conversational / Advanced。
         },
         "conversational": {"phrases": [], "dialogue": []},
         "advanced": {"phrases": [], "dialogue": []}
-      }
+      },
+      "listening": [
+        {
+          "id": "passport",
+          "intent_zh": "要护照",
+          "keys": ["passport"],
+          "asks": [
+            {"en": "Can I see your passport?", "zh": "能看一下您的护照吗？"},
+            {"en": "May I see your passport?", "zh": "我可以看一下您的护照吗？"},
+            {"en": "Passport, please.", "zh": "请出示护照。"}
+          ],
+          "reply": {"en": "Sure. Here you go.", "zh": "当然，给您。"},
+          "pattern": "Can I see…? / May I have…? / …, please.",
+          "note": "Can I 常读成「k'n I」。"
+        }
+      ]
     }
   ]
 }
 ```
+
+`listening` 是“对方可能怎么问”，与三层难度无关，放在 encounter 里只写一份：
+
+- 每个 encounter 2–4 组意图；每组 3–5 种问法、1 条核心答法、1 条句型。
+- `intent_zh` 用中文说清对方想干什么（要护照 / 问目的地）。
+- `keys` 是听关键词，构建时在问法里高亮第一次出现；至少命中一条问法。
+- `note` 可选，只写连读、弱读、语气提示，≤40 字。
+- 问法与答法都要当代美式口语真实说法；同一意图内不要重复。
 
 规则：
 
@@ -68,6 +91,8 @@ Survival / Conversational / Advanced。
 ```
 
 - 音频默认 Azure（Ava/Andrew），按内容哈希增量合成；`--tts edge` 回退。
+- 每个场景的 listening 问法/答法拼成 `listen-f` / `listen-m` 两条 sprite；点读时跟随页面的男女声开关。
+- 场景页地图有 2D 建筑平面图和 3D 等距模型两套视图，由 `maps.py` 从同一份布局数据生成；热点位置两套坐标都写在按钮上，右上角 `2D | 3D` 开关切换。
 - 改一句读音：删掉 `apps/travel/audio/{f,m}` 里对应母版，再跑 `build.py`；
   只重合成这一条，并重拼该场景该层的 sprite。
 - 母版入库；`apps/travel/audio/sprites/` 是构建产物，gitignore。

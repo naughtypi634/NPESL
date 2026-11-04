@@ -55,44 +55,106 @@
     border-radius:var(--radius-card,24px); background:var(--bg); }
   .map-wrap { position:relative; width:100%; aspect-ratio:640 / 400;
     min-height:220px; }
+  .map-stage { position:absolute; inset:0; }
   .map-svg { display:block; width:100%; height:100%; }
-  .map-plate { fill:var(--surface); stroke:var(--rule); }
-  .map-zone-shape { fill:var(--surface-strong); stroke:var(--rule);
-    stroke-width:1; transition:fill .15s ease, stroke .15s ease; }
-  .map-zone-label { fill:var(--muted); font:600 11px var(--font);
-    letter-spacing:.08em; }
+  .map-svg { display:block; width:100%; height:100%;
+    --map-floor:light-dark(#f3f3f6,#1c262b);
+    --map-floor-2:light-dark(#e9e9ee,#232f35);
+    --map-floor-3:light-dark(#fafafb,#182024);
+    --map-top:light-dark(#e4e4ea,#35434a);
+    --map-top-2:light-dark(#d6d6de,#415159);
+    --map-side:light-dark(#c9c9d2,#1f292e);
+    --map-side-2:light-dark(#b4b4bf,#151c20);
+    --map-edge:light-dark(rgba(20,24,30,.12),rgba(238,243,244,.14));
+    --map-wall:light-dark(rgba(20,24,30,.22),rgba(238,243,244,.22)); }
+  .map-plate { fill:var(--bg); stroke:var(--map-wall); }
+  .map-plate-inner { fill:none; stroke:var(--map-edge); stroke-width:1; }
+  .map-dot-field { opacity:.5; }
+  .map-dot { fill:var(--map-edge); }
+  .map-wall { fill:none; stroke:var(--map-wall); stroke-width:2; }
+  .map-zone-shape { stroke:var(--map-edge); stroke-width:1;
+    transition:fill .15s ease, stroke .15s ease; }
+  .map-zone-shape.tone-1 { fill:var(--map-floor); }
+  .map-zone-shape.tone-2 { fill:var(--map-floor-2); }
+  .map-zone-shape.tone-3 { fill:var(--map-floor-3); }
+  .map-zone-label { fill:var(--muted); font:600 10px var(--font);
+    letter-spacing:.11em; }
+  .map-zone-dot { fill:var(--blue); opacity:.75; }
   .map-fixture { fill:none; stroke:var(--muted); stroke-width:1.4; }
   .map-fixture-line { fill:none; stroke:var(--muted); stroke-width:1; }
-  .map-fixture-soft { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
+  .map-fixture-soft { fill:var(--map-floor-2); stroke:var(--map-edge);
+    stroke-width:1; }
   .map-counter, .map-shelf, .map-sofa, .map-bed, .map-train, .map-car,
   .map-pump, .map-atm, .map-terminal, .map-booth, .map-machine {
-    fill:var(--surface); stroke:var(--rule); stroke-width:1.2; }
+    fill:var(--map-top); stroke:var(--map-edge); stroke-width:1.2; }
   .map-counter-top, .map-sofa-seat, .map-pillow, .map-car-window,
-  .map-train-window { fill:var(--surface-strong); stroke:var(--rule);
+  .map-train-window { fill:var(--map-top-2); stroke:var(--map-edge);
     stroke-width:1; }
-  .map-seat { fill:var(--surface); stroke:var(--rule); stroke-width:1; }
-  .map-table { fill:var(--surface-strong); stroke:var(--rule); stroke-width:1; }
+  .map-seat { fill:var(--map-top); stroke:var(--map-edge); stroke-width:1; }
+  .map-table { fill:var(--map-top-2); stroke:var(--map-edge); stroke-width:1; }
   .map-person { fill:var(--muted); }
-  .map-pin { fill:var(--blue); }
-  .map-flag { fill:var(--blue); }
+  .map-pin, .map-flag { fill:var(--blue); }
   .map-route { fill:none; stroke:var(--blue); stroke-width:1.5;
-    stroke-dasharray:5 7; }
-  .map-zone.is-active .map-zone-shape { fill:var(--blue-tint);
-    stroke:var(--blue); stroke-width:1.8; }
+    stroke-dasharray:5 7; opacity:.45; }
+  .map-arrow { fill:var(--blue); }
+  .map-street-dash, .map-queue-line, .map-tactile { fill:none;
+    stroke:var(--muted); stroke-width:1; stroke-dasharray:5 7; opacity:.55; }
+  .map-tactile { stroke:var(--blue); stroke-width:2; stroke-dasharray:2 3; }
+  .map-window { fill:none; stroke:var(--muted); stroke-width:1; opacity:.5; }
+  .map-wc { fill:var(--muted); font:600 9px var(--font);
+    letter-spacing:.06em; }
+  .map-plant { fill:var(--surface-strong); stroke:var(--rule); }
+  .map-leaf { fill:var(--blue); opacity:.22; }
+  .map-bowl { fill:var(--surface-strong); stroke:var(--rule); }
+  .map-blanket, .map-burner, .map-sofa-seam, .map-seat-back,
+  .map-stock, .map-belt-slat, .map-curtain, .map-train-door,
+  .map-door-leaf { fill:none; stroke:var(--muted); stroke-width:1;
+    opacity:.55; }
+  .map-curtain { stroke-width:1.5; }
+  .map-train-door { stroke:var(--rule); stroke-width:1.5; opacity:1; }
+  .map-wheel, .map-headlight { fill:var(--muted); opacity:.65; }
+  .map-screen { fill:var(--blue-tint); stroke:var(--blue); }
+  .map-stool { fill:var(--surface); stroke:var(--rule); }
+  .map-3d-slab { fill:var(--map-floor-3); stroke:var(--map-edge);
+    stroke-width:1; }
+  .map-3d-slab-side { fill:var(--map-side); }
+  .map-3d-floor { stroke:var(--map-edge); stroke-width:.8; }
+  .map-3d-floor.tone-0 { fill:var(--map-floor); }
+  .map-3d-floor.tone-1 { fill:var(--map-floor-2); }
+  .map-3d-floor.tone-2 { fill:var(--map-floor-3); }
+  .map-3d-top.tone-1 { fill:var(--map-top); }
+  .map-3d-top.tone-2 { fill:var(--map-top-2); }
+  .map-3d-top.tone-3 { fill:var(--map-side); }
+  .map-3d-side { fill:var(--map-side); }
+  .map-3d-side-2 { fill:var(--map-side-2); }
+  .map-3d-label { fill:var(--muted); font:600 10px var(--font);
+    letter-spacing:.08em; paint-order:stroke; stroke:var(--bg);
+    stroke-width:3px; }
+  .map-zone.is-active .map-zone-shape { fill:var(--blue);
+    fill-opacity:.14; stroke:var(--blue); stroke-width:1.8; }
   .map-zone.is-active .map-zone-label { fill:var(--blue); }
-  .hotspot { position:absolute; left:var(--x); top:var(--y);
-    transform:translate(-50%,-50%); display:flex; flex-direction:column;
-    align-items:flex-start; gap:0; min-height:44px; padding:5px 9px;
+  .map-zone.is-active .map-3d-floor { fill:var(--blue);
+    fill-opacity:.24; stroke:var(--blue); stroke-width:1.6; }
+  .map-zone.is-active .map-3d-label { fill:var(--blue); }
+  .hotspot { position:absolute; left:var(--x2d); top:var(--y2d);
+    transform:translate(-50%,-50%); display:flex; align-items:center;
+    gap:7px; min-height:32px; padding:4px 10px 4px 4px;
     border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
     background:var(--bg); color:var(--fg); font:inherit; font-size:12px;
     line-height:1.15; text-align:left; white-space:nowrap; cursor:pointer;
-    box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    box-shadow:0 4px 14px rgba(0,0,0,.10); z-index:2; }
+  body.view-3d .hotspot { left:var(--x3d); top:var(--y3d); }
+  .hs-num { flex:none; display:inline-flex; align-items:center;
+    justify-content:center; width:24px; height:24px; border-radius:50%;
+    background:var(--blue); color:var(--on-blue); font-size:11px;
+    font-weight:700; }
+  .hs-text { display:flex; flex-direction:column; gap:0; }
   .hotspot .hs-en { font-weight:600; }
   .hotspot .hs-zh { font-size:10px; color:var(--muted); }
   .hotspot:hover { background:var(--surface); }
-  .hotspot[aria-pressed="true"] { background:var(--blue);
-    border-color:var(--blue); color:var(--on-blue); }
-  .hotspot[aria-pressed="true"] .hs-zh { color:var(--on-blue); opacity:.82; }
+  .hotspot[aria-pressed="true"] { border-color:var(--blue);
+    box-shadow:0 0 0 2px var(--blue-tint), 0 6px 18px rgba(0,0,0,.12); }
+  .hotspot[aria-pressed="true"] .hs-zh { color:var(--muted); }
   .hotspot:focus-visible, .level button:focus-visible, .zh-toggle:focus-visible,
   .voice-seg button:focus-visible, .pill:focus-visible, .phrase:focus-visible,
   .line .say:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
@@ -138,10 +200,47 @@
   .line .say .zh { display:block; margin-top:2px; color:var(--muted);
     font-size:12px; }
   .line.playing .say { border-color:var(--blue); }
-  .reveal { display:none; color:var(--muted); font-size:13px; }
-  body.roleplay .line[data-role="you"] .say .en,
-  body.roleplay .line[data-role="you"] .say .zh { display:none; }
-  body.roleplay .line[data-role="you"]:not(.revealed) .reveal { display:block; }
+  .listening { margin:36px 0 0; }
+  .listening h2 { margin:0 0 14px; font-size:1.3rem; font-weight:650;
+    letter-spacing:-.01em; }
+  .intents { display:flex; flex-direction:column; gap:12px; }
+  .intent { padding:15px 16px 16px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--surface); }
+  .intent h3 { margin:0 0 10px; font-size:13px; font-weight:650;
+    letter-spacing:.02em; }
+  .asks { display:flex; flex-direction:column; gap:6px; }
+  .ask { position:relative; width:100%; display:block; text-align:left;
+    font:inherit; padding:10px 38px 10px 12px; border:1px solid var(--rule);
+    border-radius:var(--radius-control,12px); background:var(--bg);
+    color:inherit; cursor:pointer; }
+  .ask:hover { background:var(--surface-strong); }
+  .ask .en { display:block; font-size:15px; line-height:1.45; }
+  .ask .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:12px; }
+  .ask.on, .reply.on { border-color:var(--blue); }
+  .ask.on .play, .reply.on .play { background:var(--blue);
+    border-color:var(--blue); color:var(--on-blue); }
+  .key { background:none; color:var(--blue); font-weight:650; }
+  .reply { position:relative; width:100%; display:flex; align-items:flex-start;
+    gap:10px; margin-top:9px; padding:10px 38px 10px 11px;
+    border:1px solid var(--blue); border-radius:var(--radius-control,12px);
+    background:var(--blue-tint); color:inherit; font:inherit;
+    text-align:left; cursor:pointer; }
+  .reply-tag { flex:none; display:inline-flex; align-items:center;
+    justify-content:center; width:22px; height:22px; border-radius:50%;
+    background:var(--blue); color:var(--on-blue); font-size:12px;
+    font-weight:650; }
+  .reply-body { flex:1; min-width:0; }
+  .reply .en { display:block; font-size:15px; line-height:1.45; }
+  .reply .zh { display:block; margin-top:2px; color:var(--muted);
+    font-size:12px; }
+  .pattern { margin:11px 0 0; color:var(--muted); font-size:13px;
+    line-height:1.55; }
+  .plabel { display:inline-block; margin-right:7px; padding:1px 6px;
+    border-radius:4px; background:var(--surface-strong); color:var(--fg);
+    font-size:11px; font-weight:600; }
+  .listen-note { margin:7px 0 0; color:var(--muted); font-size:12px;
+    line-height:1.55; }
   body.zh-off .zh, body.zh-off .note, body.zh-off .zh-title { display:none; }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
     overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
@@ -149,8 +248,10 @@
     .page { padding-left:16px; padding-right:16px; }
     .toolbar { align-items:flex-start; }
     .level button { padding:7px 11px; font-size:13px; }
-    .hotspot { font-size:11px; padding:4px 7px; }
-    .hotspot .hs-zh { font-size:9px; }
+    .hotspot { font-size:11px; padding:3px 8px 3px 3px; gap:5px; }
+    .hs-num { width:20px; height:20px; font-size:10px; }
+    .hotspot .hs-zh { display:none; }
+    .intent { padding:13px; }
     .line { grid-template-columns:44px minmax(0,1fr); }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -174,6 +275,10 @@
       <button type="button" data-level="advanced" aria-pressed="false">Advanced</button>
     </div>
     <div class="tools">
+      <div class="voice-seg view-seg" role="group" aria-label="地图视图">
+        <button type="button" data-view="2d" aria-pressed="true">2D</button>
+        <button type="button" data-view="3d" aria-pressed="false">3D</button>
+      </div>
       <div class="voice-seg" role="group" aria-label="短语音色">
         <button type="button" data-voice="f" aria-pressed="true">女</button>
         <button type="button" data-voice="m" aria-pressed="false">男</button>
@@ -184,10 +289,11 @@
 
   <figure class="card map-card" role="group" aria-label="场景平面图">
     <div class="map-wrap">
-      <svg class="map-svg" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><g class="map-zone" data-zone="counter"><rect class="map-zone-shape" x="36" y="44" width="240" height="140" rx="8"/><text class="map-zone-label" x="46" y="176">RENTAL COUNTER</text></g><g class="map-zone" data-zone="lot"><rect class="map-zone-shape" x="300" y="44" width="304" height="220" rx="8"/><text class="map-zone-label" x="310" y="256">LOT</text></g><g class="map-zone" data-zone="return"><rect class="map-zone-shape" x="36" y="204" width="240" height="152" rx="8"/><text class="map-zone-label" x="46" y="348">RETURN</text></g><rect class="map-fixture map-counter" x="52.0" y="62.0" width="200.0" height="18.0" rx="6"/><rect class="map-fixture map-counter-top" x="58.0" y="68.0" width="188.0" height="6.0" rx="2"/><rect class="map-fixture map-car" x="324.0" y="70.0" width="120.0" height="50.0" rx="12"/><rect class="map-fixture map-car-window" x="345.6" y="80.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car-window" x="381.6" y="80.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car" x="460.0" y="70.0" width="120.0" height="50.0" rx="12"/><rect class="map-fixture map-car-window" x="481.6" y="80.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car-window" x="517.6" y="80.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car" x="324.0" y="140.0" width="120.0" height="50.0" rx="12"/><rect class="map-fixture map-car-window" x="345.6" y="150.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car-window" x="381.6" y="150.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car" x="460.0" y="140.0" width="120.0" height="50.0" rx="12"/><rect class="map-fixture map-car-window" x="481.6" y="150.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car-window" x="517.6" y="150.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-pump" x="60.0" y="228.0" width="34.0" height="60.0" rx="5"/><rect class="map-fixture map-pump" x="112.0" y="228.0" width="34.0" height="60.0" rx="5"/><rect class="map-fixture map-pump" x="164.0" y="228.0" width="34.0" height="60.0" rx="5"/></svg>
-      <button class="hotspot" type="button" style="--x:24.38%;--y:28.5%" data-hotspot="counter" data-zone="counter" data-encounter="counter" aria-pressed="true" aria-controls="panel-counter"><span class="hs-en">Counter</span><span class="hs-zh">柜台</span></button>
-      <button class="hotspot" type="button" style="--x:70.62%;--y:38.5%" data-hotspot="lot" data-zone="lot" data-encounter="lot" aria-pressed="false" aria-controls="panel-lot"><span class="hs-en">Lot</span><span class="hs-zh">验车</span></button>
-      <button class="hotspot" type="button" style="--x:24.38%;--y:70.0%" data-hotspot="return" data-zone="return" data-encounter="return" aria-pressed="false" aria-controls="panel-return"><span class="hs-en">Return</span><span class="hs-zh">还车</span></button>
+      <div class="map-stage" data-map-view="2d"><svg class="map-svg map-svg-2d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><pattern id="mapDots2d" width="18" height="18" patternUnits="userSpaceOnUse"><circle class="map-dot" cx="1" cy="1" r=".9"/></pattern><clipPath id="mapClip2d"><rect x="16" y="16" width="608" height="368" rx="16"/></clipPath></defs><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><rect class="map-plate-inner" x="16" y="16" width="608" height="368" rx="16"/><rect class="map-dot-field" x="16" y="16" width="608" height="368" fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/><g class="map-zone" data-zone="counter"><rect class="map-zone-shape tone-1" x="36" y="44" width="240" height="140" rx="8"/></g><g class="map-zone" data-zone="lot"><rect class="map-zone-shape tone-2" x="300" y="44" width="304" height="220" rx="8"/></g><g class="map-zone" data-zone="return"><rect class="map-zone-shape tone-3" x="36" y="204" width="240" height="152" rx="8"/></g><rect class="map-wall" x="15.5" y="15.5" width="609" height="369" rx="16"/><rect class="map-fixture map-counter" x="52.0" y="62.0" width="200.0" height="18.0" rx="6"/><rect class="map-fixture map-counter-top" x="58.0" y="68.0" width="188.0" height="6.0" rx="2"/><path class="map-fixture-line" d="M102.0 65.0 L102.0 77.0"/><path class="map-fixture-line" d="M152.0 65.0 L152.0 77.0"/><path class="map-fixture-line" d="M202.0 65.0 L202.0 77.0"/><rect class="map-fixture map-car" x="324.0" y="70.0" width="120.0" height="50.0" rx="12"/><rect class="map-fixture map-car-window" x="345.6" y="80.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car-window" x="381.6" y="80.0" width="26.4" height="30.0" rx="4"/><circle class="map-fixture map-headlight" cx="336.0" cy="74.0" r="3.0"/><circle class="map-fixture map-headlight" cx="336.0" cy="116.0" r="3.0"/><rect class="map-fixture map-car" x="460.0" y="70.0" width="120.0" height="50.0" rx="12"/><rect class="map-fixture map-car-window" x="481.6" y="80.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car-window" x="517.6" y="80.0" width="26.4" height="30.0" rx="4"/><circle class="map-fixture map-headlight" cx="472.0" cy="74.0" r="3.0"/><circle class="map-fixture map-headlight" cx="472.0" cy="116.0" r="3.0"/><rect class="map-fixture map-car" x="324.0" y="140.0" width="120.0" height="50.0" rx="12"/><rect class="map-fixture map-car-window" x="345.6" y="150.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car-window" x="381.6" y="150.0" width="26.4" height="30.0" rx="4"/><circle class="map-fixture map-headlight" cx="336.0" cy="144.0" r="3.0"/><circle class="map-fixture map-headlight" cx="336.0" cy="186.0" r="3.0"/><rect class="map-fixture map-car" x="460.0" y="140.0" width="120.0" height="50.0" rx="12"/><rect class="map-fixture map-car-window" x="481.6" y="150.0" width="26.4" height="30.0" rx="4"/><rect class="map-fixture map-car-window" x="517.6" y="150.0" width="26.4" height="30.0" rx="4"/><circle class="map-fixture map-headlight" cx="472.0" cy="144.0" r="3.0"/><circle class="map-fixture map-headlight" cx="472.0" cy="186.0" r="3.0"/><rect class="map-fixture map-pump" x="60.0" y="228.0" width="34.0" height="60.0" rx="5"/><rect class="map-fixture map-counter-top" x="65.0" y="234.0" width="24.0" height="16.8" rx="2"/><path class="map-fixture-line" d="M94.0 234.0 L102.0 258.0"/><rect class="map-fixture map-pump" x="112.0" y="228.0" width="34.0" height="60.0" rx="5"/><rect class="map-fixture map-counter-top" x="117.0" y="234.0" width="24.0" height="16.8" rx="2"/><path class="map-fixture-line" d="M146.0 234.0 L154.0 258.0"/><rect class="map-fixture map-pump" x="164.0" y="228.0" width="34.0" height="60.0" rx="5"/><rect class="map-fixture map-counter-top" x="169.0" y="234.0" width="24.0" height="16.8" rx="2"/><path class="map-fixture-line" d="M198.0 234.0 L206.0 258.0"/><path class="map-route" d="M156.0 114.0 L452.0 154.0 L156.0 280.0"/><g class="map-zone" data-zone="counter"><circle class="map-zone-dot" cx="48.0" cy="171.0" r="2.2"/><text class="map-zone-label" x="55.0" y="175.0">RENTAL COUNTER</text></g><g class="map-zone" data-zone="lot"><circle class="map-zone-dot" cx="312.0" cy="251.0" r="2.2"/><text class="map-zone-label" x="319.0" y="255.0">LOT</text></g><g class="map-zone" data-zone="return"><circle class="map-zone-dot" cx="48.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="55.0" y="347.0">RETURN</text></g></svg></div>
+      <div class="map-stage" data-map-view="3d" hidden><svg class="map-svg map-svg-3d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><filter id="mapShadow3d" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity=".16"/></filter></defs><g filter="url(#mapShadow3d)"><polygon class="map-3d-slab-side" points="620.2,248.7 389.3,382.0 389.3,391.3 620.2,258.0"/><polygon class="map-3d-slab-side" points="19.8,168.7 389.3,382.0 389.3,391.3 19.8,178.0"/><polygon class="map-3d-slab" points="250.7,35.3 620.2,248.7 389.3,382.0 19.8,168.7"/></g><g class="map-zone" data-zone="counter"><polygon class="map-3d-floor tone-0" points="246.1,61.7 384.7,141.7 303.8,188.4 165.3,108.4"/></g><g class="map-zone" data-zone="lot"><polygon class="map-3d-floor tone-1" points="398.5,149.7 574.0,251.1 447.0,324.4 271.5,223.1"/></g><g class="map-zone" data-zone="return"><polygon class="map-3d-floor tone-2" points="153.7,115.1 292.3,195.1 204.5,245.7 66.0,165.7"/></g><polygon class="map-3d-top tone-1" points="244.9,64.7 360.4,131.3 350.0,137.3 234.6,70.7"/><polygon class="map-3d-side" points="360.4,131.3 350.0,137.3 350.0,146.0 360.4,140.0"/><polygon class="map-3d-side-2" points="234.6,70.7 350.0,137.3 350.0,146.0 234.6,79.3"/><polygon class="map-3d-top tone-2" points="153.7,119.3 173.4,130.7 138.7,150.7 119.1,139.3"/><polygon class="map-3d-side" points="173.4,130.7 138.7,150.7 138.7,162.7 173.4,142.7"/><polygon class="map-3d-side-2" points="119.1,139.3 138.7,150.7 138.7,162.7 119.1,151.3"/><polygon class="map-3d-top tone-2" points="183.7,136.7 203.4,148.0 168.7,168.0 149.1,156.7"/><polygon class="map-3d-side" points="203.4,148.0 168.7,168.0 168.7,180.0 203.4,160.0"/><polygon class="map-3d-side-2" points="149.1,156.7 168.7,168.0 168.7,180.0 149.1,168.7"/><polygon class="map-3d-top tone-2" points="213.8,154.0 233.4,165.3 198.8,185.3 179.1,174.0"/><polygon class="map-3d-side" points="233.4,165.3 198.8,185.3 198.8,197.3 233.4,177.3"/><polygon class="map-3d-side-2" points="179.1,174.0 198.8,185.3 198.8,197.3 179.1,186.0"/><polygon class="map-3d-top tone-1" points="408.8,167.9 442.1,187.1 423.6,197.8 390.3,178.6"/><polygon class="map-3d-side" points="442.1,187.1 423.6,197.8 423.6,202.5 442.1,191.8"/><polygon class="map-3d-side-2" points="390.3,178.6 423.6,197.8 423.6,202.5 390.3,183.3"/><polygon class="map-3d-top tone-2" points="397.4,160.0 466.6,200.0 437.8,216.7 368.5,176.7"/><polygon class="map-3d-side" points="466.6,200.0 437.8,216.7 437.8,223.3 466.6,206.7"/><polygon class="map-3d-side-2" points="368.5,176.7 437.8,216.7 437.8,223.3 368.5,183.3"/><polygon class="map-3d-top tone-1" points="368.4,191.3 401.6,210.5 383.2,221.1 349.9,201.9"/><polygon class="map-3d-side" points="401.6,210.5 383.2,221.1 383.2,225.8 401.6,215.1"/><polygon class="map-3d-side-2" points="349.9,201.9 383.2,221.1 383.2,225.8 349.9,206.6"/><polygon class="map-3d-top tone-2" points="357.0,183.3 426.2,223.3 397.4,240.0 328.1,200.0"/><polygon class="map-3d-side" points="426.2,223.3 397.4,240.0 397.4,246.7 426.2,230.0"/><polygon class="map-3d-side-2" points="328.1,200.0 397.4,240.0 397.4,246.7 328.1,206.7"/><polygon class="map-3d-top tone-1" points="487.3,213.3 520.6,232.5 502.1,243.1 468.8,223.9"/><polygon class="map-3d-side" points="520.6,232.5 502.1,243.1 502.1,247.8 520.6,237.1"/><polygon class="map-3d-side-2" points="468.8,223.9 502.1,243.1 502.1,247.8 468.8,228.6"/><polygon class="map-3d-top tone-2" points="475.9,205.3 545.2,245.3 516.3,262.0 447.0,222.0"/><polygon class="map-3d-side" points="545.2,245.3 516.3,262.0 516.3,268.7 545.2,252.0"/><polygon class="map-3d-side-2" points="447.0,222.0 516.3,262.0 516.3,268.7 447.0,228.7"/><polygon class="map-3d-top tone-1" points="446.9,236.6 480.2,255.8 461.7,266.5 428.4,247.3"/><polygon class="map-3d-side" points="480.2,255.8 461.7,266.5 461.7,271.1 480.2,260.5"/><polygon class="map-3d-side-2" points="428.4,247.3 461.7,266.5 461.7,271.1 428.4,251.9"/><polygon class="map-3d-top tone-2" points="435.5,228.7 504.8,268.7 475.9,285.3 406.6,245.3"/><polygon class="map-3d-side" points="504.8,268.7 475.9,285.3 475.9,292.0 504.8,275.3"/><polygon class="map-3d-side-2" points="406.6,245.3 475.9,285.3 475.9,292.0 406.6,252.0"/><g class="map-zone" data-zone="counter"><text class="map-3d-label" x="176.2" y="108.6">RENTAL COUNTER</text></g><g class="map-zone" data-zone="lot"><text class="map-3d-label" x="282.5" y="223.3">LOT</text></g><g class="map-zone" data-zone="return"><text class="map-3d-label" x="76.9" y="165.9">RETURN</text></g></svg></div>
+      <button class="hotspot" type="button" style="--x2d:24.38%;--y2d:28.5%;--x3d:42.96%;--y3d:31.33%" data-hotspot="counter" data-zone="counter" data-encounter="counter" aria-pressed="true" aria-controls="panel-counter"><span class="hs-num">1</span><span class="hs-text"><span class="hs-en">Counter</span><span class="hs-zh">柜台</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:70.62%;--y2d:38.5%;--x3d:66.06%;--y3d:59.33%" data-hotspot="lot" data-zone="lot" data-encounter="lot" aria-pressed="false" aria-controls="panel-lot"><span class="hs-num">2</span><span class="hs-text"><span class="hs-en">Lot</span><span class="hs-zh">验车</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:24.38%;--y2d:70.0%;--x3d:27.99%;--y3d:45.17%" data-hotspot="return" data-zone="return" data-encounter="return" aria-pressed="false" aria-controls="panel-return"><span class="hs-num">3</span><span class="hs-text"><span class="hs-en">Return</span><span class="hs-zh">还车</span></span></button>
     </div>
   </figure>
   <p class="sr-only" aria-live="polite" data-status></p>
@@ -204,19 +310,19 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="5.856" data-end-f="7.728" data-start-m="5.616" data-end-m="7.488"><span class="en">Is insurance included?</span><span class="zh">含保险吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="2.424"><span class="en">Welcome. Picking up a car?</span><span class="zh">欢迎。来取车吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="2.424" data-end="5.016"><span class="en">Yes. I need a car for three days.</span><span class="zh">有。我需要租三天车。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="2.424" data-end="5.016"><span class="en">Yes. I need a car for three days.</span><span class="zh">有。我需要租三天车。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="5.016" data-end="6.888"><span class="en">What kind of car?</span><span class="zh">什么车型？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="6.888" data-end="9.672"><span class="en">A compact, please. How much per day?</span><span class="zh">紧凑型。一天多少钱？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="6.888" data-end="9.672"><span class="en">A compact, please. How much per day?</span><span class="zh">紧凑型。一天多少钱？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="9.672" data-end="13.080"><span class="en">Forty dollars a day, including basic insurance.</span><span class="zh">一天四十美元，含基本保险。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="13.080" data-end="15.000"><span class="en">Good. Is there a deposit?</span><span class="zh">好。要押金吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="13.080" data-end="15.000"><span class="en">Good. Is there a deposit?</span><span class="zh">好。要押金吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="15.000" data-end="17.736"><span class="en">Yes, two hundred dollars on your card.</span><span class="zh">要，信用卡预授权两百美元。</span></button></div>
 
@@ -234,25 +340,25 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="7.848" data-end-f="9.720" data-start-m="7.608" data-end-m="9.480"><span class="en">Is there a young driver fee?</span><span class="zh">有年轻司机费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">Can I add a second driver?</span><span class="zh">能加第二个司机吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">Can I add a second driver?</span><span class="zh">能加第二个司机吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="1.872" data-end="6.120"><span class="en">Yes, there&#x27;s a daily fee. Is the driver over twenty-five?</span><span class="zh">可以，有每日费用。司机满二十五岁了吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="6.120" data-end="8.496"><span class="en">Yes. Is there a young driver fee?</span><span class="zh">满了。有年轻司机费吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="6.120" data-end="8.496"><span class="en">Yes. Is there a young driver fee?</span><span class="zh">满了。有年轻司机费吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="8.496" data-end="11.328"><span class="en">No, that&#x27;s only under twenty-five.</span><span class="zh">没有，二十五岁以下才有。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="11.328" data-end="13.464"><span class="en">Good. Is there a mileage limit?</span><span class="zh">好。有里程限制吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="11.328" data-end="13.464"><span class="en">Good. Is there a mileage limit?</span><span class="zh">好。有里程限制吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="13.464" data-end="15.648"><span class="en">Unlimited miles on this rate.</span><span class="zh">这个价格不限里程。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="15.648" data-end="18.336"><span class="en">Great. Do you have a car with a GPS?</span><span class="zh">好。有带 GPS 的车吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="15.648" data-end="18.336"><span class="en">Great. Do you have a car with a GPS?</span><span class="zh">好。有带 GPS 的车吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="18.336" data-end="21.264"><span class="en">I can add a GPS for five dollars a day.</span><span class="zh">可以加 GPS，一天五美元。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="21.264" data-end="23.904"><span class="en">Okay. Can I return the car at the airport?</span><span class="zh">好。能在机场还车吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="21.264" data-end="23.904"><span class="en">Okay. Can I return the car at the airport?</span><span class="zh">好。能在机场还车吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="23.904" data-end="26.544"><span class="en">Yes, but there&#x27;s a one-way fee.</span><span class="zh">可以，但有异地还车费。</span></button></div>
 
@@ -270,29 +376,31 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="16.680" data-end-f="19.608" data-start-m="14.904" data-end-m="17.808"><span class="en">Is there a grace period if I return the car late?</span><span class="zh">晚还车有宽限期吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="4.728"><span class="en">My credit card covers rental insurance. Can I decline the collision damage waiver?</span><span class="zh">我的信用卡含租车保险。能拒绝碰撞险吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="4.728"><span class="en">My credit card covers rental insurance. Can I decline the collision damage waiver?</span><span class="zh">我的信用卡含租车保险。能拒绝碰撞险吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="4.728" data-end="7.800"><span class="en">You can, but you&#x27;ll need to show proof of coverage.</span><span class="zh">可以，但需要出示保险证明。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="7.800" data-end="13.080"><span class="en">I have the card&#x27;s benefits letter. The rate online was lower than what you&#x27;re quoting. Can you match it?</span><span class="zh">我有卡的权益说明。网上价格比您报的低。能匹配吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="7.800" data-end="13.080"><span class="en">I have the card&#x27;s benefits letter. The rate online was lower than what you&#x27;re quoting. Can you match it?</span><span class="zh">我有卡的权益说明。网上价格比您报的低。能匹配吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="13.080" data-end="15.768"><span class="en">I&#x27;ll check the website price and adjust it.</span><span class="zh">我查一下网站价格再调整。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="15.768" data-end="19.632"><span class="en">Thank you. I need a car seat for a toddler. Do you provide one?</span><span class="zh">谢谢。我需要幼儿安全座椅。你们提供吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="15.768" data-end="19.632"><span class="en">Thank you. I need a car seat for a toddler. Do you provide one?</span><span class="zh">谢谢。我需要幼儿安全座椅。你们提供吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="19.632" data-end="21.720"><span class="en">Yes, ten dollars a day.</span><span class="zh">提供，一天十美元。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="21.720" data-end="26.064"><span class="en">Okay. Can I add roadside assistance without the full insurance package?</span><span class="zh">好。能只加道路救援，不买全套保险吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="21.720" data-end="26.064"><span class="en">Okay. Can I add roadside assistance without the full insurance package?</span><span class="zh">好。能只加道路救援，不买全套保险吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="26.064" data-end="28.512"><span class="en">Yes, it&#x27;s eight dollars a day.</span><span class="zh">可以，一天八美元。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="28.512" data-end="32.184"><span class="en">Fine. Is there a grace period if I return the car late?</span><span class="zh">好。晚还车有宽限期吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="28.512" data-end="32.184"><span class="en">Fine. Is there a grace period if I return the car late?</span><span class="zh">好。晚还车有宽限期吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="32.184" data-end="34.704"><span class="en">You have a thirty-minute grace period.</span><span class="zh">有三十分钟宽限期。</span></button></div>
 
   </div></div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>预订/驾照</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en">Do you have a <mark class="key">reservation</mark>?</span><span class="zh">您有预订吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="1.872" data-end-f="3.936" data-start-m="1.872" data-end-m="3.768"><span class="en">Can I see your <mark class="key">driver&#x27;s license</mark>?</span><span class="zh">能看一下您的驾照吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="3.936" data-end-f="5.808" data-start-m="3.768" data-end-m="5.640"><span class="en">Do you have a <mark class="key">credit card</mark>?</span><span class="zh">您有信用卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="5.808" data-end-f="9.048" data-start-m="5.640" data-end-m="8.424"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, under Wang. Here&#x27;s my license.</span><span class="zh">有，姓王。这是我的驾照。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Do you have…? / Can I see…? / Do you have a credit card?</p></article><article class="intent"><h3>车型/保险</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="9.048" data-end-f="10.920" data-start-m="8.424" data-end-m="10.296"><span class="en"><mark class="key">What kind of car</mark> would you like?</span><span class="zh">您要什么车型？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="10.920" data-end-f="12.792" data-start-m="10.296" data-end-m="12.168"><span class="en">Would you like <mark class="key">insurance</mark>?</span><span class="zh">您要保险吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="12.792" data-end-f="15.408" data-start-m="12.168" data-end-m="14.592"><span class="en">Do you need a <mark class="key">GPS</mark> or child seat?</span><span class="zh">您需要 GPS 或儿童座椅吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="15.408" data-end-f="18.000" data-start-m="14.592" data-end-m="16.992"><span class="reply-tag">答</span><span class="reply-body"><span class="en">A compact car, with insurance.</span><span class="zh">紧凑型，带保险。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>What kind of…? / Would you like…? / Do you need…?</p></article><article class="intent"><h3>还车/油</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="18.000" data-end-f="19.872" data-start-m="16.992" data-end-m="18.864"><span class="en">When will you <mark class="key">return the car</mark>?</span><span class="zh">您什么时候还车？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="19.872" data-end-f="22.152" data-start-m="18.864" data-end-m="21.096"><span class="en">Please bring it back with a <mark class="key">full tank</mark>.</span><span class="zh">请加满油还回来。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="22.152" data-end-f="24.024" data-start-m="21.096" data-end-m="22.968"><span class="en">Do you want <mark class="key">prepaid fuel</mark>?</span><span class="zh">您要预付油费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="24.024" data-end-f="26.616" data-start-m="22.968" data-end-m="25.632"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Sunday at 5 p.m., full tank.</span><span class="zh">周日傍晚 5 点，加满油。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>When will you…? / Please bring it back… / Do you want…?</p></article></div></section>
 
   </section>
 
@@ -308,19 +416,19 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="13.344" data-end-f="15.216" data-start-m="13.104" data-end-m="14.976"><span class="en">How do I open the trunk?</span><span class="zh">后备箱怎么开？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="17.736" data-end="20.040"><span class="en">Your car is in space 24.</span><span class="zh">您的车在 24 号车位。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="20.040" data-end="22.512"><span class="en">Thanks. Can I check the car first?</span><span class="zh">谢谢。我能先检查车吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="20.040" data-end="22.512"><span class="en">Thanks. Can I check the car first?</span><span class="zh">谢谢。我能先检查车吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="22.512" data-end="26.256"><span class="en">Of course. Take photos if you see any damage.</span><span class="zh">当然。看到损伤就拍照。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.256" data-end="28.128"><span class="en">There&#x27;s a scratch here.</span><span class="zh">这里有一道划痕。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.256" data-end="28.128"><span class="en">There&#x27;s a scratch here.</span><span class="zh">这里有一道划痕。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="28.128" data-end="30.000"><span class="en">I&#x27;ll note it on the form.</span><span class="zh">我在单子上记下。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="30.000" data-end="32.376"><span class="en">Thanks. How do I open the trunk?</span><span class="zh">谢谢。后备箱怎么开？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="30.000" data-end="32.376"><span class="en">Thanks. How do I open the trunk?</span><span class="zh">谢谢。后备箱怎么开？</span></button></div>
 
   </div></div></div>
 
@@ -336,25 +444,25 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="18.048" data-end-f="19.920" data-start-m="17.616" data-end-m="19.488"><span class="en">Can I adjust the mirrors?</span><span class="zh">能调后视镜吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.544" data-end="28.584"><span class="en">Does this car take regular gas?</span><span class="zh">这车加普通汽油吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.544" data-end="28.584"><span class="en">Does this car take regular gas?</span><span class="zh">这车加普通汽油吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="28.584" data-end="30.792"><span class="en">Yes, regular unleaded.</span><span class="zh">对，普通无铅汽油。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="30.792" data-end="33.888"><span class="en">Great. How do I connect my phone to the Bluetooth?</span><span class="zh">好。怎么把手机连蓝牙？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="30.792" data-end="33.888"><span class="en">Great. How do I connect my phone to the Bluetooth?</span><span class="zh">好。怎么把手机连蓝牙？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="33.888" data-end="36.408"><span class="en">Press the phone button on the steering wheel.</span><span class="zh">按方向盘上的电话键。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="36.408" data-end="38.688"><span class="en">Okay. Where are the hazard lights?</span><span class="zh">好。危险警示灯在哪里？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="36.408" data-end="38.688"><span class="en">Okay. Where are the hazard lights?</span><span class="zh">好。危险警示灯在哪里？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="38.688" data-end="41.688"><span class="en">The red triangle button in the center console.</span><span class="zh">中控台上的红色三角按钮。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="41.688" data-end="43.872"><span class="en">Thanks. Is there a spare tire?</span><span class="zh">谢谢。有备胎吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="41.688" data-end="43.872"><span class="en">Thanks. Is there a spare tire?</span><span class="zh">谢谢。有备胎吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="43.872" data-end="45.960"><span class="en">There&#x27;s a repair kit in the trunk.</span><span class="zh">后备箱有补胎工具。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="45.960" data-end="48.240"><span class="en">Good. Can I adjust the mirrors?</span><span class="zh">好。能调后视镜吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="45.960" data-end="48.240"><span class="en">Good. Can I adjust the mirrors?</span><span class="zh">好。能调后视镜吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="48.240" data-end="50.664"><span class="en">The controls are on the driver&#x27;s door.</span><span class="zh">控制键在驾驶座车门上。</span></button></div>
 
@@ -372,29 +480,31 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="37.560" data-end-f="41.328" data-start-m="34.440" data-end-m="38.136"><span class="en">Is the toll transponder included, or do I pay at the booth?</span><span class="zh">含过路费感应器吗，还是我在收费站付？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="34.704" data-end="38.232"><span class="en">The tire pressure light is on. Is the car safe to drive?</span><span class="zh">胎压灯亮了。这车能安全开吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="34.704" data-end="38.232"><span class="en">The tire pressure light is on. Is the car safe to drive?</span><span class="zh">胎压灯亮了。这车能安全开吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="38.232" data-end="40.920"><span class="en">I&#x27;ll check the tires and reset the light.</span><span class="zh">我检查轮胎并重置灯。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="40.920" data-end="45.888"><span class="en">Thanks. There&#x27;s a crack in the windshield that wasn&#x27;t on the form. Can you document it?</span><span class="zh">谢谢。挡风玻璃有裂纹，单子上没写。能记录吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="40.920" data-end="45.888"><span class="en">Thanks. There&#x27;s a crack in the windshield that wasn&#x27;t on the form. Can you document it?</span><span class="zh">谢谢。挡风玻璃有裂纹，单子上没写。能记录吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="45.888" data-end="48.120"><span class="en">I&#x27;ll add it to the condition report.</span><span class="zh">我加到车况报告。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="48.120" data-end="53.064"><span class="en">The fuel gauge shows half a tank, but the contract says full. Which is correct?</span><span class="zh">油表显示半箱，但合同写满油。哪个对？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="48.120" data-end="53.064"><span class="en">The fuel gauge shows half a tank, but the contract says full. Which is correct?</span><span class="zh">油表显示半箱，但合同写满油。哪个对？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="53.064" data-end="56.520"><span class="en">The gauge is right. I&#x27;ll update the contract.</span><span class="zh">油表对。我更新合同。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="56.520" data-end="61.752"><span class="en">Good. Can I add an authorized driver at the lot, or do I need to go back to the counter?</span><span class="zh">好。能在停车场加授权司机，还是必须回柜台？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="56.520" data-end="61.752"><span class="en">Good. Can I add an authorized driver at the lot, or do I need to go back to the counter?</span><span class="zh">好。能在停车场加授权司机，还是必须回柜台？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="61.752" data-end="63.624"><span class="en">You can sign here.</span><span class="zh">在这里签就行。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="63.624" data-end="68.064"><span class="en">Great. Is the toll transponder included, or do I pay at the booth?</span><span class="zh">好。含过路费感应器吗，还是我在收费站付？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="63.624" data-end="68.064"><span class="en">Great. Is the toll transponder included, or do I pay at the booth?</span><span class="zh">好。含过路费感应器吗，还是我在收费站付？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="68.064" data-end="70.560"><span class="en">The transponder is in the glove box.</span><span class="zh">感应器在手套箱里。</span></button></div>
 
   </div></div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>验车</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="26.616" data-end-f="28.488" data-start-m="25.632" data-end-m="27.504"><span class="en">Let&#x27;s <mark class="key">take a look</mark> at the car.</span><span class="zh">我们看一下车。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="28.488" data-end-f="30.360" data-start-m="27.504" data-end-m="29.376"><span class="en">Do you see <mark class="key">any damage</mark>?</span><span class="zh">您看到有损伤吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="30.360" data-end-f="32.856" data-start-m="29.376" data-end-m="31.656"><span class="en">Walk around and check for <mark class="key">scratches</mark>.</span><span class="zh">绕一圈看看有没有划痕。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="32.856" data-end-f="34.728" data-start-m="31.656" data-end-m="33.528"><span class="reply-tag">答</span><span class="reply-body"><span class="en">There&#x27;s a scratch on the door.</span><span class="zh">车门上有一道划痕。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Let&#x27;s take a look… / Do you see…? / Walk around and check…</p></article><article class="intent"><h3>操作</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="34.728" data-end-f="36.600" data-start-m="33.528" data-end-m="35.400"><span class="en">Do you know <mark class="key">how to start</mark> it?</span><span class="zh">您知道怎么启动吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="36.600" data-end-f="38.496" data-start-m="35.400" data-end-m="37.272"><span class="en">The <mark class="key">keys</mark> are in the ignition.</span><span class="zh">钥匙在点火器上。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="38.496" data-end-f="40.368" data-start-m="37.272" data-end-m="39.144"><span class="en">Would you like a quick <mark class="key">walkthrough</mark>?</span><span class="zh">要我快速讲一遍吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="40.368" data-end-f="42.408" data-start-m="39.144" data-end-m="41.016"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, please show me.</span><span class="zh">好，请示范一下。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Do you know how to…? / The keys are… / Would you like…?</p></article><article class="intent"><h3>出停车场</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="42.408" data-end-f="44.400" data-start-m="41.016" data-end-m="42.936"><span class="en">Take this <mark class="key">ticket to the exit</mark>.</span><span class="zh">拿这张票到出口。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="44.400" data-end-f="46.584" data-start-m="42.936" data-end-m="44.808"><span class="en">The <mark class="key">exit is</mark> around the back.</span><span class="zh">出口在后面。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="46.584" data-end-f="48.504" data-start-m="44.808" data-end-m="46.680"><span class="en">Do you need <mark class="key">help with the GPS</mark>?</span><span class="zh">需要帮忙设置 GPS 吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="48.504" data-end-f="50.376" data-start-m="46.680" data-end-m="47.448"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Got it.</span><span class="zh">明白。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Take this… / The exit is… / Do you need help…?</p></article></div></section>
 
   </section>
 
@@ -410,19 +520,19 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="20.832" data-end-f="22.704" data-start-m="20.592" data-end-m="22.464"><span class="en">Could I get a receipt?</span><span class="zh">能给我收据吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="32.376" data-end="35.040"><span class="en">Welcome back. Returning the car?</span><span class="zh">欢迎回来。还车吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="35.040" data-end="37.032"><span class="en">Yes. Where do I park?</span><span class="zh">对。停在哪里？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="35.040" data-end="37.032"><span class="en">Yes. Where do I park?</span><span class="zh">对。停在哪里？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="37.032" data-end="39.576"><span class="en">In the return lane, under the sign.</span><span class="zh">在还车通道，标志下面。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="39.576" data-end="41.712"><span class="en">Okay. Here are the keys.</span><span class="zh">好。这是钥匙。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="39.576" data-end="41.712"><span class="en">Okay. Here are the keys.</span><span class="zh">好。这是钥匙。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="41.712" data-end="44.352"><span class="en">Thanks. The tank is full, right?</span><span class="zh">谢谢。油满吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="44.352" data-end="46.464"><span class="en">Yes. Could I get a receipt?</span><span class="zh">满。能给我收据吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="44.352" data-end="46.464"><span class="en">Yes. Could I get a receipt?</span><span class="zh">满。能给我收据吗？</span></button></div>
 
   </div></div></div>
 
@@ -438,25 +548,25 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="29.520" data-end-f="31.464" data-start-m="28.320" data-end-m="30.192"><span class="en">Can you check the car while I wait?</span><span class="zh">我等的这段时间能检查车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="50.664" data-end="52.896"><span class="en">I filled the tank at the station nearby.</span><span class="zh">我在附近加油站加满了。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="50.664" data-end="52.896"><span class="en">I filled the tank at the station nearby.</span><span class="zh">我在附近加油站加满了。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="52.896" data-end="55.488"><span class="en">Great. Do you have the fuel receipt?</span><span class="zh">好。有加油收据吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="55.488" data-end="59.400"><span class="en">Yes, it&#x27;s in the car. Can I leave the car and catch my flight?</span><span class="zh">有，在车里。我能把车留下赶飞机吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="55.488" data-end="59.400"><span class="en">Yes, it&#x27;s in the car. Can I leave the car and catch my flight?</span><span class="zh">有，在车里。我能把车留下赶飞机吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="59.400" data-end="62.688"><span class="en">Yes, the shuttle leaves every ten minutes.</span><span class="zh">可以，摆渡车每十分钟一班。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="62.688" data-end="65.016"><span class="en">There&#x27;s a small scratch on the rear bumper.</span><span class="zh">后保险杠有一道小划痕。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="62.688" data-end="65.016"><span class="en">There&#x27;s a small scratch on the rear bumper.</span><span class="zh">后保险杠有一道小划痕。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="65.016" data-end="68.208"><span class="en">I&#x27;ll note it. Was it there when you picked up the car?</span><span class="zh">我记下。取车时就有吗？</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="68.208" data-end="70.512"><span class="en">No, it happened in a parking lot.</span><span class="zh">不是，在停车场弄的。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="68.208" data-end="70.512"><span class="en">No, it happened in a parking lot.</span><span class="zh">不是，在停车场弄的。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="70.512" data-end="72.528"><span class="en">Let&#x27;s check your damage coverage.</span><span class="zh">我们看一下您的损伤保险。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="72.528" data-end="75.264"><span class="en">Okay. Will the deposit be released today?</span><span class="zh">好。押金今天退吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="72.528" data-end="75.264"><span class="en">Okay. Will the deposit be released today?</span><span class="zh">好。押金今天退吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="75.264" data-end="79.128"><span class="en">It&#x27;s released after the inspection. I&#x27;ll check the car now.</span><span class="zh">检查后释放。我现在就查。</span></button></div>
 
@@ -474,33 +584,35 @@
 
   <button class="phrase" type="button" data-part="p" data-start-f="59.256" data-end-f="62.832" data-start-m="54.552" data-end-m="58.200"><span class="en">Can you email the final invoice with the damage waiver itemized?</span><span class="zh">能把最终发票发我邮箱，碰撞险单列吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill rp-toggle" type="button" data-roleplay aria-pressed="false">角色扮演</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="70.560" data-end="76.296"><span class="en">I returned the car after hours and left the keys in the drop box. Can you confirm the return time?</span><span class="zh">我下班后还车，把钥匙放进了投递箱。能确认还车时间吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="70.560" data-end="76.296"><span class="en">I returned the car after hours and left the keys in the drop box. Can you confirm the return time?</span><span class="zh">我下班后还车，把钥匙放进了投递箱。能确认还车时间吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="76.296" data-end="79.752"><span class="en">The drop box scan shows 11:42 p.m.</span><span class="zh">投递箱扫描显示晚上 11 点 42。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="79.752" data-end="85.248"><span class="en">Good. The final bill includes a fuel charge, but I filled the tank. Can you review it?</span><span class="zh">好。最终账单有加油费，但我加满了。能核对吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="79.752" data-end="85.248"><span class="en">Good. The final bill includes a fuel charge, but I filled the tank. Can you review it?</span><span class="zh">好。最终账单有加油费，但我加满了。能核对吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="85.248" data-end="88.968"><span class="en">I see the fuel receipt. I&#x27;ll remove the charge.</span><span class="zh">我看到加油收据。我去掉这笔费用。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="88.968" data-end="93.648"><span class="en">Thank you. There&#x27;s a new dent on the door. I have photos from before and after.</span><span class="zh">谢谢。车门有个新凹痕。我有前后照片。</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="88.968" data-end="93.648"><span class="en">Thank you. There&#x27;s a new dent on the door. I have photos from before and after.</span><span class="zh">谢谢。车门有个新凹痕。我有前后照片。</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="93.648" data-end="96.792"><span class="en">Send them to the claims address and we&#x27;ll compare.</span><span class="zh">发到理赔邮箱，我们对比。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="96.792" data-end="101.472"><span class="en">I will. I was charged for tolls I paid in cash. Can you remove the fee?</span><span class="zh">好。我被收了已现金支付的过路费。能去掉吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="96.792" data-end="101.472"><span class="en">I will. I was charged for tolls I paid in cash. Can you remove the fee?</span><span class="zh">好。我被收了已现金支付的过路费。能去掉吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="101.472" data-end="103.488"><span class="en">I&#x27;ll need the toll receipts.</span><span class="zh">需要过路费收据。</span></button></div>
 
-  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="103.488" data-end="108.024"><span class="en">I have them. Can you email the final invoice with the damage waiver itemized?</span><span class="zh">我有。能把最终发票发我邮箱，碰撞险单列吗？</span><span class="reveal">轮到你 · Your turn</span></button></div>
+  <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="103.488" data-end="108.024"><span class="en">I have them. Can you email the final invoice with the damage waiver itemized?</span><span class="zh">我有。能把最终发票发我邮箱，碰撞险单列吗？</span></button></div>
 
   <div class="line" data-role="staff" data-spk="agent"><span class="who">Rental agent</span><button class="say" type="button" data-part="d" data-start="108.024" data-end="110.544"><span class="en">I&#x27;ll send it within one business day.</span><span class="zh">一个工作日内发。</span></button></div>
 
   </div></div></div>
 
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>还车</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="50.376" data-end-f="52.248" data-start-m="47.448" data-end-m="49.320"><span class="en">Are you <mark class="key">returning the car</mark>?</span><span class="zh">您来还车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="52.248" data-end-f="54.120" data-start-m="49.320" data-end-m="51.192"><span class="en">What&#x27;s the <mark class="key">mileage</mark>?</span><span class="zh">里程数是多少？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="54.120" data-end-f="55.992" data-start-m="51.192" data-end-m="53.064"><span class="en">Did you <mark class="key">fill the tank</mark>?</span><span class="zh">您加满油了吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="55.992" data-end-f="57.864" data-start-m="53.064" data-end-m="54.936"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, full tank.</span><span class="zh">是的，加满了。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Are you returning…? / What&#x27;s the…? / Did you…?</p></article><article class="intent"><h3>损坏/费用</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="57.864" data-end-f="59.736" data-start-m="54.936" data-end-m="56.808"><span class="en">There&#x27;s a <mark class="key">new scratch</mark> here.</span><span class="zh">这里有一道新划痕。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="59.736" data-end-f="61.824" data-start-m="56.808" data-end-m="58.752"><span class="en">We&#x27;ll need to <mark class="key">charge for the damage</mark>.</span><span class="zh">我们需要收取损坏费用。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="61.824" data-end-f="63.696" data-start-m="58.752" data-end-m="60.624"><span class="en">Do you have <mark class="key">insurance</mark>?</span><span class="zh">您有保险吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="63.696" data-end-f="65.568" data-start-m="60.624" data-end-m="62.496"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I have insurance.</span><span class="zh">我有保险。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>There&#x27;s… / We&#x27;ll need to… / Do you have…?</p></article><article class="intent"><h3>收据/接驳车</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="65.568" data-end-f="67.440" data-start-m="62.496" data-end-m="64.368"><span class="en">Here&#x27;s your <mark class="key">receipt</mark>.</span><span class="zh">这是您的收据。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="67.440" data-end-f="69.312" data-start-m="64.368" data-end-m="66.240"><span class="en">Do you need a <mark class="key">ride to the airport</mark>?</span><span class="zh">您要坐车去机场吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="69.312" data-end-f="71.952" data-start-m="66.240" data-end-m="68.616"><span class="en">The <mark class="key">shuttle</mark> leaves every ten minutes.</span><span class="zh">接驳车每十分钟一班。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="71.952" data-end-f="73.824" data-start-m="68.616" data-end-m="70.488"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, please.</span><span class="zh">要，麻烦了。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Here&#x27;s your… / Do you need…? / The shuttle leaves…</p></article></div></section>
+
   </section>
 
-  <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/413a2c3f14ee.mp3","survival-p-m":"sprites/b01938a56d3b.mp3","survival-d":"sprites/9d463474400e.mp3","conversational-p-f":"sprites/84a702afd161.mp3","conversational-p-m":"sprites/43f27ccc6325.mp3","conversational-d":"sprites/9392eae903d8.mp3","advanced-p-f":"sprites/1bc7fcb3d3ab.mp3","advanced-p-m":"sprites/879fb4504697.mp3","advanced-d":"sprites/db6365de3e69.mp3"}</script>
+  <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/413a2c3f14ee.mp3","survival-p-m":"sprites/b01938a56d3b.mp3","survival-d":"sprites/9d463474400e.mp3","conversational-p-f":"sprites/84a702afd161.mp3","conversational-p-m":"sprites/43f27ccc6325.mp3","conversational-d":"sprites/9392eae903d8.mp3","advanced-p-f":"sprites/1bc7fcb3d3ab.mp3","advanced-p-m":"sprites/879fb4504697.mp3","advanced-d":"sprites/db6365de3e69.mp3","listen-f":"sprites/dfabccf1535b.mp3","listen-m":"sprites/7d4408df1704.mp3"}</script>
 </main>
 
 <script>
@@ -513,10 +625,10 @@
   var body = document.body;
   var levelBtns = [].slice.call(document.querySelectorAll('[data-level]'));
   var voiceBtns = [].slice.call(document.querySelectorAll('[data-voice]'));
+  var viewBtns = [].slice.call(document.querySelectorAll('[data-view]'));
   var hotspots = [].slice.call(document.querySelectorAll('[data-hotspot]'));
   var encounters = [].slice.call(document.querySelectorAll('.encounter'));
   var zhToggle = document.querySelector('[data-zh-toggle]');
-  var rpToggle = document.querySelector('[data-roleplay]');
   var speedBtn = document.querySelector('[data-speed]');
   var playBtn = document.querySelector('[data-play-dialogue]');
   var statusEl = document.querySelector('[data-status]');
@@ -525,10 +637,10 @@
   audio.preservesPitch = true;
 
   var voice = 'f';
+  var view = '2d';
   var level = body.getAttribute('data-default-level') || 'survival';
   var speed = 0.9;
   var zhOff = false;
-  var roleplay = false;
   var selected = null;
   var playToken = 0;
   var seqRunning = false;
@@ -538,6 +650,10 @@
   try {
     var savedVoice = localStorage.getItem('npesl-voice');
     if (savedVoice === 'f' || savedVoice === 'm') voice = savedVoice;
+  } catch (e) {}
+  try {
+    var savedView = localStorage.getItem('travel-view');
+    if (savedView === '2d' || savedView === '3d') view = savedView;
   } catch (e) {}
   try {
     zhOff = localStorage.getItem('npesl-zh') === '0';
@@ -628,6 +744,20 @@
     stopAudio();
   }
 
+  function applyView(next, persist) {
+    view = next === '3d' ? '3d' : '2d';
+    body.classList.toggle('view-3d', view === '3d');
+    [].forEach.call(document.querySelectorAll('[data-map-view]'),
+      function (stage) {
+        stage.hidden = stage.getAttribute('data-map-view') !== view;
+      });
+    viewBtns.forEach(function (btn) {
+      btn.setAttribute('aria-pressed',
+        btn.getAttribute('data-view') === view ? 'true' : 'false');
+    });
+    if (persist !== false) save('travel-view', view);
+  }
+
   function applyZh(next, persist) {
     zhOff = !!next;
     body.classList.toggle('zh-off', zhOff);
@@ -640,15 +770,6 @@
     if (speedBtn) speedBtn.textContent = speed + '×';
     audio.playbackRate = speed;
     if (persist !== false) save('npesl-speed', String(speed));
-  }
-
-  function applyRoleplay(next) {
-    roleplay = !!next;
-    body.classList.toggle('roleplay', roleplay);
-    if (rpToggle) rpToggle.setAttribute('aria-pressed', roleplay ? 'true' : 'false');
-    [].forEach.call(document.querySelectorAll('.line[data-role="you"]'),
-      function (line) { line.classList.remove('revealed'); });
-    stopAudio();
   }
 
   function stopAudio() {
@@ -725,7 +846,8 @@
           if (currentEl) currentEl.classList.remove('on', 'playing');
           currentEl = el;
           if (el) {
-            if (el.classList.contains('phrase')) {
+            if (el.classList.contains('phrase') || el.classList.contains('ask')
+                || el.classList.contains('reply')) {
               el.classList.add('on');
             } else {
               var line = el.closest('.line');
@@ -746,25 +868,14 @@
     });
   }
 
-  function sleep(ms, token) {
-    return new Promise(function (resolve) {
-      var start = Date.now();
-      function tick() {
-        if (token !== playToken || Date.now() - start >= ms) return resolve();
-        setTimeout(tick, 100);
-      }
-      tick();
-    });
-  }
-
   function playPhrase(btn) {
-    var panel = btn.closest('.level-panel');
-    if (!panel) return;
+    var sprite = btn.getAttribute('data-sprite');
+    if (!sprite) sprite = level + '-p';
     var start = parseFloat(btn.getAttribute('data-start-' + voice));
     var end = parseFloat(btn.getAttribute('data-end-' + voice));
     stopAudio();
     var token = playToken;
-    playSprite(level + '-p-' + voice, start, end, btn, token);
+    playSprite(sprite + '-' + voice, start, end, btn, token);
   }
 
   function playLine(line, btn) {
@@ -784,11 +895,6 @@
     var panel = currentPanel();
     if (!panel) return;
     var lines = [].slice.call(panel.querySelectorAll('.line'));
-    if (roleplay) {
-      lines = lines.filter(function (line) {
-        return line.getAttribute('data-role') !== 'you';
-      });
-    }
     if (!lines.length) return;
     stopAudio();
     var token = playToken;
@@ -813,11 +919,7 @@
       }
       playSprite(level + '-d', start, end, btn, token).then(function () {
         if (token !== playToken) return;
-        if (roleplay && index < lines.length) {
-          sleep(3000, token).then(next);
-        } else {
-          next();
-        }
+        next();
       });
     }
     next();
@@ -827,17 +929,12 @@
     var hotspot = event.target.closest('[data-hotspot]');
     if (hotspot) { selectHotspot(hotspot, true); return; }
 
-    var phrase = event.target.closest('.phrase');
+    var phrase = event.target.closest('.phrase, .ask, .reply');
     if (phrase) { playPhrase(phrase); return; }
 
     var playLineBtn = event.target.closest('.line .say');
     if (playLineBtn) {
-      var line = playLineBtn.closest('.line');
-      if (roleplay && line.getAttribute('data-role') === 'you'
-          && !line.classList.contains('revealed')) {
-        line.classList.add('revealed');
-      }
-      playLine(line, playLineBtn);
+      playLine(playLineBtn.closest('.line'), playLineBtn);
       return;
     }
 
@@ -847,12 +944,11 @@
     var voiceBtn = event.target.closest('[data-voice]');
     if (voiceBtn) { applyVoice(voiceBtn.getAttribute('data-voice')); return; }
 
+    var viewBtn = event.target.closest('[data-view]');
+    if (viewBtn) { applyView(viewBtn.getAttribute('data-view')); return; }
+
     if (event.target.closest('[data-zh-toggle]')) {
       applyZh(!zhOff);
-      return;
-    }
-    if (event.target.closest('[data-roleplay]')) {
-      applyRoleplay(!roleplay);
       return;
     }
     if (event.target.closest('[data-speed]')) {
@@ -867,6 +963,7 @@
   });
 
   applyVoice(voice, false);
+  applyView(view, false);
   applyZh(zhOff, false);
   applySpeed(speed, false);
   var hash = '';

@@ -36,11 +36,17 @@ ARCHETYPES = {
             ],
             "props": [
                 {"kind": "counter", "x": 52, "y": 62, "w": 204, "h": 18},
+                {"kind": "queue", "x": 60, "y": 106, "w": 180, "h": 30},
                 {"kind": "counter", "x": 308, "y": 62, "w": 118, "h": 16},
                 {"kind": "desk", "x": 486, "y": 64, "w": 94, "h": 24},
                 {"kind": "lane", "x": 56, "y": 196, "w": 180, "h": 66, "n": 2},
+                {"kind": "scan", "x": 74, "y": 202, "w": 40, "h": 46},
+                {"kind": "scan", "x": 146, "y": 202, "w": 40, "h": 46},
                 {"kind": "seats", "x": 300, "y": 208, "w": 200, "h": 92,
                  "cols": 5, "rows": 3},
+                {"kind": "jetbridge", "x": 556, "y": 196, "w": 40, "h": 76},
+                {"kind": "wc", "x": 512, "y": 248, "w": 46, "h": 40},
+                {"kind": "plant", "x": 470, "y": 318, "w": 26, "h": 26},
                 {"kind": "door", "x": 506, "y": 300, "w": 70, "h": 34},
             ],
         },
@@ -56,6 +62,8 @@ ARCHETYPES = {
                 {"kind": "desk", "x": 336, "y": 64, "w": 246, "h": 22},
                 {"kind": "carousel", "x": 60, "y": 220, "w": 250, "h": 72},
                 {"kind": "desk", "x": 380, "y": 214, "w": 198, "h": 24},
+                {"kind": "plant", "x": 36, "y": 316, "w": 26, "h": 26},
+                {"kind": "wc", "x": 548, "y": 244, "w": 46, "h": 40},
                 {"kind": "door", "x": 540, "y": 300, "w": 44, "h": 34},
             ],
         },
@@ -405,24 +413,44 @@ def _rect(kind, x, y, w, h, extra="", rx=4):
             f'width="{w:.1f}" height="{h:.1f}" rx="{rx}"{extra}/>')
 
 
+def _line(x1, y1, x2, y2, cls="map-fixture-line", extra=""):
+    return (f'<path class="{cls}" d="M{x1:.1f} {y1:.1f} '
+            f'L{x2:.1f} {y2:.1f}"{extra}/>')
+
+
+def _circle(cx, cy, r, cls="map-fixture"):
+    return f'<circle class="{cls}" cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}"/>'
+
+
 def _prop(p):
     kind = p["kind"]
     x, y = p["x"], p["y"]
     w, h = p.get("w", 0), p.get("h", 0)
+
     if kind == "counter":
-        return (_rect("counter", x, y, w, h, rx=6)
-                + _rect("counter-top", x + 6, y + 6, w - 12, h - 12, rx=2))
+        out = [_rect("counter", x, y, w, h, rx=6),
+               _rect("counter-top", x + 6, y + 6, w - 12, h - 12, rx=2)]
+        n = max(1, int(w // 46))
+        for i in range(1, n):
+            xx = x + i * w / n
+            out.append(_line(xx, y + 3, xx, y + h - 3))
+        return "".join(out)
+
     if kind == "desk":
-        return (_rect("counter", x, y, w, h, rx=6)
-                + f'<circle class="map-fixture" cx="{x + w * .18:.1f}" '
-                  f'cy="{y + h / 2:.1f}" r="{max(4, h * .22):.1f}"/>')
+        out = [_rect("counter", x, y, w, h, rx=6),
+               _circle(x + w * .18, y + h / 2, max(4, h * .22)),
+               _rect("counter-top", x + 6, y + 5, w - 12, h - 10, rx=2)]
+        out.append(_line(x + w * .55, y + h * .3, x + w * .82, y + h * .3))
+        return "".join(out)
+
     if kind == "lane":
         n = p.get("n", 2)
         out = [_rect("fixture-soft", x, y, w, h, rx=3)]
         for i in range(n):
             yy = y + (i + 1) * h / (n + 1)
-            out.append(f'<path class="map-route" d="M{x:.1f} {yy:.1f} L{x + w:.1f} {yy:.1f}"/>')
+            out.append(_line(x + 8, yy, x + w - 8, yy, "map-route"))
         return "".join(out)
+
     if kind == "seats":
         cols, rows = p.get("cols", 4), p.get("rows", 3)
         gap = 8
@@ -431,182 +459,644 @@ def _prop(p):
         out = []
         for r in range(rows):
             for c in range(cols):
-                out.append(_rect("seat", x + c * (cw + gap), y + r * (ch + gap),
-                                 cw, ch, rx=4))
+                sx = x + c * (cw + gap)
+                sy = y + r * (ch + gap)
+                out.append(_rect("seat", sx, sy, cw, ch, rx=4))
+                out.append(_line(sx + 3, sy + 3, sx + cw - 3, sy + 3,
+                                 "map-seat-back"))
         return "".join(out)
+
     if kind == "table":
         r = p.get("r", 24)
         cx, cy = x, y
-        return (f'<circle class="map-fixture map-table" cx="{cx}" cy="{cy}" r="{r}"/>'
-                f'<circle class="map-fixture map-seat" cx="{cx - r - 7}" cy="{cy}" r="7"/>'
-                f'<circle class="map-fixture map-seat" cx="{cx + r + 7}" cy="{cy}" r="7"/>')
+        out = [_circle(cx, cy, r, "map-fixture map-table")]
+        for dx, dy in ((-r - 8, 0), (r + 8, 0), (0, -r - 8), (0, r + 8)):
+            out.append(_circle(cx + dx, cy + dy, 7, "map-fixture map-seat"))
+        return "".join(out)
+
     if kind == "shelf":
         n = p.get("n", 3)
         out = [_rect("shelf", x, y, w, h, rx=2)]
         for i in range(1, n):
             xx = x + i * w / n
-            out.append(f'<path class="map-fixture-line" d="M{xx:.1f} {y:.1f} L{xx:.1f} {y + h:.1f}"/>')
+            out.append(_line(xx, y, xx, y + h))
+        for i in range(1, n):
+            xx = x + i * w / n
+            out.append(_line(xx + 3, y + h * .35, xx + 3, y + h * .65,
+                             "map-stock"))
         return "".join(out)
+
     if kind == "carousel":
-        return (_rect("fixture-soft", x, y, w, h, rx=18)
-                + f'<ellipse class="map-fixture map-belt" cx="{x + w / 2}" '
-                  f'cy="{y + h / 2}" rx="{w * .38:.1f}" ry="{h * .28:.1f}"/>')
+        out = [_rect("fixture-soft", x, y, w, h, rx=18),
+               f'<ellipse class="map-fixture map-belt" cx="{x + w / 2:.1f}" '
+               f'cy="{y + h / 2:.1f}" rx="{w * .38:.1f}" '
+               f'ry="{h * .28:.1f}"/>']
+        for i in range(1, 8):
+            xx = x + 10 + i * (w - 20) / 8
+            out.append(_line(xx, y + 8, xx, y + h - 8, "map-belt-slat"))
+        return "".join(out)
+
     if kind == "door":
         return (_rect("fixture-soft", x, y, w, h, rx=4)
                 + f'<path class="map-fixture-line" d="M{x:.1f} {y + h:.1f} '
-                  f'Q{x + w:.1f} {y + h:.1f} {x + w:.1f} {y:.1f}"/>')
+                  f'Q{x + w:.1f} {y + h:.1f} {x + w:.1f} {y:.1f}"/>'
+                + _line(x, y + h, x + 4, y + h, "map-door-leaf"))
+
     if kind == "stairs":
         out = [_rect("fixture-soft", x, y, w, h, rx=3)]
         for i in range(1, 5):
             yy = y + i * h / 5
-            out.append(f'<path class="map-fixture-line" d="M{x + 4:.1f} {yy:.1f} '
-                       f'L{x + w - 4:.1f} {yy:.1f}"/>')
+            out.append(_line(x + 4, yy, x + w - 4, yy))
+        out.append(_line(x + w * .5, y + h - 6, x + w * .5, y + 6,
+                         "map-arrow"))
+        out.append(f'<path class="map-arrow" d="M{x + w * .5:.1f} {y + 6:.1f} '
+                   f'l-4 7 l8 0 z"/>')
         return "".join(out)
+
     if kind == "car":
-        return (_rect("car", x, y, w, h, rx=12)
-                + _rect("car-window", x + w * .18, y + h * .2, w * .22, h * .6, rx=4)
-                + _rect("car-window", x + w * .48, y + h * .2, w * .22, h * .6, rx=4))
+        out = [_rect("car", x, y, w, h, rx=12),
+               _rect("car-window", x + w * .18, y + h * .2, w * .22, h * .6, rx=4),
+               _rect("car-window", x + w * .48, y + h * .2, w * .22, h * .6, rx=4)]
+        out.append(_circle(x + w * .1, y + 4, 3, "map-fixture map-headlight"))
+        out.append(_circle(x + w * .1, y + h - 4, 3, "map-fixture map-headlight"))
+        return "".join(out)
+
     if kind == "train":
-        return (_rect("train", x, y, w, h, rx=10)
-                + _rect("train-window", x + 12, y + h * .22, w - 24, h * .22, rx=3))
+        out = [_rect("train", x, y, w, h, rx=10),
+               _rect("train-window", x + 12, y + h * .22, w - 24, h * .22, rx=3)]
+        for i in range(1, 5):
+            xx = x + i * w / 5
+            out.append(_line(xx, y + 3, xx, y + h - 3, "map-train-door"))
+        return "".join(out)
+
     if kind == "pump":
         n = p.get("n", 2)
         out = []
         for i in range(n):
-            out.append(_rect("pump", x + i * (w + 18), y, w, h, rx=5))
+            px = x + i * (w + 18)
+            out.append(_rect("pump", px, y, w, h, rx=5))
+            out.append(_rect("counter-top", px + 5, y + 6,
+                             w - 10, h * .28, rx=2))
+            out.append(_line(px + w, y + 6, px + w + 8, y + h * .5,
+                             "map-fixture-line"))
         return "".join(out)
+
     if kind == "parking":
         out = [_rect("fixture-soft", x, y, w, h, rx=3)]
         for i in range(5):
             xx = x + i * w / 5
-            out.append(f'<path class="map-fixture-line" d="M{xx:.1f} {y:.1f} L{xx:.1f} {y + h:.1f}"/>')
+            out.append(_line(xx, y, xx, y + h))
         return "".join(out)
+
     if kind == "toll":
         return (_rect("counter", x, y, w, h, rx=4)
-                + _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2))
+                + _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2)
+                + _line(x + w * .5, y + 2, x + w * .5, y + h - 2,
+                        "map-fixture-line"))
+
     if kind == "street":
-        return _rect("fixture-soft", x, y, w, h, rx=2)
+        out = [_rect("fixture-soft", x, y, w, h, rx=2)]
+        for i in range(1, 7):
+            xx = x + i * w / 7
+            out.append(_line(xx - 8, y + h / 2, xx, y + h / 2,
+                             "map-street-dash"))
+        return "".join(out)
+
     if kind == "store":
         n = p.get("n", 3)
         out = [_rect("fixture-soft", x, y, w, h, rx=4)]
         for i in range(1, n):
             xx = x + i * w / n
-            out.append(f'<path class="map-fixture-line" d="M{xx:.1f} {y:.1f} L{xx:.1f} {y + h:.1f}"/>')
+            out.append(_line(xx, y, xx, y + h))
+        out.append(_line(x, y + 5, x + w, y + 5, "map-awning"))
         return "".join(out)
+
     if kind == "mapboard":
         return (_rect("counter", x, y, w, h, rx=4)
-                + _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2))
+                + _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2)
+                + _line(x + 12, y + h * .5, x + w - 12, y + h * .5,
+                        "map-fixture-line"))
+
     if kind == "person":
-        return (f'<circle class="map-fixture map-person" cx="{x + w / 2}" '
-                f'cy="{y + h * .3}" r="{w * .28}"/>'
-                + f'<path class="map-fixture-line" d="M{x + w / 2} {y + h * .58} '
-                  f'L{x + w / 2} {y + h}"/>')
+        return (_circle(x + w / 2, y + h * .3, w * .28,
+                        "map-fixture map-person")
+                + _line(x + w / 2, y + h * .58, x + w / 2, y + h,
+                        "map-fixture-line")
+                + _line(x + w * .3, y + h * .72, x + w * .7, y + h * .72,
+                        "map-fixture-line"))
+
     if kind == "machine":
         n = p.get("n", 2)
-        return "".join(_rect("counter", x + i * (w + 18), y, w, h, rx=4)
-                       for i in range(n))
+        out = []
+        for i in range(n):
+            mx = x + i * (w + 18)
+            out.append(_rect("counter", mx, y, w, h, rx=4))
+            out.append(_rect("counter-top", mx + 4, y + 5, w - 8, h * .3, rx=2))
+            out.append(_line(mx + 6, y + h * .6, mx + w - 6, y + h * .6,
+                             "map-fixture-line"))
+        return "".join(out)
+
     if kind == "gates":
         n = p.get("n", 3)
         out = []
         for i in range(n):
-            xx = x + i * (w + 10)
-            out.append(_rect("fixture-soft", xx, y, w, h, rx=3))
-            out.append(f'<path class="map-fixture-line" d="M{xx + w / 2} {y:.1f} '
-                       f'L{xx + w / 2} {y + h:.1f}"/>')
+            gx = x + i * (w + 10)
+            out.append(_rect("fixture-soft", gx, y, w, h, rx=3))
+            out.append(_line(gx + w / 2, y, gx + w / 2, y + h))
+            out.append(f'<path class="map-arrow" d="M{gx + 4:.1f} '
+                       f'{y + h / 2:.1f} l6 -4 l0 8 z"/>')
         return "".join(out)
+
     if kind == "platform":
-        return _rect("fixture-soft", x, y, w, h, rx=2)
+        return (_rect("fixture-soft", x, y, w, h, rx=2)
+                + _line(x, y + h - 3, x + w, y + h - 3, "map-tactile"))
+
     if kind == "curb":
-        return _rect("fixture-soft", x, y, w, h, rx=2)
+        return (_rect("fixture-soft", x, y, w, h, rx=2)
+                + _line(x, y + h / 2, x + w, y + h / 2, "map-street-dash"))
+
     if kind == "pin":
         return (f'<path class="map-fixture map-pin" d="M{x + w / 2} {y + h} '
                 f'C{x + w / 2} {y + h * .55} {x + w * .18} {y + h * .5} '
                 f'{x + w * .18} {y + h * .28} A{w * .32} {h * .28} 0 1 1 '
                 f'{x + w * .82} {y + h * .28} C{x + w * .82} {y + h * .5} '
                 f'{x + w / 2} {y + h * .55} {x + w / 2} {y + h}Z"/>')
+
     if kind == "bar":
-        return _rect("counter", x, y, w, h, rx=6)
+        out = [_rect("counter", x, y, w, h, rx=6)]
+        for i in range(1, 6):
+            out.append(_circle(x + i * w / 6, y + h + 10, 6,
+                               "map-fixture map-stool"))
+        return "".join(out)
+
     if kind == "kitchen":
-        return (_rect("fixture-soft", x, y, w, h, rx=3)
-                + _rect("counter", x + 12, y + 8, w - 24, h - 16, rx=3))
+        out = [_rect("fixture-soft", x, y, w, h, rx=3),
+               _rect("counter", x + 12, y + 8, w - 24, h - 16, rx=3)]
+        for i in range(3):
+            out.append(_circle(x + 30 + i * 24, y + h / 2, 6,
+                               "map-fixture map-burner"))
+        return "".join(out)
+
     if kind == "fitting":
         n = p.get("n", 3)
         out = [_rect("fixture-soft", x, y, w, h, rx=3)]
         for i in range(1, n):
             xx = x + i * w / n
-            out.append(f'<path class="map-fixture-line" d="M{xx:.1f} {y:.1f} '
-                       f'L{xx:.1f} {y + h:.1f}"/>')
+            out.append(_line(xx, y, xx, y + h))
+        for i in range(n):
+            xx = x + i * w / n + w / n * .5
+            out.append(_line(xx, y + h - 8, xx, y + h - 2, "map-curtain"))
         return "".join(out)
+
     if kind == "phones":
         out = []
         for i in range(4):
-            out.append(_rect("counter", x + i * 66, y, 46, 54, rx=5))
+            px = x + i * 66
+            out.append(_rect("counter", px, y, 46, 54, rx=5))
+            out.append(_rect("counter-top", px + 5, y + 6, 36, 22, rx=2))
+            out.append(_line(px + 8, y + 40, px + 38, y + 40,
+                             "map-fixture-line"))
         return "".join(out)
+
     if kind == "atm":
         return (_rect("counter", x, y, w, h, rx=4)
-                + _rect("counter-top", x + 8, y + 8, w - 16, h - 28, rx=2))
+                + _rect("counter-top", x + 8, y + 8, w - 16, h - 28, rx=2)
+                + _line(x + 12, y + h - 12, x + w - 12, y + h - 12,
+                        "map-fixture-line"))
+
     if kind == "terminal":
         return (_rect("counter", x, y, w, h, rx=6)
-                + _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2))
+                + _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2)
+                + _circle(x + w * .5, y + h * .5, min(w, h) * .16,
+                          "map-fixture map-screen"))
+
     if kind == "sofa":
-        return (_rect("sofa", x, y, w, h, rx=10)
-                + _rect("sofa-seat", x + 8, y + 6, w - 16, h - 12, rx=6))
+        out = [_rect("sofa", x, y, w, h, rx=10),
+               _rect("sofa-seat", x + 8, y + 6, w - 16, h - 12, rx=6)]
+        if w > 80:
+            out.append(_line(x + w / 2, y + 8, x + w / 2, y + h - 8,
+                             "map-sofa-seam"))
+        return "".join(out)
+
     if kind == "elevator":
         return (_rect("fixture-soft", x, y, w, h, rx=4)
-                + f'<path class="map-fixture-line" d="M{x + w / 2:.1f} {y:.1f} '
-                  f'L{x + w / 2:.1f} {y + h:.1f}"/>')
+                + _line(x + w / 2, y + 5, x + w / 2, y + h - 5)
+                + f'<path class="map-arrow" d="M{x + w / 2 - 4:.1f} '
+                  f'{y + h * .35:.1f} l4 -5 l4 5 z"/>')
+
     if kind == "doors":
         n = p.get("n", 4)
         out = []
         for i in range(n):
-            out.append(_rect("fixture-soft", x, y + i * h / n, w, h / n - 8, rx=3))
+            dy = y + i * h / n
+            out.append(_rect("fixture-soft", x, dy, w, h / n - 8, rx=3))
+            out.append(_line(x + w - 5, dy + 5, x + w - 5, dy + h / n - 13,
+                             "map-fixture-line"))
         return "".join(out)
+
     if kind == "buffet":
-        return (_rect("counter", x, y, w, h, rx=6)
-                + _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2))
+        out = [_rect("counter", x, y, w, h, rx=6),
+               _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2)]
+        for i in range(4):
+            out.append(_circle(x + 24 + i * (w - 48) / 3, y + h / 2, 7,
+                               "map-fixture map-bowl"))
+        return "".join(out)
+
     if kind == "bed":
-        return (_rect("bed", x, y, w, h, rx=8)
-                + _rect("pillow", x + 10, y + 12, w - 20, h * .22, rx=6))
+        out = [_rect("bed", x, y, w, h, rx=8),
+               _rect("pillow", x + 10, y + 12, w - 20, h * .22, rx=6)]
+        out.append(_line(x + 8, y + h * .55, x + w - 8, y + h * .55,
+                         "map-blanket"))
+        return "".join(out)
+
     if kind == "bath":
         return (_rect("fixture-soft", x, y, w, h, rx=3)
-                + f'<ellipse class="map-fixture" cx="{x + w / 2}" cy="{y + h / 2}" '
-                  f'rx="{w * .3:.1f}" ry="{h * .3:.1f}"/>')
+                + f'<ellipse class="map-fixture" cx="{x + w / 2:.1f}" '
+                  f'cy="{y + h / 2:.1f}" rx="{w * .3:.1f}" '
+                  f'ry="{h * .3:.1f}"/>'
+                + _line(x + w * .8, y + 4, x + w * .8, y + h * .3,
+                        "map-fixture-line"))
+
     if kind == "booth":
         return (_rect("counter", x, y, w, h, rx=4)
-                + _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2))
+                + _rect("counter-top", x + 8, y + 8, w - 16, h - 16, rx=2)
+                + _circle(x + w * .5, y + h * .5, 5, "map-fixture map-screen"))
+
     if kind == "gate":
         return (_rect("fixture-soft", x, y, w, h, rx=4)
-                + f'<path class="map-fixture-line" d="M{x + w / 2:.1f} {y:.1f} '
-                  f'L{x + w / 2:.1f} {y + h:.1f}"/>')
+                + _line(x + w / 2, y, x + w / 2, y + h)
+                + f'<path class="map-arrow" d="M{x + 6:.1f} {y + h / 2:.1f} '
+                  f'l7 -4 l0 8 z"/>')
+
     if kind == "path":
-        return _rect("fixture-soft", x, y, w, h, rx=10)
+        return (_rect("fixture-soft", x, y, w, h, rx=10)
+                + _line(x + 10, y + h / 2, x + w - 10, y + h / 2,
+                        "map-street-dash"))
+
     if kind == "flag":
-        return (f'<path class="map-fixture-line" d="M{x + 12} {y + h} L{x + 12} {y}"/>'
-                + f'<path class="map-fixture map-flag" d="M{x + 12} {y} L{x + w} {y + 18} '
-                  f'L{x + 12} {y + 36}Z"/>')
+        return (_line(x + 12, y + h, x + 12, y, "map-fixture-line")
+                + f'<path class="map-fixture map-flag" d="M{x + 12:.1f} '
+                  f'{y:.1f} L{x + w:.1f} {y + 18:.1f} '
+                  f'L{x + 12:.1f} {y + 36:.1f}Z"/>')
+
     if kind == "console":
         return (_rect("fixture-soft", x, y, w, h, rx=6)
                 + _rect("counter", x + 10, y + 10, w - 20, h - 20, rx=3))
+
     if kind == "cart":
         return (_rect("counter", x, y, w, h, rx=6)
-                + f'<circle class="map-fixture" cx="{x + 12}" cy="{y + h}" r="6"/>'
-                + f'<circle class="map-fixture" cx="{x + w - 12}" cy="{y + h}" r="6"/>')
+                + _circle(x + 12, y + h, 6, "map-fixture map-wheel")
+                + _circle(x + w - 12, y + h, 6, "map-fixture map-wheel"))
+
+    if kind == "queue":
+        out = []
+        for i in range(3):
+            xx = x + i * 10
+            out.append(_line(xx, y, xx, y + h, "map-queue-line"))
+        return "".join(out)
+
+    if kind == "scan":
+        return (_rect("counter", x, y, w, h * .5, rx=4)
+                + _line(x + w * .5, y, x + w * .5, y + h * .5,
+                        "map-fixture-line")
+                + _circle(x + w * .5, y + h * .25, min(w, h) * .12,
+                          "map-fixture map-screen")
+                + _rect("fixture-soft", x + w * .2, y + h * .55,
+                        w * .6, h * .28, rx=3))
+
+    if kind == "jetbridge":
+        return (_rect("fixture-soft", x, y, w, h, rx=6)
+                + _line(x, y + 4, x + w, y + 4, "map-window")
+                + _line(x, y + h - 4, x + w, y + h - 4, "map-window"))
+
+    if kind == "wc":
+        return (_rect("fixture-soft", x, y, w, h, rx=3)
+                + f'<text class="map-wc" x="{x + w / 2:.1f}" '
+                  f'y="{y + h / 2 + 4:.1f}" text-anchor="middle">WC</text>')
+
+    if kind == "plant":
+        out = [_circle(x + w / 2, y + h / 2, w * .38,
+                       "map-fixture map-plant")]
+        for dx, dy in ((-.2, -.2), (.2, -.2), (-.2, .2), (.2, .2)):
+            out.append(_circle(x + w / 2 + dx * w, y + h / 2 + dy * h,
+                               w * .16, "map-fixture map-leaf"))
+        return "".join(out)
+
+    if kind == "escalator":
+        out = [_rect("fixture-soft", x, y, w, h, rx=3)]
+        for i in range(1, 5):
+            xx = x + i * w / 5
+            out.append(_line(xx, y + h * .25, xx, y + h * .75,
+                             "map-fixture-line"))
+        out.append(_line(x + 4, y + h * .5, x + w - 4, y + h * .5,
+                         "map-arrow"))
+        return "".join(out)
+
     return ""
 
 
-def _zone_svg(z):
+# ------------------------------------------------------------------ 3D helpers
+ISO_A = 0.8660254037844386
+WALL_H = 26
+SLAB_DEPTH = 14
+
+# Small wayfinding/furnishing details that make a plan read as a real place.
+# Kept separate from the zone data so hotspot placement stays simple.
+DECOR = {
+    ("lobby", "hotel"): [
+        {"kind": "plant", "x": 250, "y": 320, "w": 26, "h": 26},
+        {"kind": "wc", "x": 300, "y": 150, "w": 36, "h": 14},
+    ],
+    ("dining", "restaurant"): [
+        {"kind": "plant", "x": 300, "y": 320, "w": 26, "h": 26},
+        {"kind": "wc", "x": 540, "y": 110, "w": 50, "h": 30},
+    ],
+    ("dining", "cafe"): [
+        {"kind": "plant", "x": 300, "y": 330, "w": 24, "h": 24},
+        {"kind": "wc", "x": 560, "y": 300, "w": 40, "h": 30},
+    ],
+    ("station", "subway"): [
+        {"kind": "plant", "x": 450, "y": 280, "w": 24, "h": 24},
+        {"kind": "wc", "x": 540, "y": 270, "w": 40, "h": 30},
+    ],
+    ("retail", "shopping"): [
+        {"kind": "plant", "x": 330, "y": 280, "w": 24, "h": 24},
+        {"kind": "wc", "x": 560, "y": 260, "w": 40, "h": 30},
+    ],
+    ("clinic", "default"): [
+        {"kind": "plant", "x": 420, "y": 330, "w": 24, "h": 24},
+        {"kind": "wc", "x": 420, "y": 60, "w": 36, "h": 28},
+    ],
+    ("attraction", "default"): [
+        {"kind": "plant", "x": 400, "y": 320, "w": 24, "h": 24},
+        {"kind": "wc", "x": 390, "y": 120, "w": 36, "h": 28},
+    ],
+}
+
+
+def _iso(x, y, z=0):
+    return ((x - y) * ISO_A, (x + y) * 0.5 - z)
+
+
+class _Projector:
+    def __init__(self):
+        corners = [(0, 0), (VIEW_W, 0), (VIEW_W, VIEW_H), (0, VIEW_H)]
+        points = []
+        for x, y in corners:
+            for z in (0, WALL_H):
+                points.append(_iso(x, y, z))
+        xs = [p[0] for p in points]
+        ys = [p[1] for p in points]
+        self.scale = min((VIEW_W - 36) / (max(xs) - min(xs)),
+                         (VIEW_H - 36) / (max(ys) - min(ys)))
+        self.tx = ((VIEW_W - (max(xs) - min(xs)) * self.scale) / 2
+                   - min(xs) * self.scale)
+        self.ty = ((VIEW_H - (max(ys) - min(ys)) * self.scale) / 2
+                   - min(ys) * self.scale)
+
+    def __call__(self, x, y, z=0):
+        sx, sy = _iso(x, y, z)
+        return (sx * self.scale + self.tx, sy * self.scale + self.ty)
+
+
+def _poly(pr, points, cls):
+    coords = " ".join(f"{pr(x, y, z)[0]:.1f},{pr(x, y, z)[1]:.1f}"
+                      for x, y, z in points)
+    return f'<polygon class="{cls}" points="{coords}"/>'
+
+
+def _b(x, y, w, h, z=0, hgt=12, tone=1):
+    return {"x": x, "y": y, "w": w, "h": h, "z": z, "hgt": hgt, "tone": tone}
+
+
+def _prop_boxes(p):
+    kind = p["kind"]
+    x, y = p["x"], p["y"]
+    w, h = p.get("w", 0), p.get("h", 0)
+
+    if kind == "seats":
+        cols, rows = p.get("cols", 4), p.get("rows", 3)
+        gap = 8
+        cw = (w - gap * (cols - 1)) / cols
+        ch = (h - gap * (rows - 1)) / rows
+        return [_b(x + c * (cw + gap), y + r * (ch + gap), cw, ch,
+                   0, 7, 2)
+                for r in range(rows) for c in range(cols)]
+
+    if kind == "table":
+        r = p.get("r", 24)
+        cx, cy = x, y
+        boxes = [_b(cx - r * .55, cy - r * .55, r * 1.1, r * 1.1, 0, 10, 2)]
+        for dx, dy in ((-r - 7, 0), (r + 7, 0), (0, -r - 7), (0, r + 7)):
+            boxes.append(_b(cx + dx - 7, cy + dy - 7, 14, 14, 0, 7))
+        return boxes
+
+    if kind == "car":
+        return [_b(x, y, w, h, 0, 10, 2),
+                _b(x + w * .24, y + h * .18, w * .48, h * .64, 10, 7, 1)]
+
+    if kind in ("train", "elevator", "fitting"):
+        height = {"train": 22, "elevator": 26, "fitting": 22}[kind]
+        return [_b(x, y, w, h, 0, height, 2)]
+
+    if kind == "stairs":
+        boxes = []
+        for i in range(4):
+            boxes.append(_b(x, y + i * h / 4, w, h / 4, 0,
+                            5 + i * 4, 1 + i % 2))
+        return boxes
+
+    if kind == "pump":
+        n = p.get("n", 2)
+        return [_b(x + i * (w + 18), y, w, h, 0, 18, 2) for i in range(n)]
+
+    if kind == "machine":
+        n = p.get("n", 2)
+        return [_b(x + i * (w + 18), y, w, h, 0, 16, 2) for i in range(n)]
+
+    if kind == "gates":
+        n = p.get("n", 3)
+        return [_b(x + i * (w + 10), y, w, h, 0, 14, 2) for i in range(n)]
+
+    if kind == "doors":
+        n = p.get("n", 4)
+        return [_b(x, y + i * h / n, w, h / n - 8, 0, 24, 2)
+                for i in range(n)]
+
+    if kind == "phones":
+        return [_b(x + i * 66, y, 46, 54, 0, 14, 2) for i in range(4)]
+
+    if kind in ("parking", "street", "platform", "curb", "path"):
+        return [_b(x, y, w, h, 0, 1, 1)]
+
+    if kind in ("door", "flag", "pin"):
+        return []
+
+    if kind == "lane":
+        return [_b(x, y, w, h, 0, 1, 1),
+                _b(x, y, 3, h, 0, 6, 2),
+                _b(x + w - 3, y, 3, h, 0, 6, 2)]
+
+    if kind == "person":
+        return [_b(x + w * .25, y + h * .2, w * .5, h * .6, 0, 18, 3)]
+
+    if kind == "queue":
+        return [_b(x + i * 10, y, 2, h, 0, 6, 2) for i in range(3)]
+
+    if kind == "scan":
+        return [_b(x, y, w, h * .5, 0, 14, 2),
+                _b(x + w * .2, y + h * .55, w * .6, h * .28, 0, 5, 1)]
+
+    if kind == "jetbridge":
+        return [_b(x, y, w, h, 0, 9, 1)]
+
+    if kind == "plant":
+        return [_b(x + w * .15, y + h * .15, w * .7, h * .7, 0, 14, 3)]
+
+    if kind == "wc":
+        return [_b(x, y, w, h, 0, 24, 2)]
+
+    if kind == "carousel":
+        return [_b(x, y, w, h, 0, 8, 2)]
+
+    if kind == "bed":
+        return [_b(x, y, w, h, 0, 9, 2)]
+
+    if kind == "sofa":
+        return [_b(x, y, w, h, 0, 8, 2)]
+
+    if kind == "bath":
+        return [_b(x, y, w, h, 0, 4, 1)]
+
+    height = {
+        "counter": 13, "desk": 13, "toll": 13, "shelf": 20,
+        "bar": 14, "kitchen": 12, "buffet": 12, "console": 10,
+        "cart": 12, "mapboard": 16, "store": 18, "terminal": 14,
+        "atm": 18, "booth": 14, "gate": 14, "escalator": 6,
+    }.get(kind, 12)
+    return [_b(x, y, w, h, 0, height, 1)]
+
+
+def _box3d(pr, b):
+    x, y, w, h = b["x"], b["y"], b["w"], b["h"]
+    z0, z1 = b["z"], b["z"] + b["hgt"]
+    tone = b.get("tone", 1)
+    top = [(x, y, z1), (x + w, y, z1), (x + w, y + h, z1), (x, y + h, z1)]
+    out = [_poly(pr, top, f"map-3d-top tone-{tone}")]
+    if z1 - z0 > 1:
+        east = [(x + w, y, z1), (x + w, y + h, z1),
+                (x + w, y + h, z0), (x + w, y, z0)]
+        south = [(x, y + h, z1), (x + w, y + h, z1),
+                 (x + w, y + h, z0), (x, y + h, z0)]
+        out.append(_poly(pr, east, "map-3d-side"))
+        out.append(_poly(pr, south, "map-3d-side-2"))
+    return "".join(out)
+
+
+def _slab3d(pr):
+    top = [(0, 0, 0), (VIEW_W, 0, 0), (VIEW_W, VIEW_H, 0), (0, VIEW_H, 0)]
+    east = [(VIEW_W, 0, 0), (VIEW_W, VIEW_H, 0),
+            (VIEW_W, VIEW_H, -SLAB_DEPTH), (VIEW_W, 0, -SLAB_DEPTH)]
+    south = [(0, VIEW_H, 0), (VIEW_W, VIEW_H, 0),
+             (VIEW_W, VIEW_H, -SLAB_DEPTH), (0, VIEW_H, -SLAB_DEPTH)]
+    return (_poly(pr, east, "map-3d-slab-side")
+            + _poly(pr, south, "map-3d-slab-side")
+            + _poly(pr, top, "map-3d-slab"))
+
+
+def _floor3d(pr, z):
     x, y, w, h = z["x"], z["y"], z["w"], z["h"]
-    label = html.escape(z["label"])
-    return (
-        f'<g class="map-zone" data-zone="{html.escape(z["id"], quote=True)}">'
-        f'<rect class="map-zone-shape" x="{x}" y="{y}" width="{w}" height="{h}" rx="8"/>'
-        f'<text class="map-zone-label" x="{x + 10}" y="{y + h - 8}">{label}</text>'
-        f'</g>'
-    )
+    points = [(x, y, .4), (x + w, y, .4), (x + w, y + h, .4), (x, y + h, .4)]
+    tone = (z.get("tone") or 1) - 1
+    return (f'<g class="map-zone" data-zone="{html.escape(z["id"], quote=True)}">'
+            f'{_poly(pr, points, f"map-3d-floor tone-{tone}")}</g>')
+
+
+def _label3d(pr, z):
+    sx, sy = pr(z["x"] + 10, z["y"] + z["h"] - 9, .6)
+    return (f'<g class="map-zone" data-zone="{html.escape(z["id"], quote=True)}">'
+            f'<text class="map-3d-label" x="{sx:.1f}" y="{sy:.1f}">'
+            f'{html.escape(z["label"])}</text></g>')
+
+
+# ------------------------------------------------------------------ renderers
+def _zone_rect(z):
+    tone = z.get("tone") or 1
+    return (f'<g class="map-zone" data-zone="{html.escape(z["id"], quote=True)}">'
+            f'<rect class="map-zone-shape tone-{tone}" x="{z["x"]}" '
+            f'y="{z["y"]}" width="{z["w"]}" height="{z["h"]}" rx="8"/></g>')
+
+
+def _zone_label(z):
+    return (f'<g class="map-zone" data-zone="{html.escape(z["id"], quote=True)}">'
+            f'<circle class="map-zone-dot" cx="{z["x"] + 12:.1f}" '
+            f'cy="{z["y"] + z["h"] - 13:.1f}" r="2.2"/>'
+            f'<text class="map-zone-label" x="{z["x"] + 19:.1f}" '
+            f'y="{z["y"] + z["h"] - 9:.1f}">{html.escape(z["label"])}</text>'
+            f'</g>')
+
+
+def _route_2d(hotspots):
+    if len(hotspots) < 2:
+        return ""
+    pts = " L".join(f'{s["x"]:.1f} {s["y"]:.1f}' for s in hotspots)
+    return f'<path class="map-route" d="M{pts}"/>'
+
+
+def render_svg_2d(layout, hotspots):
+    svg = [
+        f'<svg class="map-svg map-svg-2d" viewBox="0 0 {VIEW_W} {VIEW_H}" '
+        'aria-hidden="true" focusable="false">',
+        '<defs>'
+        '<pattern id="mapDots2d" width="18" height="18" '
+        'patternUnits="userSpaceOnUse">'
+        '<circle class="map-dot" cx="1" cy="1" r=".9"/></pattern>'
+        '<clipPath id="mapClip2d"><rect x="16" y="16" width="608" '
+        'height="368" rx="16"/></clipPath>'
+        '</defs>',
+        f'<rect class="map-plate" x="8" y="8" width="{VIEW_W - 16}" '
+        f'height="{VIEW_H - 16}" rx="18"/>',
+        '<rect class="map-plate-inner" x="16" y="16" width="608" '
+        'height="368" rx="16"/>',
+        '<rect class="map-dot-field" x="16" y="16" width="608" height="368" '
+        'fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/>',
+    ]
+    svg.extend(_zone_rect(z) for z in layout["zones"])
+    svg.append('<rect class="map-wall" x="15.5" y="15.5" width="609" '
+               'height="369" rx="16"/>')
+    svg.extend(_prop(p) for p in layout["props"])
+    svg.append(_route_2d(hotspots))
+    svg.extend(_zone_label(z) for z in layout["zones"])
+    svg.append("</svg>")
+    return "".join(svg)
+
+
+def render_svg_3d(layout):
+    pr = _Projector()
+    boxes = []
+    for prop in layout["props"]:
+        boxes.extend(_prop_boxes(prop))
+    boxes.sort(key=lambda b: (b["x"] + b["w"] / 2) + (b["y"] + b["h"] / 2))
+
+    svg = [
+        f'<svg class="map-svg map-svg-3d" viewBox="0 0 {VIEW_W} {VIEW_H}" '
+        'aria-hidden="true" focusable="false">',
+        '<defs>'
+        '<filter id="mapShadow3d" x="-20%" y="-20%" width="140%" '
+        'height="140%"><feDropShadow dx="0" dy="10" stdDeviation="10" '
+        'flood-color="#000" flood-opacity=".16"/></filter>'
+        '</defs>',
+        f'<g filter="url(#mapShadow3d)">{_slab3d(pr)}</g>',
+    ]
+    svg.extend(_floor3d(pr, z) for z in layout["zones"])
+    svg.extend(_box3d(pr, b) for b in boxes)
+    svg.extend(_label3d(pr, z) for z in layout["zones"])
+    svg.append("</svg>")
+    return "".join(svg)
 
 
 def render_map(scene) -> dict:
-    """Return {"svg": str, "hotspots": [...], "zones": {id: rect}} for a scene."""
+    """Return both views, hotspot percentages for each, and zone metadata."""
     spec = scene.get("map") or {}
     archetype = spec.get("archetype")
     if archetype not in ARCHETYPES:
@@ -616,17 +1106,10 @@ def render_map(scene) -> dict:
     if variant not in variants:
         raise ValueError(f"{scene.get('id')}: unknown {archetype} variant {variant!r}")
     layout = variants[variant]
+    decor = DECOR.get((archetype, variant))
+    if decor:
+        layout = {**layout, "props": [*layout["props"], *decor]}
     zones = {z["id"]: z for z in layout["zones"]}
-
-    svg = [
-        f'<svg class="map-svg" viewBox="0 0 {VIEW_W} {VIEW_H}" '
-        'aria-hidden="true" focusable="false">',
-        f'<rect class="map-plate" x="8" y="8" width="{VIEW_W - 16}" '
-        f'height="{VIEW_H - 16}" rx="18"/>',
-    ]
-    svg.extend(_zone_svg(z) for z in layout["zones"])
-    svg.extend(_prop(p) for p in layout["props"])
-    svg.append("</svg>")
 
     hotspots = []
     for spot in spec.get("hotspots", []):
@@ -649,7 +1132,20 @@ def render_map(scene) -> dict:
             "y": y,
         })
 
-    return {"svg": "".join(svg), "hotspots": hotspots, "zones": zones}
+    pr = _Projector()
+    for spot in hotspots:
+        sx, sy = pr(spot["x"], spot["y"], 0)
+        spot["left3d"] = round(sx / VIEW_W * 100, 2)
+        spot["top3d"] = round(sy / VIEW_H * 100, 2)
+        spot["x3d"] = round(sx, 1)
+        spot["y3d"] = round(sy, 1)
+
+    return {
+        "svg2d": render_svg_2d(layout, hotspots),
+        "svg3d": render_svg_3d(layout),
+        "hotspots": hotspots,
+        "zones": zones,
+    }
 
 
 def archetype_zones(archetype: str, variant: str) -> dict:

@@ -1106,9 +1106,11 @@ const cases = [
         const b = document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden]) .phrase');
         if (!b) return null;
         b.setAttribute('data-smoke', '1');
+        const voice = document.querySelector('[data-voice][aria-pressed="true"]')
+          .getAttribute('data-voice');
         return {
           text: b.querySelector('.en').textContent,
-          start: parseFloat(b.getAttribute('data-start-f')),
+          start: parseFloat(b.getAttribute('data-start-' + voice)),
         };
       })()`);
       if (!first) return { ok: false, detail: '没有短语按钮' };
@@ -1144,16 +1146,52 @@ const cases = [
       const playing = await waitFor("!!document.querySelector('.line.playing')", 6000);
       const dialogueOk = playing;
 
-      await evaluate(`document.querySelector('[data-roleplay]').click()`);
-      const role = await evaluate(`(() => {
-        const line = document.querySelector('.line[data-role="you"]');
-        const en = line && line.querySelector('.en');
+      // 停掉整段对话，避免它在下面点问法时又续播、抢走音频。
+      await evaluate(`document.querySelector('[data-play-dialogue]').click()`);
+      await sleep(200);
+
+      const listen = await evaluate(`(() => {
+        const b = document.querySelector('.encounter:not([hidden]) .listening .ask');
+        if (!b) return null;
+        b.setAttribute('data-smoke', '1');
+        const voice = document.querySelector('[data-voice][aria-pressed="true"]')
+          .getAttribute('data-voice');
         return {
-          body: document.body.classList.contains('roleplay'),
-          display: en ? getComputedStyle(en).display : '',
+          text: b.querySelector('.en').textContent,
+          start: parseFloat(b.getAttribute('data-start-' + voice)),
         };
       })()`);
-      const roleOk = role && role.body && role.display === 'none';
+      let listenOk = false;
+      let listenDebug = 'no-ask';
+      if (listen) {
+        // 先点一次把 listen sprite 拉下来，第二次再正式探测；长测序跑完
+        // 其他应用后，第一次 fetch 偶尔会超过默认等待。
+        await evaluate(`document.querySelector('.ask[data-smoke]').click()`);
+        await sleep(1200);
+        const spokenAsk = await playAndProbe('.ask[data-smoke]');
+        const pausedAsk = await evaluate('window.__lastAudio ? window.__lastAudio.paused : null');
+        listenDebug = `want=${listen.start} t=${spokenAsk.currentTime?.toFixed(2)} `
+          + `paused=${pausedAsk}`;
+        listenOk = spokenAsk.started
+          && spokenAsk.currentTime >= listen.start - 0.1
+          && spokenAsk.mediaErrors.length === 0;
+      }
+
+      const view = await evaluate(`(() => {
+        const before = document.querySelector('[data-hotspot][aria-pressed="true"]');
+        const beforeLeft = before ? before.getBoundingClientRect().left : 0;
+        document.querySelector('[data-view="3d"]').click();
+        const after = document.querySelector('[data-hotspot][aria-pressed="true"]');
+        const stage = document.querySelector('[data-map-view="3d"]');
+        return {
+          pressed: document.querySelector('[data-view="3d"]').getAttribute('aria-pressed'),
+          stageHidden: stage ? stage.hidden : true,
+          moved: after ? Math.abs(after.getBoundingClientRect().left - beforeLeft) > 1 : false,
+          overflow: document.documentElement.scrollWidth - window.innerWidth,
+        };
+      })()`);
+      const viewOk = view && view.pressed === 'true' && view.stageHidden === false
+        && view.moved && view.overflow <= 1;
 
       await evaluate(`document.querySelector('[data-zh-toggle]').click()`);
       const zhOff = await evaluate(`(() => {
@@ -1179,12 +1217,13 @@ const cases = [
 
       const zhOk = zhOff && zhOff.off && zhOff.display === 'none';
       const layoutOk = layout && layout.overflow <= 1 && layout.fab;
-      const ok = phraseOk && hotspotOk && levelOk && dialogueOk && roleOk
-        && zhOk && layoutOk && glassOk;
+      const ok = phraseOk && hotspotOk && levelOk && dialogueOk && listenOk
+        && viewOk && zhOk && layoutOk && glassOk;
       return {
         ok,
         detail: `phrase=${phraseOk}@${spoken.currentTime?.toFixed(2)} hotspot=${hotspotOk} `
-          + `level=${levelOk} dialogue=${dialogueOk} role=${roleOk} zh=${zhOk} `
+          + `level=${levelOk} dialogue=${dialogueOk} listen=${listenOk} ${listenDebug} `
+          + `view=${JSON.stringify(view)} zh=${zhOk} `
           + `layout=${JSON.stringify(layout)} glass=${glass}`,
       };
     },
