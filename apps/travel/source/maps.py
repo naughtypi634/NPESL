@@ -797,7 +797,7 @@ def _prop(p):
 
 # ------------------------------------------------------------------ 3D helpers
 ISO_A = 0.8660254037844386
-WALL_H = 26
+WALL_H = 30
 SLAB_DEPTH = 14
 
 # Small wayfinding/furnishing details that make a plan read as a real place.
@@ -805,7 +805,6 @@ SLAB_DEPTH = 14
 DECOR = {
     ("lobby", "hotel"): [
         {"kind": "plant", "x": 250, "y": 320, "w": 26, "h": 26},
-        {"kind": "wc", "x": 300, "y": 150, "w": 36, "h": 14},
     ],
     ("dining", "restaurant"): [
         {"kind": "plant", "x": 300, "y": 320, "w": 26, "h": 26},
@@ -1012,11 +1011,23 @@ def _floor3d(pr, z):
             f'{_poly(pr, points, f"map-3d-floor tone-{tone}")}</g>')
 
 
-def _label3d(pr, z):
-    sx, sy = pr(z["x"] + 10, z["y"] + z["h"] - 9, .6)
-    return (f'<g class="map-zone" data-zone="{html.escape(z["id"], quote=True)}">'
-            f'<text class="map-3d-label" x="{sx:.1f}" y="{sy:.1f}">'
-            f'{html.escape(z["label"])}</text></g>')
+def _wall3d(pr, x, y, w, h):
+    """Low dollhouse wall along the two back edges of the slab."""
+    z0, z1 = 0, WALL_H
+    top = [(x, y, z1), (x + w, y, z1), (x + w, y + h, z1), (x, y + h, z1)]
+    east = [(x + w, y, z1), (x + w, y + h, z1),
+            (x + w, y + h, z0), (x + w, y, z0)]
+    south = [(x, y + h, z1), (x + w, y + h, z1),
+             (x + w, y + h, z0), (x, y + h, z0)]
+    return (_poly(pr, east, "map-3d-wall-side")
+            + _poly(pr, south, "map-3d-wall-side-2")
+            + _poly(pr, top, "map-3d-wall-top"))
+
+
+def _walls3d(pr):
+    edge = 8
+    return (_wall3d(pr, edge, 0, VIEW_W - edge, edge)
+            + _wall3d(pr, 0, 0, edge, VIEW_H - edge))
 
 
 # ------------------------------------------------------------------ renderers
@@ -1024,7 +1035,7 @@ def _zone_rect(z):
     tone = z.get("tone") or 1
     return (f'<g class="map-zone" data-zone="{html.escape(z["id"], quote=True)}">'
             f'<rect class="map-zone-shape tone-{tone}" x="{z["x"]}" '
-            f'y="{z["y"]}" width="{z["w"]}" height="{z["h"]}" rx="8"/></g>')
+            f'y="{z["y"]}" width="{z["w"]}" height="{z["h"]}" rx="2"/></g>')
 
 
 def _zone_label(z):
@@ -1051,20 +1062,18 @@ def render_svg_2d(layout, hotspots):
         '<pattern id="mapDots2d" width="18" height="18" '
         'patternUnits="userSpaceOnUse">'
         '<circle class="map-dot" cx="1" cy="1" r=".9"/></pattern>'
-        '<clipPath id="mapClip2d"><rect x="16" y="16" width="608" '
-        'height="368" rx="16"/></clipPath>'
+        f'<clipPath id="mapClip2d"><rect x="4" y="4" width="{VIEW_W - 8}" '
+        f'height="{VIEW_H - 8}" rx="22"/></clipPath>'
         '</defs>',
-        f'<rect class="map-plate" x="8" y="8" width="{VIEW_W - 16}" '
-        f'height="{VIEW_H - 16}" rx="18"/>',
-        '<rect class="map-plate-inner" x="16" y="16" width="608" '
-        'height="368" rx="16"/>',
-        '<rect class="map-dot-field" x="16" y="16" width="608" height="368" '
-        'fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/>',
+        f'<rect class="map-plate" x="4" y="4" width="{VIEW_W - 8}" '
+        f'height="{VIEW_H - 8}" rx="22"/>',
+        f'<rect class="map-dot-field" x="4" y="4" width="{VIEW_W - 8}" '
+        'height="392" fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/>',
     ]
     svg.extend(_zone_rect(z) for z in layout["zones"])
-    svg.append('<rect class="map-wall" x="15.5" y="15.5" width="609" '
-               'height="369" rx="16"/>')
+    svg.append('<g class="map-furniture">')
     svg.extend(_prop(p) for p in layout["props"])
+    svg.append('</g>')
     svg.append(_route_2d(hotspots))
     svg.extend(_zone_label(z) for z in layout["zones"])
     svg.append("</svg>")
@@ -1089,8 +1098,8 @@ def render_svg_3d(layout):
         f'<g filter="url(#mapShadow3d)">{_slab3d(pr)}</g>',
     ]
     svg.extend(_floor3d(pr, z) for z in layout["zones"])
+    svg.append(_walls3d(pr))
     svg.extend(_box3d(pr, b) for b in boxes)
-    svg.extend(_label3d(pr, z) for z in layout["zones"])
     svg.append("</svg>")
     return "".join(svg)
 

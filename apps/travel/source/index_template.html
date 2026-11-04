@@ -28,15 +28,8 @@
   h1 { margin:0; font-size:clamp(2rem,6vw,2.8rem); font-weight:700;
     letter-spacing:-.03em; line-height:1.08; }
   .zh-title { margin:7px 0 0; color:var(--muted); font-size:17px; }
-  .level { display:flex; flex-wrap:wrap; gap:6px; margin:20px 0 0; }
-  .level button { appearance:none; font:inherit; font-size:14px; padding:8px 14px;
-    border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
-    background:transparent; color:var(--fg); cursor:pointer; }
-  .level button:hover { background:var(--surface); }
-  .level button[aria-pressed="true"] { background:var(--blue);
-    border-color:var(--blue); color:var(--on-blue); }
-  .level button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
   .stage-group { margin:36px 0 0; }
+  .stage-group:first-of-type { margin-top:30px; }
   .stage-head { margin:0 0 12px; font-size:15px; font-weight:650;
     letter-spacing:.01em; }
   .stage-head .stage-en { margin-left:7px; color:var(--muted); font-size:11px;
@@ -61,7 +54,6 @@
   .arrow { flex:none; color:var(--muted); font-size:20px; line-height:1; }
   @media (max-width:480px) {
     .page { padding-left:16px; padding-right:16px; }
-    .level button { padding:7px 11px; font-size:13px; }
     .scene-card { gap:12px; padding:14px; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -69,46 +61,14 @@
   }
 </style>
 </head>
-<body data-default-level="<!--DEFAULT_LEVEL-->">
+<body>
 <main class="page">
   <header>
     <h1>Travel English</h1>
     <p class="zh-title">旅行英语</p>
   </header>
 
-  <div class="level" role="group" aria-label="难度">
-    <button type="button" data-level="survival" aria-pressed="true">Survival</button>
-    <button type="button" data-level="conversational" aria-pressed="false">Conversational</button>
-    <button type="button" data-level="advanced" aria-pressed="false">Advanced</button>
-  </div>
-
   <!--SCENES-->
 </main>
-
-<script>
-(function () {
-  var LEVELS = ['survival', 'conversational', 'advanced'];
-  var buttons = [].slice.call(document.querySelectorAll('[data-level]'));
-  var level = document.body.getAttribute('data-default-level') || 'survival';
-  try {
-    var saved = localStorage.getItem('travel-level');
-    if (LEVELS.indexOf(saved) >= 0) level = saved;
-  } catch (e) {}
-  function paint() {
-    buttons.forEach(function (btn) {
-      btn.setAttribute('aria-pressed',
-        btn.getAttribute('data-level') === level ? 'true' : 'false');
-    });
-  }
-  buttons.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      level = btn.getAttribute('data-level');
-      try { localStorage.setItem('travel-level', level); } catch (e) {}
-      paint();
-    });
-  });
-  paint();
-})();
-</script>
 </body>
 </html>

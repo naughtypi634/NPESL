@@ -41,15 +41,49 @@ LEVELS = ("survival", "conversational", "advanced")
 VOICES = {"f": "en-US-AvaNeural", "m": "en-US-AndrewNeural"}
 RATE = "+0%"
 PLAY_SVG = ('<svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" '
-            'aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>')
+            'aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>'
+            '<span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>')
+PLAY_ICON = ('<svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true">'
+             '<path d="M8 5v14l11-7z"/></svg>')
+STOP_ICON = ('<svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true">'
+             '<rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>')
 
 ICONS = {
     "terminal": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
                 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-                '<path d="M3 11l18-7-7 18-3-7-8-4z"/></svg>',
+                '<path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/>'
+                '<path d="M9 21v-6h6v6"/><path d="M9 11h.01M15 11h.01"/></svg>',
     "cabin": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
              'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-             '<path d="M3 11l18-7-7 18-3-7-8-4z"/></svg>',
+             '<path d="M3 12l18-7-7 18-2.5-7.5L3 12z"/></svg>',
+    "passport": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+                '<rect x="5" y="3" width="14" height="18" rx="2"/>'
+                '<circle cx="12" cy="9.5" r="2.5"/><path d="M9 16h6"/></svg>',
+    "metro": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+             '<rect x="5" y="3" width="14" height="14" rx="4"/>'
+             '<path d="M5 10h14"/><circle cx="9" cy="14" r="1.1"/>'
+             '<circle cx="15" cy="14" r="1.1"/><path d="M8 21l2-4M16 21l-2-4"/></svg>',
+    "train": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+             '<rect x="3" y="6" width="18" height="10" rx="3"/>'
+             '<path d="M3 11h18"/><circle cx="7" cy="16" r="1.4"/>'
+             '<circle cx="17" cy="16" r="1.4"/><path d="M8 19l-2 2M16 19l2 2"/></svg>',
+    "taxi": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+            '<path d="M4 15l1.6-5.2A2 2 0 0 1 7.5 8h9a2 2 0 0 1 1.9 1.8L20 15"/>'
+            '<rect x="3" y="14" width="18" height="4" rx="2"/>'
+            '<circle cx="7" cy="18" r="1.4"/><circle cx="17" cy="18" r="1.4"/>'
+            '<path d="M10 8V6h4v2"/></svg>',
+    "key": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+           'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+           '<circle cx="8" cy="8" r="3.5"/><path d="M10.5 10.5L20 20"/>'
+           '<path d="M16 16l2-2M18 18l2-2"/></svg>',
+    "steering": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+                '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/>'
+                '<path d="M12 14v6M5.2 8.6C7.2 7.6 9.5 7 12 7s4.8.6 6.8 1.6"/></svg>',
     "station": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
                'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
                '<rect x="5" y="3" width="14" height="13" rx="3"/>'
@@ -72,8 +106,9 @@ ICONS = {
              '<path d="M3 18h18M6 10V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3"/></svg>',
     "room": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-            '<path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6"/>'
-            '<path d="M3 18h18M6 10V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3"/></svg>',
+            '<rect x="5" y="3" width="14" height="18" rx="2"/>'
+            '<path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01"/>'
+            '<path d="M10 21v-3h4v3"/></svg>',
     "clinic": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
               'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
               '<path d="M12 4v16M4 12h16"/></svg>',
@@ -117,9 +152,9 @@ ICONS = {
 }
 
 SCENE_ICONS = {
-    "airport": "terminal", "on-the-plane": "cabin", "arrival": "terminal",
-    "subway": "station", "trains": "station", "taxi": "street",
-    "car-rental": "street", "driving": "street", "directions": "pin",
+    "airport": "terminal", "on-the-plane": "cabin", "arrival": "passport",
+    "subway": "metro", "trains": "train", "taxi": "taxi",
+    "car-rental": "key", "driving": "steering", "directions": "pin",
     "hotel": "lobby", "rental-stay": "room", "restaurant": "dining",
     "cafe": "coffee", "shopping": "retail", "pharmacy": "pill",
     "doctor": "clinic", "police": "shield", "sights": "attraction",
@@ -406,13 +441,15 @@ def render_encounters(content: dict, level_audio: dict, default_level: str,
             f'<header class="encounter-head"><h2>{esc(enc["title_en"])}'
             f'<span class="zh">{esc(enc["title_zh"])}</span></h2></header>'
         )
+
+        # 说：这个场景里你会说的话
         for level in LEVELS:
             panel_hidden = "" if level == default_level else " hidden"
             spans = level_audio.get(level, {}).get("spans", {})
             data = enc["levels"][level]
             out.append(
-                f'<div class="level-panel" data-level="{level}"{panel_hidden}>'
-                f'<div class="phrases">'
+                f'<div class="level-panel phrases-panel" data-level="{level}"'
+                f'{panel_hidden}><div class="phrases">'
             )
             for index, phrase in enumerate(data["phrases"]):
                 attrs = span_attrs(spans.get((enc["id"], "p", index)))
@@ -424,9 +461,24 @@ def render_encounters(content: dict, level_audio: dict, default_level: str,
                     f'<span class="zh">{esc(phrase["zh"])}</span>{note}'
                     f'<span class="play" aria-hidden="true">{PLAY_SVG}</span></button>'
                 )
-            out.append('</div><div class="dialogue"><div class="dialogue-tools">'
-                       '<button class="pill play-all" type="button" '
-                       'data-play-dialogue aria-pressed="false">播放对话</button>'
+            out.append('</div></div>')
+
+        # 听：对方可能这样说（与难度无关，只渲染一次）
+        out.append(render_listening(enc, listen_spans))
+
+        # 对话
+        for level in LEVELS:
+            panel_hidden = "" if level == default_level else " hidden"
+            spans = level_audio.get(level, {}).get("spans", {})
+            data = enc["levels"][level]
+            out.append(
+                f'<div class="level-panel dialogue-panel" data-level="{level}"'
+                f'{panel_hidden}><div class="dialogue">'
+            )
+            out.append('<div class="dialogue-tools">'
+                       '<button class="play-all" type="button" '
+                       f'data-play-dialogue aria-pressed="false">{PLAY_ICON}{STOP_ICON}'
+                       '<span data-play-label>播放对话</span></button>'
                        '<button class="pill speed" type="button" '
                        'data-speed>0.9×</button></div><div class="turns">')
             for index, line in enumerate(data["dialogue"]):
@@ -446,7 +498,6 @@ def render_encounters(content: dict, level_audio: dict, default_level: str,
                     f'<span class="zh">{esc(line["zh"])}</span></button></div>'
                 )
             out.append('</div></div></div>')
-        out.append(render_listening(enc, listen_spans))
         out.append('</section>')
     return "\n\n  ".join(out)
 
@@ -536,8 +587,6 @@ def build_index(scenes_doc: dict, numbers: dict[str, int]) -> None:
             + "\n".join(cards) + '</div></section>'
         )
     template = (HERE / "index_template.html").read_text(encoding="utf-8")
-    template = template.replace(
-        "<!--DEFAULT_LEVEL-->", esc(scenes_doc.get("default_level", "survival")))
     template = template.replace("<!--SCENES-->", "\n\n  ".join(stages_html))
     out = BASE / "index.html"
     out.write_text(template, encoding="utf-8")

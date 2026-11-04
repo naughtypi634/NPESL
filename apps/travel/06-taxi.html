@@ -8,7 +8,7 @@
   :root {
     --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
     --surface:#f5f5f7; --surface-strong:#e8e8ed;
-    --blue:#0071e3; --blue-tint:#e8f2ff; --on-blue:#ffffff;
+    --blue:#0071e3; --blue-hover:#0077ed; --blue-tint:#e8f2ff; --on-blue:#ffffff;
     --radius-card:24px; --radius-control:12px; --radius-pill:999px;
     --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
       "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
@@ -17,7 +17,7 @@
   @media (prefers-color-scheme: dark) {
     :root { --bg:#000000; --fg:#f5f5f7; --muted:#98989d; --rule:#38383a;
       --surface:#1c1c1e; --surface-strong:#2c2c2e;
-      --blue:#2997ff; --blue-tint:#102a43; --on-blue:#06131f;
+      --blue:#2997ff; --blue-hover:#40a9ff; --blue-tint:#102a43; --on-blue:#06131f;
       color-scheme:dark; }
   }
   * { box-sizing:border-box; }
@@ -26,60 +26,84 @@
     -webkit-font-smoothing:antialiased; }
   .page { max-width:760px; margin:0 auto;
     padding:clamp(40px,7vh,72px) 24px 96px; }
-  .back { display:inline-block; margin-bottom:16px; color:var(--muted);
-    text-decoration:none; font-size:14px; }
-  .back:hover { color:var(--blue); }
+  .back { display:inline-flex; align-items:center; gap:6px; margin:0 0 18px;
+    padding:7px 13px; border:1px solid var(--rule); border-radius:999px;
+    background:var(--surface); color:var(--fg); text-decoration:none;
+    font-size:13px; font-weight:600;
+    transition:background-color .15s ease; }
+  .back:hover { background:var(--surface-strong); color:var(--fg); }
+  .back svg { width:14px; height:14px; flex:none; }
   .stage { margin:0 0 8px; color:var(--muted); font-size:12px;
     letter-spacing:.1em; text-transform:uppercase; }
   h1 { margin:0; font-size:clamp(2rem,6vw,2.8rem); font-weight:700;
     letter-spacing:-.03em; line-height:1.08; }
   .zh-title { margin:7px 0 0; color:var(--muted); font-size:17px; }
-  .toolbar { display:flex; flex-wrap:wrap; align-items:center;
-    justify-content:space-between; gap:10px; margin:20px 0 0; }
+  .toolbar { position:sticky; top:0; z-index:30; display:flex; flex-wrap:wrap;
+    align-items:center; justify-content:space-between; gap:10px;
+    margin:20px -24px 0; padding:10px 24px;
+    background:var(--bg);
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter:blur(14px) saturate(1.4);
+    backdrop-filter:blur(14px) saturate(1.4);
+    border-bottom:1px solid transparent;
+    transition:border-color .15s ease; }
+  .toolbar.is-stuck { border-bottom-color:var(--rule); }
   .level { display:flex; flex-wrap:wrap; gap:6px; }
-  .level button, .zh-toggle, .voice-seg button, .pill {
+  .level button, .pill {
     appearance:none; font:inherit; font-size:14px; padding:8px 14px;
     border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
     background:transparent; color:var(--fg); cursor:pointer; }
-  .level button:hover, .zh-toggle:hover, .voice-seg button:hover, .pill:hover {
-    background:var(--surface); }
-  .level button[aria-pressed="true"], .zh-toggle[aria-pressed="true"],
-  .voice-seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+  .level button:hover, .pill:hover { background:var(--surface); }
+  .level button[aria-pressed="true"], .pill[aria-pressed="true"] {
     background:var(--blue); border-color:var(--blue); color:var(--on-blue); }
   .tools { display:flex; align-items:center; gap:8px; }
-  .voice-seg { display:inline-flex; align-items:center; padding:3px;
-    border:1px solid var(--rule); border-radius:var(--radius-pill,999px); }
-  .voice-seg button { border:0; padding:6px 13px; }
-  .zh-toggle { padding:7px 13px; }
-  .map-card { margin:18px 0 0; padding:10px; border:1px solid var(--rule);
-    border-radius:var(--radius-card,24px); background:var(--bg); }
+  .seg { display:inline-flex; align-items:center; padding:3px;
+    border-radius:var(--radius-pill,999px); background:var(--surface); }
+  .seg button { border:0; background:transparent; color:var(--muted);
+    font:inherit; font-size:13px; font-weight:600; padding:6px 13px;
+    border-radius:var(--radius-pill,999px); cursor:pointer;
+    transition:background-color .15s ease, color .15s ease; }
+  .seg button[aria-pressed="true"] { background:var(--bg); color:var(--fg); }
+  .zh-toggle { display:inline-flex; align-items:center; justify-content:center;
+    gap:6px; min-width:96px; height:35px; padding:0 12px;
+    border:1px solid var(--rule); border-radius:999px;
+    background:var(--surface); color:var(--fg);
+    font:inherit; font-size:13px; font-weight:650; cursor:pointer;
+    transition:background-color .15s ease, color .15s ease; }
+  .zh-toggle:hover { background:var(--surface-strong); }
+  .zh-toggle .zh-icon { color:var(--blue); font-size:12px; font-weight:700; }
+  .zh-toggle .zh-state { color:var(--muted); font-weight:600; }
+  .zh-toggle.is-off { color:var(--muted); }
+  .zh-toggle.is-off .zh-icon { color:var(--muted); }
+  .map-card { margin:18px 0 0; }
   .map-wrap { position:relative; width:100%; aspect-ratio:640 / 400;
     min-height:220px; }
   .map-stage { position:absolute; inset:0; }
-  .map-svg { display:block; width:100%; height:100%; }
   .map-svg { display:block; width:100%; height:100%;
-    --map-floor:light-dark(#f3f3f6,#1c262b);
-    --map-floor-2:light-dark(#e9e9ee,#232f35);
-    --map-floor-3:light-dark(#fafafb,#182024);
-    --map-top:light-dark(#e4e4ea,#35434a);
-    --map-top-2:light-dark(#d6d6de,#415159);
-    --map-side:light-dark(#c9c9d2,#1f292e);
-    --map-side-2:light-dark(#b4b4bf,#151c20);
-    --map-edge:light-dark(rgba(20,24,30,.12),rgba(238,243,244,.14));
-    --map-wall:light-dark(rgba(20,24,30,.22),rgba(238,243,244,.22)); }
-  .map-plate { fill:var(--bg); stroke:var(--map-wall); }
-  .map-plate-inner { fill:none; stroke:var(--map-edge); stroke-width:1; }
-  .map-dot-field { opacity:.5; }
+    --map-floor:light-dark(#f2f4f7,#1d262b);
+    --map-base:light-dark(#eef0f4,#151c20);
+    --map-floor-2:light-dark(#e9ecf1,#232e34);
+    --map-floor-3:light-dark(#fbfbfd,#182024);
+    --map-top:light-dark(#e6e9ef,#3f4f59);
+    --map-top-2:light-dark(#d7dbe3,#50626d);
+    --map-side:light-dark(#c9ced8,#2b3a42);
+    --map-side-2:light-dark(#b7bdc9,#1f2a30);
+    --map-wall-top:light-dark(#e1e5eb,#4d5f6a);
+    --map-edge:light-dark(rgba(20,24,30,.14),rgba(238,243,244,.16));
+    --map-shadow:light-dark(rgba(20,24,30,.18),rgba(0,0,0,.42)); }
+  .map-plate { fill:var(--map-base); stroke:var(--map-edge); stroke-width:1; }
+  .map-dot-field { opacity:.45; }
   .map-dot { fill:var(--map-edge); }
-  .map-wall { fill:none; stroke:var(--map-wall); stroke-width:2; }
   .map-zone-shape { stroke:var(--map-edge); stroke-width:1;
-    transition:fill .15s ease, stroke .15s ease; }
+    stroke-opacity:.55; }
   .map-zone-shape.tone-1 { fill:var(--map-floor); }
   .map-zone-shape.tone-2 { fill:var(--map-floor-2); }
   .map-zone-shape.tone-3 { fill:var(--map-floor-3); }
-  .map-zone-label { fill:var(--muted); font:600 10px var(--font);
-    letter-spacing:.11em; }
-  .map-zone-dot { fill:var(--blue); opacity:.75; }
+  .map-zone-label { fill:var(--muted); font:600 10.5px var(--font);
+    letter-spacing:.1em; paint-order:stroke; stroke:var(--map-base);
+    stroke-width:3px; }
+  .map-zone-dot { fill:var(--blue); opacity:.7; }
+  .map-furniture { filter:drop-shadow(0 .8px 1px var(--map-shadow)); }
   .map-fixture { fill:none; stroke:var(--muted); stroke-width:1.4; }
   .map-fixture-line { fill:none; stroke:var(--muted); stroke-width:1; }
   .map-fixture-soft { fill:var(--map-floor-2); stroke:var(--map-edge);
@@ -95,7 +119,8 @@
   .map-person { fill:var(--muted); }
   .map-pin, .map-flag { fill:var(--blue); }
   .map-route { fill:none; stroke:var(--blue); stroke-width:1.5;
-    stroke-dasharray:5 7; opacity:.45; }
+    stroke-dasharray:5 7; stroke-linecap:round; stroke-linejoin:round;
+    opacity:.5; }
   .map-arrow { fill:var(--blue); }
   .map-street-dash, .map-queue-line, .map-tactile { fill:none;
     stroke:var(--muted); stroke-width:1; stroke-dasharray:5 7; opacity:.55; }
@@ -127,15 +152,14 @@
   .map-3d-top.tone-3 { fill:var(--map-side); }
   .map-3d-side { fill:var(--map-side); }
   .map-3d-side-2 { fill:var(--map-side-2); }
-  .map-3d-label { fill:var(--muted); font:600 10px var(--font);
-    letter-spacing:.08em; paint-order:stroke; stroke:var(--bg);
-    stroke-width:3px; }
+  .map-3d-wall-top { fill:var(--map-wall-top); }
+  .map-3d-wall-side { fill:var(--map-side); }
+  .map-3d-wall-side-2 { fill:var(--map-side-2); }
   .map-zone.is-active .map-zone-shape { fill:var(--blue);
-    fill-opacity:.14; stroke:var(--blue); stroke-width:1.8; }
+    fill-opacity:.13; stroke:var(--blue); stroke-width:1.4; }
   .map-zone.is-active .map-zone-label { fill:var(--blue); }
   .map-zone.is-active .map-3d-floor { fill:var(--blue);
-    fill-opacity:.24; stroke:var(--blue); stroke-width:1.6; }
-  .map-zone.is-active .map-3d-label { fill:var(--blue); }
+    fill-opacity:.26; stroke:var(--blue); stroke-width:1.4; }
   .hotspot { position:absolute; left:var(--x2d); top:var(--y2d);
     transform:translate(-50%,-50%); display:flex; align-items:center;
     gap:7px; min-height:32px; padding:4px 10px 4px 4px;
@@ -153,11 +177,13 @@
   .hotspot .hs-zh { font-size:10px; color:var(--muted); }
   .hotspot:hover { background:var(--surface); }
   .hotspot[aria-pressed="true"] { border-color:var(--blue);
-    box-shadow:0 0 0 2px var(--blue-tint), 0 6px 18px rgba(0,0,0,.12); }
+    background:var(--blue-tint);
+    box-shadow:0 4px 14px rgba(0,0,0,.14); }
   .hotspot[aria-pressed="true"] .hs-zh { color:var(--muted); }
   .hotspot:focus-visible, .level button:focus-visible, .zh-toggle:focus-visible,
-  .voice-seg button:focus-visible, .pill:focus-visible, .phrase:focus-visible,
-  .line .say:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+  .seg button:focus-visible, .pill:focus-visible, .phrase:focus-visible,
+  .play-all:focus-visible, .line .say:focus-visible {
+    outline:2px solid var(--blue); outline-offset:2px; }
   .encounter { margin:30px 0 0; }
   .encounter-head h2 { margin:0 0 14px; font-size:1.3rem; font-weight:650;
     letter-spacing:-.01em; }
@@ -176,17 +202,41 @@
     font-size:12px; line-height:1.5; }
   .play { position:absolute; right:12px; top:50%; transform:translateY(-50%);
     display:flex; align-items:center; justify-content:center;
-    width:22px; height:22px; border:1px solid var(--rule); border-radius:50%;
-    color:var(--muted); font-size:9px; }
-  .play svg { display:block; }
+    width:18px; height:18px; border:1px solid var(--rule); border-radius:50%;
+    background:var(--bg); color:var(--muted); }
+  .play svg { display:block; width:8px; height:8px; margin-left:1px; }
+  .play .bars { display:none; align-items:flex-end; gap:2px; height:9px; }
+  .play .bars i { display:block; width:2px; height:4px; border-radius:1px;
+    background:currentColor; animation:eq .9s ease-in-out infinite; }
+  .play .bars i:nth-child(2) { animation-delay:.15s; }
+  .play .bars i:nth-child(3) { animation-delay:.3s; }
+  .phrase.on .play, .ask.on .play, .reply.on .play {
+    background:var(--blue); border-color:var(--blue); color:var(--on-blue); }
+  .phrase.on .play svg, .ask.on .play svg, .reply.on .play svg {
+    display:none; }
+  .phrase.on .play .bars, .ask.on .play .bars, .reply.on .play .bars {
+    display:inline-flex; }
+  @keyframes eq {
+    0%,100% { height:3px; }
+    50% { height:9px; }
+  }
   .phrase.on { border-color:var(--blue); }
-  .phrase.on .play { background:var(--blue); border-color:var(--blue);
-    color:var(--on-blue); }
   .dialogue { margin:24px 0 0; }
   .dialogue-tools { display:flex; flex-wrap:wrap; align-items:center;
     gap:8px; margin-bottom:12px; }
   .dialogue-tools .pill { padding:7px 13px; font-size:13px; }
-  .turns { display:flex; flex-direction:column; gap:9px; }
+  .play-all { display:inline-flex; align-items:center; gap:7px;
+    border:1px solid transparent; background:var(--blue); color:var(--on-blue);
+    font:inherit; font-size:13.5px; font-weight:650; padding:7px 14px;
+    border-radius:999px; cursor:pointer;
+    transition:background-color .15s ease, color .15s ease; }
+  .play-all:hover { background:var(--blue-hover); }
+  .play-all svg { width:15px; height:15px; fill:currentColor; flex:none; }
+  .play-all .stop-icon { display:none; }
+  .play-all[aria-pressed="true"] { background:var(--surface-strong);
+    color:var(--fg); }
+  .play-all[aria-pressed="true"] .play-icon { display:none; }
+  .play-all[aria-pressed="true"] .stop-icon { display:inline; }  .turns { display:flex; flex-direction:column; gap:9px; }
   .line { display:grid; grid-template-columns:52px minmax(0,1fr); gap:8px;
     align-items:start; }
   .who { padding-top:11px; color:var(--muted); font-size:12px; text-align:right;
@@ -199,8 +249,9 @@
   .line .say .en { display:block; font-size:15px; line-height:1.45; }
   .line .say .zh { display:block; margin-top:2px; color:var(--muted);
     font-size:12px; }
-  .line.playing .say { border-color:var(--blue); }
-  .listening { margin:36px 0 0; }
+  .line.playing .say { border-color:var(--blue);
+    background:var(--blue-tint); }
+  .listening { margin:28px 0 0; }
   .listening h2 { margin:0 0 14px; font-size:1.3rem; font-weight:650;
     letter-spacing:-.01em; }
   .intents { display:flex; flex-direction:column; gap:12px; }
@@ -218,8 +269,6 @@
   .ask .zh { display:block; margin-top:2px; color:var(--muted);
     font-size:12px; }
   .ask.on, .reply.on { border-color:var(--blue); }
-  .ask.on .play, .reply.on .play { background:var(--blue);
-    border-color:var(--blue); color:var(--on-blue); }
   .key { background:none; color:var(--blue); font-weight:650; }
   .reply { position:relative; width:100%; display:flex; align-items:flex-start;
     gap:10px; margin-top:9px; padding:10px 38px 10px 11px;
@@ -246,8 +295,12 @@
     overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   @media (max-width:480px) {
     .page { padding-left:16px; padding-right:16px; }
-    .toolbar { align-items:flex-start; }
+    .toolbar { align-items:flex-start; margin-left:-16px; margin-right:-16px;
+      padding-left:16px; padding-right:16px; }
+    .tools { gap:6px; }
     .level button { padding:7px 11px; font-size:13px; }
+    .seg button { padding:6px 11px; font-size:12.5px; }
+    .zh-toggle { min-width:88px; height:33px; padding:0 10px; font-size:12.5px; }
     .hotspot { font-size:11px; padding:3px 8px 3px 3px; gap:5px; }
     .hs-num { width:20px; height:20px; font-size:10px; }
     .hotspot .hs-zh { display:none; }
@@ -261,7 +314,7 @@
 </head>
 <body data-default-level="survival">
 <main class="page">
-  <a class="back" href="index.html">‹ 旅行英语</a>
+  <a class="back" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>旅行英语</a>
   <header>
     <p class="stage">交通 · Getting around</p>
     <h1>Taxis &amp; rideshare</h1>
@@ -275,43 +328,78 @@
       <button type="button" data-level="advanced" aria-pressed="false">Advanced</button>
     </div>
     <div class="tools">
-      <div class="voice-seg view-seg" role="group" aria-label="地图视图">
+      <div class="seg" role="group" aria-label="地图视图">
         <button type="button" data-view="2d" aria-pressed="true">2D</button>
         <button type="button" data-view="3d" aria-pressed="false">3D</button>
       </div>
-      <div class="voice-seg" role="group" aria-label="短语音色">
-        <button type="button" data-voice="f" aria-pressed="true">女</button>
-        <button type="button" data-voice="m" aria-pressed="false">男</button>
+      <div class="seg" role="group" aria-label="短语音色">
+        <button type="button" data-voice="f" aria-pressed="true">女声</button>
+        <button type="button" data-voice="m" aria-pressed="false">男声</button>
       </div>
-      <button class="zh-toggle" type="button" data-zh-toggle aria-pressed="true">中文</button>
+      <button class="zh-toggle" type="button" data-zh-toggle aria-pressed="true"
+        aria-label="中文开"><span class="zh-icon">中</span><span data-zh-label>中文</span><span class="zh-state" data-zh-state>开</span></button>
     </div>
   </div>
 
   <figure class="card map-card" role="group" aria-label="场景平面图">
     <div class="map-wrap">
-      <div class="map-stage" data-map-view="2d"><svg class="map-svg map-svg-2d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><pattern id="mapDots2d" width="18" height="18" patternUnits="userSpaceOnUse"><circle class="map-dot" cx="1" cy="1" r=".9"/></pattern><clipPath id="mapClip2d"><rect x="16" y="16" width="608" height="368" rx="16"/></clipPath></defs><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><rect class="map-plate-inner" x="16" y="16" width="608" height="368" rx="16"/><rect class="map-dot-field" x="16" y="16" width="608" height="368" fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/><g class="map-zone" data-zone="curb"><rect class="map-zone-shape tone-1" x="36" y="44" width="568" height="80" rx="8"/></g><g class="map-zone" data-zone="car"><rect class="map-zone-shape tone-2" x="36" y="144" width="568" height="120" rx="8"/></g><g class="map-zone" data-zone="corner"><rect class="map-zone-shape tone-3" x="36" y="284" width="200" height="72" rx="8"/></g><g class="map-zone" data-zone="pickup"><rect class="map-zone-shape tone-2" x="260" y="284" width="344" height="72" rx="8"/></g><rect class="map-wall" x="15.5" y="15.5" width="609" height="369" rx="16"/><rect class="map-fixture map-fixture-soft" x="40.0" y="100.0" width="560.0" height="8.0" rx="2"/><path class="map-street-dash" d="M40.0 104.0 L600.0 104.0"/><rect class="map-fixture map-car" x="128.0" y="166.0" width="320.0" height="72.0" rx="12"/><rect class="map-fixture map-car-window" x="185.6" y="180.4" width="70.4" height="43.2" rx="4"/><rect class="map-fixture map-car-window" x="281.6" y="180.4" width="70.4" height="43.2" rx="4"/><circle class="map-fixture map-headlight" cx="160.0" cy="170.0" r="3.0"/><circle class="map-fixture map-headlight" cx="160.0" cy="234.0" r="3.0"/><path class="map-fixture map-pin" d="M440.0 340 C440.0 322.0 427.2 320.0 427.2 311.2 A12.8 11.200000000000001 0 1 1 452.8 311.2 C452.8 320.0 440.0 322.0 440.0 340Z"/><path class="map-route" d="M320.0 84.0 L250.0 204.0 L410.0 204.0 L432.0 320.0"/><g class="map-zone" data-zone="curb"><circle class="map-zone-dot" cx="48.0" cy="111.0" r="2.2"/><text class="map-zone-label" x="55.0" y="115.0">CURB</text></g><g class="map-zone" data-zone="car"><circle class="map-zone-dot" cx="48.0" cy="251.0" r="2.2"/><text class="map-zone-label" x="55.0" y="255.0">TAXI / CAR</text></g><g class="map-zone" data-zone="corner"><circle class="map-zone-dot" cx="48.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="55.0" y="347.0">CORNER</text></g><g class="map-zone" data-zone="pickup"><circle class="map-zone-dot" cx="272.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="279.0" y="347.0">PICKUP</text></g></svg></div>
-      <div class="map-stage" data-map-view="3d" hidden><svg class="map-svg map-svg-3d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><filter id="mapShadow3d" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity=".16"/></filter></defs><g filter="url(#mapShadow3d)"><polygon class="map-3d-slab-side" points="620.2,248.7 389.3,382.0 389.3,391.3 620.2,258.0"/><polygon class="map-3d-slab-side" points="19.8,168.7 389.3,382.0 389.3,391.3 19.8,178.0"/><polygon class="map-3d-slab" points="250.7,35.3 620.2,248.7 389.3,382.0 19.8,168.7"/></g><g class="map-zone" data-zone="curb"><polygon class="map-3d-floor tone-0" points="246.1,61.7 574.0,251.1 527.8,277.7 199.9,88.4"/></g><g class="map-zone" data-zone="car"><polygon class="map-3d-floor tone-1" points="188.4,95.1 516.3,284.4 447.0,324.4 119.1,135.1"/></g><g class="map-zone" data-zone="corner"><polygon class="map-3d-floor tone-2" points="107.5,141.7 223.0,208.4 181.4,232.4 66.0,165.7"/></g><g class="map-zone" data-zone="pickup"><polygon class="map-3d-floor tone-1" points="236.9,216.4 435.5,331.1 393.9,355.1 195.3,240.4"/></g><polygon class="map-3d-top tone-1" points="216.1,81.3 539.4,268.0 534.8,270.7 211.5,84.0"/><polygon class="map-3d-top tone-1" points="265.6,151.9 354.3,203.1 327.7,218.5 239.0,167.3"/><polygon class="map-3d-side" points="354.3,203.1 327.7,218.5 327.7,223.1 354.3,207.8"/><polygon class="map-3d-side-2" points="239.0,167.3 327.7,218.5 327.7,223.1 239.0,171.9"/><polygon class="map-3d-top tone-2" points="228.8,126.7 413.5,233.3 372.0,257.3 187.2,150.7"/><polygon class="map-3d-side" points="413.5,233.3 372.0,257.3 372.0,264.0 413.5,240.0"/><polygon class="map-3d-side-2" points="187.2,150.7 372.0,257.3 372.0,264.0 187.2,157.3"/><g class="map-zone" data-zone="curb"><text class="map-3d-label" x="210.9" y="88.6">CURB</text></g><g class="map-zone" data-zone="car"><text class="map-3d-label" x="130.1" y="135.3">TAXI / CAR</text></g><g class="map-zone" data-zone="corner"><text class="map-3d-label" x="76.9" y="165.9">CORNER</text></g><g class="map-zone" data-zone="pickup"><text class="map-3d-label" x="206.3" y="240.6">PICKUP</text></g></svg></div>
-      <button class="hotspot" type="button" style="--x2d:50.0%;--y2d:21.0%;--x3d:60.46%;--y3d:42.5%" data-hotspot="curb" data-zone="curb" data-encounter="curb" aria-pressed="true" aria-controls="panel-curb"><span class="hs-num">1</span><span class="hs-text"><span class="hs-en">Curb</span><span class="hs-zh">拦车</span></span></button>
-      <button class="hotspot" type="button" style="--x2d:39.06%;--y2d:51.0%;--x3d:43.32%;--y3d:46.67%" data-hotspot="route" data-zone="car" data-encounter="route" aria-pressed="false" aria-controls="panel-route"><span class="hs-num">2</span><span class="hs-text"><span class="hs-en">Route</span><span class="hs-zh">路线</span></span></button>
-      <button class="hotspot" type="button" style="--x2d:64.06%;--y2d:51.0%;--x3d:57.76%;--y3d:60.0%" data-hotspot="payment" data-zone="car" data-encounter="payment" aria-pressed="false" aria-controls="panel-payment"><span class="hs-num">3</span><span class="hs-text"><span class="hs-en">Payment</span><span class="hs-zh">支付</span></span></button>
-      <button class="hotspot" type="button" style="--x2d:67.5%;--y2d:80.0%;--x3d:49.28%;--y3d:71.5%" data-hotspot="pickup" data-zone="pickup" data-encounter="pickup" aria-pressed="false" aria-controls="panel-pickup"><span class="hs-num">4</span><span class="hs-text"><span class="hs-en">Pickup</span><span class="hs-zh">上车点</span></span></button>
+      <div class="map-stage" data-map-view="2d"><svg class="map-svg map-svg-2d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><pattern id="mapDots2d" width="18" height="18" patternUnits="userSpaceOnUse"><circle class="map-dot" cx="1" cy="1" r=".9"/></pattern><clipPath id="mapClip2d"><rect x="4" y="4" width="632" height="392" rx="22"/></clipPath></defs><rect class="map-plate" x="4" y="4" width="632" height="392" rx="22"/><rect class="map-dot-field" x="4" y="4" width="632" height="392" fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/><g class="map-zone" data-zone="curb"><rect class="map-zone-shape tone-1" x="36" y="44" width="568" height="80" rx="2"/></g><g class="map-zone" data-zone="car"><rect class="map-zone-shape tone-2" x="36" y="144" width="568" height="120" rx="2"/></g><g class="map-zone" data-zone="corner"><rect class="map-zone-shape tone-3" x="36" y="284" width="200" height="72" rx="2"/></g><g class="map-zone" data-zone="pickup"><rect class="map-zone-shape tone-2" x="260" y="284" width="344" height="72" rx="2"/></g><g class="map-furniture"><rect class="map-fixture map-fixture-soft" x="40.0" y="100.0" width="560.0" height="8.0" rx="2"/><path class="map-street-dash" d="M40.0 104.0 L600.0 104.0"/><rect class="map-fixture map-car" x="128.0" y="166.0" width="320.0" height="72.0" rx="12"/><rect class="map-fixture map-car-window" x="185.6" y="180.4" width="70.4" height="43.2" rx="4"/><rect class="map-fixture map-car-window" x="281.6" y="180.4" width="70.4" height="43.2" rx="4"/><circle class="map-fixture map-headlight" cx="160.0" cy="170.0" r="3.0"/><circle class="map-fixture map-headlight" cx="160.0" cy="234.0" r="3.0"/><path class="map-fixture map-pin" d="M440.0 340 C440.0 322.0 427.2 320.0 427.2 311.2 A12.8 11.200000000000001 0 1 1 452.8 311.2 C452.8 320.0 440.0 322.0 440.0 340Z"/></g><path class="map-route" d="M320.0 84.0 L250.0 204.0 L410.0 204.0 L432.0 320.0"/><g class="map-zone" data-zone="curb"><circle class="map-zone-dot" cx="48.0" cy="111.0" r="2.2"/><text class="map-zone-label" x="55.0" y="115.0">CURB</text></g><g class="map-zone" data-zone="car"><circle class="map-zone-dot" cx="48.0" cy="251.0" r="2.2"/><text class="map-zone-label" x="55.0" y="255.0">TAXI / CAR</text></g><g class="map-zone" data-zone="corner"><circle class="map-zone-dot" cx="48.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="55.0" y="347.0">CORNER</text></g><g class="map-zone" data-zone="pickup"><circle class="map-zone-dot" cx="272.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="279.0" y="347.0">PICKUP</text></g></svg></div>
+      <div class="map-stage" data-map-view="3d" hidden><svg class="map-svg map-svg-3d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><filter id="mapShadow3d" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity=".16"/></filter></defs><g filter="url(#mapShadow3d)"><polygon class="map-3d-slab-side" points="618.0,249.6 388.8,382.0 388.8,391.3 618.0,258.9"/><polygon class="map-3d-slab-side" points="22.0,170.2 388.8,382.0 388.8,391.3 22.0,179.5"/><polygon class="map-3d-slab" points="251.2,37.9 618.0,249.6 388.8,382.0 22.0,170.2"/></g><g class="map-zone" data-zone="curb"><polygon class="map-3d-floor tone-0" points="246.6,64.1 572.2,252.0 526.3,278.5 200.8,90.5"/></g><g class="map-zone" data-zone="car"><polygon class="map-3d-floor tone-1" points="189.3,97.2 514.9,285.1 446.1,324.8 120.5,136.9"/></g><g class="map-zone" data-zone="corner"><polygon class="map-3d-floor tone-2" points="109.1,143.5 223.7,209.7 182.4,233.5 67.8,167.3"/></g><g class="map-zone" data-zone="pickup"><polygon class="map-3d-floor tone-1" points="237.5,217.6 434.6,331.4 393.4,355.3 196.2,241.4"/></g><polygon class="map-3d-wall-side" points="618.0,229.8 613.5,232.4 613.5,252.3 618.0,249.6"/><polygon class="map-3d-wall-side-2" points="251.2,23.3 613.5,232.4 613.5,252.3 251.2,43.1"/><polygon class="map-3d-wall-top" points="255.8,20.6 618.0,229.8 613.5,232.4 251.2,23.3"/><polygon class="map-3d-wall-side" points="255.8,20.6 31.1,150.4 31.1,170.2 255.8,40.5"/><polygon class="map-3d-wall-side-2" points="26.5,147.7 31.1,150.4 31.1,170.2 26.5,167.6"/><polygon class="map-3d-wall-top" points="251.2,18.0 255.8,20.6 31.1,150.4 26.5,147.7"/><polygon class="map-3d-top tone-1" points="216.8,83.5 537.8,268.8 533.2,271.5 212.2,86.2"/><polygon class="map-3d-top tone-1" points="266.0,153.6 354.1,204.4 327.7,219.7 239.6,168.8"/><polygon class="map-3d-side" points="354.1,204.4 327.7,219.7 327.7,224.3 354.1,209.1"/><polygon class="map-3d-side-2" points="239.6,168.8 327.7,219.7 327.7,224.3 239.6,173.5"/><polygon class="map-3d-top tone-2" points="229.4,128.5 412.9,234.4 371.6,258.2 188.2,152.3"/><polygon class="map-3d-side" points="412.9,234.4 371.6,258.2 371.6,264.9 412.9,241.0"/><polygon class="map-3d-side-2" points="188.2,152.3 371.6,258.2 371.6,264.9 188.2,159.0"/></svg></div>
+      <button class="hotspot" type="button" style="--x2d:50.0%;--y2d:21.0%;--x3d:60.39%;--y3d:42.89%" data-hotspot="curb" data-zone="curb" data-encounter="curb" aria-pressed="true" aria-controls="panel-curb"><span class="hs-num">1</span><span class="hs-text"><span class="hs-en">Curb</span><span class="hs-zh">拦车</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:39.06%;--y2d:51.0%;--x3d:43.37%;--y3d:47.02%" data-hotspot="route" data-zone="car" data-encounter="route" aria-pressed="false" aria-controls="panel-route"><span class="hs-num">2</span><span class="hs-text"><span class="hs-en">Route</span><span class="hs-zh">路线</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:64.06%;--y2d:51.0%;--x3d:57.7%;--y3d:60.26%" data-hotspot="payment" data-zone="car" data-encounter="payment" aria-pressed="false" aria-controls="panel-payment"><span class="hs-num">3</span><span class="hs-text"><span class="hs-en">Payment</span><span class="hs-zh">支付</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:67.5%;--y2d:80.0%;--x3d:49.28%;--y3d:71.67%" data-hotspot="pickup" data-zone="pickup" data-encounter="pickup" aria-pressed="false" aria-controls="panel-pickup"><span class="hs-num">4</span><span class="hs-text"><span class="hs-en">Pickup</span><span class="hs-zh">上车点</span></span></button>
     </div>
   </figure>
   <p class="sr-only" aria-live="polite" data-status></p>
 
   <section class="encounter" id="panel-curb" data-encounter="curb"><header class="encounter-head"><h2>Hailing a taxi<span class="zh">路边拦车</span></h2></header>
 
-  <div class="level-panel" data-level="survival"><div class="phrases">
+  <div class="level-panel phrases-panel" data-level="survival"><div class="phrases">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en">Are you free?</span><span class="zh">空车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en">Are you free?</span><span class="zh">空车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="3.744"><span class="en">Can you take me to this address?</span><span class="zh">能载我去这个地址吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="3.744"><span class="en">Can you take me to this address?</span><span class="zh">能载我去这个地址吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="3.744" data-end-f="5.616" data-start-m="3.744" data-end-m="5.616"><span class="en">How much to downtown?</span><span class="zh">去市中心多少钱？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="3.744" data-end-f="5.616" data-start-m="3.744" data-end-m="5.616"><span class="en">How much to downtown?</span><span class="zh">去市中心多少钱？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="5.616" data-end-f="7.488" data-start-m="5.616" data-end-m="7.488"><span class="en">I&#x27;m going to the airport.</span><span class="zh">我去机场。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="5.616" data-end-f="7.488" data-start-m="5.616" data-end-m="7.488"><span class="en">I&#x27;m going to the airport.</span><span class="zh">我去机场。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="2.712" data-start-m="0.000" data-end-m="2.880"><span class="en">Are you available for a ride to the convention center?</span><span class="zh">能载我去会展中心吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="2.712" data-end-f="5.448" data-start-m="2.880" data-end-m="5.424"><span class="en">Do you take card, or should I get cash?</span><span class="zh">能刷卡吗，还是我取现金？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="5.448" data-end-f="8.856" data-start-m="5.424" data-end-m="8.736"><span class="en">Is it faster to take the highway or the local streets?</span><span class="zh">走高速快还是走市区道路快？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="8.856" data-end-f="10.728" data-start-m="8.736" data-end-m="10.656"><span class="en">Could you wait for me while I run in?</span><span class="zh">我进去一下，你能等我吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="10.728" data-end-f="12.600" data-start-m="10.656" data-end-m="12.528"><span class="en">Do you have change for a fifty?</span><span class="zh">五十美元能找开吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="4.008" data-start-m="0.000" data-end-m="3.624"><span class="en">The meter seems higher than the estimate. Could you explain the route?</span><span class="zh">计价器比预估高。能解释一下路线吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="4.008" data-end-f="7.824" data-start-m="3.624" data-end-m="7.080"><span class="en">I asked to go by the highway. Why are we on local streets?</span><span class="zh">我说走高速。为什么走市区？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="7.824" data-end-f="10.008" data-start-m="7.080" data-end-m="9.168"><span class="en">Can you stop at the pharmacy on the way?</span><span class="zh">能顺路在药店停一下吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="10.008" data-end-f="13.776" data-start-m="9.168" data-end-m="12.504"><span class="en">I need a receipt with the driver&#x27;s name and license number.</span><span class="zh">我需要带司机姓名和驾照号的收据。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="13.776" data-end-f="16.080" data-start-m="12.504" data-end-m="14.472"><span class="en">Is there a surcharge for the airport?</span><span class="zh">去机场有附加费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>拦车/问目的地</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en">Where are you <mark class="key">headed</mark>?</span><span class="zh">您要去哪儿？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="2.640"><span class="en"><mark class="key">Where to</mark>?</span><span class="zh">去哪儿？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="3.744" data-end-f="5.616" data-start-m="2.640" data-end-m="4.512"><span class="en">Do you <mark class="key">need a taxi</mark>?</span><span class="zh">您要打车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="5.616" data-end-f="7.560" data-start-m="4.512" data-end-m="6.384"><span class="reply-tag">答</span><span class="reply-body"><span class="en">To the Riverside Hotel.</span><span class="zh">去 Riverside 酒店。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Where are you headed? / Where to? / Do you need…?</p></article><article class="intent"><h3>行李</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="7.560" data-end-f="9.432" data-start-m="6.384" data-end-m="8.256"><span class="en">Do you need <mark class="key">help with your bags</mark>?</span><span class="zh">需要帮您拿行李吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="9.432" data-end-f="11.304" data-start-m="8.256" data-end-m="10.128"><span class="en"><mark class="key">How many bags</mark> do you have?</span><span class="zh">您有几件行李？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="11.304" data-end-f="13.176" data-start-m="10.128" data-end-m="12.000"><span class="en">Put your bags in the <mark class="key">trunk</mark>.</span><span class="zh">把行李放后备箱。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="13.176" data-end-f="15.048" data-start-m="12.000" data-end-m="13.872"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Two bags, please.</span><span class="zh">两件，谢谢。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Do you need help…? / How many bags…? / Put your bags…</p></article><article class="intent"><h3>等车</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="15.048" data-end-f="17.064" data-start-m="13.872" data-end-m="15.840"><span class="en">It&#x27;ll be here in <mark class="key">five minutes</mark>.</span><span class="zh">五分钟到。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="17.064" data-end-f="18.936" data-start-m="15.840" data-end-m="17.712"><span class="en">Are you <mark class="key">waiting for a taxi</mark>?</span><span class="zh">您在等出租车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="18.936" data-end-f="20.808" data-start-m="17.712" data-end-m="19.584"><span class="en">This one&#x27;s <mark class="key">taken</mark>.</span><span class="zh">这辆有人了。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="20.808" data-end-f="22.680" data-start-m="19.584" data-end-m="21.456"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I&#x27;m waiting for a taxi.</span><span class="zh">我在等出租车。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>It&#x27;ll be here… / Are you waiting…? / This one&#x27;s taken.</p></article></div></section>
+
+  <div class="level-panel dialogue-panel" data-level="survival"><div class="dialogue">
+
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">Are you free?</span><span class="zh">空车吗？</span></button></div>
 
@@ -327,19 +415,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="conversational" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="2.712" data-start-m="0.000" data-end-m="2.880"><span class="en">Are you available for a ride to the convention center?</span><span class="zh">能载我去会展中心吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="2.712" data-end-f="5.448" data-start-m="2.880" data-end-m="5.424"><span class="en">Do you take card, or should I get cash?</span><span class="zh">能刷卡吗，还是我取现金？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="5.448" data-end-f="8.856" data-start-m="5.424" data-end-m="8.736"><span class="en">Is it faster to take the highway or the local streets?</span><span class="zh">走高速快还是走市区道路快？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="8.856" data-end-f="10.728" data-start-m="8.736" data-end-m="10.656"><span class="en">Could you wait for me while I run in?</span><span class="zh">我进去一下，你能等我吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="10.728" data-end-f="12.600" data-start-m="10.656" data-end-m="12.528"><span class="en">Do you have change for a fifty?</span><span class="zh">五十美元能找开吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="2.880"><span class="en">Are you available for a ride to the convention center?</span><span class="zh">能载我去会展中心吗？</span></button></div>
 
@@ -363,19 +441,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="advanced" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="4.008" data-start-m="0.000" data-end-m="3.624"><span class="en">The meter seems higher than the estimate. Could you explain the route?</span><span class="zh">计价器比预估高。能解释一下路线吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="4.008" data-end-f="7.824" data-start-m="3.624" data-end-m="7.080"><span class="en">I asked to go by the highway. Why are we on local streets?</span><span class="zh">我说走高速。为什么走市区？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="7.824" data-end-f="10.008" data-start-m="7.080" data-end-m="9.168"><span class="en">Can you stop at the pharmacy on the way?</span><span class="zh">能顺路在药店停一下吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="10.008" data-end-f="13.776" data-start-m="9.168" data-end-m="12.504"><span class="en">I need a receipt with the driver&#x27;s name and license number.</span><span class="zh">我需要带司机姓名和驾照号的收据。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="13.776" data-end-f="16.080" data-start-m="12.504" data-end-m="14.472"><span class="en">Is there a surcharge for the airport?</span><span class="zh">去机场有附加费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="3.624"><span class="en">The meter seems higher than the estimate. Could you explain the route?</span><span class="zh">计价器比预估高。能解释一下路线吗？</span></button></div>
 
@@ -399,23 +467,55 @@
 
   </div></div></div>
 
-  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>拦车/问目的地</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en">Where are you <mark class="key">headed</mark>?</span><span class="zh">您要去哪儿？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="2.640"><span class="en"><mark class="key">Where to</mark>?</span><span class="zh">去哪儿？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="3.744" data-end-f="5.616" data-start-m="2.640" data-end-m="4.512"><span class="en">Do you <mark class="key">need a taxi</mark>?</span><span class="zh">您要打车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="5.616" data-end-f="7.560" data-start-m="4.512" data-end-m="6.384"><span class="reply-tag">答</span><span class="reply-body"><span class="en">To the Riverside Hotel.</span><span class="zh">去 Riverside 酒店。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Where are you headed? / Where to? / Do you need…?</p></article><article class="intent"><h3>行李</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="7.560" data-end-f="9.432" data-start-m="6.384" data-end-m="8.256"><span class="en">Do you need <mark class="key">help with your bags</mark>?</span><span class="zh">需要帮您拿行李吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="9.432" data-end-f="11.304" data-start-m="8.256" data-end-m="10.128"><span class="en"><mark class="key">How many bags</mark> do you have?</span><span class="zh">您有几件行李？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="11.304" data-end-f="13.176" data-start-m="10.128" data-end-m="12.000"><span class="en">Put your bags in the <mark class="key">trunk</mark>.</span><span class="zh">把行李放后备箱。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="13.176" data-end-f="15.048" data-start-m="12.000" data-end-m="13.872"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Two bags, please.</span><span class="zh">两件，谢谢。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Do you need help…? / How many bags…? / Put your bags…</p></article><article class="intent"><h3>等车</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="15.048" data-end-f="17.064" data-start-m="13.872" data-end-m="15.840"><span class="en">It&#x27;ll be here in <mark class="key">five minutes</mark>.</span><span class="zh">五分钟到。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="17.064" data-end-f="18.936" data-start-m="15.840" data-end-m="17.712"><span class="en">Are you <mark class="key">waiting for a taxi</mark>?</span><span class="zh">您在等出租车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="18.936" data-end-f="20.808" data-start-m="17.712" data-end-m="19.584"><span class="en">This one&#x27;s <mark class="key">taken</mark>.</span><span class="zh">这辆有人了。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="20.808" data-end-f="22.680" data-start-m="19.584" data-end-m="21.456"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I&#x27;m waiting for a taxi.</span><span class="zh">我在等出租车。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>It&#x27;ll be here… / Are you waiting…? / This one&#x27;s taken.</p></article></div></section>
-
   </section>
 
   <section class="encounter" id="panel-route" data-encounter="route" hidden><header class="encounter-head"><h2>Route &amp; destination<span class="zh">路线与目的地</span></h2></header>
 
-  <div class="level-panel" data-level="survival"><div class="phrases">
+  <div class="level-panel phrases-panel" data-level="survival"><div class="phrases">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="7.488" data-end-f="9.408" data-start-m="7.488" data-end-m="9.360"><span class="en">Please take me to this hotel.</span><span class="zh">请带我去这家酒店。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="7.488" data-end-f="9.408" data-start-m="7.488" data-end-m="9.360"><span class="en">Please take me to this hotel.</span><span class="zh">请带我去这家酒店。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="9.408" data-end-f="11.280" data-start-m="9.360" data-end-m="11.232"><span class="en">Turn left here.</span><span class="zh">这里左转。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="9.408" data-end-f="11.280" data-start-m="9.360" data-end-m="11.232"><span class="en">Turn left here.</span><span class="zh">这里左转。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="11.280" data-end-f="13.152" data-start-m="11.232" data-end-m="13.104"><span class="en">Stop here, please.</span><span class="zh">请在这里停。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="11.280" data-end-f="13.152" data-start-m="11.232" data-end-m="13.104"><span class="en">Stop here, please.</span><span class="zh">请在这里停。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="13.152" data-end-f="15.024" data-start-m="13.104" data-end-m="14.976"><span class="en">Can you go a little faster?</span><span class="zh">能开快点吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="13.152" data-end-f="15.024" data-start-m="13.104" data-end-m="14.976"><span class="en">Can you go a little faster?</span><span class="zh">能开快点吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="12.600" data-end-f="16.056" data-start-m="12.528" data-end-m="15.624"><span class="en">Could you follow the GPS route? I&#x27;m not in a hurry.</span><span class="zh">能按导航走吗？我不赶时间。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="16.056" data-end-f="18.648" data-start-m="15.624" data-end-m="18.168"><span class="en">Is this the fastest way during rush hour?</span><span class="zh">高峰时段这是最快的路吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="18.648" data-end-f="20.808" data-start-m="18.168" data-end-m="20.184"><span class="en">Can you drop me at the side entrance?</span><span class="zh">能把我放在侧门吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="20.808" data-end-f="22.752" data-start-m="20.184" data-end-m="22.056"><span class="en">How long will it take to get there?</span><span class="zh">到那里要多久？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="22.752" data-end-f="24.768" data-start-m="22.056" data-end-m="23.976"><span class="en">Could you pull over at the next corner?</span><span class="zh">能下一个路口靠边停吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="16.080" data-end-f="20.232" data-start-m="14.472" data-end-m="18.312"><span class="en">Could you take the tunnel instead? I get carsick on the winding road.</span><span class="zh">能走隧道吗？我走盘山路会晕车。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="20.232" data-end-f="24.432" data-start-m="18.312" data-end-m="22.368"><span class="en">The GPS is rerouting us. Is there a faster way you know?</span><span class="zh">导航在重新规划。你知道更快的路吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="24.432" data-end-f="27.696" data-start-m="22.368" data-end-m="25.752"><span class="en">Please drop me at the departures level, not arrivals.</span><span class="zh">请把我放在出发层，不是到达层。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="27.696" data-end-f="29.832" data-start-m="25.752" data-end-m="27.720"><span class="en">Can you wait a few minutes while I check in?</span><span class="zh">我办入住时你能等几分钟吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="29.832" data-end-f="33.456" data-start-m="27.720" data-end-m="31.128"><span class="en">I think we&#x27;re going in the wrong direction. Could you check the map?</span><span class="zh">我觉得走错方向了。能看一下地图吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>确认地址</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="22.680" data-end-f="24.552" data-start-m="21.456" data-end-m="23.328"><span class="en">What&#x27;s the <mark class="key">address</mark>?</span><span class="zh">地址是什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="24.552" data-end-f="26.424" data-start-m="23.328" data-end-m="25.200"><span class="en">Do you have an <mark class="key">address</mark>?</span><span class="zh">您有地址吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="26.424" data-end-f="28.536" data-start-m="25.200" data-end-m="27.384"><span class="en">Is that the hotel on <mark class="key">5th Avenue</mark>?</span><span class="zh">是第五大道那家酒店吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="28.536" data-end-f="31.632" data-start-m="27.384" data-end-m="30.096"><span class="reply-tag">答</span><span class="reply-body"><span class="en">123 West 45th Street.</span><span class="zh">西 45 街 123 号。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>What&#x27;s the address? / Do you have…? / Is that…?</p></article><article class="intent"><h3>路线</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="31.632" data-end-f="34.344" data-start-m="30.096" data-end-m="32.664"><span class="en">Do you want the <mark class="key">highway</mark> or the local streets?</span><span class="zh">走高速还是走市区道路？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="34.344" data-end-f="36.360" data-start-m="32.664" data-end-m="34.536"><span class="en">I&#x27;ll take the <mark class="key">fastest route</mark>.</span><span class="zh">我走最快的路线。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="36.360" data-end-f="38.328" data-start-m="34.536" data-end-m="36.408"><span class="en">There&#x27;s <mark class="key">traffic</mark> on the bridge.</span><span class="zh">桥上堵车。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="38.328" data-end-f="40.200" data-start-m="36.408" data-end-m="38.280"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Take the fastest route.</span><span class="zh">走最快的路线。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Do you want…? / I&#x27;ll take… / There&#x27;s traffic…</p></article><article class="intent"><h3>赶时间</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="40.200" data-end-f="42.072" data-start-m="38.280" data-end-m="40.152"><span class="en">Are you <mark class="key">in a hurry</mark>?</span><span class="zh">您赶时间吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="42.072" data-end-f="44.208" data-start-m="40.152" data-end-m="42.240"><span class="en">Do you need to be there by a <mark class="key">certain time</mark>?</span><span class="zh">您要几点前到吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="44.208" data-end-f="46.584" data-start-m="42.240" data-end-m="44.208"><span class="en">I&#x27;ll get you there <mark class="key">as fast as I can</mark>.</span><span class="zh">我尽快送您到。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="46.584" data-end-f="48.960" data-start-m="44.208" data-end-m="46.560"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, I have a 3 p.m. meeting.</span><span class="zh">是的，我下午 3 点有会。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Are you in a hurry? / Do you need to be there…? / I&#x27;ll get you there…</p></article></div></section>
+
+  <div class="level-panel dialogue-panel" data-level="survival"><div class="dialogue">
+
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="13.080" data-end="14.952"><span class="en">Please take me to this hotel.</span><span class="zh">请带我去这家酒店。</span></button></div>
 
@@ -431,19 +531,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="conversational" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="12.600" data-end-f="16.056" data-start-m="12.528" data-end-m="15.624"><span class="en">Could you follow the GPS route? I&#x27;m not in a hurry.</span><span class="zh">能按导航走吗？我不赶时间。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="16.056" data-end-f="18.648" data-start-m="15.624" data-end-m="18.168"><span class="en">Is this the fastest way during rush hour?</span><span class="zh">高峰时段这是最快的路吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="18.648" data-end-f="20.808" data-start-m="18.168" data-end-m="20.184"><span class="en">Can you drop me at the side entrance?</span><span class="zh">能把我放在侧门吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="20.808" data-end-f="22.752" data-start-m="20.184" data-end-m="22.056"><span class="en">How long will it take to get there?</span><span class="zh">到那里要多久？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="22.752" data-end-f="24.768" data-start-m="22.056" data-end-m="23.976"><span class="en">Could you pull over at the next corner?</span><span class="zh">能下一个路口靠边停吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.904" data-end="30.000"><span class="en">Could you follow the GPS route? I&#x27;m not in a hurry.</span><span class="zh">能按导航走吗？我不赶时间。</span></button></div>
 
@@ -467,19 +557,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="advanced" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="16.080" data-end-f="20.232" data-start-m="14.472" data-end-m="18.312"><span class="en">Could you take the tunnel instead? I get carsick on the winding road.</span><span class="zh">能走隧道吗？我走盘山路会晕车。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="20.232" data-end-f="24.432" data-start-m="18.312" data-end-m="22.368"><span class="en">The GPS is rerouting us. Is there a faster way you know?</span><span class="zh">导航在重新规划。你知道更快的路吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="24.432" data-end-f="27.696" data-start-m="22.368" data-end-m="25.752"><span class="en">Please drop me at the departures level, not arrivals.</span><span class="zh">请把我放在出发层，不是到达层。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="27.696" data-end-f="29.832" data-start-m="25.752" data-end-m="27.720"><span class="en">Can you wait a few minutes while I check in?</span><span class="zh">我办入住时你能等几分钟吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="29.832" data-end-f="33.456" data-start-m="27.720" data-end-m="31.128"><span class="en">I think we&#x27;re going in the wrong direction. Could you check the map?</span><span class="zh">我觉得走错方向了。能看一下地图吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="29.976" data-end="33.816"><span class="en">Could you take the tunnel instead? I get carsick on the winding road.</span><span class="zh">能走隧道吗？我走盘山路会晕车。</span></button></div>
 
@@ -503,23 +583,55 @@
 
   </div></div></div>
 
-  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>确认地址</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="22.680" data-end-f="24.552" data-start-m="21.456" data-end-m="23.328"><span class="en">What&#x27;s the <mark class="key">address</mark>?</span><span class="zh">地址是什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="24.552" data-end-f="26.424" data-start-m="23.328" data-end-m="25.200"><span class="en">Do you have an <mark class="key">address</mark>?</span><span class="zh">您有地址吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="26.424" data-end-f="28.536" data-start-m="25.200" data-end-m="27.384"><span class="en">Is that the hotel on <mark class="key">5th Avenue</mark>?</span><span class="zh">是第五大道那家酒店吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="28.536" data-end-f="31.632" data-start-m="27.384" data-end-m="30.096"><span class="reply-tag">答</span><span class="reply-body"><span class="en">123 West 45th Street.</span><span class="zh">西 45 街 123 号。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>What&#x27;s the address? / Do you have…? / Is that…?</p></article><article class="intent"><h3>路线</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="31.632" data-end-f="34.344" data-start-m="30.096" data-end-m="32.664"><span class="en">Do you want the <mark class="key">highway</mark> or the local streets?</span><span class="zh">走高速还是走市区道路？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="34.344" data-end-f="36.360" data-start-m="32.664" data-end-m="34.536"><span class="en">I&#x27;ll take the <mark class="key">fastest route</mark>.</span><span class="zh">我走最快的路线。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="36.360" data-end-f="38.328" data-start-m="34.536" data-end-m="36.408"><span class="en">There&#x27;s <mark class="key">traffic</mark> on the bridge.</span><span class="zh">桥上堵车。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="38.328" data-end-f="40.200" data-start-m="36.408" data-end-m="38.280"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Take the fastest route.</span><span class="zh">走最快的路线。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Do you want…? / I&#x27;ll take… / There&#x27;s traffic…</p></article><article class="intent"><h3>赶时间</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="40.200" data-end-f="42.072" data-start-m="38.280" data-end-m="40.152"><span class="en">Are you <mark class="key">in a hurry</mark>?</span><span class="zh">您赶时间吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="42.072" data-end-f="44.208" data-start-m="40.152" data-end-m="42.240"><span class="en">Do you need to be there by a <mark class="key">certain time</mark>?</span><span class="zh">您要几点前到吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="44.208" data-end-f="46.584" data-start-m="42.240" data-end-m="44.208"><span class="en">I&#x27;ll get you there <mark class="key">as fast as I can</mark>.</span><span class="zh">我尽快送您到。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="46.584" data-end-f="48.960" data-start-m="44.208" data-end-m="46.560"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, I have a 3 p.m. meeting.</span><span class="zh">是的，我下午 3 点有会。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Are you in a hurry? / Do you need to be there…? / I&#x27;ll get you there…</p></article></div></section>
-
   </section>
 
   <section class="encounter" id="panel-payment" data-encounter="payment" hidden><header class="encounter-head"><h2>Paying the fare<span class="zh">支付车费</span></h2></header>
 
-  <div class="level-panel" data-level="survival"><div class="phrases">
+  <div class="level-panel phrases-panel" data-level="survival"><div class="phrases">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="15.024" data-end-f="16.896" data-start-m="14.976" data-end-m="16.848"><span class="en">How much is the fare?</span><span class="zh">车费多少？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="15.024" data-end-f="16.896" data-start-m="14.976" data-end-m="16.848"><span class="en">How much is the fare?</span><span class="zh">车费多少？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="16.896" data-end-f="18.768" data-start-m="16.848" data-end-m="18.720"><span class="en">Do you take cards?</span><span class="zh">能刷卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="16.896" data-end-f="18.768" data-start-m="16.848" data-end-m="18.720"><span class="en">Do you take cards?</span><span class="zh">能刷卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="18.768" data-end-f="20.640" data-start-m="18.720" data-end-m="20.592"><span class="en">No change needed.</span><span class="zh">不用找了。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="18.768" data-end-f="20.640" data-start-m="18.720" data-end-m="20.592"><span class="en">No change needed.</span><span class="zh">不用找了。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="20.640" data-end-f="22.512" data-start-m="20.592" data-end-m="22.464"><span class="en">Could I have a receipt?</span><span class="zh">能给我收据吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="20.640" data-end-f="22.512" data-start-m="20.592" data-end-m="22.464"><span class="en">Could I have a receipt?</span><span class="zh">能给我收据吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="24.768" data-end-f="26.640" data-start-m="23.976" data-end-m="25.848"><span class="en">Is Apple Pay okay?</span><span class="zh">Apple Pay 可以吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="26.640" data-end-f="29.112" data-start-m="25.848" data-end-m="28.248"><span class="en">Can you split the fare between two cards?</span><span class="zh">能把车费分到两张卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="29.112" data-end-f="31.104" data-start-m="28.248" data-end-m="30.168"><span class="en">Is the tip included in the fare?</span><span class="zh">小费含在车费里吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="31.104" data-end-f="33.120" data-start-m="30.168" data-end-m="32.208"><span class="en">Could you add a tip to the card payment?</span><span class="zh">能在刷卡时加小费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="33.120" data-end-f="36.480" data-start-m="32.208" data-end-m="35.088"><span class="en">I only have a hundred-dollar bill. Can you break it?</span><span class="zh">我只有一百美元。能找开吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="33.456" data-end-f="37.608" data-start-m="31.128" data-end-m="35.016"><span class="en">The fare on the meter doesn&#x27;t match the app estimate. Can you check it?</span><span class="zh">计价器车费和 App 预估不一致。能查一下吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="37.608" data-end-f="41.208" data-start-m="35.016" data-end-m="38.256"><span class="en">I was charged a cleaning fee, but I didn&#x27;t make a mess.</span><span class="zh">我被收了清洁费，但我没弄脏。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="41.208" data-end-f="43.488" data-start-m="38.256" data-end-m="40.464"><span class="en">Can you email the receipt to my company?</span><span class="zh">能把收据发到我公司邮箱吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="43.488" data-end-f="46.272" data-start-m="40.464" data-end-m="42.984"><span class="en">I need the receipt to show the toll separately.</span><span class="zh">收据需要把过路费单列。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="46.272" data-end-f="49.992" data-start-m="42.984" data-end-m="46.248"><span class="en">The card reader declined my card. Can I pay through the app?</span><span class="zh">刷卡机拒绝了我的卡。能通过 App 支付吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>支付</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="48.960" data-end-f="50.832" data-start-m="46.560" data-end-m="48.432"><span class="en"><mark class="key">Cash</mark> or card?</span><span class="zh">现金还是刷卡？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="50.832" data-end-f="52.704" data-start-m="48.432" data-end-m="50.304"><span class="en"><mark class="key">How would you like to pay</mark>?</span><span class="zh">您想怎么付？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="52.704" data-end-f="54.672" data-start-m="50.304" data-end-m="52.200"><span class="en">The <mark class="key">card reader</mark> is in the back.</span><span class="zh">刷卡机在后面。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="54.672" data-end-f="56.544" data-start-m="52.200" data-end-m="54.072"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Card, please.</span><span class="zh">刷卡，谢谢。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Cash or card? / How would you like to pay? / The card reader is…</p></article><article class="intent"><h3>小费</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="56.544" data-end-f="58.416" data-start-m="54.072" data-end-m="55.944"><span class="en">Would you like to <mark class="key">add a tip</mark>?</span><span class="zh">您要加小费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="58.416" data-end-f="60.744" data-start-m="55.944" data-end-m="58.248"><span class="en">The <mark class="key">total</mark> is twenty-five dollars.</span><span class="zh">一共二十五美元。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="60.744" data-end-f="62.616" data-start-m="58.248" data-end-m="60.120"><span class="en">Do you need a <mark class="key">receipt</mark>?</span><span class="zh">您要收据吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="62.616" data-end-f="64.704" data-start-m="60.120" data-end-m="62.184"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, add 20 percent.</span><span class="zh">好，加 20%。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Would you like to add…? / The total is… / Do you need…?</p></article><article class="intent"><h3>找零</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="64.704" data-end-f="66.576" data-start-m="62.184" data-end-m="64.056"><span class="en">Do you <mark class="key">need change</mark>?</span><span class="zh">您需要找零吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="66.576" data-end-f="68.448" data-start-m="64.056" data-end-m="65.928"><span class="en"><mark class="key">Here&#x27;s your change</mark>.</span><span class="zh">这是您的找零。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="68.448" data-end-f="70.320" data-start-m="65.928" data-end-m="67.800"><span class="en">Do you <mark class="key">want a receipt</mark>?</span><span class="zh">您要收据吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="70.320" data-end-f="72.336" data-start-m="67.800" data-end-m="69.672"><span class="reply-tag">答</span><span class="reply-body"><span class="en">No, keep the change.</span><span class="zh">不用，零钱留着。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Do you need change? / Here&#x27;s your… / Do you want…?</p></article></div></section>
+
+  <div class="level-panel dialogue-panel" data-level="survival"><div class="dialogue">
+
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="26.736" data-end="28.608"><span class="en">How much is the fare?</span><span class="zh">车费多少？</span></button></div>
 
@@ -539,19 +651,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="conversational" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="24.768" data-end-f="26.640" data-start-m="23.976" data-end-m="25.848"><span class="en">Is Apple Pay okay?</span><span class="zh">Apple Pay 可以吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="26.640" data-end-f="29.112" data-start-m="25.848" data-end-m="28.248"><span class="en">Can you split the fare between two cards?</span><span class="zh">能把车费分到两张卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="29.112" data-end-f="31.104" data-start-m="28.248" data-end-m="30.168"><span class="en">Is the tip included in the fare?</span><span class="zh">小费含在车费里吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="31.104" data-end-f="33.120" data-start-m="30.168" data-end-m="32.208"><span class="en">Could you add a tip to the card payment?</span><span class="zh">能在刷卡时加小费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="33.120" data-end-f="36.480" data-start-m="32.208" data-end-m="35.088"><span class="en">I only have a hundred-dollar bill. Can you break it?</span><span class="zh">我只有一百美元。能找开吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="50.616" data-end="52.488"><span class="en">Is Apple Pay okay?</span><span class="zh">Apple Pay 可以吗？</span></button></div>
 
@@ -575,19 +677,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="advanced" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="33.456" data-end-f="37.608" data-start-m="31.128" data-end-m="35.016"><span class="en">The fare on the meter doesn&#x27;t match the app estimate. Can you check it?</span><span class="zh">计价器车费和 App 预估不一致。能查一下吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="37.608" data-end-f="41.208" data-start-m="35.016" data-end-m="38.256"><span class="en">I was charged a cleaning fee, but I didn&#x27;t make a mess.</span><span class="zh">我被收了清洁费，但我没弄脏。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="41.208" data-end-f="43.488" data-start-m="38.256" data-end-m="40.464"><span class="en">Can you email the receipt to my company?</span><span class="zh">能把收据发到我公司邮箱吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="43.488" data-end-f="46.272" data-start-m="40.464" data-end-m="42.984"><span class="en">I need the receipt to show the toll separately.</span><span class="zh">收据需要把过路费单列。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="46.272" data-end-f="49.992" data-start-m="42.984" data-end-m="46.248"><span class="en">The card reader declined my card. Can I pay through the app?</span><span class="zh">刷卡机拒绝了我的卡。能通过 App 支付吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="60.744" data-end="64.632"><span class="en">The fare on the meter doesn&#x27;t match the app estimate. Can you check it?</span><span class="zh">计价器车费和 App 预估不一致。能查一下吗？</span></button></div>
 
@@ -611,23 +703,55 @@
 
   </div></div></div>
 
-  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>支付</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="48.960" data-end-f="50.832" data-start-m="46.560" data-end-m="48.432"><span class="en"><mark class="key">Cash</mark> or card?</span><span class="zh">现金还是刷卡？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="50.832" data-end-f="52.704" data-start-m="48.432" data-end-m="50.304"><span class="en"><mark class="key">How would you like to pay</mark>?</span><span class="zh">您想怎么付？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="52.704" data-end-f="54.672" data-start-m="50.304" data-end-m="52.200"><span class="en">The <mark class="key">card reader</mark> is in the back.</span><span class="zh">刷卡机在后面。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="54.672" data-end-f="56.544" data-start-m="52.200" data-end-m="54.072"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Card, please.</span><span class="zh">刷卡，谢谢。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Cash or card? / How would you like to pay? / The card reader is…</p></article><article class="intent"><h3>小费</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="56.544" data-end-f="58.416" data-start-m="54.072" data-end-m="55.944"><span class="en">Would you like to <mark class="key">add a tip</mark>?</span><span class="zh">您要加小费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="58.416" data-end-f="60.744" data-start-m="55.944" data-end-m="58.248"><span class="en">The <mark class="key">total</mark> is twenty-five dollars.</span><span class="zh">一共二十五美元。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="60.744" data-end-f="62.616" data-start-m="58.248" data-end-m="60.120"><span class="en">Do you need a <mark class="key">receipt</mark>?</span><span class="zh">您要收据吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="62.616" data-end-f="64.704" data-start-m="60.120" data-end-m="62.184"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, add 20 percent.</span><span class="zh">好，加 20%。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Would you like to add…? / The total is… / Do you need…?</p></article><article class="intent"><h3>找零</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="64.704" data-end-f="66.576" data-start-m="62.184" data-end-m="64.056"><span class="en">Do you <mark class="key">need change</mark>?</span><span class="zh">您需要找零吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="66.576" data-end-f="68.448" data-start-m="64.056" data-end-m="65.928"><span class="en"><mark class="key">Here&#x27;s your change</mark>.</span><span class="zh">这是您的找零。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="68.448" data-end-f="70.320" data-start-m="65.928" data-end-m="67.800"><span class="en">Do you <mark class="key">want a receipt</mark>?</span><span class="zh">您要收据吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="70.320" data-end-f="72.336" data-start-m="67.800" data-end-m="69.672"><span class="reply-tag">答</span><span class="reply-body"><span class="en">No, keep the change.</span><span class="zh">不用，零钱留着。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Do you need change? / Here&#x27;s your… / Do you want…?</p></article></div></section>
-
   </section>
 
   <section class="encounter" id="panel-pickup" data-encounter="pickup" hidden><header class="encounter-head"><h2>Rideshare pickup<span class="zh">网约车上车点</span></h2></header>
 
-  <div class="level-panel" data-level="survival"><div class="phrases">
+  <div class="level-panel phrases-panel" data-level="survival"><div class="phrases">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="22.512" data-end-f="24.384" data-start-m="22.464" data-end-m="24.336"><span class="en">Where is the pickup point?</span><span class="zh">上车点在哪里？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="22.512" data-end-f="24.384" data-start-m="22.464" data-end-m="24.336"><span class="en">Where is the pickup point?</span><span class="zh">上车点在哪里？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="24.384" data-end-f="26.400" data-start-m="24.336" data-end-m="26.208"><span class="en">I&#x27;m waiting by the main door.</span><span class="zh">我在正门等。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="24.384" data-end-f="26.400" data-start-m="24.336" data-end-m="26.208"><span class="en">I&#x27;m waiting by the main door.</span><span class="zh">我在正门等。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="26.400" data-end-f="28.272" data-start-m="26.208" data-end-m="28.080"><span class="en">Are you my driver?</span><span class="zh">你是我的司机吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="26.400" data-end-f="28.272" data-start-m="26.208" data-end-m="28.080"><span class="en">Are you my driver?</span><span class="zh">你是我的司机吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="28.272" data-end-f="30.144" data-start-m="28.080" data-end-m="29.952"><span class="en">The app says you&#x27;re here.</span><span class="zh">App 显示你到了。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="28.272" data-end-f="30.144" data-start-m="28.080" data-end-m="29.952"><span class="en">The app says you&#x27;re here.</span><span class="zh">App 显示你到了。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="36.480" data-end-f="40.560" data-start-m="35.088" data-end-m="39.024"><span class="en">The app says the pickup point is on the other side. Can you meet me here?</span><span class="zh">App 说上车点在另一边。你能来这里接我吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="40.560" data-end-f="42.648" data-start-m="39.024" data-end-m="40.896"><span class="en">How do I know which car is yours?</span><span class="zh">我怎么知道哪辆是你的车？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="42.648" data-end-f="46.152" data-start-m="40.896" data-end-m="44.040"><span class="en">Can you wait two minutes? I&#x27;m coming down the elevator.</span><span class="zh">能等两分钟吗？我在下电梯。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="46.152" data-end-f="49.032" data-start-m="44.040" data-end-m="46.440"><span class="en">Is there a surcharge for pickup at the airport?</span><span class="zh">机场上车有附加费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="49.032" data-end-f="51.312" data-start-m="46.440" data-end-m="48.672"><span class="en">Can I change the destination in the app?</span><span class="zh">能在 App 里改目的地吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="49.992" data-end-f="54.648" data-start-m="46.248" data-end-m="50.376"><span class="en">The driver canceled after I waited ten minutes. Can I get a refund?</span><span class="zh">我等了十分钟后司机取消了。能退款吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="54.648" data-end-f="58.728" data-start-m="50.376" data-end-m="54.384"><span class="en">The app shows a different car from the one that arrived. Is that normal?</span><span class="zh">App 显示的车和来的车不一样。这正常吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="58.728" data-end-f="62.352" data-start-m="54.384" data-end-m="57.576"><span class="en">I left my phone in the car. Can you contact the driver?</span><span class="zh">我把手机落在车上了。能联系司机吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="62.352" data-end-f="66.912" data-start-m="57.576" data-end-m="61.824"><span class="en">The route in the app is longer than the one we took. Why was I charged more?</span><span class="zh">App 路线比我们走的更长。为什么多收钱？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="66.912" data-end-f="70.536" data-start-m="61.824" data-end-m="65.328"><span class="en">Can you drop me at the terminal entrance instead of the rideshare lot?</span><span class="zh">能把我放在航站楼入口而不是网约车停车场吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>上车点</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="72.336" data-end-f="74.208" data-start-m="69.672" data-end-m="71.544"><span class="en"><mark class="key">Where are you waiting</mark>?</span><span class="zh">您在哪儿等？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="74.208" data-end-f="76.848" data-start-m="71.544" data-end-m="73.656"><span class="en">I&#x27;m at the <mark class="key">pickup zone</mark> by door 3.</span><span class="zh">我在 3 号门的上车点。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="76.848" data-end-f="78.720" data-start-m="73.656" data-end-m="75.528"><span class="en">Are you the one who <mark class="key">called a ride</mark>?</span><span class="zh">是您叫的车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="78.720" data-end-f="80.904" data-start-m="75.528" data-end-m="77.424"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, I&#x27;m by door 3.</span><span class="zh">是的，我在 3 号门。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Where are you waiting? / I&#x27;m at… / Are you the one…?</p></article><article class="intent"><h3>车型/车牌</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="80.904" data-end-f="82.776" data-start-m="77.424" data-end-m="79.296"><span class="en">What&#x27;s your <mark class="key">license plate</mark>?</span><span class="zh">您的车牌号是多少？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="82.776" data-end-f="84.648" data-start-m="79.296" data-end-m="81.168"><span class="en">I&#x27;m in a <mark class="key">white Toyota</mark>.</span><span class="zh">我开一辆白色丰田。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="84.648" data-end-f="86.520" data-start-m="81.168" data-end-m="83.040"><span class="en">Do you see a <mark class="key">silver SUV</mark>?</span><span class="zh">您看到一辆银色 SUV 了吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="86.520" data-end-f="88.392" data-start-m="83.040" data-end-m="84.912"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Is it the white Toyota?</span><span class="zh">是那辆白色丰田吗？</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>What&#x27;s your license plate? / I&#x27;m in a… / Do you see…?</p></article><article class="intent"><h3>等待/取消</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="88.392" data-end-f="90.264" data-start-m="84.912" data-end-m="86.784"><span class="en">Can you <mark class="key">wait a minute</mark>?</span><span class="zh">能等一分钟吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="90.264" data-end-f="92.136" data-start-m="86.784" data-end-m="88.656"><span class="en">I&#x27;ll be <mark class="key">right there</mark>.</span><span class="zh">我马上到。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="92.136" data-end-f="94.008" data-start-m="88.656" data-end-m="90.528"><span class="en">The <mark class="key">driver is waiting</mark>.</span><span class="zh">司机在等。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="94.008" data-end-f="95.880" data-start-m="90.528" data-end-m="92.400"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I&#x27;ll be right there.</span><span class="zh">我马上到。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Can you wait…? / I&#x27;ll be right there. / The driver is…</p></article></div></section>
+
+  <div class="level-panel dialogue-panel" data-level="survival"><div class="dialogue">
+
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="42.288" data-end="44.160"><span class="en">Hi, are you my driver?</span><span class="zh">你好，你是我的司机吗？</span></button></div>
 
@@ -643,19 +767,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="conversational" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="36.480" data-end-f="40.560" data-start-m="35.088" data-end-m="39.024"><span class="en">The app says the pickup point is on the other side. Can you meet me here?</span><span class="zh">App 说上车点在另一边。你能来这里接我吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="40.560" data-end-f="42.648" data-start-m="39.024" data-end-m="40.896"><span class="en">How do I know which car is yours?</span><span class="zh">我怎么知道哪辆是你的车？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="42.648" data-end-f="46.152" data-start-m="40.896" data-end-m="44.040"><span class="en">Can you wait two minutes? I&#x27;m coming down the elevator.</span><span class="zh">能等两分钟吗？我在下电梯。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="46.152" data-end-f="49.032" data-start-m="44.040" data-end-m="46.440"><span class="en">Is there a surcharge for pickup at the airport?</span><span class="zh">机场上车有附加费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="49.032" data-end-f="51.312" data-start-m="46.440" data-end-m="48.672"><span class="en">Can I change the destination in the app?</span><span class="zh">能在 App 里改目的地吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="74.832" data-end="78.768"><span class="en">The app says the pickup point is on the other side. Can you meet me here?</span><span class="zh">App 说上车点在另一边。你能来这里接我吗？</span></button></div>
 
@@ -679,19 +793,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="advanced" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="49.992" data-end-f="54.648" data-start-m="46.248" data-end-m="50.376"><span class="en">The driver canceled after I waited ten minutes. Can I get a refund?</span><span class="zh">我等了十分钟后司机取消了。能退款吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="54.648" data-end-f="58.728" data-start-m="50.376" data-end-m="54.384"><span class="en">The app shows a different car from the one that arrived. Is that normal?</span><span class="zh">App 显示的车和来的车不一样。这正常吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="58.728" data-end-f="62.352" data-start-m="54.384" data-end-m="57.576"><span class="en">I left my phone in the car. Can you contact the driver?</span><span class="zh">我把手机落在车上了。能联系司机吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="62.352" data-end-f="66.912" data-start-m="57.576" data-end-m="61.824"><span class="en">The route in the app is longer than the one we took. Why was I charged more?</span><span class="zh">App 路线比我们走的更长。为什么多收钱？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="66.912" data-end-f="70.536" data-start-m="61.824" data-end-m="65.328"><span class="en">Can you drop me at the terminal entrance instead of the rideshare lot?</span><span class="zh">能把我放在航站楼入口而不是网约车停车场吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="90.960" data-end="95.088"><span class="en">The driver canceled after I waited ten minutes. Can I get a refund?</span><span class="zh">我等了十分钟后司机取消了。能退款吗？</span></button></div>
 
@@ -715,8 +819,6 @@
 
   </div></div></div>
 
-  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>上车点</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="72.336" data-end-f="74.208" data-start-m="69.672" data-end-m="71.544"><span class="en"><mark class="key">Where are you waiting</mark>?</span><span class="zh">您在哪儿等？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="74.208" data-end-f="76.848" data-start-m="71.544" data-end-m="73.656"><span class="en">I&#x27;m at the <mark class="key">pickup zone</mark> by door 3.</span><span class="zh">我在 3 号门的上车点。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="76.848" data-end-f="78.720" data-start-m="73.656" data-end-m="75.528"><span class="en">Are you the one who <mark class="key">called a ride</mark>?</span><span class="zh">是您叫的车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="78.720" data-end-f="80.904" data-start-m="75.528" data-end-m="77.424"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, I&#x27;m by door 3.</span><span class="zh">是的，我在 3 号门。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Where are you waiting? / I&#x27;m at… / Are you the one…?</p></article><article class="intent"><h3>车型/车牌</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="80.904" data-end-f="82.776" data-start-m="77.424" data-end-m="79.296"><span class="en">What&#x27;s your <mark class="key">license plate</mark>?</span><span class="zh">您的车牌号是多少？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="82.776" data-end-f="84.648" data-start-m="79.296" data-end-m="81.168"><span class="en">I&#x27;m in a <mark class="key">white Toyota</mark>.</span><span class="zh">我开一辆白色丰田。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="84.648" data-end-f="86.520" data-start-m="81.168" data-end-m="83.040"><span class="en">Do you see a <mark class="key">silver SUV</mark>?</span><span class="zh">您看到一辆银色 SUV 了吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="86.520" data-end-f="88.392" data-start-m="83.040" data-end-m="84.912"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Is it the white Toyota?</span><span class="zh">是那辆白色丰田吗？</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>What&#x27;s your license plate? / I&#x27;m in a… / Do you see…?</p></article><article class="intent"><h3>等待/取消</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="88.392" data-end-f="90.264" data-start-m="84.912" data-end-m="86.784"><span class="en">Can you <mark class="key">wait a minute</mark>?</span><span class="zh">能等一分钟吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="90.264" data-end-f="92.136" data-start-m="86.784" data-end-m="88.656"><span class="en">I&#x27;ll be <mark class="key">right there</mark>.</span><span class="zh">我马上到。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="92.136" data-end-f="94.008" data-start-m="88.656" data-end-m="90.528"><span class="en">The <mark class="key">driver is waiting</mark>.</span><span class="zh">司机在等。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="94.008" data-end-f="95.880" data-start-m="90.528" data-end-m="92.400"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I&#x27;ll be right there.</span><span class="zh">我马上到。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Can you wait…? / I&#x27;ll be right there. / The driver is…</p></article></div></section>
-
   </section>
 
   <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/112c4b2e2941.mp3","survival-p-m":"sprites/9b90b4179253.mp3","survival-d":"sprites/1d502325b1e3.mp3","conversational-p-f":"sprites/9bf50422835b.mp3","conversational-p-m":"sprites/556474235fea.mp3","conversational-d":"sprites/a5d6bef64f1d.mp3","advanced-p-f":"sprites/fa2a44308a27.mp3","advanced-p-m":"sprites/f283fe40b80b.mp3","advanced-d":"sprites/5427716fac51.mp3","listen-f":"sprites/0ca9a8c5c8b9.mp3","listen-m":"sprites/baa27cda2af9.mp3"}</script>
@@ -736,8 +838,11 @@
   var hotspots = [].slice.call(document.querySelectorAll('[data-hotspot]'));
   var encounters = [].slice.call(document.querySelectorAll('.encounter'));
   var zhToggle = document.querySelector('[data-zh-toggle]');
-  var speedBtn = document.querySelector('[data-speed]');
-  var playBtn = document.querySelector('[data-play-dialogue]');
+  var zhState = document.querySelector('[data-zh-state]');
+  var speedBtns = [].slice.call(document.querySelectorAll('[data-speed]'));
+  var playBtns = [];
+  var activePlayBtn = null;
+  var toolbar = document.querySelector('.toolbar');
   var statusEl = document.querySelector('[data-status]');
   var audio = new Audio();
   audio.preload = 'none';
@@ -868,13 +973,18 @@
   function applyZh(next, persist) {
     zhOff = !!next;
     body.classList.toggle('zh-off', zhOff);
-    if (zhToggle) zhToggle.setAttribute('aria-pressed', zhOff ? 'false' : 'true');
+    if (zhToggle) {
+      zhToggle.setAttribute('aria-pressed', zhOff ? 'false' : 'true');
+      zhToggle.setAttribute('aria-label', zhOff ? '中文关' : '中文开');
+      zhToggle.classList.toggle('is-off', zhOff);
+    }
+    if (zhState) zhState.textContent = zhOff ? '关' : '开';
     if (persist !== false) save('npesl-zh', zhOff ? '0' : '1');
   }
 
   function applySpeed(next, persist) {
     speed = next;
-    if (speedBtn) speedBtn.textContent = speed + '×';
+    speedBtns.forEach(function (btn) { btn.textContent = speed + '×'; });
     audio.playbackRate = speed;
     if (persist !== false) save('npesl-speed', String(speed));
   }
@@ -889,7 +999,12 @@
     }
     [].forEach.call(document.querySelectorAll('.phrase.on, .line.playing, .say.playing'),
       function (node) { node.classList.remove('on', 'playing'); });
-    if (playBtn) playBtn.setAttribute('aria-pressed', 'false');
+    playBtns.forEach(function (btn) {
+      btn.setAttribute('aria-pressed', 'false');
+      var label = btn.querySelector('[data-play-label]');
+      if (label) label.textContent = '播放对话';
+    });
+    activePlayBtn = null;
   }
 
   function srcFor(url) {
@@ -994,10 +1109,11 @@
   }
 
   function currentPanel() {
-    return document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden])');
+    return document.querySelector(
+      '.encounter:not([hidden]) .dialogue-panel:not([hidden])');
   }
 
-  function playDialogue() {
+  function playDialogue(btn) {
     if (seqRunning) { stopAudio(); return; }
     var panel = currentPanel();
     if (!panel) return;
@@ -1006,25 +1122,35 @@
     stopAudio();
     var token = playToken;
     seqRunning = true;
-    if (playBtn) playBtn.setAttribute('aria-pressed', 'true');
+    activePlayBtn = btn || null;
+    if (activePlayBtn) {
+      activePlayBtn.setAttribute('aria-pressed', 'true');
+      var label = activePlayBtn.querySelector('[data-play-label]');
+      if (label) label.textContent = '停止';
+    }
     var index = 0;
     function next() {
       if (token !== playToken || index >= lines.length) {
         if (token === playToken) {
           seqRunning = false;
-          if (playBtn) playBtn.setAttribute('aria-pressed', 'false');
+          if (activePlayBtn) {
+            activePlayBtn.setAttribute('aria-pressed', 'false');
+            var done = activePlayBtn.querySelector('[data-play-label]');
+            if (done) done.textContent = '播放对话';
+          }
+          activePlayBtn = null;
         }
         return;
       }
       var line = lines[index++];
-      var btn = line.querySelector('.say');
-      if (!btn) return next();
-      var start = parseFloat(btn.getAttribute('data-start'));
-      var end = parseFloat(btn.getAttribute('data-end'));
+      var say = line.querySelector('.say');
+      if (!say) return next();
+      var start = parseFloat(say.getAttribute('data-start'));
+      var end = parseFloat(say.getAttribute('data-end'));
       if (line.scrollIntoView) {
         try { line.scrollIntoView({ block: 'nearest' }); } catch (e) {}
       }
-      playSprite(level + '-d', start, end, btn, token).then(function () {
+      playSprite(level + '-d', start, end, say, token).then(function () {
         if (token !== playToken) return;
         next();
       });
@@ -1065,9 +1191,18 @@
       return;
     }
     if (event.target.closest('[data-play-dialogue]')) {
-      playDialogue();
+      playDialogue(event.target.closest('[data-play-dialogue]'));
     }
   });
+
+  playBtns = [].slice.call(document.querySelectorAll('[data-play-dialogue]'));
+  function syncToolbar() {
+    if (toolbar) toolbar.classList.toggle('is-stuck',
+      toolbar.getBoundingClientRect().top <= 0);
+  }
+  window.addEventListener('scroll', syncToolbar, { passive: true });
+  window.addEventListener('resize', syncToolbar);
+  syncToolbar();
 
   applyVoice(voice, false);
   applyView(view, false);

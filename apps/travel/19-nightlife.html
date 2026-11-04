@@ -8,7 +8,7 @@
   :root {
     --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
     --surface:#f5f5f7; --surface-strong:#e8e8ed;
-    --blue:#0071e3; --blue-tint:#e8f2ff; --on-blue:#ffffff;
+    --blue:#0071e3; --blue-hover:#0077ed; --blue-tint:#e8f2ff; --on-blue:#ffffff;
     --radius-card:24px; --radius-control:12px; --radius-pill:999px;
     --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
       "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
@@ -17,7 +17,7 @@
   @media (prefers-color-scheme: dark) {
     :root { --bg:#000000; --fg:#f5f5f7; --muted:#98989d; --rule:#38383a;
       --surface:#1c1c1e; --surface-strong:#2c2c2e;
-      --blue:#2997ff; --blue-tint:#102a43; --on-blue:#06131f;
+      --blue:#2997ff; --blue-hover:#40a9ff; --blue-tint:#102a43; --on-blue:#06131f;
       color-scheme:dark; }
   }
   * { box-sizing:border-box; }
@@ -26,60 +26,84 @@
     -webkit-font-smoothing:antialiased; }
   .page { max-width:760px; margin:0 auto;
     padding:clamp(40px,7vh,72px) 24px 96px; }
-  .back { display:inline-block; margin-bottom:16px; color:var(--muted);
-    text-decoration:none; font-size:14px; }
-  .back:hover { color:var(--blue); }
+  .back { display:inline-flex; align-items:center; gap:6px; margin:0 0 18px;
+    padding:7px 13px; border:1px solid var(--rule); border-radius:999px;
+    background:var(--surface); color:var(--fg); text-decoration:none;
+    font-size:13px; font-weight:600;
+    transition:background-color .15s ease; }
+  .back:hover { background:var(--surface-strong); color:var(--fg); }
+  .back svg { width:14px; height:14px; flex:none; }
   .stage { margin:0 0 8px; color:var(--muted); font-size:12px;
     letter-spacing:.1em; text-transform:uppercase; }
   h1 { margin:0; font-size:clamp(2rem,6vw,2.8rem); font-weight:700;
     letter-spacing:-.03em; line-height:1.08; }
   .zh-title { margin:7px 0 0; color:var(--muted); font-size:17px; }
-  .toolbar { display:flex; flex-wrap:wrap; align-items:center;
-    justify-content:space-between; gap:10px; margin:20px 0 0; }
+  .toolbar { position:sticky; top:0; z-index:30; display:flex; flex-wrap:wrap;
+    align-items:center; justify-content:space-between; gap:10px;
+    margin:20px -24px 0; padding:10px 24px;
+    background:var(--bg);
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter:blur(14px) saturate(1.4);
+    backdrop-filter:blur(14px) saturate(1.4);
+    border-bottom:1px solid transparent;
+    transition:border-color .15s ease; }
+  .toolbar.is-stuck { border-bottom-color:var(--rule); }
   .level { display:flex; flex-wrap:wrap; gap:6px; }
-  .level button, .zh-toggle, .voice-seg button, .pill {
+  .level button, .pill {
     appearance:none; font:inherit; font-size:14px; padding:8px 14px;
     border:1px solid var(--rule); border-radius:var(--radius-pill,999px);
     background:transparent; color:var(--fg); cursor:pointer; }
-  .level button:hover, .zh-toggle:hover, .voice-seg button:hover, .pill:hover {
-    background:var(--surface); }
-  .level button[aria-pressed="true"], .zh-toggle[aria-pressed="true"],
-  .voice-seg button[aria-pressed="true"], .pill[aria-pressed="true"] {
+  .level button:hover, .pill:hover { background:var(--surface); }
+  .level button[aria-pressed="true"], .pill[aria-pressed="true"] {
     background:var(--blue); border-color:var(--blue); color:var(--on-blue); }
   .tools { display:flex; align-items:center; gap:8px; }
-  .voice-seg { display:inline-flex; align-items:center; padding:3px;
-    border:1px solid var(--rule); border-radius:var(--radius-pill,999px); }
-  .voice-seg button { border:0; padding:6px 13px; }
-  .zh-toggle { padding:7px 13px; }
-  .map-card { margin:18px 0 0; padding:10px; border:1px solid var(--rule);
-    border-radius:var(--radius-card,24px); background:var(--bg); }
+  .seg { display:inline-flex; align-items:center; padding:3px;
+    border-radius:var(--radius-pill,999px); background:var(--surface); }
+  .seg button { border:0; background:transparent; color:var(--muted);
+    font:inherit; font-size:13px; font-weight:600; padding:6px 13px;
+    border-radius:var(--radius-pill,999px); cursor:pointer;
+    transition:background-color .15s ease, color .15s ease; }
+  .seg button[aria-pressed="true"] { background:var(--bg); color:var(--fg); }
+  .zh-toggle { display:inline-flex; align-items:center; justify-content:center;
+    gap:6px; min-width:96px; height:35px; padding:0 12px;
+    border:1px solid var(--rule); border-radius:999px;
+    background:var(--surface); color:var(--fg);
+    font:inherit; font-size:13px; font-weight:650; cursor:pointer;
+    transition:background-color .15s ease, color .15s ease; }
+  .zh-toggle:hover { background:var(--surface-strong); }
+  .zh-toggle .zh-icon { color:var(--blue); font-size:12px; font-weight:700; }
+  .zh-toggle .zh-state { color:var(--muted); font-weight:600; }
+  .zh-toggle.is-off { color:var(--muted); }
+  .zh-toggle.is-off .zh-icon { color:var(--muted); }
+  .map-card { margin:18px 0 0; }
   .map-wrap { position:relative; width:100%; aspect-ratio:640 / 400;
     min-height:220px; }
   .map-stage { position:absolute; inset:0; }
-  .map-svg { display:block; width:100%; height:100%; }
   .map-svg { display:block; width:100%; height:100%;
-    --map-floor:light-dark(#f3f3f6,#1c262b);
-    --map-floor-2:light-dark(#e9e9ee,#232f35);
-    --map-floor-3:light-dark(#fafafb,#182024);
-    --map-top:light-dark(#e4e4ea,#35434a);
-    --map-top-2:light-dark(#d6d6de,#415159);
-    --map-side:light-dark(#c9c9d2,#1f292e);
-    --map-side-2:light-dark(#b4b4bf,#151c20);
-    --map-edge:light-dark(rgba(20,24,30,.12),rgba(238,243,244,.14));
-    --map-wall:light-dark(rgba(20,24,30,.22),rgba(238,243,244,.22)); }
-  .map-plate { fill:var(--bg); stroke:var(--map-wall); }
-  .map-plate-inner { fill:none; stroke:var(--map-edge); stroke-width:1; }
-  .map-dot-field { opacity:.5; }
+    --map-floor:light-dark(#f2f4f7,#1d262b);
+    --map-base:light-dark(#eef0f4,#151c20);
+    --map-floor-2:light-dark(#e9ecf1,#232e34);
+    --map-floor-3:light-dark(#fbfbfd,#182024);
+    --map-top:light-dark(#e6e9ef,#3f4f59);
+    --map-top-2:light-dark(#d7dbe3,#50626d);
+    --map-side:light-dark(#c9ced8,#2b3a42);
+    --map-side-2:light-dark(#b7bdc9,#1f2a30);
+    --map-wall-top:light-dark(#e1e5eb,#4d5f6a);
+    --map-edge:light-dark(rgba(20,24,30,.14),rgba(238,243,244,.16));
+    --map-shadow:light-dark(rgba(20,24,30,.18),rgba(0,0,0,.42)); }
+  .map-plate { fill:var(--map-base); stroke:var(--map-edge); stroke-width:1; }
+  .map-dot-field { opacity:.45; }
   .map-dot { fill:var(--map-edge); }
-  .map-wall { fill:none; stroke:var(--map-wall); stroke-width:2; }
   .map-zone-shape { stroke:var(--map-edge); stroke-width:1;
-    transition:fill .15s ease, stroke .15s ease; }
+    stroke-opacity:.55; }
   .map-zone-shape.tone-1 { fill:var(--map-floor); }
   .map-zone-shape.tone-2 { fill:var(--map-floor-2); }
   .map-zone-shape.tone-3 { fill:var(--map-floor-3); }
-  .map-zone-label { fill:var(--muted); font:600 10px var(--font);
-    letter-spacing:.11em; }
-  .map-zone-dot { fill:var(--blue); opacity:.75; }
+  .map-zone-label { fill:var(--muted); font:600 10.5px var(--font);
+    letter-spacing:.1em; paint-order:stroke; stroke:var(--map-base);
+    stroke-width:3px; }
+  .map-zone-dot { fill:var(--blue); opacity:.7; }
+  .map-furniture { filter:drop-shadow(0 .8px 1px var(--map-shadow)); }
   .map-fixture { fill:none; stroke:var(--muted); stroke-width:1.4; }
   .map-fixture-line { fill:none; stroke:var(--muted); stroke-width:1; }
   .map-fixture-soft { fill:var(--map-floor-2); stroke:var(--map-edge);
@@ -95,7 +119,8 @@
   .map-person { fill:var(--muted); }
   .map-pin, .map-flag { fill:var(--blue); }
   .map-route { fill:none; stroke:var(--blue); stroke-width:1.5;
-    stroke-dasharray:5 7; opacity:.45; }
+    stroke-dasharray:5 7; stroke-linecap:round; stroke-linejoin:round;
+    opacity:.5; }
   .map-arrow { fill:var(--blue); }
   .map-street-dash, .map-queue-line, .map-tactile { fill:none;
     stroke:var(--muted); stroke-width:1; stroke-dasharray:5 7; opacity:.55; }
@@ -127,15 +152,14 @@
   .map-3d-top.tone-3 { fill:var(--map-side); }
   .map-3d-side { fill:var(--map-side); }
   .map-3d-side-2 { fill:var(--map-side-2); }
-  .map-3d-label { fill:var(--muted); font:600 10px var(--font);
-    letter-spacing:.08em; paint-order:stroke; stroke:var(--bg);
-    stroke-width:3px; }
+  .map-3d-wall-top { fill:var(--map-wall-top); }
+  .map-3d-wall-side { fill:var(--map-side); }
+  .map-3d-wall-side-2 { fill:var(--map-side-2); }
   .map-zone.is-active .map-zone-shape { fill:var(--blue);
-    fill-opacity:.14; stroke:var(--blue); stroke-width:1.8; }
+    fill-opacity:.13; stroke:var(--blue); stroke-width:1.4; }
   .map-zone.is-active .map-zone-label { fill:var(--blue); }
   .map-zone.is-active .map-3d-floor { fill:var(--blue);
-    fill-opacity:.24; stroke:var(--blue); stroke-width:1.6; }
-  .map-zone.is-active .map-3d-label { fill:var(--blue); }
+    fill-opacity:.26; stroke:var(--blue); stroke-width:1.4; }
   .hotspot { position:absolute; left:var(--x2d); top:var(--y2d);
     transform:translate(-50%,-50%); display:flex; align-items:center;
     gap:7px; min-height:32px; padding:4px 10px 4px 4px;
@@ -153,11 +177,13 @@
   .hotspot .hs-zh { font-size:10px; color:var(--muted); }
   .hotspot:hover { background:var(--surface); }
   .hotspot[aria-pressed="true"] { border-color:var(--blue);
-    box-shadow:0 0 0 2px var(--blue-tint), 0 6px 18px rgba(0,0,0,.12); }
+    background:var(--blue-tint);
+    box-shadow:0 4px 14px rgba(0,0,0,.14); }
   .hotspot[aria-pressed="true"] .hs-zh { color:var(--muted); }
   .hotspot:focus-visible, .level button:focus-visible, .zh-toggle:focus-visible,
-  .voice-seg button:focus-visible, .pill:focus-visible, .phrase:focus-visible,
-  .line .say:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+  .seg button:focus-visible, .pill:focus-visible, .phrase:focus-visible,
+  .play-all:focus-visible, .line .say:focus-visible {
+    outline:2px solid var(--blue); outline-offset:2px; }
   .encounter { margin:30px 0 0; }
   .encounter-head h2 { margin:0 0 14px; font-size:1.3rem; font-weight:650;
     letter-spacing:-.01em; }
@@ -176,17 +202,41 @@
     font-size:12px; line-height:1.5; }
   .play { position:absolute; right:12px; top:50%; transform:translateY(-50%);
     display:flex; align-items:center; justify-content:center;
-    width:22px; height:22px; border:1px solid var(--rule); border-radius:50%;
-    color:var(--muted); font-size:9px; }
-  .play svg { display:block; }
+    width:18px; height:18px; border:1px solid var(--rule); border-radius:50%;
+    background:var(--bg); color:var(--muted); }
+  .play svg { display:block; width:8px; height:8px; margin-left:1px; }
+  .play .bars { display:none; align-items:flex-end; gap:2px; height:9px; }
+  .play .bars i { display:block; width:2px; height:4px; border-radius:1px;
+    background:currentColor; animation:eq .9s ease-in-out infinite; }
+  .play .bars i:nth-child(2) { animation-delay:.15s; }
+  .play .bars i:nth-child(3) { animation-delay:.3s; }
+  .phrase.on .play, .ask.on .play, .reply.on .play {
+    background:var(--blue); border-color:var(--blue); color:var(--on-blue); }
+  .phrase.on .play svg, .ask.on .play svg, .reply.on .play svg {
+    display:none; }
+  .phrase.on .play .bars, .ask.on .play .bars, .reply.on .play .bars {
+    display:inline-flex; }
+  @keyframes eq {
+    0%,100% { height:3px; }
+    50% { height:9px; }
+  }
   .phrase.on { border-color:var(--blue); }
-  .phrase.on .play { background:var(--blue); border-color:var(--blue);
-    color:var(--on-blue); }
   .dialogue { margin:24px 0 0; }
   .dialogue-tools { display:flex; flex-wrap:wrap; align-items:center;
     gap:8px; margin-bottom:12px; }
   .dialogue-tools .pill { padding:7px 13px; font-size:13px; }
-  .turns { display:flex; flex-direction:column; gap:9px; }
+  .play-all { display:inline-flex; align-items:center; gap:7px;
+    border:1px solid transparent; background:var(--blue); color:var(--on-blue);
+    font:inherit; font-size:13.5px; font-weight:650; padding:7px 14px;
+    border-radius:999px; cursor:pointer;
+    transition:background-color .15s ease, color .15s ease; }
+  .play-all:hover { background:var(--blue-hover); }
+  .play-all svg { width:15px; height:15px; fill:currentColor; flex:none; }
+  .play-all .stop-icon { display:none; }
+  .play-all[aria-pressed="true"] { background:var(--surface-strong);
+    color:var(--fg); }
+  .play-all[aria-pressed="true"] .play-icon { display:none; }
+  .play-all[aria-pressed="true"] .stop-icon { display:inline; }  .turns { display:flex; flex-direction:column; gap:9px; }
   .line { display:grid; grid-template-columns:52px minmax(0,1fr); gap:8px;
     align-items:start; }
   .who { padding-top:11px; color:var(--muted); font-size:12px; text-align:right;
@@ -199,8 +249,9 @@
   .line .say .en { display:block; font-size:15px; line-height:1.45; }
   .line .say .zh { display:block; margin-top:2px; color:var(--muted);
     font-size:12px; }
-  .line.playing .say { border-color:var(--blue); }
-  .listening { margin:36px 0 0; }
+  .line.playing .say { border-color:var(--blue);
+    background:var(--blue-tint); }
+  .listening { margin:28px 0 0; }
   .listening h2 { margin:0 0 14px; font-size:1.3rem; font-weight:650;
     letter-spacing:-.01em; }
   .intents { display:flex; flex-direction:column; gap:12px; }
@@ -218,8 +269,6 @@
   .ask .zh { display:block; margin-top:2px; color:var(--muted);
     font-size:12px; }
   .ask.on, .reply.on { border-color:var(--blue); }
-  .ask.on .play, .reply.on .play { background:var(--blue);
-    border-color:var(--blue); color:var(--on-blue); }
   .key { background:none; color:var(--blue); font-weight:650; }
   .reply { position:relative; width:100%; display:flex; align-items:flex-start;
     gap:10px; margin-top:9px; padding:10px 38px 10px 11px;
@@ -246,8 +295,12 @@
     overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   @media (max-width:480px) {
     .page { padding-left:16px; padding-right:16px; }
-    .toolbar { align-items:flex-start; }
+    .toolbar { align-items:flex-start; margin-left:-16px; margin-right:-16px;
+      padding-left:16px; padding-right:16px; }
+    .tools { gap:6px; }
     .level button { padding:7px 11px; font-size:13px; }
+    .seg button { padding:6px 11px; font-size:12.5px; }
+    .zh-toggle { min-width:88px; height:33px; padding:0 10px; font-size:12.5px; }
     .hotspot { font-size:11px; padding:3px 8px 3px 3px; gap:5px; }
     .hs-num { width:20px; height:20px; font-size:10px; }
     .hotspot .hs-zh { display:none; }
@@ -261,7 +314,7 @@
 </head>
 <body data-default-level="survival">
 <main class="page">
-  <a class="back" href="index.html">‹ 旅行英语</a>
+  <a class="back" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>旅行英语</a>
   <header>
     <p class="stage">玩与社交 · Out &amp; about</p>
     <h1>Bars &amp; nightlife</h1>
@@ -275,42 +328,77 @@
       <button type="button" data-level="advanced" aria-pressed="false">Advanced</button>
     </div>
     <div class="tools">
-      <div class="voice-seg view-seg" role="group" aria-label="地图视图">
+      <div class="seg" role="group" aria-label="地图视图">
         <button type="button" data-view="2d" aria-pressed="true">2D</button>
         <button type="button" data-view="3d" aria-pressed="false">3D</button>
       </div>
-      <div class="voice-seg" role="group" aria-label="短语音色">
-        <button type="button" data-voice="f" aria-pressed="true">女</button>
-        <button type="button" data-voice="m" aria-pressed="false">男</button>
+      <div class="seg" role="group" aria-label="短语音色">
+        <button type="button" data-voice="f" aria-pressed="true">女声</button>
+        <button type="button" data-voice="m" aria-pressed="false">男声</button>
       </div>
-      <button class="zh-toggle" type="button" data-zh-toggle aria-pressed="true">中文</button>
+      <button class="zh-toggle" type="button" data-zh-toggle aria-pressed="true"
+        aria-label="中文开"><span class="zh-icon">中</span><span data-zh-label>中文</span><span class="zh-state" data-zh-state>开</span></button>
     </div>
   </div>
 
   <figure class="card map-card" role="group" aria-label="场景平面图">
     <div class="map-wrap">
-      <div class="map-stage" data-map-view="2d"><svg class="map-svg map-svg-2d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><pattern id="mapDots2d" width="18" height="18" patternUnits="userSpaceOnUse"><circle class="map-dot" cx="1" cy="1" r=".9"/></pattern><clipPath id="mapClip2d"><rect x="16" y="16" width="608" height="368" rx="16"/></clipPath></defs><rect class="map-plate" x="8" y="8" width="624" height="384" rx="18"/><rect class="map-plate-inner" x="16" y="16" width="608" height="368" rx="16"/><rect class="map-dot-field" x="16" y="16" width="608" height="368" fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/><g class="map-zone" data-zone="bar"><rect class="map-zone-shape tone-1" x="36" y="44" width="240" height="140" rx="8"/></g><g class="map-zone" data-zone="tables"><rect class="map-zone-shape tone-2" x="296" y="44" width="308" height="180" rx="8"/></g><g class="map-zone" data-zone="stage"><rect class="map-zone-shape tone-3" x="36" y="204" width="240" height="152" rx="8"/></g><g class="map-zone" data-zone="door"><rect class="map-zone-shape tone-2" x="296" y="244" width="308" height="112" rx="8"/></g><rect class="map-wall" x="15.5" y="15.5" width="609" height="369" rx="16"/><rect class="map-fixture map-counter" x="52.0" y="64.0" width="208.0" height="18.0" rx="6"/><circle class="map-fixture map-stool" cx="86.7" cy="92.0" r="6.0"/><circle class="map-fixture map-stool" cx="121.3" cy="92.0" r="6.0"/><circle class="map-fixture map-stool" cx="156.0" cy="92.0" r="6.0"/><circle class="map-fixture map-stool" cx="190.7" cy="92.0" r="6.0"/><circle class="map-fixture map-stool" cx="225.3" cy="92.0" r="6.0"/><circle class="map-fixture map-table" cx="336.0" cy="92.0" r="26.0"/><circle class="map-fixture map-seat" cx="302.0" cy="92.0" r="7.0"/><circle class="map-fixture map-seat" cx="370.0" cy="92.0" r="7.0"/><circle class="map-fixture map-seat" cx="336.0" cy="58.0" r="7.0"/><circle class="map-fixture map-seat" cx="336.0" cy="126.0" r="7.0"/><circle class="map-fixture map-table" cx="444.0" cy="92.0" r="26.0"/><circle class="map-fixture map-seat" cx="410.0" cy="92.0" r="7.0"/><circle class="map-fixture map-seat" cx="478.0" cy="92.0" r="7.0"/><circle class="map-fixture map-seat" cx="444.0" cy="58.0" r="7.0"/><circle class="map-fixture map-seat" cx="444.0" cy="126.0" r="7.0"/><circle class="map-fixture map-table" cx="336.0" cy="164.0" r="26.0"/><circle class="map-fixture map-seat" cx="302.0" cy="164.0" r="7.0"/><circle class="map-fixture map-seat" cx="370.0" cy="164.0" r="7.0"/><circle class="map-fixture map-seat" cx="336.0" cy="130.0" r="7.0"/><circle class="map-fixture map-seat" cx="336.0" cy="198.0" r="7.0"/><rect class="map-fixture map-fixture-soft" x="540.0" y="264.0" width="44.0" height="70.0" rx="4"/><path class="map-fixture-line" d="M540.0 334.0 Q584.0 334.0 584.0 264.0"/><path class="map-door-leaf" d="M540.0 334.0 L544.0 334.0"/><path class="map-route" d="M156.0 114.0 L450.0 134.0 L156.0 280.0"/><g class="map-zone" data-zone="bar"><circle class="map-zone-dot" cx="48.0" cy="171.0" r="2.2"/><text class="map-zone-label" x="55.0" y="175.0">BAR</text></g><g class="map-zone" data-zone="tables"><circle class="map-zone-dot" cx="308.0" cy="211.0" r="2.2"/><text class="map-zone-label" x="315.0" y="215.0">TABLES</text></g><g class="map-zone" data-zone="stage"><circle class="map-zone-dot" cx="48.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="55.0" y="347.0">STAGE</text></g><g class="map-zone" data-zone="door"><circle class="map-zone-dot" cx="308.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="315.0" y="347.0">DOOR</text></g></svg></div>
-      <div class="map-stage" data-map-view="3d" hidden><svg class="map-svg map-svg-3d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><filter id="mapShadow3d" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity=".16"/></filter></defs><g filter="url(#mapShadow3d)"><polygon class="map-3d-slab-side" points="620.2,248.7 389.3,382.0 389.3,391.3 620.2,258.0"/><polygon class="map-3d-slab-side" points="19.8,168.7 389.3,382.0 389.3,391.3 19.8,178.0"/><polygon class="map-3d-slab" points="250.7,35.3 620.2,248.7 389.3,382.0 19.8,168.7"/></g><g class="map-zone" data-zone="bar"><polygon class="map-3d-floor tone-0" points="246.1,61.7 384.7,141.7 303.8,188.4 165.3,108.4"/></g><g class="map-zone" data-zone="tables"><polygon class="map-3d-floor tone-1" points="396.2,148.4 574.0,251.1 470.1,311.1 292.3,208.4"/></g><g class="map-zone" data-zone="stage"><polygon class="map-3d-floor tone-2" points="153.7,115.1 292.3,195.1 204.5,245.7 66.0,165.7"/></g><g class="map-zone" data-zone="door"><polygon class="map-3d-floor tone-1" points="280.7,215.1 458.6,317.7 393.9,355.1 216.1,252.4"/></g><polygon class="map-3d-top tone-1" points="243.8,64.7 363.9,134.0 353.5,140.0 233.4,70.7"/><polygon class="map-3d-side" points="363.9,134.0 353.5,140.0 353.5,149.3 363.9,143.3"/><polygon class="map-3d-side-2" points="233.4,70.7 353.5,140.0 353.5,149.3 233.4,80.0"/><polygon class="map-3d-top tone-1" points="372.5,157.7 380.6,162.3 372.5,167.0 364.5,162.3"/><polygon class="map-3d-side" points="380.6,162.3 372.5,167.0 372.5,171.7 380.6,167.0"/><polygon class="map-3d-side-2" points="364.5,162.3 372.5,167.0 372.5,171.7 364.5,167.0"/><polygon class="map-3d-top tone-1" points="410.6,157.7 418.7,162.3 410.6,167.0 402.6,162.3"/><polygon class="map-3d-side" points="418.7,162.3 410.6,167.0 410.6,171.7 418.7,167.0"/><polygon class="map-3d-side-2" points="402.6,162.3 410.6,167.0 410.6,171.7 402.6,167.0"/><polygon class="map-3d-top tone-1" points="153.7,120.7 269.2,187.3 238.0,205.3 122.5,138.7"/><polygon class="map-3d-side" points="269.2,187.3 238.0,205.3 238.0,213.3 269.2,195.3"/><polygon class="map-3d-side-2" points="122.5,138.7 238.0,205.3 238.0,213.3 122.5,146.7"/><polygon class="map-3d-top tone-2" points="391.6,161.8 408.1,171.3 391.6,180.9 375.1,171.3"/><polygon class="map-3d-side" points="408.1,171.3 391.6,180.9 391.6,187.5 408.1,178.0"/><polygon class="map-3d-side-2" points="375.1,171.3 391.6,180.9 391.6,187.5 375.1,178.0"/><polygon class="map-3d-top tone-1" points="410.6,179.7 418.7,184.3 410.6,189.0 402.6,184.3"/><polygon class="map-3d-side" points="418.7,184.3 410.6,189.0 410.6,193.7 418.7,189.0"/><polygon class="map-3d-side-2" points="402.6,184.3 410.6,189.0 410.6,193.7 402.6,189.0"/><polygon class="map-3d-top tone-1" points="372.5,179.7 380.6,184.3 372.5,189.0 364.5,184.3"/><polygon class="map-3d-side" points="380.6,184.3 372.5,189.0 372.5,193.7 380.6,189.0"/><polygon class="map-3d-side-2" points="364.5,184.3 372.5,189.0 372.5,193.7 364.5,189.0"/><polygon class="map-3d-top tone-1" points="331.0,181.7 339.1,186.3 331.0,191.0 322.9,186.3"/><polygon class="map-3d-side" points="339.1,186.3 331.0,191.0 331.0,195.7 339.1,191.0"/><polygon class="map-3d-side-2" points="322.9,186.3 331.0,191.0 331.0,195.7 322.9,191.0"/><polygon class="map-3d-top tone-1" points="369.1,181.7 377.2,186.3 369.1,191.0 361.0,186.3"/><polygon class="map-3d-side" points="377.2,186.3 369.1,191.0 369.1,195.7 377.2,191.0"/><polygon class="map-3d-side-2" points="361.0,186.3 369.1,191.0 369.1,195.7 361.0,191.0"/><polygon class="map-3d-top tone-2" points="350.0,185.8 366.5,195.3 350.0,204.9 333.5,195.3"/><polygon class="map-3d-side" points="366.5,195.3 350.0,204.9 350.0,211.5 366.5,202.0"/><polygon class="map-3d-side-2" points="333.5,195.3 350.0,204.9 350.0,211.5 333.5,202.0"/><polygon class="map-3d-top tone-1" points="434.9,193.7 443.0,198.3 434.9,203.0 426.8,198.3"/><polygon class="map-3d-side" points="443.0,198.3 434.9,203.0 434.9,207.7 443.0,203.0"/><polygon class="map-3d-side-2" points="426.8,198.3 434.9,203.0 434.9,207.7 426.8,203.0"/><polygon class="map-3d-top tone-1" points="473.0,193.7 481.1,198.3 473.0,203.0 464.9,198.3"/><polygon class="map-3d-side" points="481.1,198.3 473.0,203.0 473.0,207.7 481.1,203.0"/><polygon class="map-3d-side-2" points="464.9,198.3 473.0,203.0 473.0,207.7 464.9,203.0"/><polygon class="map-3d-top tone-1" points="369.1,203.7 377.2,208.3 369.1,213.0 361.0,208.3"/><polygon class="map-3d-side" points="377.2,208.3 369.1,213.0 369.1,217.7 377.2,213.0"/><polygon class="map-3d-side-2" points="361.0,208.3 369.1,213.0 369.1,217.7 361.0,213.0"/><polygon class="map-3d-top tone-1" points="331.0,203.7 339.1,208.3 331.0,213.0 322.9,208.3"/><polygon class="map-3d-side" points="339.1,208.3 331.0,213.0 331.0,217.7 339.1,213.0"/><polygon class="map-3d-side-2" points="322.9,208.3 331.0,213.0 331.0,217.7 322.9,213.0"/><polygon class="map-3d-top tone-2" points="453.9,197.8 470.5,207.3 453.9,216.9 437.4,207.3"/><polygon class="map-3d-side" points="470.5,207.3 453.9,216.9 453.9,223.5 470.5,214.0"/><polygon class="map-3d-side-2" points="437.4,207.3 453.9,216.9 453.9,223.5 437.4,214.0"/><polygon class="map-3d-top tone-1" points="473.0,215.7 481.1,220.3 473.0,225.0 464.9,220.3"/><polygon class="map-3d-side" points="481.1,220.3 473.0,225.0 473.0,229.7 481.1,225.0"/><polygon class="map-3d-side-2" points="464.9,220.3 473.0,225.0 473.0,229.7 464.9,225.0"/><polygon class="map-3d-top tone-1" points="434.9,215.7 443.0,220.3 434.9,225.0 426.8,220.3"/><polygon class="map-3d-side" points="443.0,220.3 434.9,225.0 434.9,229.7 443.0,225.0"/><polygon class="map-3d-side-2" points="426.8,220.3 434.9,225.0 434.9,229.7 426.8,225.0"/><g class="map-zone" data-zone="bar"><text class="map-3d-label" x="176.2" y="108.6">BAR</text></g><g class="map-zone" data-zone="tables"><text class="map-3d-label" x="303.3" y="208.6">TABLES</text></g><g class="map-zone" data-zone="stage"><text class="map-3d-label" x="76.9" y="165.9">STAGE</text></g><g class="map-zone" data-zone="door"><text class="map-3d-label" x="227.0" y="252.6">DOOR</text></g></svg></div>
-      <button class="hotspot" type="button" style="--x2d:24.38%;--y2d:28.5%;--x3d:42.96%;--y3d:31.33%" data-hotspot="drink" data-zone="bar" data-encounter="drink" aria-pressed="true" aria-controls="panel-drink"><span class="hs-num">1</span><span class="hs-text"><span class="hs-en">Drinks</span><span class="hs-zh">点酒</span></span></button>
-      <button class="hotspot" type="button" style="--x2d:70.31%;--y2d:33.5%;--x3d:67.68%;--y3d:57.5%" data-hotspot="chat" data-zone="tables" data-encounter="chat" aria-pressed="false" aria-controls="panel-chat"><span class="hs-num">2</span><span class="hs-text"><span class="hs-en">Chat</span><span class="hs-zh">加入聊天</span></span></button>
-      <button class="hotspot" type="button" style="--x2d:24.38%;--y2d:70.0%;--x3d:27.99%;--y3d:45.17%" data-hotspot="cover" data-zone="stage" data-encounter="cover" aria-pressed="false" aria-controls="panel-cover"><span class="hs-num">3</span><span class="hs-text"><span class="hs-en">Cover</span><span class="hs-zh">演出</span></span></button>
+      <div class="map-stage" data-map-view="2d"><svg class="map-svg map-svg-2d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><pattern id="mapDots2d" width="18" height="18" patternUnits="userSpaceOnUse"><circle class="map-dot" cx="1" cy="1" r=".9"/></pattern><clipPath id="mapClip2d"><rect x="4" y="4" width="632" height="392" rx="22"/></clipPath></defs><rect class="map-plate" x="4" y="4" width="632" height="392" rx="22"/><rect class="map-dot-field" x="4" y="4" width="632" height="392" fill="url(#mapDots2d)" clip-path="url(#mapClip2d)"/><g class="map-zone" data-zone="bar"><rect class="map-zone-shape tone-1" x="36" y="44" width="240" height="140" rx="2"/></g><g class="map-zone" data-zone="tables"><rect class="map-zone-shape tone-2" x="296" y="44" width="308" height="180" rx="2"/></g><g class="map-zone" data-zone="stage"><rect class="map-zone-shape tone-3" x="36" y="204" width="240" height="152" rx="2"/></g><g class="map-zone" data-zone="door"><rect class="map-zone-shape tone-2" x="296" y="244" width="308" height="112" rx="2"/></g><g class="map-furniture"><rect class="map-fixture map-counter" x="52.0" y="64.0" width="208.0" height="18.0" rx="6"/><circle class="map-fixture map-stool" cx="86.7" cy="92.0" r="6.0"/><circle class="map-fixture map-stool" cx="121.3" cy="92.0" r="6.0"/><circle class="map-fixture map-stool" cx="156.0" cy="92.0" r="6.0"/><circle class="map-fixture map-stool" cx="190.7" cy="92.0" r="6.0"/><circle class="map-fixture map-stool" cx="225.3" cy="92.0" r="6.0"/><circle class="map-fixture map-table" cx="336.0" cy="92.0" r="26.0"/><circle class="map-fixture map-seat" cx="302.0" cy="92.0" r="7.0"/><circle class="map-fixture map-seat" cx="370.0" cy="92.0" r="7.0"/><circle class="map-fixture map-seat" cx="336.0" cy="58.0" r="7.0"/><circle class="map-fixture map-seat" cx="336.0" cy="126.0" r="7.0"/><circle class="map-fixture map-table" cx="444.0" cy="92.0" r="26.0"/><circle class="map-fixture map-seat" cx="410.0" cy="92.0" r="7.0"/><circle class="map-fixture map-seat" cx="478.0" cy="92.0" r="7.0"/><circle class="map-fixture map-seat" cx="444.0" cy="58.0" r="7.0"/><circle class="map-fixture map-seat" cx="444.0" cy="126.0" r="7.0"/><circle class="map-fixture map-table" cx="336.0" cy="164.0" r="26.0"/><circle class="map-fixture map-seat" cx="302.0" cy="164.0" r="7.0"/><circle class="map-fixture map-seat" cx="370.0" cy="164.0" r="7.0"/><circle class="map-fixture map-seat" cx="336.0" cy="130.0" r="7.0"/><circle class="map-fixture map-seat" cx="336.0" cy="198.0" r="7.0"/><rect class="map-fixture map-fixture-soft" x="540.0" y="264.0" width="44.0" height="70.0" rx="4"/><path class="map-fixture-line" d="M540.0 334.0 Q584.0 334.0 584.0 264.0"/><path class="map-door-leaf" d="M540.0 334.0 L544.0 334.0"/></g><path class="map-route" d="M156.0 114.0 L450.0 134.0 L156.0 280.0"/><g class="map-zone" data-zone="bar"><circle class="map-zone-dot" cx="48.0" cy="171.0" r="2.2"/><text class="map-zone-label" x="55.0" y="175.0">BAR</text></g><g class="map-zone" data-zone="tables"><circle class="map-zone-dot" cx="308.0" cy="211.0" r="2.2"/><text class="map-zone-label" x="315.0" y="215.0">TABLES</text></g><g class="map-zone" data-zone="stage"><circle class="map-zone-dot" cx="48.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="55.0" y="347.0">STAGE</text></g><g class="map-zone" data-zone="door"><circle class="map-zone-dot" cx="308.0" cy="343.0" r="2.2"/><text class="map-zone-label" x="315.0" y="347.0">DOOR</text></g></svg></div>
+      <div class="map-stage" data-map-view="3d" hidden><svg class="map-svg map-svg-3d" viewBox="0 0 640 400" aria-hidden="true" focusable="false"><defs><filter id="mapShadow3d" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity=".16"/></filter></defs><g filter="url(#mapShadow3d)"><polygon class="map-3d-slab-side" points="618.0,249.6 388.8,382.0 388.8,391.3 618.0,258.9"/><polygon class="map-3d-slab-side" points="22.0,170.2 388.8,382.0 388.8,391.3 22.0,179.5"/><polygon class="map-3d-slab" points="251.2,37.9 618.0,249.6 388.8,382.0 22.0,170.2"/></g><g class="map-zone" data-zone="bar"><polygon class="map-3d-floor tone-0" points="246.6,64.1 384.2,143.5 304.0,189.8 166.4,110.4"/></g><g class="map-zone" data-zone="tables"><polygon class="map-3d-floor tone-1" points="395.7,150.1 572.2,252.0 469.0,311.6 292.5,209.7"/></g><g class="map-zone" data-zone="stage"><polygon class="map-3d-floor tone-2" points="154.9,117.0 292.5,196.4 205.4,246.7 67.8,167.3"/></g><g class="map-zone" data-zone="door"><polygon class="map-3d-floor tone-1" points="281.0,216.3 457.6,318.2 393.4,355.3 216.8,253.3"/></g><polygon class="map-3d-wall-side" points="618.0,229.8 613.5,232.4 613.5,252.3 618.0,249.6"/><polygon class="map-3d-wall-side-2" points="251.2,23.3 613.5,232.4 613.5,252.3 251.2,43.1"/><polygon class="map-3d-wall-top" points="255.8,20.6 618.0,229.8 613.5,232.4 251.2,23.3"/><polygon class="map-3d-wall-side" points="255.8,20.6 31.1,150.4 31.1,170.2 255.8,40.5"/><polygon class="map-3d-wall-side-2" points="26.5,147.7 31.1,150.4 31.1,170.2 26.5,167.6"/><polygon class="map-3d-wall-top" points="251.2,18.0 255.8,20.6 31.1,150.4 26.5,147.7"/><polygon class="map-3d-top tone-1" points="244.3,67.0 363.6,135.8 353.2,141.8 234.0,72.9"/><polygon class="map-3d-side" points="363.6,135.8 353.2,141.8 353.2,151.0 363.6,145.1"/><polygon class="map-3d-side-2" points="234.0,72.9 353.2,141.8 353.2,151.0 234.0,82.2"/><polygon class="map-3d-top tone-1" points="372.2,159.3 380.2,163.9 372.2,168.6 364.1,163.9"/><polygon class="map-3d-side" points="380.2,163.9 372.2,168.6 372.2,173.2 380.2,168.6"/><polygon class="map-3d-side-2" points="364.1,163.9 372.2,168.6 372.2,173.2 364.1,168.6"/><polygon class="map-3d-top tone-1" points="410.0,159.3 418.0,163.9 410.0,168.6 402.0,163.9"/><polygon class="map-3d-side" points="418.0,163.9 410.0,168.6 410.0,173.2 418.0,168.6"/><polygon class="map-3d-side-2" points="402.0,163.9 410.0,168.6 410.0,173.2 402.0,168.6"/><polygon class="map-3d-top tone-1" points="154.9,122.6 269.6,188.7 238.6,206.6 124.0,140.4"/><polygon class="map-3d-side" points="269.6,188.7 238.6,206.6 238.6,214.6 269.6,196.7"/><polygon class="map-3d-side-2" points="124.0,140.4 238.6,206.6 238.6,214.6 124.0,148.4"/><polygon class="map-3d-top tone-2" points="391.1,163.4 407.5,172.9 391.1,182.3 374.7,172.9"/><polygon class="map-3d-side" points="407.5,172.9 391.1,182.3 391.1,188.9 407.5,179.5"/><polygon class="map-3d-side-2" points="374.7,172.9 391.1,182.3 391.1,188.9 374.7,179.5"/><polygon class="map-3d-top tone-1" points="410.0,181.1 418.0,185.8 410.0,190.4 402.0,185.8"/><polygon class="map-3d-side" points="418.0,185.8 410.0,190.4 410.0,195.0 418.0,190.4"/><polygon class="map-3d-side-2" points="402.0,185.8 410.0,190.4 410.0,195.0 402.0,190.4"/><polygon class="map-3d-top tone-1" points="372.2,181.1 380.2,185.8 372.2,190.4 364.1,185.8"/><polygon class="map-3d-side" points="380.2,185.8 372.2,190.4 372.2,195.0 380.2,190.4"/><polygon class="map-3d-side-2" points="364.1,185.8 372.2,190.4 372.2,195.0 364.1,190.4"/><polygon class="map-3d-top tone-1" points="330.9,183.1 338.9,187.8 330.9,192.4 322.9,187.8"/><polygon class="map-3d-side" points="338.9,187.8 330.9,192.4 330.9,197.0 338.9,192.4"/><polygon class="map-3d-side-2" points="322.9,187.8 330.9,192.4 330.9,197.0 322.9,192.4"/><polygon class="map-3d-top tone-1" points="368.7,183.1 376.7,187.8 368.7,192.4 360.7,187.8"/><polygon class="map-3d-side" points="376.7,187.8 368.7,192.4 368.7,197.0 376.7,192.4"/><polygon class="map-3d-side-2" points="360.7,187.8 368.7,192.4 368.7,197.0 360.7,192.4"/><polygon class="map-3d-top tone-2" points="349.8,187.2 366.2,196.7 349.8,206.2 333.4,196.7"/><polygon class="map-3d-side" points="366.2,196.7 349.8,206.2 349.8,212.8 366.2,203.3"/><polygon class="map-3d-side-2" points="333.4,196.7 349.8,206.2 349.8,212.8 333.4,203.3"/><polygon class="map-3d-top tone-1" points="434.1,195.0 442.1,199.7 434.1,204.3 426.0,199.7"/><polygon class="map-3d-side" points="442.1,199.7 434.1,204.3 434.1,208.9 442.1,204.3"/><polygon class="map-3d-side-2" points="426.0,199.7 434.1,204.3 434.1,208.9 426.0,204.3"/><polygon class="map-3d-top tone-1" points="471.9,195.0 479.9,199.7 471.9,204.3 463.9,199.7"/><polygon class="map-3d-side" points="479.9,199.7 471.9,204.3 471.9,208.9 479.9,204.3"/><polygon class="map-3d-side-2" points="463.9,199.7 471.9,204.3 471.9,208.9 463.9,204.3"/><polygon class="map-3d-top tone-1" points="368.7,205.0 376.7,209.6 368.7,214.2 360.7,209.6"/><polygon class="map-3d-side" points="376.7,209.6 368.7,214.2 368.7,218.9 376.7,214.2"/><polygon class="map-3d-side-2" points="360.7,209.6 368.7,214.2 368.7,218.9 360.7,214.2"/><polygon class="map-3d-top tone-1" points="330.9,205.0 338.9,209.6 330.9,214.2 322.9,209.6"/><polygon class="map-3d-side" points="338.9,209.6 330.9,214.2 330.9,218.9 338.9,214.2"/><polygon class="map-3d-side-2" points="322.9,209.6 330.9,214.2 330.9,218.9 322.9,214.2"/><polygon class="map-3d-top tone-2" points="453.0,199.1 469.4,208.6 453.0,218.1 436.6,208.6"/><polygon class="map-3d-side" points="469.4,208.6 453.0,218.1 453.0,224.7 469.4,215.2"/><polygon class="map-3d-side-2" points="436.6,208.6 453.0,218.1 453.0,224.7 436.6,215.2"/><polygon class="map-3d-top tone-1" points="471.9,216.9 479.9,221.5 471.9,226.1 463.9,221.5"/><polygon class="map-3d-side" points="479.9,221.5 471.9,226.1 471.9,230.8 479.9,226.1"/><polygon class="map-3d-side-2" points="463.9,221.5 471.9,226.1 471.9,230.8 463.9,226.1"/><polygon class="map-3d-top tone-1" points="434.1,216.9 442.1,221.5 434.1,226.1 426.0,221.5"/><polygon class="map-3d-side" points="442.1,221.5 434.1,226.1 434.1,230.8 442.1,226.1"/><polygon class="map-3d-side-2" points="426.0,221.5 434.1,226.1 434.1,230.8 426.0,226.1"/></svg></div>
+      <button class="hotspot" type="button" style="--x2d:24.38%;--y2d:28.5%;--x3d:43.01%;--y3d:31.8%" data-hotspot="drink" data-zone="bar" data-encounter="drink" aria-pressed="true" aria-controls="panel-drink"><span class="hs-num">1</span><span class="hs-text"><span class="hs-en">Drinks</span><span class="hs-zh">点酒</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:70.31%;--y2d:33.5%;--x3d:67.55%;--y3d:57.78%" data-hotspot="chat" data-zone="tables" data-encounter="chat" aria-pressed="false" aria-controls="panel-chat"><span class="hs-num">2</span><span class="hs-text"><span class="hs-en">Chat</span><span class="hs-zh">加入聊天</span></span></button>
+      <button class="hotspot" type="button" style="--x2d:24.38%;--y2d:70.0%;--x3d:28.15%;--y3d:45.53%" data-hotspot="cover" data-zone="stage" data-encounter="cover" aria-pressed="false" aria-controls="panel-cover"><span class="hs-num">3</span><span class="hs-text"><span class="hs-en">Cover</span><span class="hs-zh">演出</span></span></button>
     </div>
   </figure>
   <p class="sr-only" aria-live="polite" data-status></p>
 
   <section class="encounter" id="panel-drink" data-encounter="drink"><header class="encounter-head"><h2>Ordering drinks<span class="zh">点酒</span></h2></header>
 
-  <div class="level-panel" data-level="survival"><div class="phrases">
+  <div class="level-panel phrases-panel" data-level="survival"><div class="phrases">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en">A beer, please.</span><span class="zh">一杯啤酒。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en">A beer, please.</span><span class="zh">一杯啤酒。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="3.744"><span class="en">What&#x27;s good tonight?</span><span class="zh">今晚有什么好的？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="3.744"><span class="en">What&#x27;s good tonight?</span><span class="zh">今晚有什么好的？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="3.744" data-end-f="5.616" data-start-m="3.744" data-end-m="5.616"><span class="en">Can I see the drink menu?</span><span class="zh">能看酒水单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="3.744" data-end-f="5.616" data-start-m="3.744" data-end-m="5.616"><span class="en">Can I see the drink menu?</span><span class="zh">能看酒水单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="5.616" data-end-f="7.488" data-start-m="5.616" data-end-m="7.488"><span class="en">Is card okay?</span><span class="zh">刷卡可以吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="5.616" data-end-f="7.488" data-start-m="5.616" data-end-m="7.488"><span class="en">Is card okay?</span><span class="zh">刷卡可以吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="2.304" data-start-m="0.000" data-end-m="2.136"><span class="en">Can I get a non-alcoholic cocktail?</span><span class="zh">能来一杯无酒精鸡尾酒吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="2.304" data-end-f="4.176" data-start-m="2.136" data-end-m="4.008"><span class="en">Is there a happy hour?</span><span class="zh">有欢乐时光吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="4.176" data-end-f="6.048" data-start-m="4.008" data-end-m="5.880"><span class="en">Can I start a tab?</span><span class="zh">能开个账单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="6.048" data-end-f="7.944" data-start-m="5.880" data-end-m="7.752"><span class="en">Do you have any local craft beer?</span><span class="zh">有本地精酿吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="7.944" data-end-f="9.816" data-start-m="7.752" data-end-m="9.624"><span class="en">Can I get some snacks with that?</span><span class="zh">能配点小吃吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="3.960" data-start-m="0.000" data-end-m="3.816"><span class="en">I&#x27;m the designated driver. Do you have any zero-proof options?</span><span class="zh">我是指定司机。有无酒精选项吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="3.960" data-end-f="7.872" data-start-m="3.816" data-end-m="7.464"><span class="en">The cocktail is too sweet. Could you remake it with less syrup?</span><span class="zh">鸡尾酒太甜。能少放糖浆重做吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="7.872" data-end-f="10.920" data-start-m="7.464" data-end-m="10.296"><span class="en">I asked for a whiskey neat, but this has ice.</span><span class="zh">我要纯威士忌，但这杯有冰。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="10.920" data-end-f="14.040" data-start-m="10.296" data-end-m="13.128"><span class="en">Can I taste a small sample before I order a pint?</span><span class="zh">点一品脱前能先尝一小口吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="14.040" data-end-f="17.328" data-start-m="13.128" data-end-m="16.152"><span class="en">Is the draft line clean? The beer tastes off.</span><span class="zh">生啤管道干净吗？啤酒味道不对。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>点酒</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en"><mark class="key">What can I get you</mark>?</span><span class="zh">您喝点什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="3.744"><span class="en"><mark class="key">What are you drinking</mark>?</span><span class="zh">您喝什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="3.744" data-end-f="5.664" data-start-m="3.744" data-end-m="5.616"><span class="en">Do you want to see the <mark class="key">cocktail menu</mark>?</span><span class="zh">您要看鸡尾酒单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="5.664" data-end-f="7.536" data-start-m="5.616" data-end-m="7.488"><span class="reply-tag">答</span><span class="reply-body"><span class="en">A beer, please.</span><span class="zh">一杯啤酒。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>What can I get you? / What are you drinking? / Do you want…?</p></article><article class="intent"><h3>查证件</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="7.536" data-end-f="9.408" data-start-m="7.488" data-end-m="9.360"><span class="en">Can I <mark class="key">see your ID</mark>?</span><span class="zh">能看一下您的证件吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="9.408" data-end-f="11.280" data-start-m="9.360" data-end-m="11.232"><span class="en"><mark class="key">How old</mark> are you?</span><span class="zh">您多大了？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="11.280" data-end-f="13.872" data-start-m="11.232" data-end-m="13.776"><span class="en">We ask everyone <mark class="key">under thirty</mark> for ID.</span><span class="zh">三十岁以下都要查证件。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="13.872" data-end-f="15.744" data-start-m="13.776" data-end-m="15.648"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Here&#x27;s my passport.</span><span class="zh">这是我的护照。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Can I see…? / How old…? / We ask everyone…</p></article><article class="intent"><h3>开/关账</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="15.744" data-end-f="17.616" data-start-m="15.648" data-end-m="17.520"><span class="en">Do you want to <mark class="key">open a tab</mark>?</span><span class="zh">您要开一个账单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="17.616" data-end-f="19.488" data-start-m="17.520" data-end-m="19.392"><span class="en">Are you <mark class="key">paying as you go</mark>?</span><span class="zh">您是点一次付一次吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="19.488" data-end-f="21.360" data-start-m="19.392" data-end-m="21.264"><span class="en">Would you like to <mark class="key">close out</mark>?</span><span class="zh">您要结账吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="21.360" data-end-f="23.256" data-start-m="21.264" data-end-m="23.136"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Open a tab, please.</span><span class="zh">开个账单。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Do you want to…? / Are you paying…? / Would you like to…?</p></article></div></section>
+
+  <div class="level-panel dialogue-panel" data-level="survival"><div class="dialogue">
+
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="staff" data-spk="bartender"><span class="who">Bartender</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="1.872"><span class="en">What can I get you?</span><span class="zh">要喝什么？</span></button></div>
 
@@ -326,19 +414,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="conversational" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="2.304" data-start-m="0.000" data-end-m="2.136"><span class="en">Can I get a non-alcoholic cocktail?</span><span class="zh">能来一杯无酒精鸡尾酒吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="2.304" data-end-f="4.176" data-start-m="2.136" data-end-m="4.008"><span class="en">Is there a happy hour?</span><span class="zh">有欢乐时光吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="4.176" data-end-f="6.048" data-start-m="4.008" data-end-m="5.880"><span class="en">Can I start a tab?</span><span class="zh">能开个账单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="6.048" data-end-f="7.944" data-start-m="5.880" data-end-m="7.752"><span class="en">Do you have any local craft beer?</span><span class="zh">有本地精酿吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="7.944" data-end-f="9.816" data-start-m="7.752" data-end-m="9.624"><span class="en">Can I get some snacks with that?</span><span class="zh">能配点小吃吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="2.136"><span class="en">Can I get a non-alcoholic cocktail?</span><span class="zh">能来一杯无酒精鸡尾酒吗？</span></button></div>
 
@@ -362,19 +440,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="advanced" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="0.000" data-end-f="3.960" data-start-m="0.000" data-end-m="3.816"><span class="en">I&#x27;m the designated driver. Do you have any zero-proof options?</span><span class="zh">我是指定司机。有无酒精选项吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="3.960" data-end-f="7.872" data-start-m="3.816" data-end-m="7.464"><span class="en">The cocktail is too sweet. Could you remake it with less syrup?</span><span class="zh">鸡尾酒太甜。能少放糖浆重做吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="7.872" data-end-f="10.920" data-start-m="7.464" data-end-m="10.296"><span class="en">I asked for a whiskey neat, but this has ice.</span><span class="zh">我要纯威士忌，但这杯有冰。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="10.920" data-end-f="14.040" data-start-m="10.296" data-end-m="13.128"><span class="en">Can I taste a small sample before I order a pint?</span><span class="zh">点一品脱前能先尝一小口吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="14.040" data-end-f="17.328" data-start-m="13.128" data-end-m="16.152"><span class="en">Is the draft line clean? The beer tastes off.</span><span class="zh">生啤管道干净吗？啤酒味道不对。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="0.000" data-end="3.816"><span class="en">I&#x27;m the designated driver. Do you have any zero-proof options?</span><span class="zh">我是指定司机。有无酒精选项吗？</span></button></div>
 
@@ -398,23 +466,55 @@
 
   </div></div></div>
 
-  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>点酒</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="0.000" data-end-f="1.872" data-start-m="0.000" data-end-m="1.872"><span class="en"><mark class="key">What can I get you</mark>?</span><span class="zh">您喝点什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="1.872" data-end-f="3.744" data-start-m="1.872" data-end-m="3.744"><span class="en"><mark class="key">What are you drinking</mark>?</span><span class="zh">您喝什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="3.744" data-end-f="5.664" data-start-m="3.744" data-end-m="5.616"><span class="en">Do you want to see the <mark class="key">cocktail menu</mark>?</span><span class="zh">您要看鸡尾酒单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="5.664" data-end-f="7.536" data-start-m="5.616" data-end-m="7.488"><span class="reply-tag">答</span><span class="reply-body"><span class="en">A beer, please.</span><span class="zh">一杯啤酒。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>What can I get you? / What are you drinking? / Do you want…?</p></article><article class="intent"><h3>查证件</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="7.536" data-end-f="9.408" data-start-m="7.488" data-end-m="9.360"><span class="en">Can I <mark class="key">see your ID</mark>?</span><span class="zh">能看一下您的证件吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="9.408" data-end-f="11.280" data-start-m="9.360" data-end-m="11.232"><span class="en"><mark class="key">How old</mark> are you?</span><span class="zh">您多大了？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="11.280" data-end-f="13.872" data-start-m="11.232" data-end-m="13.776"><span class="en">We ask everyone <mark class="key">under thirty</mark> for ID.</span><span class="zh">三十岁以下都要查证件。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="13.872" data-end-f="15.744" data-start-m="13.776" data-end-m="15.648"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Here&#x27;s my passport.</span><span class="zh">这是我的护照。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Can I see…? / How old…? / We ask everyone…</p></article><article class="intent"><h3>开/关账</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="15.744" data-end-f="17.616" data-start-m="15.648" data-end-m="17.520"><span class="en">Do you want to <mark class="key">open a tab</mark>?</span><span class="zh">您要开一个账单吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="17.616" data-end-f="19.488" data-start-m="17.520" data-end-m="19.392"><span class="en">Are you <mark class="key">paying as you go</mark>?</span><span class="zh">您是点一次付一次吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="19.488" data-end-f="21.360" data-start-m="19.392" data-end-m="21.264"><span class="en">Would you like to <mark class="key">close out</mark>?</span><span class="zh">您要结账吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="21.360" data-end-f="23.256" data-start-m="21.264" data-end-m="23.136"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Open a tab, please.</span><span class="zh">开个账单。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Do you want to…? / Are you paying…? / Would you like to…?</p></article></div></section>
-
   </section>
 
   <section class="encounter" id="panel-chat" data-encounter="chat" hidden><header class="encounter-head"><h2>Joining a conversation<span class="zh">加入聊天</span></h2></header>
 
-  <div class="level-panel" data-level="survival"><div class="phrases">
+  <div class="level-panel phrases-panel" data-level="survival"><div class="phrases">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="7.488" data-end-f="9.360" data-start-m="7.488" data-end-m="9.360"><span class="en">Mind if I sit here?</span><span class="zh">介意我坐这里吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="7.488" data-end-f="9.360" data-start-m="7.488" data-end-m="9.360"><span class="en">Mind if I sit here?</span><span class="zh">介意我坐这里吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="9.360" data-end-f="11.232" data-start-m="9.360" data-end-m="11.232"><span class="en">I&#x27;m new here.</span><span class="zh">我刚来。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="9.360" data-end-f="11.232" data-start-m="9.360" data-end-m="11.232"><span class="en">I&#x27;m new here.</span><span class="zh">我刚来。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="11.232" data-end-f="13.104" data-start-m="11.232" data-end-m="13.104"><span class="en">Where are you visiting from?</span><span class="zh">你从哪里来？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="11.232" data-end-f="13.104" data-start-m="11.232" data-end-m="13.104"><span class="en">Where are you visiting from?</span><span class="zh">你从哪里来？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="13.104" data-end-f="14.976" data-start-m="13.104" data-end-m="14.976"><span class="en">Can I buy you a drink?</span><span class="zh">能请你喝一杯吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="13.104" data-end-f="14.976" data-start-m="13.104" data-end-m="14.976"><span class="en">Can I buy you a drink?</span><span class="zh">能请你喝一杯吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="9.816" data-end-f="12.912" data-start-m="9.624" data-end-m="12.240"><span class="en">This place is great. Do you come here often?</span><span class="zh">这地方不错。你常来吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="12.912" data-end-f="14.784" data-start-m="12.240" data-end-m="14.112"><span class="en">What&#x27;s the music like later?</span><span class="zh">晚点音乐怎么样？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="14.784" data-end-f="16.656" data-start-m="14.112" data-end-m="15.984"><span class="en">Are you here with friends?</span><span class="zh">你和朋友一起来的吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="16.656" data-end-f="18.888" data-start-m="15.984" data-end-m="18.000"><span class="en">Do you know a good place for live music?</span><span class="zh">你知道有现场音乐的好地方吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="18.888" data-end-f="20.760" data-start-m="18.000" data-end-m="19.872"><span class="en">It was nice talking to you.</span><span class="zh">跟你聊天很开心。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="17.328" data-end-f="21.576" data-start-m="16.152" data-end-m="19.680"><span class="en">I don&#x27;t want to interrupt, but I overheard you talking about the game.</span><span class="zh">不想打扰，但我听到你们在聊比赛。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="21.576" data-end-f="24.552" data-start-m="19.680" data-end-m="22.200"><span class="en">Mind if I join you? I&#x27;m here on my own.</span><span class="zh">介意我加入吗？我一个人来的。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="24.552" data-end-f="26.880" data-start-m="22.200" data-end-m="24.264"><span class="en">What&#x27;s the vibe like here on weekends?</span><span class="zh">周末这里氛围怎么样？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="26.880" data-end-f="30.672" data-start-m="24.264" data-end-m="27.552"><span class="en">I&#x27;m not much of a drinker. Is there a good crowd for dancing?</span><span class="zh">我不太喝酒。这里适合跳舞吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="30.672" data-end-f="33.816" data-start-m="27.552" data-end-m="30.120"><span class="en">It was great meeting you. Are you on WeChat?</span><span class="zh">很高兴认识你。你用微信吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>加入聊天</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="23.256" data-end-f="25.128" data-start-m="23.136" data-end-m="25.008"><span class="en">Is <mark class="key">anyone sitting here</mark>?</span><span class="zh">这里有人坐吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="25.128" data-end-f="27.000" data-start-m="25.008" data-end-m="26.880"><span class="en">Do you <mark class="key">mind if I join</mark> you?</span><span class="zh">介意我加入吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="27.000" data-end-f="28.872" data-start-m="26.880" data-end-m="28.752"><span class="en">Where are you <mark class="key">visiting from</mark>?</span><span class="zh">您从哪儿来？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="28.872" data-end-f="30.792" data-start-m="28.752" data-end-m="30.624"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Not at all, please sit.</span><span class="zh">不介意，请坐。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Is anyone sitting here? / Do you mind if…? / Where are you visiting from?</p></article><article class="intent"><h3>找话题</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="30.792" data-end-f="32.664" data-start-m="30.624" data-end-m="32.496"><span class="en"><mark class="key">How do you know</mark> the host?</span><span class="zh">您怎么认识主人的？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="32.664" data-end-f="34.536" data-start-m="32.496" data-end-m="34.368"><span class="en">Is this your <mark class="key">first time here</mark>?</span><span class="zh">您第一次来吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="34.536" data-end-f="36.408" data-start-m="34.368" data-end-m="36.240"><span class="en"><mark class="key">What do you do</mark>?</span><span class="zh">您是做什么的？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="36.408" data-end-f="38.280" data-start-m="36.240" data-end-m="38.112"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I&#x27;m here on vacation.</span><span class="zh">我来度假。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>How do you know…? / Is this your first time…? / What do you do?</p></article><article class="intent"><h3>结束聊天</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="38.280" data-end-f="40.152" data-start-m="38.112" data-end-m="39.984"><span class="en">It was <mark class="key">nice meeting you</mark>.</span><span class="zh">很高兴认识你。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="40.152" data-end-f="42.240" data-start-m="39.984" data-end-m="41.856"><span class="en">I&#x27;m going to <mark class="key">grab another drink</mark>.</span><span class="zh">我再去拿杯喝的。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="42.240" data-end-f="44.112" data-start-m="41.856" data-end-m="43.728"><span class="en">Do you want to <mark class="key">exchange numbers</mark>?</span><span class="zh">要交换一下号码吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="44.112" data-end-f="45.984" data-start-m="43.728" data-end-m="45.600"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Nice meeting you too.</span><span class="zh">我也很高兴认识你。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>It was nice… / I&#x27;m going to… / Do you want to…?</p></article></div></section>
+
+  <div class="level-panel dialogue-panel" data-level="survival"><div class="dialogue">
+
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="12.600" data-end="14.832"><span class="en">Excuse me, mind if I sit here?</span><span class="zh">打扰一下，介意我坐这里吗？</span></button></div>
 
@@ -430,19 +530,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="conversational" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="9.816" data-end-f="12.912" data-start-m="9.624" data-end-m="12.240"><span class="en">This place is great. Do you come here often?</span><span class="zh">这地方不错。你常来吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="12.912" data-end-f="14.784" data-start-m="12.240" data-end-m="14.112"><span class="en">What&#x27;s the music like later?</span><span class="zh">晚点音乐怎么样？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="14.784" data-end-f="16.656" data-start-m="14.112" data-end-m="15.984"><span class="en">Are you here with friends?</span><span class="zh">你和朋友一起来的吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="16.656" data-end-f="18.888" data-start-m="15.984" data-end-m="18.000"><span class="en">Do you know a good place for live music?</span><span class="zh">你知道有现场音乐的好地方吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="18.888" data-end-f="20.760" data-start-m="18.000" data-end-m="19.872"><span class="en">It was nice talking to you.</span><span class="zh">跟你聊天很开心。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="23.856" data-end="26.472"><span class="en">This place is great. Do you come here often?</span><span class="zh">这地方不错。你常来吗？</span></button></div>
 
@@ -466,19 +556,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="advanced" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="17.328" data-end-f="21.576" data-start-m="16.152" data-end-m="19.680"><span class="en">I don&#x27;t want to interrupt, but I overheard you talking about the game.</span><span class="zh">不想打扰，但我听到你们在聊比赛。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="21.576" data-end-f="24.552" data-start-m="19.680" data-end-m="22.200"><span class="en">Mind if I join you? I&#x27;m here on my own.</span><span class="zh">介意我加入吗？我一个人来的。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="24.552" data-end-f="26.880" data-start-m="22.200" data-end-m="24.264"><span class="en">What&#x27;s the vibe like here on weekends?</span><span class="zh">周末这里氛围怎么样？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="26.880" data-end-f="30.672" data-start-m="24.264" data-end-m="27.552"><span class="en">I&#x27;m not much of a drinker. Is there a good crowd for dancing?</span><span class="zh">我不太喝酒。这里适合跳舞吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="30.672" data-end-f="33.816" data-start-m="27.552" data-end-m="30.120"><span class="en">It was great meeting you. Are you on WeChat?</span><span class="zh">很高兴认识你。你用微信吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="30.600" data-end="34.128"><span class="en">I don&#x27;t want to interrupt, but I overheard you talking about the game.</span><span class="zh">不想打扰，但我听到你们在聊比赛。</span></button></div>
 
@@ -502,23 +582,55 @@
 
   </div></div></div>
 
-  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>加入聊天</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="23.256" data-end-f="25.128" data-start-m="23.136" data-end-m="25.008"><span class="en">Is <mark class="key">anyone sitting here</mark>?</span><span class="zh">这里有人坐吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="25.128" data-end-f="27.000" data-start-m="25.008" data-end-m="26.880"><span class="en">Do you <mark class="key">mind if I join</mark> you?</span><span class="zh">介意我加入吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="27.000" data-end-f="28.872" data-start-m="26.880" data-end-m="28.752"><span class="en">Where are you <mark class="key">visiting from</mark>?</span><span class="zh">您从哪儿来？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="28.872" data-end-f="30.792" data-start-m="28.752" data-end-m="30.624"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Not at all, please sit.</span><span class="zh">不介意，请坐。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Is anyone sitting here? / Do you mind if…? / Where are you visiting from?</p></article><article class="intent"><h3>找话题</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="30.792" data-end-f="32.664" data-start-m="30.624" data-end-m="32.496"><span class="en"><mark class="key">How do you know</mark> the host?</span><span class="zh">您怎么认识主人的？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="32.664" data-end-f="34.536" data-start-m="32.496" data-end-m="34.368"><span class="en">Is this your <mark class="key">first time here</mark>?</span><span class="zh">您第一次来吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="34.536" data-end-f="36.408" data-start-m="34.368" data-end-m="36.240"><span class="en"><mark class="key">What do you do</mark>?</span><span class="zh">您是做什么的？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="36.408" data-end-f="38.280" data-start-m="36.240" data-end-m="38.112"><span class="reply-tag">答</span><span class="reply-body"><span class="en">I&#x27;m here on vacation.</span><span class="zh">我来度假。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>How do you know…? / Is this your first time…? / What do you do?</p></article><article class="intent"><h3>结束聊天</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="38.280" data-end-f="40.152" data-start-m="38.112" data-end-m="39.984"><span class="en">It was <mark class="key">nice meeting you</mark>.</span><span class="zh">很高兴认识你。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="40.152" data-end-f="42.240" data-start-m="39.984" data-end-m="41.856"><span class="en">I&#x27;m going to <mark class="key">grab another drink</mark>.</span><span class="zh">我再去拿杯喝的。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="42.240" data-end-f="44.112" data-start-m="41.856" data-end-m="43.728"><span class="en">Do you want to <mark class="key">exchange numbers</mark>?</span><span class="zh">要交换一下号码吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="44.112" data-end-f="45.984" data-start-m="43.728" data-end-m="45.600"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Nice meeting you too.</span><span class="zh">我也很高兴认识你。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>It was nice… / I&#x27;m going to… / Do you want to…?</p></article></div></section>
-
   </section>
 
   <section class="encounter" id="panel-cover" data-encounter="cover" hidden><header class="encounter-head"><h2>Cover charge &amp; leaving<span class="zh">入场费与回家</span></h2></header>
 
-  <div class="level-panel" data-level="survival"><div class="phrases">
+  <div class="level-panel phrases-panel" data-level="survival"><div class="phrases">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="14.976" data-end-f="16.848" data-start-m="14.976" data-end-m="16.848"><span class="en">Is there a cover charge?</span><span class="zh">有入场费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="14.976" data-end-f="16.848" data-start-m="14.976" data-end-m="16.848"><span class="en">Is there a cover charge?</span><span class="zh">有入场费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="16.848" data-end-f="18.720" data-start-m="16.848" data-end-m="18.720"><span class="en">How much to get in?</span><span class="zh">进去多少钱？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="16.848" data-end-f="18.720" data-start-m="16.848" data-end-m="18.720"><span class="en">How much to get in?</span><span class="zh">进去多少钱？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="18.720" data-end-f="20.592" data-start-m="18.720" data-end-m="20.592"><span class="en">What time does the band start?</span><span class="zh">乐队几点开始？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="18.720" data-end-f="20.592" data-start-m="18.720" data-end-m="20.592"><span class="en">What time does the band start?</span><span class="zh">乐队几点开始？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  <button class="phrase" type="button" data-part="p" data-start-f="20.592" data-end-f="22.464" data-start-m="20.592" data-end-m="22.464"><span class="en">Where is the exit?</span><span class="zh">出口在哪里？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
+  <button class="phrase" type="button" data-part="p" data-start-f="20.592" data-end-f="22.464" data-start-m="20.592" data-end-m="22.464"><span class="en">Where is the exit?</span><span class="zh">出口在哪里？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
 
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="conversational" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="20.760" data-end-f="22.752" data-start-m="19.872" data-end-m="21.744"><span class="en">Does the cover include a drink?</span><span class="zh">入场费含一杯酒吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="22.752" data-end-f="24.792" data-start-m="21.744" data-end-m="23.616"><span class="en">Can I pay the cover by card?</span><span class="zh">入场费能刷卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="24.792" data-end-f="26.664" data-start-m="23.616" data-end-m="25.488"><span class="en">Do you have a coat check?</span><span class="zh">有衣帽寄存吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="26.664" data-end-f="28.536" data-start-m="25.488" data-end-m="27.360"><span class="en">What&#x27;s the dress code?</span><span class="zh">着装要求是什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="28.536" data-end-f="30.864" data-start-m="27.360" data-end-m="29.448"><span class="en">Can I get a stamp so I can come back?</span><span class="zh">能盖个章让我再进来吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <div class="level-panel phrases-panel" data-level="advanced" hidden><div class="phrases">
+
+  <button class="phrase" type="button" data-part="p" data-start-f="33.816" data-end-f="38.712" data-start-m="30.120" data-end-m="34.248"><span class="en">I paid the cover, but the band already finished. Can I get a refund?</span><span class="zh">我付了入场费，但乐队已经结束了。能退款吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="38.712" data-end-f="43.560" data-start-m="34.248" data-end-m="38.640"><span class="en">The line is long, but I have a reservation. Is there a separate entrance?</span><span class="zh">队很长，但我有预订。有单独入口吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="43.560" data-end-f="47.472" data-start-m="38.640" data-end-m="42.048"><span class="en">Someone spilled a drink on my coat. Can you help me clean it?</span><span class="zh">有人把酒洒在我外套上了。能帮我清理吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="47.472" data-end-f="51.456" data-start-m="42.048" data-end-m="45.216"><span class="en">I think my tab is wrong. We only had four drinks.</span><span class="zh">我的账单好像不对。我们只喝了四杯。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  <button class="phrase" type="button" data-part="p" data-start-f="51.456" data-end-f="54.552" data-start-m="45.216" data-end-m="47.856"><span class="en">It&#x27;s getting late. Can you call a taxi for me?</span><span class="zh">很晚了。能帮我叫出租车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button>
+
+  </div></div>
+
+  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>入场费</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="45.984" data-end-f="47.856" data-start-m="45.600" data-end-m="47.472"><span class="en">There&#x27;s a <mark class="key">ten-dollar cover</mark>.</span><span class="zh">入场费十美元。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="47.856" data-end-f="49.728" data-start-m="47.472" data-end-m="49.344"><span class="en">Do you want to <mark class="key">pay the cover</mark>?</span><span class="zh">您要付入场费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="49.728" data-end-f="51.840" data-start-m="49.344" data-end-m="51.216"><span class="en"><mark class="key">Cash only</mark> for the cover.</span><span class="zh">入场费只收现金。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="51.840" data-end-f="53.712" data-start-m="51.216" data-end-m="53.088"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Sure, here&#x27;s ten.</span><span class="zh">好，这是十美元。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>There&#x27;s a … cover. / Do you want to…? / Cash only…</p></article><article class="intent"><h3>演出</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="53.712" data-end-f="55.944" data-start-m="53.088" data-end-m="55.080"><span class="en">The <mark class="key">band starts</mark> at 9 p.m.</span><span class="zh">乐队晚上 9 点开始。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="55.944" data-end-f="57.816" data-start-m="55.080" data-end-m="56.952"><span class="en">Do you have a <mark class="key">table reservation</mark>?</span><span class="zh">您有桌子预订吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="57.816" data-end-f="59.760" data-start-m="56.952" data-end-m="58.824"><span class="en">Would you like to sit <mark class="key">near the stage</mark>?</span><span class="zh">您要坐舞台附近吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="59.760" data-end-f="61.704" data-start-m="58.824" data-end-m="60.768"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Near the stage, please.</span><span class="zh">舞台附近，谢谢。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>The band starts… / Do you have…? / Would you like…?</p></article><article class="intent"><h3>离开/结账</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="61.704" data-end-f="63.576" data-start-m="60.768" data-end-m="62.640"><span class="en">Are you ready to <mark class="key">close out</mark>?</span><span class="zh">您要结账吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="63.576" data-end-f="65.448" data-start-m="62.640" data-end-m="64.512"><span class="en">Do you <mark class="key">need a taxi</mark>?</span><span class="zh">您要出租车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="65.448" data-end-f="67.320" data-start-m="64.512" data-end-m="66.384"><span class="en">Did you have a <mark class="key">good time</mark>?</span><span class="zh">玩得开心吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="67.320" data-end-f="69.192" data-start-m="66.384" data-end-m="68.256"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, close it out.</span><span class="zh">好，结账。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span></span></button><p class="pattern"><span class="plabel">句型</span>Are you ready…? / Do you need…? / Did you…?</p></article></div></section>
+
+  <div class="level-panel dialogue-panel" data-level="survival"><div class="dialogue">
+
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="25.488" data-end="27.360"><span class="en">Is there a cover charge?</span><span class="zh">有入场费吗？</span></button></div>
 
@@ -538,19 +650,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="conversational" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="conversational" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="20.760" data-end-f="22.752" data-start-m="19.872" data-end-m="21.744"><span class="en">Does the cover include a drink?</span><span class="zh">入场费含一杯酒吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="22.752" data-end-f="24.792" data-start-m="21.744" data-end-m="23.616"><span class="en">Can I pay the cover by card?</span><span class="zh">入场费能刷卡吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="24.792" data-end-f="26.664" data-start-m="23.616" data-end-m="25.488"><span class="en">Do you have a coat check?</span><span class="zh">有衣帽寄存吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="26.664" data-end-f="28.536" data-start-m="25.488" data-end-m="27.360"><span class="en">What&#x27;s the dress code?</span><span class="zh">着装要求是什么？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="28.536" data-end-f="30.864" data-start-m="27.360" data-end-m="29.448"><span class="en">Can I get a stamp so I can come back?</span><span class="zh">能盖个章让我再进来吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="48.672" data-end="50.544"><span class="en">Does the cover include a drink?</span><span class="zh">入场费含一杯酒吗？</span></button></div>
 
@@ -574,19 +676,9 @@
 
   </div></div></div>
 
-  <div class="level-panel" data-level="advanced" hidden><div class="phrases">
+  <div class="level-panel dialogue-panel" data-level="advanced" hidden><div class="dialogue">
 
-  <button class="phrase" type="button" data-part="p" data-start-f="33.816" data-end-f="38.712" data-start-m="30.120" data-end-m="34.248"><span class="en">I paid the cover, but the band already finished. Can I get a refund?</span><span class="zh">我付了入场费，但乐队已经结束了。能退款吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="38.712" data-end-f="43.560" data-start-m="34.248" data-end-m="38.640"><span class="en">The line is long, but I have a reservation. Is there a separate entrance?</span><span class="zh">队很长，但我有预订。有单独入口吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="43.560" data-end-f="47.472" data-start-m="38.640" data-end-m="42.048"><span class="en">Someone spilled a drink on my coat. Can you help me clean it?</span><span class="zh">有人把酒洒在我外套上了。能帮我清理吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="47.472" data-end-f="51.456" data-start-m="42.048" data-end-m="45.216"><span class="en">I think my tab is wrong. We only had four drinks.</span><span class="zh">我的账单好像不对。我们只喝了四杯。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  <button class="phrase" type="button" data-part="p" data-start-f="51.456" data-end-f="54.552" data-start-m="45.216" data-end-m="47.856"><span class="en">It&#x27;s getting late. Can you call a taxi for me?</span><span class="zh">很晚了。能帮我叫出租车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button>
-
-  </div><div class="dialogue"><div class="dialogue-tools"><button class="pill play-all" type="button" data-play-dialogue aria-pressed="false">播放对话</button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
+  <div class="dialogue-tools"><button class="play-all" type="button" data-play-dialogue aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span data-play-label>播放对话</span></button><button class="pill speed" type="button" data-speed>0.9×</button></div><div class="turns">
 
   <div class="line" data-role="you" data-spk="you"><span class="who">You</span><button class="say" type="button" data-part="d" data-start="58.584" data-end="62.712"><span class="en">I paid the cover, but the band already finished. Can I get a refund?</span><span class="zh">我付了入场费，但乐队已经结束了。能退款吗？</span></button></div>
 
@@ -610,8 +702,6 @@
 
   </div></div></div>
 
-  <section class="listening"><h2>对方可能这样问</h2><div class="intents"><article class="intent"><h3>入场费</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="45.984" data-end-f="47.856" data-start-m="45.600" data-end-m="47.472"><span class="en">There&#x27;s a <mark class="key">ten-dollar cover</mark>.</span><span class="zh">入场费十美元。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="47.856" data-end-f="49.728" data-start-m="47.472" data-end-m="49.344"><span class="en">Do you want to <mark class="key">pay the cover</mark>?</span><span class="zh">您要付入场费吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="49.728" data-end-f="51.840" data-start-m="49.344" data-end-m="51.216"><span class="en"><mark class="key">Cash only</mark> for the cover.</span><span class="zh">入场费只收现金。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="51.840" data-end-f="53.712" data-start-m="51.216" data-end-m="53.088"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Sure, here&#x27;s ten.</span><span class="zh">好，这是十美元。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>There&#x27;s a … cover. / Do you want to…? / Cash only…</p></article><article class="intent"><h3>演出</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="53.712" data-end-f="55.944" data-start-m="53.088" data-end-m="55.080"><span class="en">The <mark class="key">band starts</mark> at 9 p.m.</span><span class="zh">乐队晚上 9 点开始。</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="55.944" data-end-f="57.816" data-start-m="55.080" data-end-m="56.952"><span class="en">Do you have a <mark class="key">table reservation</mark>?</span><span class="zh">您有桌子预订吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="57.816" data-end-f="59.760" data-start-m="56.952" data-end-m="58.824"><span class="en">Would you like to sit <mark class="key">near the stage</mark>?</span><span class="zh">您要坐舞台附近吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="59.760" data-end-f="61.704" data-start-m="58.824" data-end-m="60.768"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Near the stage, please.</span><span class="zh">舞台附近，谢谢。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>The band starts… / Do you have…? / Would you like…?</p></article><article class="intent"><h3>离开/结账</h3><div class="asks"><button class="ask" type="button" data-sprite="listen" data-start-f="61.704" data-end-f="63.576" data-start-m="60.768" data-end-m="62.640"><span class="en">Are you ready to <mark class="key">close out</mark>?</span><span class="zh">您要结账吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="63.576" data-end-f="65.448" data-start-m="62.640" data-end-m="64.512"><span class="en">Do you <mark class="key">need a taxi</mark>?</span><span class="zh">您要出租车吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><button class="ask" type="button" data-sprite="listen" data-start-f="65.448" data-end-f="67.320" data-start-m="64.512" data-end-m="66.384"><span class="en">Did you have a <mark class="key">good time</mark>?</span><span class="zh">玩得开心吗？</span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button></div><button class="reply" type="button" data-sprite="listen" data-start-f="67.320" data-end-f="69.192" data-start-m="66.384" data-end-m="68.256"><span class="reply-tag">答</span><span class="reply-body"><span class="en">Yes, close it out.</span><span class="zh">好，结账。</span></span><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></button><p class="pattern"><span class="plabel">句型</span>Are you ready…? / Do you need…? / Did you…?</p></article></div></section>
-
   </section>
 
   <script id="spriteMap" type="application/json">{"survival-p-f":"sprites/e0c8f99807ea.mp3","survival-p-m":"sprites/097d1933dbcb.mp3","survival-d":"sprites/38aaf93d27e0.mp3","conversational-p-f":"sprites/414ecf003564.mp3","conversational-p-m":"sprites/59a7ec88a71b.mp3","conversational-d":"sprites/bcf5f6d0e7b4.mp3","advanced-p-f":"sprites/dcbe266b000a.mp3","advanced-p-m":"sprites/586530ce95a3.mp3","advanced-d":"sprites/13d4e42d7a04.mp3","listen-f":"sprites/99fe6bddaf10.mp3","listen-m":"sprites/8cbb8f90b8e7.mp3"}</script>
@@ -631,8 +721,11 @@
   var hotspots = [].slice.call(document.querySelectorAll('[data-hotspot]'));
   var encounters = [].slice.call(document.querySelectorAll('.encounter'));
   var zhToggle = document.querySelector('[data-zh-toggle]');
-  var speedBtn = document.querySelector('[data-speed]');
-  var playBtn = document.querySelector('[data-play-dialogue]');
+  var zhState = document.querySelector('[data-zh-state]');
+  var speedBtns = [].slice.call(document.querySelectorAll('[data-speed]'));
+  var playBtns = [];
+  var activePlayBtn = null;
+  var toolbar = document.querySelector('.toolbar');
   var statusEl = document.querySelector('[data-status]');
   var audio = new Audio();
   audio.preload = 'none';
@@ -763,13 +856,18 @@
   function applyZh(next, persist) {
     zhOff = !!next;
     body.classList.toggle('zh-off', zhOff);
-    if (zhToggle) zhToggle.setAttribute('aria-pressed', zhOff ? 'false' : 'true');
+    if (zhToggle) {
+      zhToggle.setAttribute('aria-pressed', zhOff ? 'false' : 'true');
+      zhToggle.setAttribute('aria-label', zhOff ? '中文关' : '中文开');
+      zhToggle.classList.toggle('is-off', zhOff);
+    }
+    if (zhState) zhState.textContent = zhOff ? '关' : '开';
     if (persist !== false) save('npesl-zh', zhOff ? '0' : '1');
   }
 
   function applySpeed(next, persist) {
     speed = next;
-    if (speedBtn) speedBtn.textContent = speed + '×';
+    speedBtns.forEach(function (btn) { btn.textContent = speed + '×'; });
     audio.playbackRate = speed;
     if (persist !== false) save('npesl-speed', String(speed));
   }
@@ -784,7 +882,12 @@
     }
     [].forEach.call(document.querySelectorAll('.phrase.on, .line.playing, .say.playing'),
       function (node) { node.classList.remove('on', 'playing'); });
-    if (playBtn) playBtn.setAttribute('aria-pressed', 'false');
+    playBtns.forEach(function (btn) {
+      btn.setAttribute('aria-pressed', 'false');
+      var label = btn.querySelector('[data-play-label]');
+      if (label) label.textContent = '播放对话';
+    });
+    activePlayBtn = null;
   }
 
   function srcFor(url) {
@@ -889,10 +992,11 @@
   }
 
   function currentPanel() {
-    return document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden])');
+    return document.querySelector(
+      '.encounter:not([hidden]) .dialogue-panel:not([hidden])');
   }
 
-  function playDialogue() {
+  function playDialogue(btn) {
     if (seqRunning) { stopAudio(); return; }
     var panel = currentPanel();
     if (!panel) return;
@@ -901,25 +1005,35 @@
     stopAudio();
     var token = playToken;
     seqRunning = true;
-    if (playBtn) playBtn.setAttribute('aria-pressed', 'true');
+    activePlayBtn = btn || null;
+    if (activePlayBtn) {
+      activePlayBtn.setAttribute('aria-pressed', 'true');
+      var label = activePlayBtn.querySelector('[data-play-label]');
+      if (label) label.textContent = '停止';
+    }
     var index = 0;
     function next() {
       if (token !== playToken || index >= lines.length) {
         if (token === playToken) {
           seqRunning = false;
-          if (playBtn) playBtn.setAttribute('aria-pressed', 'false');
+          if (activePlayBtn) {
+            activePlayBtn.setAttribute('aria-pressed', 'false');
+            var done = activePlayBtn.querySelector('[data-play-label]');
+            if (done) done.textContent = '播放对话';
+          }
+          activePlayBtn = null;
         }
         return;
       }
       var line = lines[index++];
-      var btn = line.querySelector('.say');
-      if (!btn) return next();
-      var start = parseFloat(btn.getAttribute('data-start'));
-      var end = parseFloat(btn.getAttribute('data-end'));
+      var say = line.querySelector('.say');
+      if (!say) return next();
+      var start = parseFloat(say.getAttribute('data-start'));
+      var end = parseFloat(say.getAttribute('data-end'));
       if (line.scrollIntoView) {
         try { line.scrollIntoView({ block: 'nearest' }); } catch (e) {}
       }
-      playSprite(level + '-d', start, end, btn, token).then(function () {
+      playSprite(level + '-d', start, end, say, token).then(function () {
         if (token !== playToken) return;
         next();
       });
@@ -960,9 +1074,18 @@
       return;
     }
     if (event.target.closest('[data-play-dialogue]')) {
-      playDialogue();
+      playDialogue(event.target.closest('[data-play-dialogue]'));
     }
   });
+
+  playBtns = [].slice.call(document.querySelectorAll('[data-play-dialogue]'));
+  function syncToolbar() {
+    if (toolbar) toolbar.classList.toggle('is-stuck',
+      toolbar.getBoundingClientRect().top <= 0);
+  }
+  window.addEventListener('scroll', syncToolbar, { passive: true });
+  window.addEventListener('resize', syncToolbar);
+  syncToolbar();
 
   applyVoice(voice, false);
   applyView(view, false);
