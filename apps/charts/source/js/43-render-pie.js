@@ -130,8 +130,25 @@
         y: p2.y,
         'text-anchor': side > 0 ? 'start' : 'end',
         'dominant-baseline': 'middle',
-        class: 'pie-label'
+        class: 'pie-label editable-value'
       }, part.name_en + ' ' + shareText(share));
+      NC.bindValueClick(label, lab, (function (i, lx, ly) {
+        return function () {
+          return {
+            root: root,
+            x: lx,
+            y: ly,
+            value: perc[i],
+            min: 3,
+            max: 97,
+            step: 1,
+            label: dataset.parts[i].name_en,
+            unit: '%',
+            set: function (value) { setShare(dataset, i, value); },
+            onCommit: function () { lab.changed(true); }
+          };
+        };
+      })(index, p2.x + side * 4, p2.y));
       slices.push(path);
       leaders.push(leader);
       labels.push({ node: label, leader: leader, side: side, y: p2.y, p0x: p0.x, p0y: p0.y, p1x: p1.x, p2x: p2.x + side * 4 });

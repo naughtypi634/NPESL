@@ -91,6 +91,23 @@
         'data-index': index
       });
       barRects.push(rect);
+      NC.bindValueClick(rect, lab, (function (i, px, py) {
+        return function () {
+          return {
+            root: root,
+            x: px,
+            y: py,
+            value: bars.values[i],
+            min: barRange.min,
+            max: barRange.max,
+            step: bars.step || 1,
+            label: periods[i].label_en + ' ' + bars.name_en,
+            unit: bars.unit,
+            set: function (value) { bars.values[i] = value; },
+            onCommit: function () { lab.changed(true); }
+          };
+        };
+      })(index, band.center(index), yBar(value)));
       rect.addEventListener('pointerenter', function () {
         common.showTip(lab.plot, tipText(dataset, index), root, band.center(index), yBar(value));
       });
@@ -166,6 +183,23 @@
         onCommit: function () { lab.changed(true); },
         valueText: function (value) { return dataset.periods[index].label_en + ', ' + NC.fmt.value(value, bars.unit, bars.decimals); }
       });
+      NC.bindValueClick(handle.group, lab, (function (i) {
+        return function () {
+          return {
+            root: root,
+            x: band.center(i),
+            y: yBar(bars.values[i]),
+            value: bars.values[i],
+            min: barRange.min,
+            max: barRange.max,
+            step: bars.step || 1,
+            label: periods[i].label_en + ' ' + bars.name_en,
+            unit: bars.unit,
+            set: function (value) { bars.values[i] = value; },
+            onCommit: function () { lab.changed(true); }
+          };
+        };
+      })(index));
     });
 
     lineHandles.forEach(function (handle, index) {
@@ -181,6 +215,23 @@
         onCommit: function () { lab.changed(true); },
         valueText: function (value) { return dataset.periods[index].label_en + ', ' + NC.fmt.value(value, line.unit, line.decimals); }
       });
+      NC.bindValueClick(handle.group, lab, (function (i) {
+        return function () {
+          return {
+            root: root,
+            x: band.center(i),
+            y: yLine(line.values[i]),
+            value: line.values[i],
+            min: lineRange.min,
+            max: lineRange.max,
+            step: line.step || 0.1,
+            label: periods[i].label_en + ' ' + line.name_en,
+            unit: line.unit,
+            set: function (value) { line.values[i] = value; },
+            onCommit: function () { lab.changed(true); }
+          };
+        };
+      })(index));
     });
 
     var legendHost = document.createElement('div');

@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import check_bre  # noqa: E402
 
 LEVELS = {"A2", "B1", "B2", "C1"}
-RENDERERS = {"line", "bar", "pie", "table", "process", "map", "mixed"}
+RENDERERS = {"line", "bar", "pie", "table", "process", "mixed"}
 ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 COUNT_RE = re.compile(r"\d+\s*(个|条|种|张)")
 CLICHES = [
@@ -37,7 +37,6 @@ FILES = {
     "types": "chart-types.json",
     "labs": "labs.json",
     "vocab": "vocabulary.json",
-    "grammar": "grammar.json",
     "errors": "errors.json",
 }
 
@@ -87,8 +86,8 @@ def check_english(value, where: str, problems: Problems) -> None:
 
 def check_content(data: dict, problems: Problems) -> None:
     types = data.get("types", {}).get("sections", [])
-    if len(types) != 7:
-        problems.add("chart-types.json", "expected exactly seven chart sections")
+    if len(types) != 6:
+        problems.add("chart-types.json", "expected exactly six chart sections")
     seen = set()
     for section in types:
         where = f"chart-type {section.get('id', '?')}"
@@ -109,7 +108,7 @@ def check_content(data: dict, problems: Problems) -> None:
 
     labs = data.get("labs", {})
     datasets = labs.get("datasets", {})
-    for key in ("time", "category", "shares", "process", "map", "mixed"):
+    for key in ("time", "category", "shares", "process", "mixed"):
         if key not in datasets:
             problems.add("labs.json", f"dataset {key} is missing")
     shares = datasets.get("shares", {}).get("parts", [])
@@ -129,26 +128,6 @@ def check_content(data: dict, problems: Problems) -> None:
                 problems.add("labs.json", f"process step {step.get('id', '?')}: missing {key}")
         if not ID_RE.match(str(step.get("id", ""))):
             problems.add("labs.json", f"bad process step id {step.get('id')!r}")
-
-    diagram = datasets.get("map", {})
-    features = diagram.get("features", [])
-    if len(features) < 4:
-        problems.add("labs.json", "map needs at least four features")
-    for feature in features:
-        where = f"map feature {feature.get('id', '?')}"
-        if not ID_RE.match(str(feature.get("id", ""))):
-            problems.add("labs.json", f"bad map feature id {feature.get('id')!r}")
-        for key in ("x", "y", "w", "h"):
-            if not isinstance(feature.get(key), (int, float)):
-                problems.add(where, f"{key} must be a number")
-        for side in ("before", "after"):
-            if not feature.get(side, {}).get("label_en"):
-                problems.add(where, f"missing {side} label")
-        if feature.get("change") not in {"replaced", "added", "unchanged"}:
-            problems.add(where, f"bad change type {feature.get('change')!r}")
-        for key in ("location_en", "location_zh"):
-            if not feature.get(key):
-                problems.add(where, f"missing {key}")
 
     mixed = datasets.get("mixed", {})
     periods = mixed.get("periods", [])
@@ -179,22 +158,6 @@ def check_content(data: dict, problems: Problems) -> None:
         if words < 4 or words > 28:
             problems.add(where, f"example has {words} words (expected 4-28)")
 
-    grammar = data.get("grammar", {})
-    converter = grammar.get("converter", {})
-    for verb in converter.get("verbs", []):
-        for key in ("id", "base", "past", "noun", "level", "zh"):
-            if not verb.get(key):
-                problems.add("grammar.json", f"converter verb missing {key}")
-    for adverb in converter.get("adverbs", []):
-        for key in ("id", "adverb", "adjective", "level", "zh"):
-            if not adverb.get(key):
-                problems.add("grammar.json", f"converter adverb missing {key}")
-    grammar_ids = set()
-    for pattern in grammar.get("patterns", []):
-        if pattern.get("level") not in LEVELS:
-            problems.add("grammar.json", f"{pattern.get('id')}: bad level")
-        grammar_ids.add(pattern.get("id"))
-
     group_ids = {group.get("id") for group in vocab.get("groups", [])}
     for section in types:
         where = f"chart-type {section.get('id', '?')}"
@@ -207,23 +170,17 @@ def check_content(data: dict, problems: Problems) -> None:
                     problems.add(where, f"unknown vocab group {group!r}")
             if len(set(assigned)) != len(assigned):
                 problems.add(where, "duplicate vocab group")
-        patterns = section.get("grammar_patterns")
-        if not isinstance(patterns, list) or not patterns:
-            problems.add(where, "grammar_patterns must be a non-empty list")
-        else:
-            for pattern in patterns:
-                if pattern not in grammar_ids:
-                    problems.add(where, f"unknown grammar pattern {pattern!r}")
-            if len(set(patterns)) != len(patterns):
-                problems.add(where, "duplicate grammar pattern")
-        if not isinstance(section.get("converter"), bool):
-            problems.add(where, "converter must be true or false")
-
-    errors = data.get("errors", {}).get("errors", [])
+    error_data = data.get("errors", {})
+    categories = {item.get("id") for item in error_data.get("categories", [])}
+    errors = error_data.get("errors", [])
+    if len(categories) < 3:
+        problems.add("errors.json", "errors need at least three categories")
     for error in errors:
-        for key in ("id", "level", "wrong_en", "right_en", "why_zh"):
+        for key in ("id", "category", "wrong_en", "right_en", "why_zh"):
             if not error.get(key):
                 problems.add("errors.json", f"{error.get('id', '?')}: missing {key}")
+        if error.get("category") not in categories:
+            problems.add("errors.json", f"{error.get('id', '?')}: unknown category {error.get('category')!r}")
 
     for path, value in (
         ("content", data),

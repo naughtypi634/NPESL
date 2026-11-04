@@ -181,6 +181,7 @@
     var groupTotals = totals(dataset);
     var bars = [];
     var handles = [];
+    var segments = [];
     var labels = [];
     var handleLayer = svg.group(root, { class: 'handles' });
     var showTip = showTipFactory(lab);
@@ -212,6 +213,75 @@
             common.hideTip(lab.plot);
           });
           bars.push(rect);
+          NC.bindValueClick(rect, lab, (function (si, ci, node) {
+            return function () {
+              return {
+                root: root,
+                x: center,
+                y: node.getAttribute('y'),
+                value: dataset.series[si].values[ci],
+                min: 0,
+                max: max,
+                step: dataset.step || 5,
+                label: category.label_en + ' ' + dataset.series[si].name_en,
+                unit: dataset.unit,
+                set: function (value) { dataset.series[si].values[ci] = value; },
+                onCommit: function () {
+                  lab.changed(true);
+                  lab.renderer.render(lab);
+                  lab.refresh(false);
+                }
+              };
+            };
+          })(seriesIndex, categoryIndex, rect));
+
+          var stackHandle = svg.mkHandle(handleLayer, center, top, {
+            min: 0,
+            max: max,
+            now: value,
+            radius: common.screenPx(root, 4),
+            hitRadius: common.screenPx(root, 14),
+            label: category.label_en + ' ' + series.name_en,
+            valueText: tipText(dataset, seriesIndex, categoryIndex),
+            data: { series: seriesIndex, index: categoryIndex, category: category.id }
+          });
+          NC.drag.bind(stackHandle.group, {
+            axis: 'y',
+            min: 0,
+            max: max,
+            step: dataset.step || 5,
+            pixelSpan: plot.height,
+            get: function () { return dataset.series[seriesIndex].values[categoryIndex]; },
+            set: function (next) {
+              var total = dataset.series.reduce(function (sum, item) { return sum + item.values[categoryIndex]; }, 0);
+              var room = max - (total - dataset.series[seriesIndex].values[categoryIndex]);
+              dataset.series[seriesIndex].values[categoryIndex] = Math.max(0, Math.min(room, next));
+            },
+            onStart: function () { showTip(seriesIndex, categoryIndex, center, top); },
+            onUpdate: function () { lab.changed(false); showTip(seriesIndex, categoryIndex, center, y(dataset.series[seriesIndex].values[categoryIndex])); },
+            onCommit: function () { lab.changed(true); },
+            onEnd: function () { showTip(seriesIndex, categoryIndex, center, y(dataset.series[seriesIndex].values[categoryIndex])); },
+            valueText: function (next) { return category.label_en + ', ' + NC.fmt.value(next, dataset.unit, 0); }
+          });
+          NC.bindValueClick(stackHandle.group, lab, (function (si, ci, px) {
+            return function () {
+              return {
+                root: root,
+                x: px,
+                y: y(dataset.series[si].values[ci]),
+                value: dataset.series[si].values[ci],
+                min: 0,
+                max: max,
+                step: dataset.step || 5,
+                label: category.label_en + ' ' + dataset.series[si].name_en,
+                unit: dataset.unit,
+                set: function (next) { dataset.series[si].values[ci] = next; },
+                onCommit: function () { lab.changed(true); }
+              };
+            };
+          })(seriesIndex, categoryIndex, center));
+          handles.push({ handle: stackHandle, seriesIndex: seriesIndex, categoryIndex: categoryIndex });
+          segments.push({ rect: rect, seriesIndex: seriesIndex, categoryIndex: categoryIndex });
           base += value;
         });
       } else {
@@ -238,6 +308,23 @@
             common.hideTip(lab.plot);
           });
           bars.push(rect);
+          NC.bindValueClick(rect, lab, (function (si, ci, px) {
+            return function () {
+              return {
+                root: root,
+                x: px,
+                y: y(dataset.series[si].values[ci]),
+                value: dataset.series[si].values[ci],
+                min: 0,
+                max: max,
+                step: dataset.step || 5,
+                label: category.label_en + ' ' + dataset.series[si].name_en,
+                unit: dataset.unit,
+                set: function (value) { dataset.series[si].values[ci] = value; },
+                onCommit: function () { lab.changed(true); }
+              };
+            };
+          })(seriesIndex, categoryIndex, x + barWidth / 2));
 
           var handle = svg.mkHandle(handleLayer, x + barWidth / 2, y(value), {
             min: 0,
@@ -252,6 +339,23 @@
           bindBar(handle.group, lab, seriesIndex, categoryIndex, handle, function () {
             showTip(seriesIndex, categoryIndex, x + barWidth / 2, y(series.values[categoryIndex]));
           });
+          NC.bindValueClick(handle.group, lab, (function (si, ci, px) {
+            return function () {
+              return {
+                root: root,
+                x: px,
+                y: y(dataset.series[si].values[ci]),
+                value: dataset.series[si].values[ci],
+                min: 0,
+                max: max,
+                step: dataset.step || 5,
+                label: category.label_en + ' ' + dataset.series[si].name_en,
+                unit: dataset.unit,
+                set: function (value) { dataset.series[si].values[ci] = value; },
+                onCommit: function () { lab.changed(true); }
+              };
+            };
+          })(seriesIndex, categoryIndex, x + barWidth / 2));
           handle.group.addEventListener('pointerenter', function () {
             showTip(seriesIndex, categoryIndex, x + barWidth / 2, y(series.values[categoryIndex]));
           });
@@ -286,6 +390,7 @@
     legend(lab, dataset);
     state.bars = bars;
     state.handles = handles;
+    state.segments = segments;
     state.labels = labels;
     state.barWidth = barWidth;
     state.barGap = barGap;
@@ -307,10 +412,39 @@
 
   function updateVertical(lab) {
     var state = lab.barState;
-    if (!state || state.direction !== 'vertical' || state.layout !== 'grouped') return;
+    if (!state || state.direction !== 'vertical') return;
     var dataset = lab.dataset;
     var y = state.y;
     var band = state.band;
+    if (state.layout === 'stacked') {
+      dataset.categories.forEach(function (category, categoryIndex) {
+        var cumulative = 0;
+        dataset.series.forEach(function (series, seriesIndex) {
+          var value = series.values[categoryIndex];
+          var segment = state.segments.filter(function (item) {
+            return item.seriesIndex === seriesIndex && item.categoryIndex === categoryIndex;
+          })[0];
+          if (segment) {
+            segment.rect.setAttribute('y', y(cumulative + value));
+            segment.rect.setAttribute('height', Math.max(0, y(cumulative) - y(cumulative + value)));
+          }
+          var handle = state.handles.filter(function (item) {
+            return item.seriesIndex === seriesIndex && item.categoryIndex === categoryIndex;
+          })[0];
+          cumulative += value;
+          if (handle) {
+            svg.move(handle.handle, band.center(categoryIndex), y(cumulative));
+            svg.setSlider(handle.handle, value, tipText(dataset, seriesIndex, categoryIndex));
+          }
+        });
+        var label = state.labels[categoryIndex];
+        if (label && label.node) {
+          label.node.setAttribute('y', Math.max(state.plot.top + 12, y(cumulative) - 10));
+          label.node.textContent = NC.fmt.number(cumulative, 0);
+        }
+      });
+      return;
+    }
     var barWidth = state.barWidth;
     var barGap = state.barGap;
     var groupWidth = state.groupWidth;
@@ -391,6 +525,7 @@
 
     var bars = [];
     var handles = [];
+    var segments = [];
     var labels = [];
     var handleLayer = svg.group(root, { class: 'handles' });
     var showTip = showTipFactory(lab);
@@ -430,6 +565,76 @@
             common.hideTip(lab.plot);
           });
           bars.push(rect);
+          NC.bindValueClick(rect, lab, (function (si, ci, px) {
+            return function () {
+              return {
+                root: root,
+                x: px,
+                y: cy,
+                value: dataset.series[si].values[ci],
+                min: 0,
+                max: max,
+                step: dataset.step || 5,
+                label: category.label_en + ' ' + dataset.series[si].name_en,
+                unit: dataset.unit,
+                set: function (value) { dataset.series[si].values[ci] = value; },
+                onCommit: function () {
+                  lab.changed(true);
+                  lab.renderer.render(lab);
+                  lab.refresh(false);
+                }
+              };
+            };
+          })(seriesIndex, categoryIndex, x(cumulative + value)));
+
+          var stackHandle = svg.mkHandle(handleLayer, x(cumulative + value), cy, {
+            min: 0,
+            max: max,
+            now: value,
+            radius: common.screenPx(root, 4),
+            hitRadius: common.screenPx(root, compact ? 16 : 13),
+            orientation: 'horizontal',
+            label: category.label_en + ' ' + series.name_en,
+            valueText: tipText(dataset, seriesIndex, categoryIndex),
+            data: { series: seriesIndex, index: categoryIndex, category: category.id }
+          });
+          NC.drag.bind(stackHandle.group, {
+            axis: 'x',
+            min: 0,
+            max: max,
+            step: dataset.step || 5,
+            pixelSpan: plot.width,
+            get: function () { return dataset.series[seriesIndex].values[categoryIndex]; },
+            set: function (next) {
+              var total = dataset.series.reduce(function (sum, item) { return sum + item.values[categoryIndex]; }, 0);
+              var room = max - (total - dataset.series[seriesIndex].values[categoryIndex]);
+              dataset.series[seriesIndex].values[categoryIndex] = Math.max(0, Math.min(room, next));
+            },
+            onStart: function () { showTip(seriesIndex, categoryIndex, x(cumulative + value), cy); },
+            onUpdate: function () { lab.changed(false); showTip(seriesIndex, categoryIndex, x(cumulative), cy); },
+            onCommit: function () { lab.changed(true); },
+            onEnd: function () { showTip(seriesIndex, categoryIndex, x(cumulative), cy); },
+            valueText: function (next) { return category.label_en + ', ' + NC.fmt.value(next, dataset.unit, 0); }
+          });
+          NC.bindValueClick(stackHandle.group, lab, (function (si, ci, py) {
+            return function () {
+              return {
+                root: root,
+                x: x(dataset.series[si].values[ci]),
+                y: py,
+                value: dataset.series[si].values[ci],
+                min: 0,
+                max: max,
+                step: dataset.step || 5,
+                label: category.label_en + ' ' + dataset.series[si].name_en,
+                unit: dataset.unit,
+                set: function (next) { dataset.series[si].values[ci] = next; },
+                onCommit: function () { lab.changed(true); }
+              };
+            };
+          })(seriesIndex, categoryIndex, cy));
+          handles.push({ handle: stackHandle, seriesIndex: seriesIndex, categoryIndex: categoryIndex, row: row });
+          segments.push({ rect: rect, seriesIndex: seriesIndex, categoryIndex: categoryIndex, row: row });
           cumulative += value;
         });
       } else {
@@ -472,6 +677,24 @@
           });
           }
 
+          NC.bindValueClick(rect, lab, (function (si, ci, px, py) {
+            return function () {
+              return {
+                root: root,
+                x: px,
+                y: py,
+                value: dataset.series[si].values[ci],
+                min: 0,
+                max: max,
+                step: dataset.step || 5,
+                label: category.label_en + ' ' + dataset.series[si].name_en,
+                unit: dataset.unit,
+                set: function (value) { dataset.series[si].values[ci] = value; },
+                onCommit: function () { lab.changed(true); }
+              };
+            };
+          })(seriesIndex, categoryIndex, x(value), by + barHeight / 2));
+
           var handle = svg.mkHandle(handleLayer, x(value), by + barHeight / 2, {
             min: 0,
             max: max,
@@ -486,6 +709,23 @@
           bindBar(handle.group, lab, seriesIndex, categoryIndex, handle, function () {
             showTip(seriesIndex, categoryIndex, x(series.values[categoryIndex]), by + barHeight / 2);
           });
+          NC.bindValueClick(handle.group, lab, (function (si, ci, py) {
+            return function () {
+              return {
+                root: root,
+                x: x(dataset.series[si].values[ci]),
+                y: py,
+                value: dataset.series[si].values[ci],
+                min: 0,
+                max: max,
+                step: dataset.step || 5,
+                label: category.label_en + ' ' + dataset.series[si].name_en,
+                unit: dataset.unit,
+                set: function (value) { dataset.series[si].values[ci] = value; },
+                onCommit: function () { lab.changed(true); }
+              };
+            };
+          })(seriesIndex, categoryIndex, by + barHeight / 2));
           handle.group.addEventListener('pointerenter', function () {
             showTip(seriesIndex, categoryIndex, x(series.values[categoryIndex]), by + barHeight / 2);
           });
@@ -501,7 +741,9 @@
           node: common.placeValueLabel(root, nearEnd ? x(total) - 8 : x(total) + 8, cy, NC.fmt.number(total, 0), {
             anchor: nearEnd ? 'end' : 'start',
             class: nearEnd ? 'value-label inside' : 'value-label end'
-          })
+          }),
+          categoryIndex: categoryIndex,
+          row: row
         });
       }
     });
@@ -509,6 +751,7 @@
     legend(lab, dataset);
     state.bars = bars;
     state.handles = handles;
+    state.segments = segments;
     state.labels = labels;
     state.barHeight = barHeight;
     state.barGap = barGap;
@@ -527,10 +770,45 @@
 
   function updateHorizontal(lab) {
     var state = lab.barState;
-    if (!state || state.direction !== 'horizontal' || state.layout !== 'grouped') return;
+    if (!state || state.direction !== 'horizontal') return;
     var dataset = lab.dataset;
     var x = state.x;
     var band = state.band;
+    if (state.layout === 'stacked') {
+      state.order.forEach(function (categoryIndex, row) {
+        var cy = band.center(row);
+        var cumulative = 0;
+        dataset.series.forEach(function (series, seriesIndex) {
+          var value = series.values[categoryIndex];
+          var segment = state.segments.filter(function (item) {
+            return item.seriesIndex === seriesIndex && item.categoryIndex === categoryIndex;
+          })[0];
+          if (segment) {
+            segment.rect.setAttribute('x', x(cumulative));
+            segment.rect.setAttribute('width', Math.max(0, x(cumulative + value) - x(cumulative)));
+          }
+          cumulative += value;
+          var handle = state.handles.filter(function (item) {
+            return item.seriesIndex === seriesIndex && item.categoryIndex === categoryIndex;
+          })[0];
+          if (handle) {
+            svg.move(handle.handle, x(cumulative), cy);
+            svg.setSlider(handle.handle, value, tipText(dataset, seriesIndex, categoryIndex));
+          }
+        });
+        var label = state.labels.filter(function (item) {
+          return item.categoryIndex === categoryIndex;
+        })[0];
+        if (label && label.node) {
+          var nearEnd = x(cumulative) > state.plot.right - 48;
+          label.node.setAttribute('x', nearEnd ? x(cumulative) - 8 : x(cumulative) + 8);
+          label.node.setAttribute('text-anchor', nearEnd ? 'end' : 'start');
+          label.node.setAttribute('class', nearEnd ? 'value-label inside' : 'value-label end');
+          label.node.textContent = NC.fmt.number(cumulative, 0);
+        }
+      });
+      return;
+    }
     dataset.series.forEach(function (series, seriesIndex) {
       series.values.forEach(function (value, categoryIndex) {
         var item = state.handles.filter(function (handle) {

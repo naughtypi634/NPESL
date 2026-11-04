@@ -20,30 +20,17 @@
     });
   }
 
-  function levelBadge(level) {
-    return '<span class="badge level-badge" data-level="' + NC.escapeHtml(level) + '">' + NC.escapeHtml(level) + '</span>';
-  }
-
-  function registerBadge(register) {
+  function registerLabel(register) {
     if (!register || register === 'neutral') return '';
     var map = { spoken: '口语', formal: '正式', business: '商务', journalism: '新闻', informal: '非正式' };
-    return '<span class="badge register-badge">' + (map[register] || register) + '</span>';
-  }
-
-  function converterHtml() {
-    return '<div class="converter" data-converter>' +
-      '<h3>动词 + 副词 ↔ 形容词 + 名词</h3>' +
-      '<div class="converter-controls">' +
-        '<label>动词 <select data-converter-verb></select></label>' +
-        '<label>副词 <select data-converter-adverb></select></label>' +
-      '</div>' +
-      '<div class="converter-output" data-converter-output></div>' +
-    '</div>';
+    return '<span class="vocab-register">' + (map[register] || register) + '</span>';
   }
 
   function panelHtml(type) {
     var replay = ['line', 'bar', 'pie', 'mixed'].indexOf(type.renderer) === -1 ? '' :
-      '<button class="icon-btn" type="button" data-replay aria-label="重播动画" title="重播动画">' + REPLAY_ICON + '</button>';
+      '<button class="action-btn action-btn-icon" type="button" data-replay aria-label="重播动画" title="重播动画">' + REPLAY_ICON + '<span>重播</span></button>';
+    var reset = type.renderer === 'process' ? '' :
+      '<button class="action-btn" type="button" data-reset>重置</button>';
     return '<header class="section-head">' +
         '<h2>' + NC.escapeHtml(type.label_zh) + ' <span class="h2-en">' + NC.escapeHtml(type.label_en) + '</span></h2>' +
       '</header>' +
@@ -51,18 +38,16 @@
         '<div class="panel-figure">' +
           '<figure class="chart-card">' +
             '<header class="figure-head">' +
-              '<span class="chart-scene">' + NC.escapeHtml(sceneFor(type)) + '</span>' +
+              '<div class="figure-top">' +
+                '<span class="chart-scene">' + NC.escapeHtml(sceneFor(type)) + '</span>' +
+                '<span class="figure-actions">' +
+                  replay +
+                  reset +
+                '</span>' +
+              '</div>' +
               '<div class="figure-modes" data-modes></div>' +
-              '<span class="figure-actions">' +
-                replay +
-                '<button class="text-link" type="button" data-reset>重置</button>' +
-              '</span>' +
             '</header>' +
             '<div class="plot" data-plot></div>' +
-            '<details class="data-panel" data-data-panel>' +
-              '<summary>数据</summary>' +
-              '<div class="data-table-host" data-table></div>' +
-            '</details>' +
           '</figure>' +
         '</div>' +
         '<aside class="panel-reading">' +
@@ -72,21 +57,14 @@
           '</section>' +
         '</aside>' +
       '</div>' +
-      '<div class="pattern-section">' +
+      '<section class="learning-block" data-patterns-section>' +
         '<h3>常用句型</h3>' +
         '<ul class="pattern-list" data-patterns></ul>' +
-      '</div>' +
-      '<details class="learning" data-vocab-section>' +
-        '<summary>词汇</summary>' +
-        '<div class="learning-body"><div class="vocab-groups" data-vocab></div></div>' +
-      '</details>' +
-      '<details class="learning" data-grammar-section>' +
-        '<summary>句型与语法</summary>' +
-        '<div class="learning-body">' +
-          (type.converter ? converterHtml() : '') +
-          '<div class="grammar-list" data-grammar></div>' +
-        '</div>' +
-      '</details>';
+      '</section>' +
+      '<section class="learning-block" data-vocab-section>' +
+        '<h3>词汇</h3>' +
+        '<div class="vocab-groups" data-vocab></div>' +
+      '</section>';
   }
 
   function buildPanels() {
@@ -106,13 +84,14 @@
     });
   }
 
+  var LEVEL_ORDER = { A2: 0, B1: 1, B2: 2, C1: 3 };
+
   function vocabCard(entry) {
-    return '<article class="vocab-card" data-level="' + NC.escapeHtml(entry.level) + '">' +
+    return '<article class="vocab-card">' +
       '<div class="vocab-head">' +
         '<span class="vocab-en" lang="en">' + NC.escapeHtml(entry.en) + '</span>' +
         '<span class="vocab-zh">' + NC.escapeHtml(entry.zh) + '</span>' +
-        levelBadge(entry.level) +
-        registerBadge(entry.register) +
+        registerLabel(entry.register) +
       '</div>' +
       '<p class="vocab-ex"><span lang="en">' + NC.escapeHtml(entry.example_en) + '</span></p>' +
       '<p class="vocab-ex-zh">' + NC.escapeHtml(entry.example_zh) + '</p>' +
@@ -128,17 +107,20 @@
     var entries = NC.state.data.vocab.entries.filter(function (entry) {
       return allowed.indexOf(entry.group) !== -1;
     });
-    var html = NC.state.data.vocab.groups.filter(function (group) {
-      return allowed.indexOf(group.id) !== -1;
-    }).map(function (group) {
-      var items = entries.filter(function (entry) { return entry.group === group.id; });
+    var html = allowed.map(function (groupId) {
+      return NC.state.data.vocab.groups.filter(function (group) { return group.id === groupId; })[0];
+    }).filter(Boolean).map(function (group) {
+      var items = entries.filter(function (entry) { return entry.group === group.id; })
+        .sort(function (a, b) {
+          return (LEVEL_ORDER[a.level] || 0) - (LEVEL_ORDER[b.level] || 0);
+        });
       if (!items.length) return '';
       return '<div class="vocab-group">' +
         '<h4>' + NC.escapeHtml(group.title_zh) + '</h4>' +
         '<div class="vocab-list">' + items.map(vocabCard).join('') + '</div>' +
       '</div>';
     }).join('');
-    host.innerHTML = html || '<p class="empty">暂无匹配内容。</p>';
+    host.innerHTML = html || '<p class="empty">暂无词汇。</p>';
   }
 
   function renderPatterns(type) {
@@ -147,85 +129,15 @@
     if (!list) return;
     list.innerHTML = (type.patterns || []).map(function (pattern) {
       return '<li>' +
-        '<span class="pattern-level">' + NC.escapeHtml(pattern.level) + '</span>' +
         '<span class="pattern-en" lang="en">' + NC.escapeHtml(pattern.en) + '</span>' +
         '<span class="pattern-zh">' + NC.escapeHtml(pattern.zh) + '</span>' +
       '</li>';
     }).join('');
   }
 
-  function grammarCard(pattern) {
-    return '<article class="grammar-card">' +
-      '<div class="grammar-head"><h3 lang="en">' + NC.escapeHtml(pattern.title_en) + '</h3>' +
-      '<span class="grammar-zh">' + NC.escapeHtml(pattern.title_zh) + '</span>' +
-      levelBadge(pattern.level) + '</div>' +
-      '<p class="grammar-explain">' + NC.escapeHtml(pattern.explain_zh) + '</p>' +
-      '<div class="examples">' +
-        (pattern.correct || []).map(function (item) {
-          return '<div class="example correct"><span class="mark">✓</span><div><p lang="en">' + NC.escapeHtml(item.en) + '</p><p class="zh">' + NC.escapeHtml(item.zh) + '</p></div></div>';
-        }).join('') +
-        (pattern.wrong || []).map(function (item) {
-          return '<div class="example wrong"><span class="mark">✕</span><div><p lang="en">' + NC.escapeHtml(item.en) + '</p><p class="zh">' + NC.escapeHtml(item.why_zh) + '</p></div></div>';
-        }).join('') +
-      '</div>' +
-    '</article>';
-  }
-
-  function renderGrammar(type) {
-    var section = NC.byId('chart-' + type.id);
-    var host = section && section.querySelector('[data-grammar]');
-    if (!host) return;
-    var allowed = type.grammar_patterns || [];
-    var patterns = NC.state.data.grammar.patterns.filter(function (pattern) {
-      return allowed.indexOf(pattern.id) !== -1;
-    });
-    host.innerHTML = patterns.map(grammarCard).join('') || '<p class="empty">暂无匹配内容。</p>';
-  }
-
-  function renderConverter(type) {
-    var section = NC.byId('chart-' + type.id);
-    var host = section && section.querySelector('[data-converter]');
-    if (!host) return;
-    var verbSelect = host.querySelector('[data-converter-verb]');
-    var adverbSelect = host.querySelector('[data-converter-adverb]');
-    var output = host.querySelector('[data-converter-output]');
-    if (!verbSelect || !adverbSelect || !output) return;
-
-    var grammar = NC.state.data.grammar.converter;
-    var verbs = grammar.verbs.slice();
-    var adverbs = grammar.adverbs.slice();
-
-    var verbValue = verbSelect.value;
-    var adverbValue = adverbSelect.value;
-    verbSelect.innerHTML = verbs.map(function (verb) {
-      return '<option value="' + verb.id + '">' + NC.escapeHtml(verb.base) + ' · ' + NC.escapeHtml(verb.zh) + '</option>';
-    }).join('');
-    adverbSelect.innerHTML = adverbs.map(function (adverb) {
-      return '<option value="' + adverb.id + '">' + NC.escapeHtml(adverb.adverb) + ' · ' + NC.escapeHtml(adverb.zh) + '</option>';
-    }).join('');
-    if (verbs.some(function (verb) { return verb.id === verbValue; })) verbSelect.value = verbValue;
-    if (adverbs.some(function (adverb) { return adverb.id === adverbValue; })) adverbSelect.value = adverbValue;
-
-    function update() {
-      var currentVerb = verbs.filter(function (item) { return item.id === verbSelect.value; })[0] || verbs[0];
-      var currentAdverb = adverbs.filter(function (item) { return item.id === adverbSelect.value; })[0] || adverbs[0];
-      var phrase = NC.fmt.withArticle(currentAdverb.adjective + ' ' + currentVerb.noun);
-      output.innerHTML =
-        '<p class="converter-line" lang="en">Revenue ' + NC.escapeHtml(currentVerb.past) + ' ' + NC.escapeHtml(currentAdverb.adverb) + '.</p>' +
-        '<p class="converter-line" lang="en">There was ' + NC.escapeHtml(phrase) + ' in revenue.</p>' +
-        '<p class="converter-line" lang="en">Revenue saw ' + NC.escapeHtml(phrase) + '.</p>' +
-        '<p class="converter-zh">收入' + NC.escapeHtml(currentAdverb.zh) + NC.escapeHtml(currentVerb.zh) + '。</p>';
-    }
-    verbSelect.onchange = update;
-    adverbSelect.onchange = update;
-    update();
-  }
-
   function renderLearning(type) {
     renderPatterns(type);
     renderVocab(type);
-    renderGrammar(type);
-    renderConverter(type);
   }
 
   function renderAllLearning() {
@@ -235,14 +147,26 @@
   function renderErrors() {
     var host = NC.byId('errors-list');
     if (!host) return;
-    var errors = NC.state.data.errors.errors;
-    host.innerHTML = '<div class="errors-grid">' + errors.map(function (item) {
-      return '<article class="error-card">' +
-        '<div class="example wrong"><span class="mark">✕</span><p lang="en">' + NC.escapeHtml(item.wrong_en) + '</p></div>' +
-        '<div class="example correct"><span class="mark">✓</span><p lang="en">' + NC.escapeHtml(item.right_en) + '</p></div>' +
-        '<p class="error-why">' + NC.escapeHtml(item.why_zh) + '</p>' +
-      '</article>';
-    }).join('') + '</div>';
+    var data = NC.state.data.errors;
+    var errors = data.errors || [];
+    var categories = data.categories || [];
+    host.innerHTML = categories.map(function (category) {
+      var items = errors.filter(function (item) { return item.category === category.id; });
+      if (!items.length) return '';
+      return '<section class="error-group" data-category="' + NC.escapeHtml(category.id) + '">' +
+        '<header class="error-group-head">' +
+          '<h3>' + NC.escapeHtml(category.title_zh) + '</h3>' +
+          '<span>' + NC.escapeHtml(category.title_en) + '</span>' +
+        '</header>' +
+        '<div class="errors-grid">' + items.map(function (item) {
+          return '<article class="error-card">' +
+            '<div class="example wrong"><span class="mark">✕</span><p lang="en">' + NC.escapeHtml(item.wrong_en) + '</p></div>' +
+            '<div class="example correct"><span class="mark">✓</span><p lang="en">' + NC.escapeHtml(item.right_en) + '</p></div>' +
+            '<p class="error-why">' + NC.escapeHtml(item.why_zh) + '</p>' +
+          '</article>';
+        }).join('') + '</div>' +
+      '</section>';
+    }).join('');
   }
 
   function buildTypeSwitch() {
@@ -325,7 +249,6 @@
       lab.mount();
       if (lab.renderer.render) lab.renderer.render(lab);
       lab.refresh(false);
-      lab.refreshTable();
     }
     var panel = NC.byId('chart-' + id);
     if (panel && !NC.state.reducedMotion) {
@@ -451,7 +374,6 @@
         }
         lab.refresh(false);
       });
-      renderAllLearning();
     }
     buttons.forEach(function (button) {
       button.addEventListener('click', function () {
@@ -492,6 +414,7 @@
     setupReducedMotion();
     buildPanels();
     buildTypeSwitch();
+    renderAllLearning();
     renderErrors();
     setupHeader();
     setupTypeOverflow();
