@@ -18,7 +18,6 @@
 | `build_cloudflare_site.py` | 把七个应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/` |
 | `build_ipa_site.py` | 音标表页面 + 全部单词的男女两版录音；默认 `--tts azure`，`--skip-audio` 只用缓存 |
 | `apps/conversation/source/build_site.py` | Conversation Starters 页面与全部级别语音 |
-| `apps/travel/source/build.py` | 旅行英语页面、索引与每场景三层 sprite；`--only`、`--skip-audio`、`--index-only`、`--tts azure\|edge` |
 | `drill/make_audio.py` | Question Drill 逐句语音（读 `content/drill/questions.json`） |
 | `drill/assemble.py` | Question Drill 页面、题库脚本与 sprite；默认从 `questions.json` 重渲染 |
 | `clean_build.py` | 清 Edge 临时配置、日志、`__pycache__`；`--all` 连部署暂存；`--scratch` 清 build 顶层残留 |
@@ -49,7 +48,6 @@
 | `drill/prune_audio.py` | 删除题库不再引用的音频 |
 | `drill/test_app.mjs` | Question Drill 单文件版的行为测试 |
 | `apps/collocation/source/validate.py` | 短语搭配内容校验（改内容后必须先跑） |
-| `apps/travel/source/validate.py` | 旅行英语结构、地图热点、美式英语与跨场景重复检查 |
 | `apps/phonics/source/validate.py` | 自然拼读结构校验 |
 | `apps/phenomena/source/validate.py` | 发音现象标注校验 |
 

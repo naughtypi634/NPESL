@@ -1,12 +1,13 @@
 # Travel English 内容源
 
 23 个场景，8 个行程阶段。一个场景 = 一处真实地点（机场、酒店、餐厅），
-热点 = 这处地点里的不同柜台/区域。每个场景 3–5 个热点，每个热点 3 层：
+每个场景 3–5 个 encounter，每个 encounter 3 层：
 Survival / Conversational / Advanced。
 
-- `scenes.json`：阶段、场景顺序、地图原型、热点位置。
-- `<scene-id>.json`：speakers + encounters + 三层短语/对话。
-- 页面与音频由 `apps/travel/source/build.py` 生成，不要手改 `apps/travel/*.html`。
+- `scenes.json`：阶段与场景顺序（地图/热点数据已移除，交互层待重做）。
+- `<scene-id>.json`：speakers + encounters + 三层短语/对话 + listening。
+- 场景页、索引、构建器与地图已从 `apps/travel/` 清空；音频母版保留在 `apps/travel/audio/{f,m}`。
+  新交互层开工前先定数据和资产方案，不要按旧架构补代码。
 
 ## 场景文件
 
@@ -84,16 +85,4 @@ Survival / Conversational / Advanced。
 
 ## 构建
 
-```powershell
-.venv\Scripts\python.exe -I apps\travel\source\validate.py
-.venv\Scripts\python.exe -I apps\travel\source\build.py
-.venv\Scripts\python.exe -I apps\travel\source\build.py --only airport --skip-audio
-```
-
-- 音频默认 Azure（Ava/Andrew），按内容哈希增量合成；`--tts edge` 回退。
-- 每个场景的 listening 问法/答法拼成 `listen-f` / `listen-m` 两条 sprite；点读时跟随页面的男女声开关。
-- 场景页地图有 2D 建筑平面图和 3D 等距模型两套视图，由 `maps.py` 从同一份布局数据生成；热点位置两套坐标都写在按钮上，右上角 `2D | 3D` 开关切换。
-- 改一句读音：删掉 `apps/travel/audio/{f,m}` 里对应母版，再跑 `build.py`；
-  只重合成这一条，并重拼该场景该层的 sprite。
-- 母版入库；`apps/travel/audio/sprites/` 是构建产物，gitignore。
-- 构建缺任何一条音频会直接失败，不生成半有声页面。
+交互与页面层已清空，当前没有构建命令。内容与 `apps/travel/audio/{f,m}` 母版保留，供重做交互层时复用。

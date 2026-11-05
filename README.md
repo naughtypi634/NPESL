@@ -10,7 +10,6 @@
 | Conversation Starters A1–C2 + ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `apps/conversation/` |
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
 | 短语搭配 Collocations 30 主题 | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
-| 旅行英语 Travel English 23 场景 | https://npesl.pages.dev/travel/ | `content/travel/` → `apps/travel/` |
 
 ## 目录
 
@@ -22,14 +21,14 @@
 | `content/conversation/` | Conversation Starters 分级 `content.py`、逐段中文翻译、发音标注 |
 | `content/drill/` | Question Drill 题库：`raw/` `reviewed/` `final/` 批次、`questions.json`、翻译与修订表 |
 | `content/collocation/` | 短语搭配：`themes.json` + 每个主题一个词条 JSON（内容源） |
-| `content/travel/` | 旅行英语：`scenes.json` + 每个场景一个 JSON（内容源） |
+| `content/travel/` | 旅行英语内容源：`scenes.json` + 每个场景一个 JSON（句子、单词、听力） |
 | `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Bright / Dark / Sepia / Auto） |
 | `apps/phonics/` | 48 课网页、`source/`（内容与构建器）、`audio/` |
 | `apps/ipa/` | 音标表网页（`index.html` + `audio/`），40 个音标 × 10 个单词 |
 | `apps/drill/` | 中译英练习网页（`index.html` + `audio/f,m/`）与独立单文件 HTML |
 | `apps/phenomena/` | 30 章发音现象课，逐词音素标注 + 男女声 |
 | `apps/collocation/` | 短语搭配章节页（`source/` 构建器 + `audio/`），每章一条 sprite |
-| `apps/travel/` | 旅行英语场景页与索引（`source/` 构建器 + `audio/`），每场景三层 sprite |
+| `apps/travel/` | 旅行英语音频母版（`audio/f`、`audio/m`）；交互与页面层已清空，待重做 |
 | `apps/conversation/` | Conversation Starters 页面与 `audio/`（`source/` 构建器，内容源在 `content/conversation/`） |
 | `tools/` | 构建、校验脚本；`tools/README.md` 是脚本索引，`tools/paths.py` 是路径的唯一来源 |
 | `tools/audio_sprite.py` | 把逐条录音拼成每页/每课/每题一条（不改码率，音质不变） |
@@ -72,9 +71,7 @@ python -m venv .venv
 .venv\Scripts\python.exe -I apps\collocation\source\validate.py
 .venv\Scripts\python.exe -I apps\collocation\source\build.py
 
-# 旅行英语：校验内容，再补语音、拼 sprite 并出场景页
-.venv\Scripts\python.exe -I apps\travel\source\validate.py
-.venv\Scripts\python.exe -I apps\travel\source\build.py
+# 旅行英语：交互与页面层待重做；内容在 content/travel/，音频母版在 apps/travel/audio/
 
 # Conversation Starters：页面 + 全部级别男女两套语音（缓存命中就不重新合成）
 .venv\Scripts\python.exe -I apps\conversation\source\build_site.py
@@ -127,5 +124,5 @@ npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npe
 ## 路径约定
 
 - **构建都从库根目录运行**；`tools/paths.py` 集中了所有路径常量，搬目录只改它。
-- 页面里的站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`、`/collocation/`、`/travel/`），源目录本身不是可直接预览的站点；要看效果先跑 `build_cloudflare_site.py`。
+- 页面里的站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`、`/collocation/`），源目录本身不是可直接预览的站点；要看效果先跑 `build_cloudflare_site.py`。
 - 语音地址统一用 `https://npesl-audio.pages.dev/audio/`，所有级别（含 ESLSE）都一样，不要给某一级单独开本地路径分支。

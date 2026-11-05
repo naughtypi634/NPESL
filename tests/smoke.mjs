@@ -11,7 +11,6 @@
 // Exit code 0 = all passed.
 
 import { createServer } from 'node:http';
-import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,8 +26,6 @@ const argOf = (name, fallback) => {
 };
 const SERVE_DIR = resolve(ROOT, argOf('--dir', 'build/cloudflare-site'));
 const ONLY = argOf('--only', null);
-// 旅行英语还没做完，主站和部署包里都没有它；上线后这个文件存在，用例自动恢复。
-const TRAVEL_UP = existsSync(join(SERVE_DIR, 'travel', 'index.html'));
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -376,8 +373,7 @@ const cases = [
     async run() {
       const links = await evaluate(
         "[...document.querySelectorAll('a')].map(a => new URL(a.getAttribute('href'), location.href).pathname)");
-      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/collocation/',
-        ...(TRAVEL_UP ? ['/travel/'] : [])];
+      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/collocation/'];
       const missing = want.filter((w) => !links.some((h) => h && h.startsWith(w)));
       return { ok: missing.length === 0, detail: missing.length ? `缺少链接 ${missing}` : `${want.length} 个入口齐全` };
     },
@@ -1084,160 +1080,11 @@ const cases = [
       };
     },
   },
-  {
-    name: 'travel-index', path: '/travel/',
-    async run() {
-      const r = await evaluate(`(() => {
-        const cards = [...document.querySelectorAll('a.scene-card')];
-        const text = document.body.textContent;
-        return {
-          stages: document.querySelectorAll('.stage-head').length,
-          cards: cards.length,
-          first: cards[0] ? cards[0].getAttribute('href') : '',
-          theme: !!document.querySelector('.npesl-theme-fab'),
-          countText: /\\d+\\s*(个场景|条|课|题)/.test(text),
-        };
-      })()`);
-      const ok = r && r.stages >= 1 && r.cards >= 1 && r.first
-        && r.theme && !r.countText;
-      return { ok, detail: JSON.stringify(r) };
-    },
-  },
-  {
-    name: 'travel', path: '/travel/01-airport.html',
-    async run() {
-      const first = await evaluate(`(() => {
-        const b = document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden]) .phrase');
-        if (!b) return null;
-        b.setAttribute('data-smoke', '1');
-        const voice = document.querySelector('[data-voice][aria-pressed="true"]')
-          .getAttribute('data-voice');
-        return {
-          text: b.querySelector('.en').textContent,
-          start: parseFloat(b.getAttribute('data-start-' + voice)),
-        };
-      })()`);
-      if (!first) return { ok: false, detail: '没有短语按钮' };
-      const spoken = await playAndProbe('.phrase[data-smoke]');
-      const phraseOk = spoken.started
-        && spoken.currentTime >= first.start - 0.1
-        && spoken.mediaErrors.length === 0;
-
-      const hotspot = await evaluate(`(() => {
-        const b = document.querySelector('[data-hotspot="security"]');
-        if (!b) return null;
-        b.click();
-        const panel = document.querySelector('.encounter:not([hidden])');
-        return {
-          pressed: b.getAttribute('aria-pressed'),
-          panel: panel ? panel.getAttribute('data-encounter') : '',
-        };
-      })()`);
-      const hotspotOk = hotspot && hotspot.pressed === 'true'
-        && hotspot.panel === 'security';
-
-      await evaluate(`document.querySelector('[data-level="conversational"]').click()`);
-      const changed = await evaluate(`(() => {
-        const b = document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden]) .phrase');
-        return b ? {
-          text: b.querySelector('.en').textContent,
-          start: b.getAttribute('data-start-f'),
-        } : null;
-      })()`);
-      const levelOk = changed && changed.text !== first.text && changed.start !== null;
-
-      await evaluate(`document.querySelector('[data-play-dialogue]').click()`);
-      const playing = await waitFor("!!document.querySelector('.line.playing')", 6000);
-      const dialogueOk = playing;
-
-      // 停掉整段对话，避免它在下面点问法时又续播、抢走音频。
-      await evaluate(`document.querySelector('[data-play-dialogue]').click()`);
-      await sleep(200);
-
-      const listen = await evaluate(`(() => {
-        const b = document.querySelector('.encounter:not([hidden]) .listening .ask');
-        if (!b) return null;
-        b.setAttribute('data-smoke', '1');
-        const voice = document.querySelector('[data-voice][aria-pressed="true"]')
-          .getAttribute('data-voice');
-        return {
-          text: b.querySelector('.en').textContent,
-          start: parseFloat(b.getAttribute('data-start-' + voice)),
-        };
-      })()`);
-      let listenOk = false;
-      let listenDebug = 'no-ask';
-      if (listen) {
-        // 先点一次把 listen sprite 拉下来，第二次再正式探测；长测序跑完
-        // 其他应用后，第一次 fetch 偶尔会超过默认等待。
-        await evaluate(`document.querySelector('.ask[data-smoke]').click()`);
-        await sleep(1200);
-        const spokenAsk = await playAndProbe('.ask[data-smoke]');
-        const pausedAsk = await evaluate('window.__lastAudio ? window.__lastAudio.paused : null');
-        listenDebug = `want=${listen.start} t=${spokenAsk.currentTime?.toFixed(2)} `
-          + `paused=${pausedAsk}`;
-        listenOk = spokenAsk.started
-          && spokenAsk.currentTime >= listen.start - 0.1
-          && spokenAsk.mediaErrors.length === 0;
-      }
-
-      const view = await evaluate(`(() => {
-        const before = document.querySelector('[data-hotspot][aria-pressed="true"]');
-        const beforeLeft = before ? before.getBoundingClientRect().left : 0;
-        document.querySelector('[data-view="3d"]').click();
-        const after = document.querySelector('[data-hotspot][aria-pressed="true"]');
-        const stage = document.querySelector('[data-map-view="3d"]');
-        return {
-          pressed: document.querySelector('[data-view="3d"]').getAttribute('aria-pressed'),
-          stageHidden: stage ? stage.hidden : true,
-          moved: after ? Math.abs(after.getBoundingClientRect().left - beforeLeft) > 1 : false,
-          overflow: document.documentElement.scrollWidth - window.innerWidth,
-        };
-      })()`);
-      const viewOk = view && view.pressed === 'true' && view.stageHidden === false
-        && view.moved && view.overflow <= 1;
-
-      await evaluate(`document.querySelector('[data-zh-toggle]').click()`);
-      const zhOff = await evaluate(`(() => {
-        const zh = document.querySelector('.encounter:not([hidden]) .level-panel:not([hidden]) .phrase .zh');
-        return { off: document.body.classList.contains('zh-off'),
-                 display: zh ? getComputedStyle(zh).display : '' };
-      })()`);
-      await evaluate(`document.querySelector('[data-zh-toggle]').click()`);
-
-      const layout = await evaluate(`(() => ({
-        overflow: document.documentElement.scrollWidth - window.innerWidth,
-        fab: !!document.querySelector('.npesl-theme-fab'),
-      }))()`);
-
-      await evaluate(`document.documentElement.setAttribute('data-theme', 'glass')`);
-      const glass = await evaluate(`(() => {
-        const b = document.querySelector('[data-hotspot][aria-pressed="true"]');
-        return b ? getComputedStyle(b).backgroundColor : '';
-      })()`);
-      await evaluate(`document.documentElement.setAttribute('data-theme', 'auto')`);
-      const glassOk = glass && glass !== 'rgba(0, 0, 0, 0)'
-        && glass !== 'transparent';
-
-      const zhOk = zhOff && zhOff.off && zhOff.display === 'none';
-      const layoutOk = layout && layout.overflow <= 1 && layout.fab;
-      const ok = phraseOk && hotspotOk && levelOk && dialogueOk && listenOk
-        && viewOk && zhOk && layoutOk && glassOk;
-      return {
-        ok,
-        detail: `phrase=${phraseOk}@${spoken.currentTime?.toFixed(2)} hotspot=${hotspotOk} `
-          + `level=${levelOk} dialogue=${dialogueOk} listen=${listenOk} ${listenDebug} `
-          + `view=${JSON.stringify(view)} zh=${zhOk} `
-          + `layout=${JSON.stringify(layout)} glass=${glass}`,
-      };
-    },
-  },
 ];
 
 const results = [];
 for (const c of cases) {
   if (ONLY && c.name !== ONLY) continue;
-  if (!TRAVEL_UP && c.name.startsWith('travel')) continue;
   let outcome;
   try {
     await goto(c.path);
