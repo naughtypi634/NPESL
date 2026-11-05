@@ -1089,6 +1089,41 @@ const cases = [
     },
   },
   {
+    name: 'collocation-noun-uses', path: '/collocation/',
+    async run() {
+      // 名词卡：package 下列出 get / sign for / track / pick up 四个动作。
+      await evaluate(`document.querySelector('[data-mode="scene"]').click()`);
+      await sleep(250);
+      const shape = await evaluate(`(() => {
+        const D = window.COLLOCATION_INDEX;
+        const i = D.entries.findIndex((e) => e.id === 'package');
+        if (i < 0) return 'no-entry';
+        const row = document.querySelector('.prow[data-i="' + i + '"]');
+        if (!row) return 'no-row';
+        row.click();
+        const card = document.querySelector('.card[data-card="' + i + '"]');
+        if (!card) return 'no-card';
+        return {
+          i,
+          uses: card.querySelectorAll('.use').length,
+          vars: card.querySelectorAll('.variant').length,
+          title: card.querySelector('.uses-title')?.textContent.trim(),
+        };
+      })()`);
+      if (typeof shape === 'string') return { ok: false, detail: shape };
+      if (shape.uses !== 4 || shape.vars !== 0 || shape.title !== '用法') {
+        return { ok: false, detail: `shape=${JSON.stringify(shape)}` };
+      }
+      await evaluate(
+        `document.querySelector('.card[data-card="${shape.i}"] .use .playbtn').setAttribute('data-smoke', '1')`);
+      await evaluate(`document.querySelector('[data-smoke="1"]').click()`);
+      const started = await waitFor(`!!(window.__phLast && window.__phLast.t1 !== null)`, 8000);
+      const tail = await evaluate(`window.__phLast`);
+      const ok = !!started && tail && tail.s > 0 && tail.en > tail.s;
+      return { ok, detail: `started=${started} tail=${JSON.stringify(tail)}` };
+    },
+  },
+  {
     name: 'phenomena-index', path: '/phenomena/',
     async run() {
       // 第 24 课有一条超长 tag；卡片不能被撑宽，页面也不许横向溢出。

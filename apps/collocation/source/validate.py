@@ -117,6 +117,39 @@ def check_variants(where, entry, seen_sentences, bad):
                       seen_sentences, bad, low=4, high=15)
 
 
+def check_uses(where, entry, seen_sentences, bad):
+    """名词卡上的动作搭配（如 package: get / sign for / track / pick up）。"""
+    uses = entry.get("uses")
+    if uses is None:
+        return
+    if not isinstance(uses, list):
+        bad(f"{where}: uses 应是数组")
+        return
+    if not 2 <= len(uses) <= 8:
+        bad(f"{where}: uses 应有 2-8 条，实际 {len(uses)}")
+    seen = set()
+    for index, use in enumerate(uses, 1):
+        uwhere = f"{where}/用法{index}"
+        if not isinstance(use, dict):
+            bad(f"{uwhere}: 应是对象")
+            continue
+        for key in ("head", "zh", "example"):
+            if key not in use:
+                bad(f"{uwhere}: 缺字段 {key}")
+        head = str(use.get("head", "")).strip()
+        if head:
+            if head != head.lower():
+                bad(f"{uwhere}: head 用小写")
+            if head in seen or head == entry.get("head"):
+                bad(f"{uwhere}: head {head!r} 重复")
+            seen.add(head)
+        if not str(use.get("zh", "")).strip():
+            bad(f"{uwhere}: 缺中文")
+        example = use.get("example") or {}
+        check_example(uwhere, example.get("en", ""), example.get("zh", ""),
+                      seen_sentences, bad)
+
+
 def check_entries(entries, chapter, chips, seen_ids, seen_sentences, bad):
     for entry in entries:
         eid = entry.get("id", "?")
@@ -204,6 +237,7 @@ def check_entries(entries, chapter, chips, seen_ids, seen_sentences, bad):
                           seen_sentences, bad)
 
         check_variants(where, entry, seen_sentences, bad)
+        check_uses(where, entry, seen_sentences, bad)
 
 
 def check_opposites(seen_ids, sense_counts, bad):

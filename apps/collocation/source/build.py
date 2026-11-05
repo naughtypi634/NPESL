@@ -130,6 +130,13 @@ def entry_texts(entry):
         en = (variant.get("example") or {}).get("en", "").strip()
         if en:
             texts.append(en)
+    for use in entry.get("uses", []):
+        head = str(use.get("head", "")).strip()
+        if head:
+            texts.append(head)
+        en = (use.get("example") or {}).get("en", "").strip()
+        if en:
+            texts.append(en)
     return texts
 
 
@@ -440,6 +447,14 @@ INDEX_STYLE = """
   .card .variant-note { margin:3px 0 0; font-size:12px; line-height:1.55;
     color:var(--muted); }
   .card .variant .ex-unit { margin-top:5px; }
+  .card .uses { margin-top:14px; padding-top:12px; border-top:1px dashed var(--rule); }
+  .card .uses-title { margin:0 0 8px; font-size:12px; color:var(--accent);
+    font-weight:600; letter-spacing:0.02em; }
+  .card .use { margin-top:12px; }
+  .card .use-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; }
+  .card .use-head .w { font-weight:600; }
+  .card .use-head .use-zh { font-size:13px; color:var(--muted); }
+  .card .use .ex-unit { margin-top:5px; }
   .card .note-card { margin-top:12px; padding:12px 14px;
     border-radius:var(--radius-control, 12px);
     background:var(--surface-strong, var(--surface)); border:1px solid var(--rule);
@@ -550,6 +565,16 @@ def index_data(themes, opp_map=None, word_map=None):
                     example.get("en", ""), example.get("zh", ""),
                     variant.get("note_zh", ""), head_k, head_k + 1,
                 ])
+            use_rows = []
+            use_base = 1 + spoken_senses + 2 * len(entry.get("variants", []))
+            for uindex, use in enumerate(entry.get("uses", [])):
+                example = use.get("example") or {}
+                head_k = use_base + 2 * uindex
+                use_rows.append([
+                    use.get("head", ""), use.get("zh", ""),
+                    example.get("en", ""), example.get("zh", ""),
+                    head_k, head_k + 1,
+                ])
             entries.append({
                 "id": entry["id"], "c": theme.get("category", ""), "t": theme["id"],
                 "h": entry["head"], "zh": entry["zh"],
@@ -561,6 +586,7 @@ def index_data(themes, opp_map=None, word_map=None):
                 "sen": [[s["zh"], s["example"]["en"], s["example"]["zh"]]
                         for s in senses],
                 "var": var_rows,
+                "use": use_rows,
                 "l1": entry.get("l1_note", ""),
                 "coll": [],
                 "conf": [],
@@ -717,6 +743,14 @@ def build_index(themes, opp_map=None, word_map=None):
         "    for(var v=0;v<e.var.length;v++){\n"
         "      var vv=e.var[v];\n"
         "      out+='<div class=\"variant\"><div class=\"variant-head\"><span class=\"w\">'+esc(vv[0])+'</span>'+(vv[1]?'<span class=\"ipa\">/'+esc(vv[1])+'/</span>':'')+(vv[3]?'<span class=\"badge reg\">'+(vv[3]==='spoken'?'口语':vv[3]==='written'?'书面':'中性')+'</span>':'')+'<button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+vv[7]+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button></div><p class=\"variant-zh\">'+esc(vv[2])+'</p><p class=\"variant-note\">'+esc(vv[6])+'</p><div class=\"say-unit ex-unit\" data-unit=\"'+i+'-v'+v+'\"><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+vv[8]+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><div class=\"ex-text\"><span class=\"txt\">'+esc(vv[4])+'</span><span class=\"zh\">'+esc(vv[5])+'</span></div></div></div>';\n"
+        "    }\n"
+        "    out+='</div>';\n"
+        "  }\n"
+        "  if(e.use&&e.use.length){\n"
+        "    out+='<div class=\"uses\"><p class=\"uses-title\">用法</p>';\n"
+        "    for(var u=0;u<e.use.length;u++){\n"
+        "      var uu=e.use[u];\n"
+        "      out+='<div class=\"use\"><div class=\"use-head\"><span class=\"w\">'+esc(uu[0])+'</span><span class=\"use-zh\">'+esc(uu[1])+'</span><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+uu[4]+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button></div><div class=\"say-unit ex-unit\" data-unit=\"'+i+'-u'+u+'\"><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+uu[5]+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><div class=\"ex-text\"><span class=\"txt\">'+esc(uu[2])+'</span><span class=\"zh\">'+esc(uu[3])+'</span></div></div></div>';\n"
         "    }\n"
         "    out+='</div>';\n"
         "  }\n"
