@@ -34,42 +34,51 @@ def main() -> int:
     args = parser.parse_args()
 
     batch = json.loads(Path(args.file).read_text(encoding="utf-8"))
-    theme = batch["theme"]
-    items = {item["id"]: item for item in batch["items"]}
-    path = CONTENT / f"{theme}.json"
-    doc = json.loads(path.read_text(encoding="utf-8"))
-    found = set()
-    for entry in doc.get("entries", []):
-        item = items.get(entry.get("id"))
-        if not item:
-            continue
-        found.add(entry["id"])
-        entry["head"] = item["head"]
-        entry["kind"] = item.get("kind", "chunk")
-        entry["zh"] = item["zh"]
-        entry["freq"] = int(item.get("freq", 3))
-        entry["register"] = item.get("register", "neutral")
-        entry["chip"] = item["chip"]
-        for key in ("base", "particle", "separable", "ipa"):
-            entry.pop(key, None)
-        entry["senses"] = [{
-            "zh": item.get("sense_zh", item["zh"]),
-            "example": {"en": item["en"], "zh": item["ex_zh"]},
-        }]
-        if item.get("l1"):
-            entry["l1_note"] = item["l1"]
-        else:
-            entry.pop("l1_note", None)
-        entry["confusables"] = []
-        entry["collocations"] = []
-        entry["collocations_zh"] = []
-    missing = sorted(set(items) - found)
+    default_theme = batch.get("theme")
+    by_theme = {}
+    for item in batch["items"]:
+        by_theme.setdefault(item.get("theme", default_theme), {})[item["id"]] = item
+    total = 0
+    missing = []
+    for theme, items in by_theme.items():
+        path = CONTENT / f"{theme}.json"
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        found = set()
+        for entry in doc.get("entries", []):
+            item = items.get(entry.get("id"))
+            if not item:
+                continue
+            found.add(entry["id"])
+            entry["head"] = item["head"]
+            entry["kind"] = item.get("kind", "chunk")
+            entry["zh"] = item["zh"]
+            entry["freq"] = int(item.get("freq", 3))
+            entry["register"] = item.get("register", "neutral")
+            entry["chip"] = item["chip"]
+            for key in ("base", "particle", "separable", "ipa"):
+                entry.pop(key, None)
+            entry["senses"] = [{
+                "zh": item.get("sense_zh", item["zh"]),
+                "example": {"en": item["en"], "zh": item["ex_zh"]},
+            }]
+            if item.get("l1"):
+                entry["l1_note"] = item["l1"]
+            else:
+                entry.pop("l1_note", None)
+            entry["confusables"] = []
+            entry["collocations"] = []
+            entry["collocations_zh"] = []
+        missing.extend(sorted(set(items) - found))
+        if found:
+            path.write_text(
+                json.dumps(doc, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8")
+        total += len(found)
+        print(f"{theme}: 替换 {len(found)} 条")
     if missing:
         print(f"未找到：{missing}")
         return 1
-    path.write_text(
-        json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"{theme}: 替换 {len(found)} 条")
+    print(f"共替换 {total} 条")
     return 0
 
 
