@@ -18,7 +18,7 @@ CHIPS = ROOT / "content" / "drill" / "chips.json"
 LEVELS = {"A2", "B1", "B2", "C1"}
 REGISTERS = {"spoken", "neutral", "written"}
 REGISTER_ZH = {"spoken": "口语", "neutral": "中性", "written": "书面"}
-KINDS = {"phrasal", "prep", "idiom"}
+KINDS = {"phrasal", "prep", "idiom", "chunk"}
 
 # 按 AGENTS.md 的硬规则：一律美式英语。这些词出现在例句里多半是英式残留。
 BRITISH = {
@@ -39,6 +39,84 @@ def words(text):
     return re.findall(r"[A-Za-z][A-Za-z'’-]*", text)
 
 
+def check_example(where, en, zh, seen_sentences, bad, low=4, high=30):
+    en = str(en or "").strip()
+    zh = str(zh or "").strip()
+    if not en:
+        bad(f"{where}: 缺例句")
+        return
+    if not zh:
+        bad(f"{where}: 缺例句中译")
+    if CJK.search(en):
+        bad(f"{where}: 英文例句里有中文")
+    n = len(words(en))
+    if not low <= n <= high:
+        bad(f"{where}: 例句 {n} 词（要 {low}-{high}）")
+    low_en = en.lower()
+    hits = sorted({w for w in re.findall(r"[a-z']+", low_en) if w in BRITISH})
+    if hits:
+        bad(f"{where}: 英式/英式场景词 {hits}")
+    if low_en in seen_sentences:
+        bad(f"{where}: 例句与 {seen_sentences[low_en]} 重复")
+    seen_sentences[low_en] = where
+
+
+def check_ipa(where, ipa, bad):
+    ipa = str(ipa or "")
+    if "/" in ipa:
+        bad(f"{where}: ipa 不要带斜杠")
+    if "ˈ" not in ipa:
+        bad(f"{where}: ipa 缺主重音 ˈ")
+    odd = sorted({ch for ch in ipa if ch not in IPA_OK})
+    if odd:
+        bad(f"{where}: ipa 含非美式音标字符 {odd}")
+
+
+def check_freq(where, value, bad):
+    if not isinstance(value, int) or not 1 <= value <= 5:
+        bad(f"{where}: freq 应是 1-5 的整数")
+
+
+def check_variants(where, entry, seen_sentences, bad):
+    """卡片内的近义替换；固定 3 条，差别说明必填。"""
+    variants = entry.get("variants")
+    if variants is None:
+        return
+    if not isinstance(variants, list):
+        bad(f"{where}: variants 应是数组")
+        return
+    if len(variants) != 3:
+        bad(f"{where}: variants 固定 3 条，实际 {len(variants)}")
+    seen_heads = set()
+    for index, variant in enumerate(variants, 1):
+        vwhere = f"{where}/近义{index}"
+        if not isinstance(variant, dict):
+            bad(f"{vwhere}: 应是对象")
+            continue
+        for key in ("head", "ipa", "zh", "register", "freq", "example", "note_zh"):
+            if key not in variant:
+                bad(f"{vwhere}: 缺字段 {key}")
+        head = str(variant.get("head", "")).strip()
+        if head:
+            if head != head.lower():
+                bad(f"{vwhere}: head 用小写")
+            if head in seen_heads or head == entry.get("head"):
+                bad(f"{vwhere}: head {head!r} 重复")
+            seen_heads.add(head)
+        if "ipa" in variant:
+            check_ipa(vwhere, variant.get("ipa"), bad)
+        if variant.get("register") not in REGISTERS:
+            bad(f"{vwhere}: register {variant.get('register')!r} 不在 {sorted(REGISTERS)}")
+        if "freq" in variant:
+            check_freq(vwhere, variant.get("freq"), bad)
+        note = str(variant.get("note_zh", "")).strip()
+        if not note or note in {"同义", "近义", "同义词", "意思一样"}:
+            bad(f"{vwhere}: 缺差别说明 note_zh")
+        example = variant.get("example") or {}
+        check_example(vwhere, example.get("en", ""), example.get("zh", ""),
+                      seen_sentences, bad, low=4, high=15)
+
+
 def check_entries(entries, chapter, chips, seen_ids, seen_sentences, bad):
     for entry in entries:
         eid = entry.get("id", "?")
@@ -50,55 +128,64 @@ def check_entries(entries, chapter, chips, seen_ids, seen_sentences, bad):
             bad(f"{where}: id 重复（另一处：{seen_ids[eid]}）")
         seen_ids[eid] = where
 
-        for key in ("head", "base", "particle", "kind", "ipa",
-                    "chip", "register", "separable", "zh", "senses"):
+        kind = entry.get("kind")
+        if kind not in KINDS:
+            bad(f"{where}: kind {kind!r} 不在 {sorted(KINDS)}")
+
+        if kind == "chunk":
+            required = ("head", "kind", "chip", "zh", "senses")
+        else:
+            required = ("head", "base", "particle", "kind", "ipa",
+                        "chip", "register", "separable", "zh", "senses")
+        for key in required:
             if key not in entry:
                 bad(f"{where}: 缺字段 {key}")
         if any(key not in entry for key in ("head", "senses")):
             continue
 
-        kind = entry.get("kind")
-        if kind not in KINDS:
-            bad(f"{where}: kind {kind!r} 不在 {sorted(KINDS)}")
         head = entry["head"].strip()
         parts = head.split()
-        if len(parts) < 2:
-            bad(f"{where}: head {head!r} 至少要两个词")
+        if kind == "chunk":
+            # 单词、be + -ed、整句都合法；允许自然大小写（I'm tired）。
+            if not parts:
+                bad(f"{where}: head 为空")
         else:
-            if parts[0].lower() != str(entry.get("base", "")).lower():
-                bad(f"{where}: base 应等于 head 的第一个词")
-            particle = str(entry.get("particle", "")).lower()
-            if kind == "idiom":
-                if particle and particle not in [p.lower() for p in parts[1:]]:
-                    bad(f"{where}: idiom 的 particle 要么留空，要么是 head 里的词")
-            elif particle not in [p.lower() for p in parts[1:]]:
-                bad(f"{where}: particle 必须是 head 里 base 之后的一个词")
-        if kind in ("prep", "idiom") and entry.get("separable"):
-            bad(f"{where}: {kind} 不应标 separable")
-        if head != head.lower():
-            bad(f"{where}: head 用小写")
+            if len(parts) < 2:
+                bad(f"{where}: head {head!r} 至少要两个词")
+            else:
+                if parts[0].lower() != str(entry.get("base", "")).lower():
+                    bad(f"{where}: base 应等于 head 的第一个词")
+                particle = str(entry.get("particle", "")).lower()
+                if kind == "idiom":
+                    if particle and particle not in [p.lower() for p in parts[1:]]:
+                        bad(f"{where}: idiom 的 particle 要么留空，要么是 head 里的词")
+                elif particle not in [p.lower() for p in parts[1:]]:
+                    bad(f"{where}: particle 必须是 head 里 base 之后的一个词")
+            if kind in ("prep", "idiom") and entry.get("separable"):
+                bad(f"{where}: {kind} 不应标 separable")
+            if not isinstance(entry.get("separable"), bool):
+                bad(f"{where}: separable 应是 true/false")
+            if head != head.lower():
+                bad(f"{where}: head 用小写")
 
-        ipa = str(entry.get("ipa", ""))
-        if "/" in ipa:
-            bad(f"{where}: ipa 不要带斜杠")
-        if "ˈ" not in ipa:
-            bad(f"{where}: ipa 缺主重音 ˈ")
-        odd = sorted({ch for ch in ipa if ch not in IPA_OK})
-        if odd:
-            bad(f"{where}: ipa 含非美式音标字符 {odd}")
+        if kind == "chunk":
+            if str(entry.get("ipa", "")).strip():
+                check_ipa(where, entry.get("ipa"), bad)
+        else:
+            check_ipa(where, entry.get("ipa", ""), bad)
 
         if "level" in entry and entry["level"] not in LEVELS:
             bad(f"{where}: level {entry.get('level')!r} 不在 {sorted(LEVELS)}")
-        if entry.get("register") not in REGISTERS:
+        if "register" in entry and entry["register"] not in REGISTERS:
             bad(f"{where}: register {entry.get('register')!r} 不在 {sorted(REGISTERS)}")
         if "tier" in entry and (not isinstance(entry["tier"], int)
                                 or not 1 <= entry["tier"] <= 3):
             bad(f"{where}: tier 应是 1/2/3")
+        if "freq" in entry:
+            check_freq(where, entry["freq"], bad)
         if entry.get("chip") not in chips:
             bad(f"{where}: chip {entry.get('chip')!r} 不在 chips.json")
-        if not isinstance(entry.get("separable"), bool):
-            bad(f"{where}: separable 应是 true/false")
-        if not str(entry.get("l1_note", "")).strip():
+        if kind != "chunk" and not str(entry.get("l1_note", "")).strip():
             bad(f"{where}: 缺 l1_note（中文易错点）")
         coll = entry.get("collocations") or []
         coll_zh = entry.get("collocations_zh")
@@ -112,25 +199,11 @@ def check_entries(entries, chapter, chips, seen_ids, seen_sentences, bad):
             if not str(sense.get("zh", "")).strip():
                 bad(f"{where}: sense {index} 缺中文义项")
             example = sense.get("example") or {}
-            en = str(example.get("en", "")).strip()
-            zh = str(example.get("zh", "")).strip()
-            if not en:
-                bad(f"{where}: sense {index} 缺例句")
-                continue
-            if not zh:
-                bad(f"{where}: sense {index} 缺例句中译")
-            if CJK.search(en):
-                bad(f"{where}: sense {index} 英文例句里有中文")
-            n = len(words(en))
-            if not 4 <= n <= 30:
-                bad(f"{where}: sense {index} 例句 {n} 词（要 4-30）")
-            low = en.lower()
-            hits = sorted({w for w in re.findall(r"[a-z']+", low) if w in BRITISH})
-            if hits:
-                bad(f"{where}: sense {index} 英式/英式场景词 {hits}")
-            if low in seen_sentences:
-                bad(f"{where}: 例句与 {seen_sentences[low]} 重复")
-            seen_sentences[low] = where
+            check_example(f"{where}: sense {index}",
+                          example.get("en", ""), example.get("zh", ""),
+                          seen_sentences, bad)
+
+        check_variants(where, entry, seen_sentences, bad)
 
 
 def check_opposites(seen_ids, sense_counts, bad):

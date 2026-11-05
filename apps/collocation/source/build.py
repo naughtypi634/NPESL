@@ -68,6 +68,8 @@ def load_themes():
                 path.read_text(encoding="utf-8")).get("entries", [])
         else:
             theme["entries"] = []
+        # 主题内按使用频率从高到低；同分保持源文件顺序（Python 排序稳定）。
+        theme["entries"].sort(key=lambda entry: -int(entry.get("freq", 3)))
     return themes
 
 
@@ -119,6 +121,13 @@ def entry_texts(entry):
     texts = [entry["head"]]
     for sense in entry.get("senses", []):
         en = (sense.get("example") or {}).get("en", "").strip()
+        if en:
+            texts.append(en)
+    for variant in entry.get("variants", []):
+        head = str(variant.get("head", "")).strip()
+        if head:
+            texts.append(head)
+        en = (variant.get("example") or {}).get("en", "").strip()
         if en:
             texts.append(en)
     return texts
@@ -389,27 +398,18 @@ INDEX_STYLE = """
   .card .playbtn:active .play { transform:scale(.9); }
   .card .playbtn .bars { display:none; align-items:flex-end; gap:2px; height:9px; }
   .card .playbtn .bars i { display:block; width:2px; height:4px; border-radius:1px;
-    background:currentColor; animation:eq .9s ease-in-out infinite; }
-  .card .playbtn .bars i:nth-child(2) { animation-delay:.15s; }
-  .card .playbtn .bars i:nth-child(3) { animation-delay:.3s; }
+    background:currentColor; }
+  .card .playbtn .bars i:nth-child(2) { height:7px; }
+  .card .playbtn .bars i:nth-child(3) { height:5px; }
   .card .playbtn.on .play svg { display:none; }
   .card .playbtn.on .play .bars { display:inline-flex; }
-  /* 默认状态就在心跳：只让外圈阴影扩 10px，图标与声波条不缩放 */
-  .card .playbtn .play {
-    animation:ring 1.8s ease-out infinite; }
-  @keyframes ring {
-    0% { box-shadow:0 0 0 0 var(--accent); }
-    70%,100% { box-shadow:0 0 0 10px transparent; } }
   .card .say-unit:has(.playbtn.on) .w {
     background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
   .card .say-unit:has(.playbtn.on) .txt { color:var(--accent); }
   .card .playbtn:focus { outline:none; }
   .card .playbtn:focus-visible { outline:2px solid var(--accent);
     outline-offset:3px; border-radius:50%; }
-  @keyframes eq { 0%,100% { height:3px; } 50% { height:9px; } }
   @media (prefers-reduced-motion: reduce) {
-    .card .playbtn .bars i { animation:none; height:6px; }
-    .card .playbtn .play { animation:none; }
     .card .playbtn .play { transition:none; }
     .card .w, .card .txt { transition:none; }
   }
@@ -429,6 +429,17 @@ INDEX_STYLE = """
   .card .zh-line { margin:8px 0 0; color:var(--muted); font-size:14px; }
   .card .sense { margin-top:10px; }
   .card .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted); }
+  .card .variants { margin-top:14px; padding-top:12px; border-top:1px dashed var(--rule); }
+  .card .variants-title { margin:0 0 8px; font-size:12px; color:var(--accent);
+    font-weight:600; letter-spacing:0.02em; }
+  .card .variant { margin-top:12px; }
+  .card .variant:first-of-type { margin-top:0; }
+  .card .variant-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; }
+  .card .variant-head .w { font-weight:600; }
+  .card .variant-zh { margin:3px 0 0; font-size:13px; color:var(--muted); }
+  .card .variant-note { margin:3px 0 0; font-size:12px; line-height:1.55;
+    color:var(--muted); }
+  .card .variant .ex-unit { margin-top:5px; }
   .card .note-card { margin-top:12px; padding:12px 14px;
     border-radius:var(--radius-control, 12px);
     background:var(--surface-strong, var(--surface)); border:1px solid var(--rule);
@@ -449,13 +460,13 @@ INDEX_STYLE = """
   .card .opp-word b { display:inline-block; margin-right:6px; font-size:12px;
     color:var(--accent); font-weight:600; }
   .card.opp-focus { box-shadow:0 0 0 3px var(--accent); }
-  .opp-return { position:fixed; left:max(16px, env(safe-area-inset-left, 0px));
-    bottom:max(16px, env(safe-area-inset-bottom, 0px)); z-index:60;
-    display:inline-flex; align-items:center; gap:6px; padding:9px 16px;
+  .card .opp-return-inline { display:inline-flex; align-items:center; gap:6px;
+    margin-top:14px; padding:9px 16px;
     border:1px solid var(--rule); border-radius:var(--radius-pill, 999px);
-    background:var(--fg); color:var(--bg); font:inherit; font-size:14px;
-    cursor:pointer; box-shadow:0 6px 18px rgba(0, 0, 0, .22); }
-  .opp-return[hidden] { display:none; }
+    background:var(--surface-strong, var(--surface)); color:var(--fg);
+    font:inherit; font-size:14px; cursor:pointer; }
+  .card .opp-return-inline:hover { border-color:var(--accent); color:var(--accent); }
+  .card .opp-return-inline:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .back { display:inline-block; margin-bottom:14px; color:var(--muted);
     text-decoration:none; font-size:14px; }
   .back:hover { color:var(--accent); }
@@ -525,13 +536,31 @@ def index_data(themes, opp_map=None, word_map=None):
         for entry in theme["entries"]:
             index_of[(theme["id"], entry["id"])] = len(entries)
             rows.append(len(entries))
+            senses = entry.get("senses", [])
+            spoken_senses = sum(
+                1 for sense in senses
+                if (sense.get("example") or {}).get("en", "").strip())
+            var_rows = []
+            for vindex, variant in enumerate(entry.get("variants", [])):
+                example = variant.get("example") or {}
+                head_k = 1 + spoken_senses + 2 * vindex
+                var_rows.append([
+                    variant.get("head", ""), variant.get("ipa", ""),
+                    variant.get("zh", ""), variant.get("register", ""),
+                    example.get("en", ""), example.get("zh", ""),
+                    variant.get("note_zh", ""), head_k, head_k + 1,
+                ])
             entries.append({
                 "id": entry["id"], "c": theme.get("category", ""), "t": theme["id"],
-                "h": entry["head"], "zh": entry["zh"], "ipa": entry["ipa"],
+                "h": entry["head"], "zh": entry["zh"],
+                "ipa": entry.get("ipa", ""),
                 "kind": entry.get("kind", "phrasal"),
-                "reg": entry["register"], "sep": entry["separable"],
+                "reg": entry.get("register", ""),
+                "sep": entry.get("separable", False),
+                "freq": int(entry.get("freq", 3)),
                 "sen": [[s["zh"], s["example"]["en"], s["example"]["zh"]]
-                        for s in entry["senses"]],
+                        for s in senses],
+                "var": var_rows,
                 "l1": entry.get("l1_note", ""),
                 "coll": [],
                 "conf": [],
@@ -593,6 +622,8 @@ def index_data(themes, opp_map=None, word_map=None):
     others: list = []
     for theme in themes:
         for entry in theme["entries"]:
+            if entry.get("kind") == "chunk":
+                continue
             idx = index_of[(theme["id"], entry["id"])]
             if entry["particle"] in REAL_PARTICLES:
                 bucketed.setdefault(entry["particle"], []).append(idx)
@@ -642,7 +673,6 @@ def build_index(themes, opp_map=None, word_map=None):
         '<div class="chips" data-chips="particle" hidden></div>\n'
         '<div class="chips" data-chips="theme" hidden></div>\n'
         '<div id="view"></div>\n'
-        '<button class="opp-return" type="button" data-opp-return hidden>‹ 返回</button>\n'
         '</div>\n'
         f'<script src="data.{digest}.js"></script>\n'
         "<script>\n"
@@ -674,7 +704,7 @@ def build_index(themes, opp_map=None, word_map=None):
         "function fmt(v){return (v==null?'':v.toFixed(3));}\n"
         "function card(i){\n"
         "  var e=D.entries[i];var out='<div class=\"card\" data-card=\"'+i+'\">';\n"
-        "  out+='<div class=\"card-head say-unit\" data-unit=\"'+i+'-0\"><span class=\"w\">'+esc(e.h)+'</span><span class=\"ipa\">/'+esc(e.ipa)+'/</span><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"0\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><span class=\"badges\"><span class=\"badge kind kind-'+e.kind+'\">'+(e.kind==='prep'?'介词搭配':e.kind==='idiom'?'习语':'短语动词')+'</span><span class=\"badge reg\">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>'+(e.sep?'<span class=\"badge split\">可分</span>':'')+'</span></div>';\n"
+        "  out+='<div class=\"card-head say-unit\" data-unit=\"'+i+'-0\"><span class=\"w\">'+esc(e.h)+'</span>'+(e.ipa?'<span class=\"ipa\">/'+esc(e.ipa)+'/</span>':'')+'<button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"0\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><span class=\"badges\">'+(e.kind==='chunk'?'':'<span class=\"badge kind kind-'+e.kind+'\">'+(e.kind==='prep'?'介词搭配':e.kind==='idiom'?'习语':'短语动词')+'</span>')+(e.reg?'<span class=\"badge reg\">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>':'')+(e.kind==='phrasal'?'<span class=\"badge split\">'+(e.sep?'可分':'不可分')+'</span>':'')+'</span></div>';\n"
         "  out+='<p class=\"zh-line\">'+esc(e.zh)+'</p>';\n"
         "  for(var s=0;s<e.sen.length;s++){\n"
         "    var it=e.sen[s];\n"
@@ -682,12 +712,21 @@ def build_index(themes, opp_map=None, word_map=None):
         "    if(e.wo&&e.wo.length){var wl=e.wo.filter(function(w){return w[0]===s+1;});if(wl.length)wo='<p class=\\\"opp-word\\\"><b>反义</b>'+wl.map(function(w){return esc(w[1])+'<span class=\\\"zh\\\">'+esc(w[2])+'</span>';}).join(' · ')+'</p>';}\n"
         "    out+='<div class=\"sense\"><p class=\"sense-zh\">'+esc(it[0])+'</p><div class=\"say-unit ex-unit\" data-unit=\"'+i+'-'+(s+1)+'\"><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+(s+1)+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><div class=\"ex-text\"><span class=\"txt\">'+esc(it[1])+'</span><span class=\"zh\">'+esc(it[2])+'</span></div></div>'+wo+'</div>';\n"
         "  }\n"
+        "  if(e.var&&e.var.length){\n"
+        "    out+='<div class=\"variants\"><p class=\"variants-title\">近义</p>';\n"
+        "    for(var v=0;v<e.var.length;v++){\n"
+        "      var vv=e.var[v];\n"
+        "      out+='<div class=\"variant\"><div class=\"variant-head\"><span class=\"w\">'+esc(vv[0])+'</span>'+(vv[1]?'<span class=\"ipa\">/'+esc(vv[1])+'/</span>':'')+(vv[3]?'<span class=\"badge reg\">'+(vv[3]==='spoken'?'口语':vv[3]==='written'?'书面':'中性')+'</span>':'')+'<button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+vv[7]+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button></div><p class=\"variant-zh\">'+esc(vv[2])+'</p><p class=\"variant-note\">'+esc(vv[6])+'</p><div class=\"say-unit ex-unit\" data-unit=\"'+i+'-v'+v+'\"><button class=\"say playbtn\" type=\"button\" data-i=\"'+i+'\" data-k=\"'+vv[8]+'\" aria-label=\"播放\"><span class=\"play\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"8\" height=\"8\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\"/></svg><span class=\"bars\"><i></i><i></i><i></i></span></span></button><div class=\"ex-text\"><span class=\"txt\">'+esc(vv[4])+'</span><span class=\"zh\">'+esc(vv[5])+'</span></div></div></div>';\n"
+        "    }\n"
+        "    out+='</div>';\n"
+        "  }\n"
         "  var notes='';\n"
         "  if(e.l1)notes+='<p class=\"l1\"><b>易错</b>'+esc(e.l1)+'</p>';\n"
         "  if(e.coll&&e.coll.length)notes+='<p class=\"colloc\"><b>搭配</b>'+e.coll.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';\n"
         "  if(e.conf&&e.conf.length)notes+='<p class=\"confuse\"><b>易混</b>'+e.conf.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';\n"
         "  if(e.opp&&e.opp.length)notes+='<p class=\"opp\"><b>反义</b>'+e.opp.map(function(o){return '<button type=\"button\" class=\"opp-btn\" data-opp-i=\"'+o.i+'\">'+esc(o.h)+'<span class=\"zh\">'+esc(o.zh)+'</span></button>';}).join('<span class=\"opp-sep\">·</span>')+'</p>';\n"
         "  if(notes)out+='<div class=\"note-card\">'+notes+'</div>';\n"
+        "  if(oppOrigin&&oppOrigin.target===i){var oh=D.entries[oppOrigin.open];out+='<button class=\"opp-return-inline\" type=\"button\" data-opp-return-inline>‹ 返回 '+esc(oh?oh.h:'')+'</button>';}\n"
         "  return out+'</div>';\n"
         "}\n"
         "function sceneHtml(){\n"
@@ -755,10 +794,8 @@ def build_index(themes, opp_map=None, word_map=None):
         "}\n"
         "var restoringPosition=false;\n"
         "var oppOrigin=null;\n"
-        "function oppPill(){return document.querySelector('[data-opp-return]');}\n"
-        "function showOppPill(on){var b=oppPill();if(b)b.hidden=!on;document.body.classList.toggle('has-opp-return',!!on);}\n"
         "function clearOppFocus(){var el=view.querySelector('.card.opp-focus');if(el)el.classList.remove('opp-focus');}\n"
-        "function exitOpp(){var b=oppPill();if(oppOrigin||(b&&!b.hidden)){oppOrigin=null;showOppPill(false);clearOppFocus();}}\n"
+        "function exitOpp(){if(oppOrigin){oppOrigin=null;clearOppFocus();}}\n"
         "function paint(m,value,scroll,restore,keepScroll,keepOpp){\n"
         "  if(!keepOpp)exitOpp();\n"
         "  var changed=mode!==m;var shouldRestore=(changed||restore)&&!keepScroll;\n"
@@ -806,13 +843,14 @@ def build_index(themes, opp_map=None, word_map=None):
         "  return true;\n"
         "}\n"
         "function jumpToOpp(i){\n"
-        "  if(oppOrigin&&oppOrigin.open===i){returnToOppOrigin();return;}\n"
+        "  if(oppOrigin&&oppOrigin.target===i){returnToOppOrigin();return;}\n"
         "  if(!oppOrigin)oppOrigin={mode:mode,scene:state.scene,particle:state.particle,atCategories:atCategories,chipsExpanded:chipsExpanded,open:open,y:window.scrollY};\n"
-        "  if(openOppTarget(i))showOppPill(true);\n"
+        "  oppOrigin.target=i;\n"
+        "  if(!openOppTarget(i))oppOrigin.target=null;\n"
         "}\n"
         "function returnToOppOrigin(){\n"
         "  var o=oppOrigin;if(!o)return;\n"
-        "  oppOrigin=null;showOppPill(false);clearOppFocus();\n"
+        "  oppOrigin=null;clearOppFocus();\n"
         "  atCategories=o.atCategories;\n"
         "  if(mode!==o.mode||state.scene!==o.scene||state.particle!==o.particle)paint(o.mode,o.mode==='scene'?o.scene:o.particle,false,false,true,true);\n"
         "  chipsExpanded=o.chipsExpanded;setChipsExpanded(chipsExpanded);\n"
@@ -924,6 +962,8 @@ def build_index(themes, opp_map=None, word_map=None):
         "});\n"
         "for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var next=e.currentTarget.getAttribute('data-mode');if(next===mode){setChipsExpanded(!chipsExpanded);return;}atCategories=false;setChipsExpanded(true);paint(next,state[next],false);});\n"
         "view.addEventListener('click',function(e){\n"
+        "  var ret=e.target.closest('[data-opp-return-inline]');\n"
+        "  if(ret){returnToOppOrigin();return;}\n"
         "  var ob=e.target.closest('.opp-btn');\n"
         "  if(ob){jumpToOpp(+ob.getAttribute('data-opp-i'));return;}\n"
         "  var say=e.target.closest('.say');\n"
@@ -931,8 +971,6 @@ def build_index(themes, opp_map=None, word_map=None):
         "  var b=e.target.closest('.prow');\n"
         "  if(b)toggleCard(b);\n"
         "});\n"
-        "var oppRet=oppPill();\n"
-        "if(oppRet)oppRet.addEventListener('click',function(){returnToOppOrigin();});\n"
         "function scrollToGroup(g){\n"
         "  if(!g)return;\n"
         "  var head=g.querySelector('.theme')||g.querySelector('.prow')||g;\n"

@@ -843,7 +843,7 @@ const cases = [
         const afterContent = getComputedStyle(w, '::after').content;
         btn.classList.remove('on');
         style.remove();
-        const playFx = bars === 'flex' && svg === 'none' && /ring/.test(ring);
+        const playFx = bars === 'flex' && svg === 'none';
         let rules = [];
         try {
           const sheet = document.querySelector('style').sheet;
@@ -993,32 +993,33 @@ const cases = [
       if (!opened) return { ok: false, detail: '来源卡片没有反义按钮' };
       await evaluate(
         `document.querySelector('.card[data-card="${pick.i}"] .opp-btn[data-opp-i="${pick.j}"]').click()`);
-      await waitFor(`!!document.querySelector('.card[data-card="${pick.j}"]')`);
+      await waitFor(`!!document.querySelector('.card[data-card="${pick.j}"] [data-opp-return-inline]')`);
       const jumped = await evaluate(`(() => {
-        const pill = document.querySelector('[data-opp-return]');
+        const ret = document.querySelector('.card[data-card="${pick.j}"] [data-opp-return-inline]');
         const row = document.querySelector('.prow[data-i="${pick.j}"]');
         return {
-          pill: !!(pill && !pill.hidden),
+          ret: !!(ret && ret.textContent.includes('返回')),
           card: !!document.querySelector('.card[data-card="${pick.j}"]'),
           expanded: row && row.getAttribute('aria-expanded'),
           originCard: !!document.querySelector('.card[data-card="${pick.i}"]'),
         };
       })()`);
-      if (!jumped || !jumped.pill || !jumped.card || jumped.expanded !== 'true' || jumped.originCard) {
+      if (!jumped || !jumped.ret || !jumped.card || jumped.expanded !== 'true' || jumped.originCard) {
         return { ok: false, detail: `jump=${JSON.stringify(jumped)}` };
       }
-      await evaluate(`document.querySelector('[data-opp-return]').click()`);
+      await evaluate(
+        `document.querySelector('.card[data-card="${pick.j}"] [data-opp-return-inline]').click()`);
       await waitFor(`!!document.querySelector('.card[data-card="${pick.i}"]')`);
       const back = await evaluate(`(() => {
-        const pill = document.querySelector('[data-opp-return]');
+        const ret = document.querySelector('[data-opp-return-inline]');
         const row = document.querySelector('.prow[data-i="${pick.i}"]');
         return {
-          pill: !!(pill && !pill.hidden),
+          ret: !!ret,
           card: !!document.querySelector('.card[data-card="${pick.i}"]'),
           expanded: row && row.getAttribute('aria-expanded'),
         };
       })()`);
-      const ok = back && !back.pill && back.card && back.expanded === 'true';
+      const ok = back && !back.ret && back.card && back.expanded === 'true';
       return { ok, detail: `back=${JSON.stringify(back)}` };
     },
   },
@@ -1045,6 +1046,46 @@ const cases = [
       })()`);
       await evaluate(`document.documentElement.removeAttribute('data-theme')`);
       return { ok: !!r && r.radius === '0px', detail: JSON.stringify(r) };
+    },
+  },
+  {
+    name: 'collocation-chunk-variants', path: '/collocation/',
+    async run() {
+      // chunk 条目不显示类型徽章、不显示音标；卡片内固定 3 条近义，
+      // 每条都有差别说明；点第一条近义能播到它自己的音频区间。
+      // 前面的用例可能把模式留在“介词”；chunk 只在场景模式里出现。
+      await evaluate(`document.querySelector('[data-mode="scene"]').click()`);
+      await sleep(250);
+      const shape = await evaluate(`(() => {
+        const D = window.COLLOCATION_INDEX;
+        const i = D.entries.findIndex((e) => e.id === 'be-tired');
+        if (i < 0) return 'no-entry';
+        const row = document.querySelector('.prow[data-i="' + i + '"]');
+        if (!row) return 'no-row';
+        row.click();
+        const card = document.querySelector('.card[data-card="' + i + '"]');
+        if (!card) return 'no-card';
+        const notes = [...card.querySelectorAll('.variant-note')]
+          .filter((x) => x.textContent.trim().length > 4).length;
+        return {
+          i,
+          kinds: card.querySelectorAll('.badge.kind').length,
+          vars: card.querySelectorAll('.variant').length,
+          notes,
+          ipas: card.querySelectorAll('.card-head .ipa').length,
+        };
+      })()`);
+      if (typeof shape === 'string') return { ok: false, detail: shape };
+      if (shape.kinds !== 0 || shape.vars !== 3 || shape.notes !== 3 || shape.ipas !== 0) {
+        return { ok: false, detail: `shape=${JSON.stringify(shape)}` };
+      }
+      await evaluate(
+        `document.querySelector('.card[data-card="${shape.i}"] .variant .playbtn').setAttribute('data-smoke', '1')`);
+      await evaluate(`document.querySelector('[data-smoke="1"]').click()`);
+      const started = await waitFor(`!!(window.__phLast && window.__phLast.t1 !== null)`, 8000);
+      const tail = await evaluate(`window.__phLast`);
+      const ok = !!started && tail && tail.s > 0 && tail.en > tail.s;
+      return { ok, detail: `started=${started} tail=${JSON.stringify(tail)}` };
     },
   },
   {
