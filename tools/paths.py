@@ -4,6 +4,7 @@
     NPESL/
       content/   内容源（Markdown、题库批次 JSON）
       apps/      六个应用（页面、音频、源）
+      miniprogram/ 微信小程序（与 apps/ 平级）
       tools/     构建、部署、校验脚本
       build/     暂存产物（gitignore）
 
@@ -21,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CONTENT = ROOT / "content"
 APPS = ROOT / "apps"
+MINIPROGRAM = ROOT / "miniprogram"
 TOOLS = ROOT / "tools"
 BUILD = ROOT / "build"
 

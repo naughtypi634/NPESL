@@ -6,13 +6,14 @@
 
 ## 一 · 路径约定
 
-四层结构：**`content/` 内容源 · `apps/` 应用 · `tools/` 脚本 · `build/` 暂存产物**。
+结构：**`content/` 内容源 · `apps/` 网页应用 · `miniprogram/` 微信小程序 · `tools/` 脚本 · `build/` 暂存产物**。
 
 ```
-content/   phonetics/ conversation/ drill/ collocation/ travel/   写内容只看这里
-apps/      site/ phonics/ ipa/ drill/ phenomena/ collocation/ conversation/ travel/
-tools/     paths.py 与构建脚本
-build/     cloudflare-site/ cloudflare-audio/ …（gitignore）
+content/      phonetics/ conversation/ drill/ collocation/ travel/   写内容只看这里
+apps/         site/ phonics/ ipa/ drill/ phenomena/ collocation/ conversation/ travel/
+miniprogram/  微信小程序（原生），与 apps/ 平级；内容和音频都由 tools/ 从 content/ 生成
+tools/        paths.py 与构建脚本
+build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
 ```
 
 - 所有构建从库根目录运行。

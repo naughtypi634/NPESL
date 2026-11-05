@@ -1,0 +1,65 @@
+<view class="app theme-{{theme}}">
+<view class="bar" style="padding-top:{{nav.top}}px">
+  <view class="bar-back" style="height:{{nav.height}}px" hover-class="bar-back-hover" bindtap="goBack">
+    <view class="bar-chevron"></view>
+    <text>返回</text>
+  </view>
+</view>
+
+<view class="wrap" style="padding-top:{{topPad}}px">
+  <scroll-view class="jump" scroll-x enable-flex style="top:{{jumpTop}}px">
+    <view class="jump-chip" wx:for="{{groups}}" wx:key="id" data-id="{{item.id}}" bindtap="jump">{{item.title}}</view>
+  </scroll-view>
+
+  <view class="group" id="g-{{group.id}}" wx:for="{{groups}}" wx:for-item="group" wx:for-index="gi" wx:key="id">
+    <view class="group-head">
+      <text class="group-title">{{group.title}}</text>
+      <text class="group-note" wx:if="{{group.note}}">{{group.note}}</text>
+    </view>
+
+    <view class="pair-block" wx:for="{{group.pairs}}" wx:for-item="pair" wx:for-index="pi" wx:key="i">
+      <view class="pair-head" wx:if="{{pair.title}}">
+        <text class="pair-title">{{pair.title}}</text>
+        <text class="pair-note" wx:if="{{pair.note}}">{{pair.note}}</text>
+      </view>
+
+      <view class="card" wx:for="{{pair.cards}}" wx:for-item="card" wx:for-index="ci" wx:key="sound">
+        <view class="card-head">
+          <text class="ipa">{{card.sound}}</text>
+          <text class="tag" wx:if="{{card.tag}}">{{card.tag}}</text>
+        </view>
+
+        <view class="words">
+          <view
+            class="word {{playing === gi + '-' + pi + '-' + ci + '-' + wi ? 'on' : ''}}"
+            wx:for="{{card.words}}"
+            wx:for-item="word"
+            wx:for-index="wi"
+            wx:key="w"
+            data-gi="{{gi}}"
+            data-pi="{{pi}}"
+            data-ci="{{ci}}"
+            data-wi="{{wi}}"
+            bindtap="onWord"
+          >
+            <text wx:for="{{word.p}}" wx:for-item="part" class="{{part[1] ? 'hl' : ''}}">{{part[0]}}</text>
+          </view>
+        </view>
+
+        <text class="hint" wx:if="{{card.hint}}">{{card.hint}}</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<float-tools
+  voice="{{voice}}"
+  playing="{{playing ? true : false}}"
+  paused="{{paused}}"
+  active="{{hasPlay}}"
+  bind:voice="onVoice"
+  bind:pause="onPause"
+  bind:replay="onReplay"
+  bind:theme="onTheme"
+/>
+</view>
