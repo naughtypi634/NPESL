@@ -9,7 +9,7 @@
 | Question Drill 中译英随机练习 | https://npesl.pages.dev/drill/ | `apps/drill/` |
 | Conversation Starters A1–C2 + ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `apps/conversation/` |
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
-| 短语搭配 Collocations 30 主题 | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
+| 短语搭配 Collocations（41 主题 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
 
 ## 目录
 

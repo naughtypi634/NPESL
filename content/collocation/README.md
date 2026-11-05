@@ -2,16 +2,26 @@
 
 页面在 `apps/collocation/`，由 `apps/collocation/source/build.py` 生成。改内容只改这里。
 
-30 个主题，共 **1,279 条**：短语动词 1,122、介词搭配 98、习语/固定短语 59。
-每条都带 `kind`（phrasal / prep / idiom）；页面显示类型、语体（口语/中性/书面）和【可分】。
-每章 32–74 条，页面顶部可按类型和小品词筛选。
+41 个主题，共 **3,299 条**：原 30 个场景 1,279 条（短语动词 / 介词搭配 / 习语），
+加上从《日常英语短语手册》并入的 1,944 条，以及 76 条近义锚点。
+`kind` 有 phrasal / prep / idiom / chunk 四种；`chunk` 覆盖单词、`be + -ed 形容词`、
+整句和日常短语。每条都有 `freq`（1–5），主题内按频率从高到低排：
+原顺序 70% + wordfreq 20% + tier 10%。页面不显示类型徽章给 `chunk`，
+短语动词显式显示【可分】/【不可分】。
+
+近义替换写在锚点词条的 `variants` 里（固定 3 条），每条带音标、语域、
+短例句和必填的差别说明；页面在卡片内显示。
 
 `opposites.json` 存反义关系：`pairs` 是两两配对的词条 id（可跨主题、一条可挂多个），
 `word_opposites` 是「反义是单个单词」的提示（如 `take off` 起飞义 → `land`），只显示不跳转。
 
 ```
-themes.json          30 个主题：分类、英文标题、中文标题、简介、对应 chip
+themes.json          41 个主题：分类、英文标题、中文标题、简介、对应 chip
 opposites.json       反义词条配对 + 单词反义提示
+frequency-overrides.json  人工锁定的 freq（如 be-tired = 5）
+phrasebook/
+  theme-map.json     200 个 PDF 话题 → 主题的映射，每个话题只用一次
+```
 
 【日常生活】
 errands.json              办事跑腿
@@ -83,6 +93,27 @@ communication.json        沟通
   `Go home` / `Go outside` / `Make sense`；
 - 新增 `l1_note` 字段，专写中文母语者的迁移错误（代词夹中间、介词悬空、
   turn on 不是 open the light）。
+
+## 2026-11 并入日常短语
+
+`apps/collocation/Phrasebook-Complete.pdf`（200 个话题 × 10 条）按
+`phrasebook/theme-map.json` 并入现有场景，新增 12 个主题：
+
+- 日常：`morning` 起床与睡眠
+- 人际与情绪：`emotion-expressions` 情绪表达、`attitude-support` 态度与支持
+- 沟通与思考：`social-formulas` 社交客套、`requests-refusals` 请求与拒绝、
+  `agree-opinions` 同意与观点、`conversation-flow` 对话推进、
+  `explain-describe` 解释与叙述、`needs-obligation` 意愿与义务、
+  `change-comparison` 变化、异同与偏好、`time-place-memory` 时间、地点与记忆
+
+导入的 2,000 行里，56 行与现有词条 head 相同且义项一致，没有重复入库；
+其余全部重写例句后并入，`kind` 用 `chunk`，不带 IPA。PDF 本身是 gitignore
+的参考材料，例句一律新写，导入脚本只读英文短语和中文释义。
+
+频率由 `tools/collocation/score_frequency.py` 生成，
+`tools/collocation/apply_frequency.py --force` 写回；人工锁定值放
+`frequency-overrides.json`。近义替换用 `tools/collocation/add_variants.py`
+或 `add_entries.py` 的 `variants` 字段写入。
 
 ## 导航
 

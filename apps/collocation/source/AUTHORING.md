@@ -82,3 +82,55 @@
 
 英式拼写和场景词、英文例句里的中文、例句过短或过长、重复例句、id 重复、
 chip 不存在、IPA 混入非美式字符、tier 1 缺 `l1_note`。
+
+## 2026-11 新增：chunk、freq、variants
+
+### `kind: "chunk"`
+
+单词、`be + -ed 形容词`、整句、带 `one's / someone / something` 的词块都用它。
+
+- `head` 允许 1 个词，允许自然大小写（`I'm tired`）；
+- 不要求 `base / particle / separable / ipa`；
+- `chip` 必填；`register`、`l1_note` 可选；
+- 卡片不显示类型徽章，只显示语域；短语动词仍显示【可分】/【不可分】。
+
+### `freq`
+
+每条（含原有词条）都有 `freq` 1–5，构建时主题内按它降序：
+
+- 5 = 几乎天天用，4 = 每周用，3 = 特定场景常用，2 = 较少用，1 = 低频/进阶；
+- 生成：`score_frequency.py`（wordfreq + 原顺序 70% / 频率 20% / tier 10%）；
+- 写回：`apply_frequency.py --force --write`；
+- 人工锁定放 `content/collocation/frequency-overrides.json`（按 id）。
+
+### `variants`（卡片内近义替换）
+
+```json
+"variants": [
+  {
+    "head": "pumped",
+    "ipa": "pʌmpt",
+    "zh": "兴奋得不行",
+    "register": "spoken",
+    "freq": 4,
+    "example": { "en": "I'm pumped for the concert.", "zh": "演唱会让我兴奋得不行。" },
+    "note_zh": "比 excited 更口语，带一股冲劲；多为自己期待的事。"
+  }
+]
+```
+
+- 固定 3 条；`head / ipa / zh / register / freq / example / note_zh` 必填；
+- `note_zh` 写和锚点、另外两条的细微差别，只写「同义」会被拦；
+- 例句 4–15 词，短、日常、美式；
+- 锚点本身必须是普通词条；变体不是主题列表里的独立行。
+
+### 工具
+
+```powershell
+python -I tools\collocation\import_phrasebook.py          # PDF → build/phrasebook
+python -I tools\collocation\score_frequency.py            # 生成频率报告
+python -I tools\collocation\apply_frequency.py --force --write
+python -I tools\collocation\build_anchor_candidates.py    # 锚点候选表
+python -I tools\collocation\add_entries.py --file <batch> # 批量加词条
+python -I tools\collocation\add_variants.py --file <batch># 给现有词条挂近义
+```
