@@ -1082,9 +1082,13 @@ const cases = [
       await evaluate(
         `document.querySelector('.card[data-card="${shape.i}"] .variant .playbtn').setAttribute('data-smoke', '1')`);
       await evaluate(`document.querySelector('[data-smoke="1"]').click()`);
-      const started = await waitFor(`!!(window.__phLast && window.__phLast.t1 !== null)`, 8000);
+      const started = await waitFor(`!!(window.__phLast && (window.__phLast.mode === 'ha'
+        ? (window.__lastAudio && window.__lastAudio.paused)
+        : window.__phLast.t1 !== null))`, 8000);
       const tail = await evaluate(`window.__phLast`);
-      const ok = !!started && tail && tail.s > 0 && tail.en > tail.s;
+      const ok = !!started && tail && tail.s > 0 && tail.en > tail.s
+        && (tail.mode !== 'ha'
+          || (tail.t >= tail.en - 0.3 && tail.t <= tail.en + 0.05));
       return { ok, detail: `started=${started} tail=${JSON.stringify(tail)}` };
     },
   },
@@ -1117,9 +1121,13 @@ const cases = [
       await evaluate(
         `document.querySelector('.card[data-card="${shape.i}"] .use .playbtn').setAttribute('data-smoke', '1')`);
       await evaluate(`document.querySelector('[data-smoke="1"]').click()`);
-      const started = await waitFor(`!!(window.__phLast && window.__phLast.t1 !== null)`, 8000);
+      const started = await waitFor(`!!(window.__phLast && (window.__phLast.mode === 'ha'
+        ? (window.__lastAudio && window.__lastAudio.paused)
+        : window.__phLast.t1 !== null))`, 8000);
       const tail = await evaluate(`window.__phLast`);
-      const ok = !!started && tail && tail.s > 0 && tail.en > tail.s;
+      const ok = !!started && tail && tail.s > 0 && tail.en > tail.s
+        && (tail.mode !== 'ha'
+          || (tail.t >= tail.en - 0.3 && tail.t <= tail.en + 0.05));
       return { ok, detail: `started=${started} tail=${JSON.stringify(tail)}` };
     },
   },
