@@ -55,6 +55,14 @@ Page({
     }
   },
 
+  onShareTimeline() {
+    const chapter = this.data.chapter
+    return {
+      title: chapter ? `${chapter.en} · 常见发音现象` : '常见发音现象',
+      query: 'num=' + (chapter ? chapter.num : 1),
+    }
+  },
+
   goBack() {
     wx.navigateBack()
   },

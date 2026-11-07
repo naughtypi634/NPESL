@@ -55,6 +55,14 @@ Page({
     }
   },
 
+  onShareTimeline() {
+    const lesson = this.data.lesson
+    return {
+      title: lesson ? `${lesson.en} · 自然拼读` : '自然拼读练习',
+      query: 'num=' + (lesson ? lesson.num : 1),
+    }
+  },
+
   goBack() {
     wx.navigateBack()
   },
