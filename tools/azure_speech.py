@@ -40,18 +40,29 @@ def credentials() -> tuple[str, str]:
     return lines[0], lines[1]
 
 
-def ssml(text: str, voice: str, rate: str = "+0%", lang: str = "en-US") -> str:
+def ssml_body(inner: str, voice: str, rate: str = "+0%",
+              lang: str = "en-US") -> str:
+    """Wrap an SSML inner body.
+
+    ``inner`` may contain <break>, <prosody>, <phoneme> and other markup;
+    callers are responsible for escaping plain text themselves.
+    """
     return (
         f"<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' "
         f"xml:lang='{lang}'><voice name='{voice}'>"
-        f"<prosody rate='{rate}'>{xml_escape(text)}</prosody></voice></speak>"
+        f"<prosody rate='{rate}'>{inner}</prosody></voice></speak>"
     )
 
 
-def synthesize(text: str, voice: str, rate: str = "+0%") -> bytes:
-    """REST synthesis, no word boundaries. Retries transient failures."""
+def ssml(text: str, voice: str, rate: str = "+0%", lang: str = "en-US") -> str:
+    return ssml_body(xml_escape(text), voice, rate, lang)
+
+
+def synthesize_ssml(inner: str, voice: str, rate: str = "+0%",
+                    lang: str = "en-US") -> bytes:
+    """REST synthesis of an SSML inner body. Retries transient failures."""
     key, region = credentials()
-    body = ssml(text, voice, rate).encode("utf-8")
+    body = ssml_body(inner, voice, rate, lang).encode("utf-8")
     last: Exception | None = None
     for attempt in range(4):
         try:
@@ -82,14 +93,28 @@ def synthesize(text: str, voice: str, rate: str = "+0%") -> bytes:
     raise last
 
 
+def synthesize(text: str, voice: str, rate: str = "+0%") -> bytes:
+    """REST synthesis of plain text, no word boundaries."""
+    return synthesize_ssml(xml_escape(text), voice, rate)
+
+
 def synthesize_with_words(text: str, voice: str, rate: str = "+0%",
                           lang: str = "en-US") -> tuple[bytes, list[dict]]:
-    """Speech SDK synthesis with word boundaries.
+    """Speech SDK synthesis of plain text with word boundaries."""
+    return synthesize_ssml_with_words(xml_escape(text), voice, rate, lang)
+
+
+def synthesize_ssml_with_words(inner: str, voice: str, rate: str = "+0%",
+                               lang: str = "en-US") -> tuple[bytes, list[dict]]:
+    """Speech SDK synthesis of an SSML inner body, with word boundaries.
 
     Returns ``(audio, words)`` where each word is
-    ``{"text": str, "offset": seconds, "duration": seconds}``.  The SDK's
-    word event has an empty duration for MP3, so durations are derived from
-    the next word's onset (last word: to the end of the clip).
+    ``{"text": str, "offset": seconds, "duration": seconds,
+    "text_offset": int, "word_length": int}``.  The SDK's word event has an
+    empty duration for MP3, so durations are derived from the next word's
+    onset (last word: to the end of the clip).  ``text_offset`` is the SDK's
+    own offset into the SSML payload; it is useful when callers need to map
+    boundaries back to tokens, but may include markup offsets.
     """
     import azure.cognitiveservices.speech as speechsdk
 
@@ -101,17 +126,23 @@ def synthesize_with_words(text: str, voice: str, rate: str = "+0%",
         speechsdk.PropertyId.SpeechServiceResponse_RequestWordBoundary, "true")
     synthesizer = speechsdk.SpeechSynthesizer(speech_config=config, audio_config=None)
 
-    starts: list[tuple[str, float]] = []
+    starts: list[tuple[str, float, int, int]] = []
 
     def on_word(event: object) -> None:
         # Azure emits boundaries for punctuation too ("." after the last
         # word).  The lesson mapper expects word tokens only.
         if not re.search(r"[A-Za-z0-9]", event.text or ""):
             return
-        starts.append((event.text, event.audio_offset / 10_000_000))
+        starts.append((
+            event.text,
+            event.audio_offset / 10_000_000,
+            int(getattr(event, "text_offset", -1)),
+            int(getattr(event, "word_length", -1)),
+        ))
 
     synthesizer.synthesis_word_boundary.connect(on_word)
-    result = synthesizer.speak_ssml_async(ssml(text, voice, rate, lang)).get()
+    result = synthesizer.speak_ssml_async(
+        ssml_body(inner, voice, rate, lang)).get()
     if result.reason != speechsdk.ResultReason.SynthesizingAudioCompleted:
         detail = speechsdk.SpeechSynthesisCancellationDetails.from_result(result)
         raise RuntimeError(f"Azure TTS failed: {detail.reason} {detail.error_details}")
@@ -121,7 +152,7 @@ def synthesize_with_words(text: str, voice: str, rate: str = "+0%",
 
     total = len(audio) / FRAME_BYTES * FRAME_SECONDS
     words: list[dict] = []
-    for index, (word, offset) in enumerate(starts):
+    for index, (word, offset, text_offset, word_length) in enumerate(starts):
         if index + 1 < len(starts):
             end = starts[index + 1][1]
         else:
@@ -132,5 +163,7 @@ def synthesize_with_words(text: str, voice: str, rate: str = "+0%",
             "text": word,
             "offset": round(offset, 4),
             "duration": round(max(0.04, end - offset), 4),
+            "text_offset": text_offset,
+            "word_length": word_length,
         })
     return audio, words
