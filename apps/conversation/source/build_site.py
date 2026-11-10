@@ -149,58 +149,84 @@ def clip_hash(text: str) -> str:
 
 
 # --------------------------------------------------------------------------
-# logical stress (信息焦点)
+# logical stress (信息焦点 + 次重音)
 # --------------------------------------------------------------------------
 # Word-level <emphasis> is only reliable on a few Azure voices; Ava/Andrew
-# respond to a small prosody lift instead.  Keep the lift modest: pitch does
-# most of the work, rate only slightly, so the sentence still sounds spoken
-# rather than recited.
-STRESS_RATE = "-10%"
-STRESS_PITCH = "+18%"
-STRESS_VOLUME = "+6%"
-STRESS_TAG = (f"<prosody rate='{STRESS_RATE}' pitch='{STRESS_PITCH}' "
-              f"volume='{STRESS_VOLUME}'>")
-PROSODY_VERSION = "v1"
+# respond to a prosody lift instead.  Primary and secondary stresses get
+# different strengths so the line keeps an English stress-timed rhythm.
+PRIMARY_RATE = "-12%"
+PRIMARY_PITCH = "+20%"
+PRIMARY_VOLUME = "+8%"
+SECONDARY_RATE = "-5%"
+SECONDARY_PITCH = "+9%"
+SECONDARY_VOLUME = "+3%"
+PRIMARY_TAG = (f"<prosody rate='{PRIMARY_RATE}' pitch='{PRIMARY_PITCH}' "
+               f"volume='{PRIMARY_VOLUME}'>")
+SECONDARY_TAG = (f"<prosody rate='{SECONDARY_RATE}' "
+                 f"pitch='{SECONDARY_PITCH}' volume='{SECONDARY_VOLUME}'>")
+PROSODY_VERSION = "v2"
+
+# (primary token indices, secondary token indices), both in WORD_RE order.
+StressSpec = tuple[tuple[int, ...], tuple[int, ...]]
+NO_STRESS: StressSpec = ((), ())
 
 
-def stress_indices(story: dict, text: str) -> tuple:
-    """Token indices (pron.WORD_RE order) stressed in ``text``."""
-    values = (story.get("stress") or {}).get(text) or ()
-    return tuple(sorted({int(v) for v in values}))
+def stress_spec(story: dict, text: str) -> StressSpec:
+    """Resolve a story's stress entry to (primary, secondary) token indices.
+
+    New content uses ``{"primary": [...], "secondary": [...]}``; a legacy
+    flat list is read as primary-only.
+    """
+    raw = (story.get("stress") or {}).get(text)
+    if not raw:
+        return NO_STRESS
+    if isinstance(raw, dict):
+        primary = tuple(sorted({int(v) for v in raw.get("primary", ())}))
+        secondary = tuple(sorted(
+            {int(v) for v in raw.get("secondary", ())} - set(primary)))
+        return primary, secondary
+    return tuple(sorted({int(v) for v in raw})), ()
 
 
-def stress_sig(indices: tuple) -> str:
-    return ",".join(str(i) for i in indices)
+def stress_sig(spec: StressSpec) -> str:
+    primary, secondary = spec
+    return (f"p:{','.join(str(i) for i in primary)};"
+            f"s:{','.join(str(i) for i in secondary)}")
 
 
-def stress_inner(text: str, indices: tuple) -> str:
-    """SSML inner body: plain text with selected words lifted."""
-    if not indices:
+def stress_inner(text: str, spec: StressSpec) -> str:
+    """SSML inner body: plain text with primary/secondary words lifted."""
+    primary, secondary = spec
+    if not primary and not secondary:
         return xml_escape(text)
     matches = list(pron.WORD_RE.finditer(text))
-    wanted = set(indices)
     out: list[str] = []
     cursor = 0
     for index, match in enumerate(matches):
-        if index not in wanted:
+        if index in primary:
+            tag = PRIMARY_TAG
+        elif index in secondary:
+            tag = SECONDARY_TAG
+        else:
             continue
         out.append(xml_escape(text[cursor:match.start()]))
-        out.append(STRESS_TAG + xml_escape(match.group(0)) + "</prosody>")
+        out.append(tag + xml_escape(match.group(0)) + "</prosody>")
         cursor = match.end()
     out.append(xml_escape(text[cursor:]))
     return "".join(out)
 
 
-def clip_key(text: str, indices: tuple = (), engine: str = "edge") -> str:
+def clip_key(text: str, spec: StressSpec = NO_STRESS,
+             engine: str = "edge") -> str:
     """Cache key.
 
     Plain Edge text keeps the original hash so existing masters are reused.
     Azure lines (stressed or not) get a separate key: their audio and sidecar
     must never overwrite the Edge master used by other levels.
     """
-    if engine == "edge" and not indices:
+    if engine == "edge" and spec == NO_STRESS:
         return clip_hash(text)
-    material = f"{engine}\0{text}\0{stress_sig(indices)}\0{PROSODY_VERSION}"
+    material = f"{engine}\0{text}\0{stress_sig(spec)}\0{PROSODY_VERSION}"
     return hashlib.sha1(material.encode("utf-8")).hexdigest()[:16]
 
 
@@ -208,7 +234,7 @@ def story_tts(story: dict) -> str:
     return "azure" if story.get("tts") == "azure" else "edge"
 
 
-def azure_ready(mp3: Path, text: str, indices: tuple) -> bool:
+def azure_ready(mp3: Path, text: str, spec: StressSpec) -> bool:
     """Sidecar belongs to this Azure clip and this stress variant."""
     side = timing_path(mp3)
     if not side.exists():
@@ -220,7 +246,7 @@ def azure_ready(mp3: Path, text: str, indices: tuple) -> bool:
     return (
         meta.get("engine") == "azure"
         and meta.get("text") == text
-        and meta.get("prosody") == stress_sig(indices)
+        and meta.get("prosody") == stress_sig(spec)
         and meta.get("size") == mp3.stat().st_size
     )
 
@@ -337,24 +363,24 @@ def story_texts(story: dict) -> list:
     return texts
 
 
-def unique_entries(data: dict, levels) -> list[tuple[str, tuple, str]]:
-    """(text, stress indices, engine) in clip order.
+def unique_entries(data: dict, levels) -> list[tuple[str, StressSpec, str]]:
+    """(text, stress spec, engine) in clip order.
 
     A story with ``"tts": "azure"`` renders every line with Azure, so one
     page never mixes Edge and Azure timbre.  Other stories stay on Edge.
     """
     seen = set()
-    out: list[tuple[str, tuple, str]] = []
+    out: list[tuple[str, StressSpec, str]] = []
     for lv in sorted(levels):
         for unit in data.get(lv, []):
             for story in unit["stories"]:
                 engine = story_tts(story)
                 for text in story_texts(story):
-                    indices = stress_indices(story, text)
-                    h = clip_key(text, indices, engine)
+                    spec = stress_spec(story, text)
+                    h = clip_key(text, spec, engine)
                     if h not in seen:
                         seen.add(h)
-                        out.append((text, indices, engine))
+                        out.append((text, spec, engine))
     return out
 
 
@@ -426,19 +452,19 @@ async def synth_one(text: str, voice: str, target: Path) -> dict:
                 json.dumps(meta, ensure_ascii=False, separators=(",", ":")),
                 encoding="utf-8")
             tmp_side.replace(side)
-            return {"text": text, "indices": (), "engine": "edge",
+            return {"text": text, "spec": NO_STRESS, "engine": "edge",
                     "target": target, "ok": True, "error": ""}
         except Exception as exc:                     # 网络抖动、限流、超时
             error = str(exc)
             if attempt < 3:
                 await asyncio.sleep(2 * attempt)
-    return {"text": text, "indices": (), "engine": "edge",
+    return {"text": text, "spec": NO_STRESS, "engine": "edge",
             "target": target, "ok": False, "error": error}
 
 
-def synth_azure_one(text: str, indices: tuple, voice: str,
+def synth_azure_one(text: str, spec: StressSpec, voice: str,
                     target: Path) -> dict:
-    """Azure SSML synthesis with a small prosody lift on the focus words.
+    """Azure SSML synthesis with primary/secondary prosody lifts.
 
     Runs in a worker thread (the Speech SDK is blocking).  The sidecar keeps
     the same ``words`` shape the Edge path writes, so karaoke needs no change.
@@ -446,7 +472,7 @@ def synth_azure_one(text: str, indices: tuple, voice: str,
     error = ""
     for attempt in range(1, 4):
         try:
-            inner = stress_inner(text, indices)
+            inner = stress_inner(text, spec)
             audio, words = azure_speech.synthesize_ssml_with_words(
                 inner, voice, "+0%")
             if not audio or not words:
@@ -463,7 +489,7 @@ def synth_azure_one(text: str, indices: tuple, voice: str,
                 "engine": "azure",
                 "text": text,
                 "voice": voice,
-                "prosody": stress_sig(indices),
+                "prosody": stress_sig(spec),
                 "size": len(audio),
                 "sha1": hashlib.sha1(audio).hexdigest(),
                 "words": rows,
@@ -474,26 +500,26 @@ def synth_azure_one(text: str, indices: tuple, voice: str,
                 json.dumps(meta, ensure_ascii=False, separators=(",", ":")),
                 encoding="utf-8")
             tmp_side.replace(side)
-            return {"text": text, "indices": indices, "engine": "azure",
+            return {"text": text, "spec": spec, "engine": "azure",
                     "target": target, "ok": True, "error": ""}
         except Exception as exc:                     # 网络抖动、限流、超时
             error = str(exc)
             if attempt < 3:
                 time.sleep(2 * attempt)
-    return {"text": text, "indices": indices, "engine": "azure",
+    return {"text": text, "spec": spec, "engine": "azure",
             "target": target, "ok": False, "error": error}
 
 
 async def synth_all(items: list, voice: str, jobs: int, on_batch) -> tuple:
-    """items: [(text, indices, engine, target)] —— 按批并发，Edge/Azure 混合。"""
+    """items: [(text, spec, engine, target)] —— 按批并发，Edge/Azure 混合。"""
     started = time.time()
     done = 0
     failures = []
 
-    async def run_one(text, indices, engine, target):
+    async def run_one(text, spec, engine, target):
         if engine == "azure":
             return await asyncio.to_thread(
-                synth_azure_one, text, indices, voice, target)
+                synth_azure_one, text, spec, voice, target)
         return await synth_one(text, voice, target)
 
     for start in range(0, len(items), jobs):
@@ -510,11 +536,11 @@ async def synth_all(items: list, voice: str, jobs: int, on_batch) -> tuple:
     return done, failures
 
 
-def generate(voices: list, entries: list[tuple[str, tuple, str]], jobs: int,
-             timed_texts: set | None = None) -> dict:
+def generate(voices: list, entries: list[tuple[str, StressSpec, str]],
+             jobs: int, timed_texts: set | None = None) -> dict:
     """Synthesize missing clips for every requested voice.
 
-    ``entries`` are ``(text, stress indices, engine)``.  Azure lines (stressed
+    ``entries`` are ``(text, stress spec, engine)``.  Azure lines (stressed
     or not) use SSML and an engine-separated cache key; plain Edge lines keep
     their existing masters.  ``timed_texts`` are the body sentences that need
     word-boundary sidecars.  Edge TTS audio is not byte-deterministic, so an
@@ -531,28 +557,28 @@ def generate(voices: list, entries: list[tuple[str, tuple, str]], jobs: int,
         cache_dir = CACHE / voice["dir"]
         cache_dir.mkdir(parents=True, exist_ok=True)
         missing = []
-        for text, indices, engine in entries:
-            h = clip_key(text, indices, engine)
+        for text, spec, engine in entries:
+            h = clip_key(text, spec, engine)
             target = cache_dir / h[:2] / f"{h}.mp3"
             if engine == "azure":
-                ready = target.exists() and azure_ready(target, text, indices)
+                ready = target.exists() and azure_ready(target, text, spec)
             else:
                 ready = target.exists() and (
                     text not in timed_texts or timing_ready(target))
             if not ready:
                 target.parent.mkdir(parents=True, exist_ok=True)
-                missing.append((text, indices, engine, target))
+                missing.append((text, spec, engine, target))
                 if target.exists():
                     retimed += 1
                 if engine == "azure":
                     azure_lines += 1
-                    if indices:
+                    if spec != NO_STRESS:
                         stressed += 1
         plans.append((voice, cache_dir, missing))
     if retimed:
         print(f"逐词时间缺失或过期：{retimed} 条需要重新合成（音色 × 句）")
     if azure_lines:
-        print(f"Azure 语音：{azure_lines} 条，其中逻辑重音 {stressed} 条"
+        print(f"Azure 语音：{azure_lines} 条，其中带重音 {stressed} 条"
               "（音色 × 句）")
 
     overall_total = sum(len(missing) for _, _, missing in plans)
@@ -602,7 +628,7 @@ def generate(voices: list, entries: list[tuple[str, tuple, str]], jobs: int,
         if failures:
             print(f"  {voice['label']}：{len(failures)} 句失败，补跑一次")
             time.sleep(4)
-            retry_items = [(f["text"], f.get("indices", ()),
+            retry_items = [(f["text"], f.get("spec", NO_STRESS),
                             f.get("engine", "edge"), f["target"])
                            for f in failures]
             retry_base = base + done
@@ -2288,7 +2314,7 @@ def build_page_sprite(level: str, story: dict, audio_maps: dict,
         hashes = audio_maps.get(key, set())
         picks = []
         for index, text in enumerate(texts):
-            h = clip_key(text, stress_indices(story, text), engine)
+            h = clip_key(text, stress_spec(story, text), engine)
             if h not in hashes:
                 continue
             path = CACHE / voice["dir"] / h[:2] / f"{h}.mp3"

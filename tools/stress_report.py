@@ -5,8 +5,9 @@
     .venv\\Scripts\\python.exe -I tools\\stress_report.py
     .venv\\Scripts\\python.exe -I tools\\stress_report.py --require-all
 
-The review page lives in ``build/prosody-b2-unit1/`` and compares the old
-Edge clip with the new Azure clip when both exist.  No network calls.
+Each annotated line needs one primary stress and at least one secondary
+stress.  The review page lives in ``build/prosody-b2-unit1/`` and compares
+the old Edge clip with the new Azure clip when both exist.  No network calls.
 """
 
 from __future__ import annotations
@@ -14,7 +15,6 @@ from __future__ import annotations
 import argparse
 import html
 import importlib.util
-import json
 import re
 import sys
 from pathlib import Path
@@ -59,33 +59,43 @@ def token_count(text: str) -> int:
     return len(list(pron.WORD_RE.finditer(text)))
 
 
-def marked_html(text: str, indices: tuple) -> str:
+def marked_html(text: str, spec) -> str:
+    primary, secondary = spec
     matches = list(pron.WORD_RE.finditer(text))
-    wanted = set(indices)
     out: list[str] = []
     cursor = 0
     for index, match in enumerate(matches):
-        if index not in wanted:
+        if index in primary:
+            cls, mark = "primary", "1"
+        elif index in secondary:
+            cls, mark = "secondary", "2"
+        else:
             continue
         out.append(html.escape(text[cursor:match.start()]))
-        out.append('<strong class="stress">'
-                   + html.escape(match.group(0)) + "</strong>")
+        out.append(f'<span class="{cls}">{html.escape(match.group(0))}'
+                   f'<sup>{mark}</sup></span>')
         cursor = match.end()
     out.append(html.escape(text[cursor:]))
     return "".join(out)
 
 
-def stressed_words(text: str, indices: tuple) -> str:
+def words_line(text: str, spec) -> str:
+    primary, secondary = spec
     matches = list(pron.WORD_RE.finditer(text))
-    return " · ".join(
-        f"<code>{html.escape(matches[i].group(0))}</code>"
-        for i in indices if 0 <= i < len(matches)
-    )
+
+    def names(indices):
+        return " · ".join(
+            f"<code>{html.escape(matches[i].group(0))}</code>"
+            for i in indices if 0 <= i < len(matches)
+        ) or "—"
+
+    return (f"主重音 1：{names(primary)}　"
+            f"次重音 2：{names(secondary)}")
 
 
-def audio_block(text: str, indices: tuple) -> str:
+def audio_block(text: str, spec) -> str:
     old_key = build_site.clip_hash(text)
-    new_key = build_site.clip_key(text, indices, "azure")
+    new_key = build_site.clip_key(text, spec, "azure")
     rows = []
     for label, key in (("旧 Edge", old_key), ("新 Azure", new_key)):
         for voice in VOICE_DIRS:
@@ -129,40 +139,56 @@ def main() -> int:
     for story in unit["stories"]:
         stress = story.get("stress") or {}
         known = {text for _, text in playable(story)}
-        section_of = {text: section for section, text in playable(story)}
         for key in stress:
             if key not in known:
                 print(f"FIX  {story['title']}: stress 键不在页面文本里：{key[:60]}…")
                 fixes += 1
+        section_rows = [f'<h2>{html.escape(story["title"])}</h2>']
+        context = "".join(
+            f'<p>{html.escape(para)}</p>' for para in story["text"]
+        )
+        section_rows.append(
+            '<details class="ctx"><summary>上下文</summary>'
+            + context + "</details>"
+        )
         for section, text in playable(story):
-            indices = tuple(sorted({int(v) for v in stress.get(text, ())}))
-            if section in {"body", "comp", "conv"} and not indices:
+            spec = build_site.stress_spec(story, text)
+            primary, secondary = spec
+            if section in {"body", "comp", "conv"} and not primary:
                 if args.require_all:
                     print(f"FIX  {story['title']} [{section}] 未标注：{text[:60]}…")
                     fixes += 1
                 else:
                     warnings += 1
-            if not indices:
+            if not primary and not secondary:
                 continue
             annotated += 1
             count = token_count(text)
-            if len(indices) > 3:
-                print(f"FIX  {story['title']}: 重音超过 3 个：{text[:50]}…")
+            if len(primary) != 1:
+                print(f"FIX  {story['title']}: 主重音应为 1 个，实际 {len(primary)}：{text[:50]}…")
                 fixes += 1
-            if len(set(indices)) != len(indices):
-                print(f"FIX  {story['title']}: 重音索引重复：{text[:50]}…")
+            if len(secondary) < 1:
+                print(f"FIX  {story['title']}: 缺少次重音：{text[:50]}…")
                 fixes += 1
-            bad = [i for i in indices if i < 0 or i >= count]
+            if len(secondary) > 6:
+                print(f"FIX  {story['title']}: 次重音超过 6 个：{text[:50]}…")
+                fixes += 1
+            if set(primary) & set(secondary):
+                print(f"FIX  {story['title']}: 主/次重音重叠：{text[:50]}…")
+                fixes += 1
+            bad = [i for i in (*primary, *secondary)
+                   if i < 0 or i >= count]
             if bad:
                 print(f"FIX  {story['title']}: 索引越界 {bad}（共 {count} 个词）：{text[:50]}…")
                 fixes += 1
                 continue
-            rows_html.append(
-                f'<article><p class="meta">{html.escape(story["title"])} · '
-                f'{section}</p><p class="en">{marked_html(text, indices)}</p>'
-                f'<p class="words">重音：{stressed_words(text, indices)}</p>'
-                f'{audio_block(text, indices)}</article>'
+            section_rows.append(
+                f'<article><p class="meta">{section}</p>'
+                f'<p class="en">{marked_html(text, spec)}</p>'
+                f'<p class="words">{words_line(text, spec)}</p>'
+                f'{audio_block(text, spec)}</article>'
             )
+        rows_html.append('<section>' + "".join(section_rows) + "</section>")
 
     page = f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
@@ -170,23 +196,34 @@ def main() -> int:
 <title>B2 Unit 1 logical stress</title>
 <style>
 :root {{ --bg:#f7f7f5; --fg:#1c1c1a; --muted:#6d6d66; --rule:#dcdcd6;
-  --card:#fff; --accent:#0b6e4f; --accent-soft:#e3f2ec; }}
+  --card:#fff; --p:#0b6e4f; --p-soft:#e3f2ec;
+  --s:#a05a00; --s-soft:#fff1dc; }}
 @media (prefers-color-scheme: dark) {{ :root {{ --bg:#15171a; --fg:#eceae4;
-  --muted:#a3a49c; --rule:#33363a; --card:#1d2024; --accent:#6fd6ad;
-  --accent-soft:#1f3b32; }} }}
+  --muted:#a3a49c; --rule:#33363a; --card:#1d2024; --p:#6fd6ad;
+  --p-soft:#1f3b32; --s:#f0b566; --s-soft:#3a2d19; }} }}
 * {{ box-sizing:border-box; }}
 body {{ margin:0; padding:28px 16px 64px; background:var(--bg); color:var(--fg);
   font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; }}
 main {{ max-width:820px; margin:0 auto; }}
 h1 {{ font-size:21px; margin:0 0 4px; }}
+h2 {{ font-size:15px; margin:28px 0 10px; color:var(--muted);
+  font-weight:600; letter-spacing:.04em; text-transform:uppercase; }}
 p.lead {{ color:var(--muted); margin:0 0 22px; }}
+details.ctx {{ background:var(--card); border:1px solid var(--rule);
+  border-radius:12px; padding:10px 16px; margin:0 0 12px;
+  color:var(--muted); font-size:14px; }}
+details.ctx summary {{ cursor:pointer; color:var(--fg); }}
+details.ctx p {{ margin:10px 0 0; }}
 article {{ background:var(--card); border:1px solid var(--rule);
   border-radius:12px; padding:14px 16px; margin:0 0 12px; }}
 p.meta {{ color:var(--muted); font-size:12px; letter-spacing:.04em;
   text-transform:uppercase; margin:0 0 6px; }}
 p.en {{ margin:0 0 8px; font-size:16px; }}
-.stress {{ color:var(--accent); background:var(--accent-soft);
-  border-radius:4px; padding:0 2px; }}
+.primary {{ color:var(--p); background:var(--p-soft); border-radius:4px;
+  padding:0 2px; font-weight:650; }}
+.secondary {{ color:var(--s); background:var(--s-soft); border-radius:4px;
+  padding:0 2px; font-weight:550; }}
+sup {{ font-size:9px; margin-left:1px; opacity:.75; }}
 p.words {{ margin:0 0 8px; color:var(--muted); font-size:13px; }}
 code {{ font-size:13px; }}
 .audio {{ display:flex; flex-wrap:wrap; gap:10px 16px; }}
@@ -196,7 +233,7 @@ audio {{ width:min(280px,100%); height:32px; }}
 p.none {{ color:var(--muted); font-size:13px; margin:0; }}
 </style></head><body><main>
 <h1>B2 Unit 1 · logical stress</h1>
-<p class="lead">{len(rows_html)} 句已标注。绿色词为逻辑重音；有音频时可对比旧 Edge 与新 Azure。</p>
+<p class="lead">{len(rows_html)} 篇、{annotated} 句已标注。绿色 1 为主重音，橙色 2 为次重音。</p>
 {''.join(rows_html)}
 </main></body></html>"""
 
