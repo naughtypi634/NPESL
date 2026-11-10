@@ -130,6 +130,10 @@ def main() -> int:
                         help="未标注的正文/问答句也算错误")
     args = parser.parse_args()
 
+    global OUT
+    OUT = ROOT / "build" / f"prosody-{args.level.lower()}-unit{args.unit}"
+    label = f"{args.level} Unit {args.unit}"
+
     unit = load_unit(args.level, args.unit)
     fixes = 0
     warnings = 0
@@ -193,7 +197,7 @@ def main() -> int:
     page = f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>B2 Unit 1 logical stress</title>
+<title>{label} logical stress</title>
 <style>
 :root {{ --bg:#f7f7f5; --fg:#1c1c1a; --muted:#6d6d66; --rule:#dcdcd6;
   --card:#fff; --p:#0b6e4f; --p-soft:#e3f2ec;
@@ -232,7 +236,7 @@ code {{ font-size:13px; }}
 audio {{ width:min(280px,100%); height:32px; }}
 p.none {{ color:var(--muted); font-size:13px; margin:0; }}
 </style></head><body><main>
-<h1>B2 Unit 1 · logical stress</h1>
+<h1>{label} · logical stress</h1>
 <p class="lead">{len(rows_html)} 篇、{annotated} 句已标注。绿色 1 为主重音，橙色 2 为次重音。</p>
 {''.join(rows_html)}
 </main></body></html>"""
