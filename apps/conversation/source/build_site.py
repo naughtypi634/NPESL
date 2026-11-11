@@ -165,11 +165,11 @@ PRIMARY_TAG = (f"<prosody rate='{PRIMARY_RATE}' pitch='{PRIMARY_PITCH}' "
 SECONDARY_TAG = (f"<prosody rate='{SECONDARY_RATE}' "
                  f"pitch='{SECONDARY_PITCH}' volume='{SECONDARY_VOLUME}'>")
 # List intonation: non-final items rise, the final item falls.
-RISE_TAG = (f"<prosody rate='{SECONDARY_RATE}' volume='{SECONDARY_VOLUME}' "
-            "contour='(0%,+0%) (55%,+7%) (100%,+16%)'>")
+RISE_TAG = (f"<prosody rate='-6%' volume='{SECONDARY_VOLUME}' "
+            "contour='(0%,+0%) (60%,+6%) (100%,+30%)'>")
 FALL_TAG = (f"<prosody rate='{PRIMARY_RATE}' volume='{PRIMARY_VOLUME}' "
             "contour='(0%,+0%) (40%,+10%) (100%,-10%)'>")
-PROSODY_VERSION = "v5"
+PROSODY_VERSION = "v6"
 
 # (primary, secondary, list-rise, list-fall) token indices, WORD_RE order.
 StressSpec = tuple[tuple[int, ...], tuple[int, ...],
