@@ -154,38 +154,71 @@ def clip_hash(text: str) -> str:
 # Word-level <emphasis> is only reliable on a few Azure voices; Ava/Andrew
 # respond to a prosody lift instead.  Primary and secondary stresses get
 # different strengths so the line keeps an English stress-timed rhythm.
-PRIMARY_RATE = "-12%"
-PRIMARY_PITCH = "+20%"
-PRIMARY_VOLUME = "+8%"
-SECONDARY_RATE = "-5%"
-SECONDARY_PITCH = "+9%"
-SECONDARY_VOLUME = "+3%"
+PRIMARY_RATE = "-15%"
+PRIMARY_PITCH = "+30%"
+PRIMARY_VOLUME = "+12%"
+SECONDARY_RATE = "-6%"
+SECONDARY_PITCH = "+14%"
+SECONDARY_VOLUME = "+5%"
 PRIMARY_TAG = (f"<prosody rate='{PRIMARY_RATE}' pitch='{PRIMARY_PITCH}' "
                f"volume='{PRIMARY_VOLUME}'>")
 SECONDARY_TAG = (f"<prosody rate='{SECONDARY_RATE}' "
                  f"pitch='{SECONDARY_PITCH}' volume='{SECONDARY_VOLUME}'>")
-PROSODY_VERSION = "v2"
+PROSODY_VERSION = "v3"
 
 # (primary token indices, secondary token indices), both in WORD_RE order.
 StressSpec = tuple[tuple[int, ...], tuple[int, ...]]
 NO_STRESS: StressSpec = ((), ())
 
 
+def _word_index(text: str, word: str, taken: set) -> int:
+    """Resolve ``word`` (or ``word#2``) to its WORD_RE token index."""
+    base, sep, occurrence = word.partition("#")
+    wanted = int(occurrence) if sep else 1
+    target = base.strip().lower().replace("’", "'")
+    seen = 0
+    for index, match in enumerate(pron.WORD_RE.finditer(text)):
+        token = match.group(0).lower().replace("’", "'")
+        if token != target:
+            continue
+        seen += 1
+        if seen == wanted and index not in taken:
+            return index
+    raise ValueError(f"stress word {word!r} not found in {text!r}")
+
+
+def _resolve_values(text: str, values, taken: set | None = None) -> set:
+    out: set = set()
+    used = set(taken or ())
+    for value in values:
+        index = int(value) if isinstance(value, int) else _word_index(
+            text, str(value), used)
+        out.add(index)
+        used.add(index)
+    return out
+
+
 def stress_spec(story: dict, text: str) -> StressSpec:
     """Resolve a story's stress entry to (primary, secondary) token indices.
 
-    New content uses ``{"primary": [...], "secondary": [...]}``; a legacy
-    flat list is read as primary-only.
+    Entries may name words (``"sister"``, ``"sister#2"``) or token indices;
+    word names make the semantic choice reviewable.  A legacy flat list is
+    read as primary-only.
     """
     raw = (story.get("stress") or {}).get(text)
     if not raw:
         return NO_STRESS
     if isinstance(raw, dict):
-        primary = tuple(sorted({int(v) for v in raw.get("primary", ())}))
-        secondary = tuple(sorted(
-            {int(v) for v in raw.get("secondary", ())} - set(primary)))
-        return primary, secondary
-    return tuple(sorted({int(v) for v in raw})), ()
+        primary = _resolve_values(text, raw.get("primary", ()))
+        secondary = _resolve_values(
+            text, raw.get("secondary", ()), primary) - primary
+        return tuple(sorted(primary)), tuple(sorted(secondary))
+    return tuple(sorted(_resolve_values(text, raw))), ()
+
+
+def stress_note(story: dict, text: str) -> str:
+    raw = (story.get("stress") or {}).get(text)
+    return raw.get("note", "") if isinstance(raw, dict) else ""
 
 
 def stress_sig(spec: StressSpec) -> str:
@@ -224,9 +257,9 @@ def clip_key(text: str, spec: StressSpec = NO_STRESS,
     Azure lines (stressed or not) get a separate key: their audio and sidecar
     must never overwrite the Edge master used by other levels.
     """
-    if engine == "edge" and spec == NO_STRESS:
+    if engine != "azure":
         return clip_hash(text)
-    material = f"{engine}\0{text}\0{stress_sig(spec)}\0{PROSODY_VERSION}"
+    material = f"azure\0{text}\0{stress_sig(spec)}\0{PROSODY_VERSION}"
     return hashlib.sha1(material.encode("utf-8")).hexdigest()[:16]
 
 

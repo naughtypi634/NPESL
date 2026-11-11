@@ -168,11 +168,8 @@ def main() -> int:
                 continue
             annotated += 1
             count = token_count(text)
-            if len(primary) != 1:
-                print(f"FIX  {story['title']}: 主重音应为 1 个，实际 {len(primary)}：{text[:50]}…")
-                fixes += 1
-            if len(secondary) < 1:
-                print(f"FIX  {story['title']}: 缺少次重音：{text[:50]}…")
+            if not 1 <= len(primary) <= 3:
+                print(f"FIX  {story['title']}: 主重音应为 1–3 个，实际 {len(primary)}：{text[:50]}…")
                 fixes += 1
             if len(secondary) > 6:
                 print(f"FIX  {story['title']}: 次重音超过 6 个：{text[:50]}…")
@@ -186,11 +183,14 @@ def main() -> int:
                 print(f"FIX  {story['title']}: 索引越界 {bad}（共 {count} 个词）：{text[:50]}…")
                 fixes += 1
                 continue
+            note = build_site.stress_note(story, text)
+            note_html = (f'<p class="note">{html.escape(note)}</p>'
+                         if note else "")
             section_rows.append(
                 f'<article><p class="meta">{section}</p>'
                 f'<p class="en">{marked_html(text, spec)}</p>'
                 f'<p class="words">{words_line(text, spec)}</p>'
-                f'{audio_block(text, spec)}</article>'
+                f'{note_html}{audio_block(text, spec)}</article>'
             )
         rows_html.append('<section>' + "".join(section_rows) + "</section>")
 
@@ -229,6 +229,8 @@ p.en {{ margin:0 0 8px; font-size:16px; }}
   padding:0 2px; font-weight:550; }}
 sup {{ font-size:9px; margin-left:1px; opacity:.75; }}
 p.words {{ margin:0 0 8px; color:var(--muted); font-size:13px; }}
+p.note {{ margin:0 0 8px; color:var(--muted); font-size:13px;
+  border-left:3px solid var(--rule); padding-left:10px; }}
 code {{ font-size:13px; }}
 .audio {{ display:flex; flex-wrap:wrap; gap:10px 16px; }}
 .audio label {{ display:flex; flex-direction:column; gap:4px;
