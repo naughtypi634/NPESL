@@ -1,0 +1,2976 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check-in hall · Travel English</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#66666c; --rule:#e0e0e0;
+    --surface:#f5f5f7; --surface-strong:#e8e8ed;
+    --accent:var(--blue,#0066cc); --tint:var(--blue-tint,#e8f2ff);
+    --on-accent:var(--on-blue,#fff);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#000; --fg:#f5f5f7; --muted:#98989d; --rule:#38383a;
+      --surface:#1c1c1e; --surface-strong:#2c2c2e;
+      --accent:var(--blue,#2997ff); --tint:var(--blue-tint,#102a43);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:980px; margin:0 auto; padding:clamp(28px,5vh,56px) 20px 96px; }
+  .crumbs { margin:0 0 12px; color:var(--muted); font-size:13px; }
+  .crumbs a { color:var(--muted); text-decoration:none; }
+  .crumbs a:hover { color:var(--accent); }
+  h1 { margin:0; font-size:clamp(1.7rem,4.4vw,2.4rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+
+  .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 16px; }
+  .tabs a { font-size:14px; padding:7px 15px; border:1px solid var(--rule);
+    border-radius:999px; color:var(--fg); text-decoration:none; }
+  .tabs a:hover { background:var(--surface); }
+  .tabs a[aria-current="page"] { background:var(--accent); border-color:var(--accent);
+    color:var(--on-accent); }
+
+  .stage { position:relative; border-radius:18px; overflow:hidden;
+    background:var(--surface); margin:0 0 18px; }
+  .stage img { display:block; width:100%; height:auto; }
+  .hot { position:absolute; width:34px; height:34px; padding:0;
+    transform:translate(-50%,-50%); border:0; border-radius:50%;
+    background:transparent; cursor:pointer; }
+  .hot::before { content:""; position:absolute; inset:11px; border-radius:50%;
+    background:#fff; box-shadow:0 0 0 1.5px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.28);
+    opacity:.85; transition:transform .15s, opacity .15s, box-shadow .15s; }
+  .hot::after { content:""; position:absolute; inset:4px; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.75); opacity:0;
+    transition:opacity .15s; }
+  .hot:hover::before, .hot:focus-visible::before { transform:scale(1.35);
+    opacity:1; box-shadow:0 0 0 2px var(--accent), 0 3px 10px rgba(0,0,0,.35); }
+  .hot:hover::after, .hot:focus-visible::after { opacity:1; }
+  .hot:focus-visible { outline:none; }
+  .hot .tag { position:absolute; left:50%; bottom:calc(100% - 2px);
+    transform:translateX(-50%); white-space:nowrap; font-size:12px; line-height:1.2;
+    padding:5px 9px; border-radius:8px; background:var(--fg); color:var(--bg);
+    opacity:0; pointer-events:none; transition:opacity .15s; }
+  .hot:hover .tag, .hot:focus-visible .tag { opacity:1; }
+  .hot .tag small { display:block; font-size:11px; opacity:.7; }
+  .hot.character::before { background:var(--accent);
+    box-shadow:0 0 0 1.5px #fff, 0 2px 6px rgba(0,0,0,.28); }
+
+  .panel { min-height:1px; }
+  .card { border:1px solid var(--rule); border-radius:16px; padding:22px 24px; }
+  .card .word { font-size:clamp(1.5rem,3.6vw,2rem); font-weight:700;
+    letter-spacing:-0.02em; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .card .ipa { font-size:15px; color:var(--muted); font-weight:400; }
+  .card .pos { font-size:13px; color:var(--muted); font-style:italic; }
+  .card .zh { margin:6px 0 0; font-size:16px; color:var(--muted); }
+  .card .ex { margin:16px 0 0; font-size:17px; line-height:1.55; }
+  .card .ex .zh { display:block; margin-top:3px; font-size:14px; }
+  .card .note { margin:14px 0 0; font-size:13.5px; color:var(--muted);
+    line-height:1.55; }
+
+  .play { display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; padding:0; border:0; border-radius:50%;
+    background:var(--tint); color:var(--accent); cursor:pointer; flex:none;
+    vertical-align:middle; }
+  .play:hover { background:var(--surface-strong); }
+  .play svg { width:14px; height:14px; fill:currentColor; }
+  .play[data-playing="true"] { background:var(--accent); color:var(--on-accent); }
+
+  .enc h2 { margin:0 0 4px; font-size:clamp(1.2rem,2.8vw,1.55rem);
+    font-weight:700; letter-spacing:-0.02em; }
+  .enc .zh { color:var(--muted); font-size:14px; margin:0; }
+  .row { display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin:18px 0 6px; }
+  .levels { display:flex; gap:6px; }
+  .levels button, .toggle { appearance:none; font:inherit; font-size:13px;
+    padding:6px 13px; border:1px solid var(--rule); border-radius:999px;
+    background:transparent; color:var(--fg); cursor:pointer; }
+  .levels button:hover, .toggle:hover { background:var(--surface); }
+  .levels button[aria-pressed="true"] { background:var(--accent);
+    border-color:var(--accent); color:var(--on-accent); }
+  .lines { list-style:none; margin:14px 0 0; padding:0; }
+  .lines li { display:grid; grid-template-columns:auto 1fr auto; gap:10px;
+    align-items:baseline; padding:9px 0; border-top:1px solid var(--rule); }
+  .lines li:first-child { border-top:0; }
+  .who { font-size:12px; color:var(--muted); min-width:52px; }
+  .say { font-size:16px; line-height:1.5; }
+  .say .zh { display:block; font-size:13.5px; color:var(--muted); margin-top:2px; }
+  body.hide-zh .zh { display:none; }
+
+  .block { margin-top:26px; }
+  .block h3 { margin:0 0 8px; font-size:14px; font-weight:600; color:var(--muted);
+    letter-spacing:.02em; text-transform:uppercase; }
+  .listen { border:1px solid var(--rule); border-radius:14px; padding:16px 18px;
+    margin-top:10px; }
+  .listen .intent { font-weight:600; font-size:15px; }
+  .listen .asks { list-style:none; margin:8px 0 0; padding:0; }
+  .listen .asks li { display:flex; gap:8px; align-items:baseline; padding:4px 0;
+    font-size:15.5px; }
+  .listen .reply { margin:8px 0 0; font-size:15px; }
+  .listen .reply .zh { display:block; margin-top:2px; font-size:13.5px;
+    color:var(--muted); }
+  .listen .pattern { margin:8px 0 0; font-size:13px; color:var(--muted); }
+  .listen .note { margin:6px 0 0; font-size:13px; color:var(--muted); }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="crumbs"><a href="/">NPESL</a> / <a href="/travel/">Travel English</a> / <span>Check-in hall</span></p>
+  <h1>Check-in hall</h1>
+  <div class="tabs" id="tabs"></div>
+  <div class="stage" id="stage"></div>
+  <section class="panel" id="panel" aria-live="polite"></section>
+</div>
+<audio id="player" preload="none"></audio>
+<script>
+const DATA = {
+ "id": "airport-check-in",
+ "title_en": "Check-in hall",
+ "title_zh": "值机大厅",
+ "background": "assets/airport/check-in-hall/bg.webp",
+ "canvas": {
+  "w": 1600,
+  "h": 1000
+ },
+ "items": [
+  {
+   "id": "check-in-counter",
+   "x": 42.95,
+   "y": 39.2,
+   "hit": {
+    "w": 11.0,
+    "h": 12.0
+   },
+   "label_en": "check-in counter",
+   "label_zh": "值机柜台",
+   "word": {
+    "id": "check-in-counter",
+    "en": "check-in counter",
+    "ipa": "ˈtʃek ɪn ˌkaʊntər",
+    "pos": "n.",
+    "zh": "值机柜台",
+    "level": "A2",
+    "examples": [
+     {
+      "en": "The check-in counter for Flight 88 is at the far end.",
+      "zh": "88 号航班的值机柜台在最里面。"
+     }
+    ],
+    "l1_note": "机场的 check-in 是办登机牌和托运；酒店的 check-in 是办入住，同一个词。",
+    "related": [
+     "boarding-pass",
+     "line"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "Is this the line for the check-in counter?",
+     "zh": "这是值机柜台的队吗？"
+    },
+    {
+     "en": "The check-in counter for Flight 88 is at the far end.",
+     "zh": "88 号航班的值机柜台在最里面。"
+    }
+   ]
+  },
+  {
+   "id": "passport",
+   "x": 49.18,
+   "y": 44.6,
+   "hit": {
+    "w": 10.5,
+    "h": 11.0
+   },
+   "label_en": "passport",
+   "label_zh": "护照",
+   "word": {
+    "id": "passport",
+    "en": "passport",
+    "ipa": "ˈpæspɔːrt",
+    "pos": "n.",
+    "zh": "护照",
+    "level": "A1",
+    "examples": [
+     {
+      "en": "My passport is in the front pocket of my backpack.",
+      "zh": "我的护照在双肩包前面的口袋里。"
+     }
+    ],
+    "l1_note": "护照是 passport，签证是 visa，两样东西别混。",
+    "related": [
+     "boarding-pass"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "Here's my passport and my boarding pass.",
+     "zh": "这是我的护照和登机牌。"
+    }
+   ]
+  },
+  {
+   "id": "boarding-pass",
+   "x": 55.41,
+   "y": 50.4,
+   "hit": {
+    "w": 10.5,
+    "h": 11.0
+   },
+   "label_en": "boarding pass",
+   "label_zh": "登机牌",
+   "word": {
+    "id": "boarding-pass",
+    "en": "boarding pass",
+    "ipa": "ˈbɔːrdɪŋ pæs",
+    "pos": "n.",
+    "zh": "登机牌",
+    "level": "A2",
+    "forms": {
+     "plural": "boarding passes"
+    },
+    "examples": [
+     {
+      "en": "The agent printed my boarding pass and circled the gate number.",
+      "zh": "值机员打印了我的登机牌，还圈出了登机口。"
+     }
+    ],
+    "l1_note": "手机上的电子登机牌也叫 boarding pass，不叫 ticket。",
+    "related": [
+     "passport",
+     "baggage-tag"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "Could you print my boarding pass as well?",
+     "zh": "能顺便帮我打印登机牌吗？"
+    }
+   ]
+  },
+  {
+   "id": "baggage-tag",
+   "x": 61.64,
+   "y": 56.2,
+   "hit": {
+    "w": 10.5,
+    "h": 11.0
+   },
+   "label_en": "baggage tag",
+   "label_zh": "行李牌",
+   "word": {
+    "id": "baggage-tag",
+    "en": "baggage tag",
+    "ipa": "ˈbæɡɪdʒ tæɡ",
+    "pos": "n.",
+    "zh": "行李牌",
+    "level": "A2",
+    "forms": {
+     "plural": "baggage tags"
+    },
+    "examples": [
+     {
+      "en": "The baggage tag has my name and the flight number on it.",
+      "zh": "行李牌上写着我的名字和航班号。"
+     }
+    ],
+    "l1_note": "挂在箱子上的叫 baggage tag，口语也说 bag tag；取行李的转盘叫 baggage claim。",
+    "related": [
+     "suitcase",
+     "boarding-pass"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "Could you put a priority tag on it?",
+     "zh": "能给它挂一个优先标签吗？"
+    }
+   ]
+  },
+  {
+   "id": "baggage-scale",
+   "x": 67.29,
+   "y": 60.6,
+   "hit": {
+    "w": 6.0,
+    "h": 7.0
+   },
+   "label_en": "baggage scale",
+   "label_zh": "行李秤",
+   "word": {
+    "id": "baggage-scale",
+    "en": "baggage scale",
+    "ipa": "ˈbæɡɪdʒ skeɪl",
+    "pos": "n.",
+    "zh": "行李秤",
+    "level": "B1",
+    "forms": {
+     "plural": "baggage scales"
+    },
+    "examples": [
+     {
+      "en": "The baggage scale showed 23 kilos, right at the limit.",
+      "zh": "行李秤显示 23 公斤，正好卡在限额上。"
+     }
+    ],
+    "l1_note": "超重是 overweight；秤是 scale，家里的体重秤叫 bathroom scale。",
+    "related": [
+     "suitcase",
+     "carry-on"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "Could you put it on the scale for me?",
+     "zh": "能帮我放上秤称一下吗？"
+    }
+   ]
+  },
+  {
+   "id": "suitcase",
+   "x": 40.58,
+   "y": 65.2,
+   "hit": {
+    "w": 4.0,
+    "h": 8.0
+   },
+   "label_en": "suitcase",
+   "label_zh": "行李箱",
+   "word": {
+    "id": "suitcase",
+    "en": "suitcase",
+    "ipa": "ˈsuːtkeɪs",
+    "pos": "n.",
+    "zh": "行李箱",
+    "level": "A2",
+    "forms": {
+     "plural": "suitcases"
+    },
+    "examples": [
+     {
+      "en": "I can fit everything into one suitcase if I roll my clothes.",
+      "zh": "衣服卷起来的话，一个行李箱就装得下。"
+     }
+    ],
+    "l1_note": "具体某个箱子是 suitcase；「行李」总称是 luggage / baggage，不可数。",
+    "related": [
+     "carry-on",
+     "baggage-tag",
+     "baggage-scale"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "I have one suitcase to check.",
+     "zh": "我有一件行李要托运。"
+    }
+   ]
+  },
+  {
+   "id": "carry-on",
+   "x": 43.2,
+   "y": 67.6,
+   "hit": {
+    "w": 3.4,
+    "h": 7.0
+   },
+   "label_en": "carry-on",
+   "label_zh": "随身行李",
+   "word": {
+    "id": "carry-on",
+    "en": "carry-on",
+    "ipa": "ˈkæri ɑːn",
+    "pos": "n.",
+    "zh": "随身行李",
+    "level": "A2",
+    "forms": {
+     "plural": "carry-ons"
+    },
+    "examples": [
+     {
+      "en": "My carry-on fits under the seat, so I don't need to check it.",
+      "zh": "我的随身行李能塞进座位底下，不用托运。"
+     }
+    ],
+    "l1_note": "carry-on 既能作名词，也能作形容词：a carry-on bag。",
+    "related": [
+     "suitcase",
+     "line"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "Can I take this backpack on board?",
+     "zh": "这个双肩包能带上飞机吗？"
+    }
+   ]
+  },
+  {
+   "id": "line",
+   "x": 43.35,
+   "y": 54.6,
+   "hit": {
+    "w": 8.0,
+    "h": 10.0
+   },
+   "label_en": "line",
+   "label_zh": "队伍",
+   "word": {
+    "id": "line",
+    "en": "line",
+    "ipa": "laɪn",
+    "pos": "n.",
+    "zh": "队伍",
+    "level": "A1",
+    "forms": {
+     "plural": "lines"
+    },
+    "examples": [
+     {
+      "en": "The line for security is moving fast this morning.",
+      "zh": "今天早上安检的队伍走得很快。"
+     }
+    ],
+    "l1_note": "美式排队说 line：stand in line、get in line；英式才说 queue。",
+    "related": [
+     "check-in-counter",
+     "carry-on"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "Is this the end of the line?",
+     "zh": "队尾是在这儿吗？"
+    }
+   ]
+  },
+  {
+   "id": "departure-board",
+   "x": 55.5,
+   "y": 12.0,
+   "hit": {
+    "w": 16.0,
+    "h": 9.0
+   },
+   "label_en": "departure board",
+   "label_zh": "航班信息屏",
+   "word": {
+    "id": "departure-board",
+    "en": "departure board",
+    "ipa": "dɪˈpɑːrtʃər bɔːrd",
+    "pos": "n.",
+    "zh": "航班信息屏",
+    "level": "B1",
+    "forms": {
+     "plural": "departure boards"
+    },
+    "examples": [
+     {
+      "en": "The departure board says my flight is delayed by forty minutes.",
+      "zh": "航班信息屏显示我的航班延误四十分钟。"
+     }
+    ],
+    "l1_note": "屏上的状态常见 on time、delayed、boarding、final call。",
+    "related": [
+     "boarding-pass"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "What does the departure board say?",
+     "zh": "航班信息屏上写的是什么？"
+    }
+   ]
+  },
+  {
+   "id": "information-desk",
+   "x": 52.46,
+   "y": 81.5,
+   "hit": {
+    "w": 15.0,
+    "h": 9.0
+   },
+   "label_en": "information desk",
+   "label_zh": "问询台",
+   "word": {
+    "id": "information-desk",
+    "en": "information desk",
+    "ipa": "ˌɪnfərˈmeɪʃn desk",
+    "pos": "n.",
+    "zh": "问询台",
+    "level": "A2",
+    "forms": {
+     "plural": "information desks"
+    },
+    "examples": [
+     {
+      "en": "I asked at the information desk where to pick up my luggage.",
+      "zh": "我在问询台问去哪里取行李。"
+     }
+    ],
+    "l1_note": "问询台是 information desk；柜台后面的人叫 staff，不叫 waiter。",
+    "related": [
+     "check-in-counter"
+    ]
+   },
+   "phrases": [
+    {
+     "en": "Where's the information desk?",
+     "zh": "问询台在哪里？"
+    }
+   ]
+  }
+ ],
+ "characters": [
+  {
+   "id": "agent",
+   "x": 49.18,
+   "y": 31.5,
+   "label_en": "Agent",
+   "label_zh": "值机员",
+   "encounter": "check-in"
+  },
+  {
+   "id": "bag-drop-agent",
+   "x": 60.0,
+   "y": 39.5,
+   "label_en": "Agent",
+   "label_zh": "值机员",
+   "encounter": "bag-drop"
+  },
+  {
+   "id": "info-staff",
+   "x": 52.46,
+   "y": 77.0,
+   "label_en": "Info desk",
+   "label_zh": "问询台",
+   "encounter": "info"
+  }
+ ],
+ "speakers": {
+  "agent": {
+   "en": "Agent",
+   "zh": "值机员",
+   "voice": "f"
+  },
+  "officer": {
+   "en": "Officer",
+   "zh": "安检员",
+   "voice": "f"
+  },
+  "gate": {
+   "en": "Gate agent",
+   "zh": "登机口工作人员",
+   "voice": "f"
+  },
+  "info": {
+   "en": "Info desk",
+   "zh": "问询台",
+   "voice": "f"
+  },
+  "you": {
+   "en": "You",
+   "zh": "你",
+   "voice": "m"
+  }
+ },
+ "encounters": [
+  {
+   "id": "check-in",
+   "title_en": "At the check-in counter",
+   "title_zh": "在值机柜台",
+   "levels": {
+    "survival": {
+     "phrases": [
+      {
+       "en": "I'm flying to New York.",
+       "zh": "我要飞纽约。"
+      },
+      {
+       "en": "Just one bag.",
+       "zh": "就一个包。"
+      },
+      {
+       "en": "Window seat, please.",
+       "zh": "靠窗座位，谢谢。"
+      },
+      {
+       "en": "Where is the gate?",
+       "zh": "登机口在哪里？"
+      }
+     ],
+     "dialogue": [
+      {
+       "spk": "agent",
+       "en": "Good morning. Passport, please.",
+       "zh": "早上好，请出示护照。"
+      },
+      {
+       "spk": "you",
+       "en": "Here you go.",
+       "zh": "给你。"
+      },
+      {
+       "spk": "agent",
+       "en": "Any bags to check?",
+       "zh": "有行李要托运吗？"
+      },
+      {
+       "spk": "you",
+       "en": "Just this one.",
+       "zh": "就这一个。"
+      },
+      {
+       "spk": "agent",
+       "en": "Here's your boarding pass.",
+       "zh": "这是你的登机牌。"
+      },
+      {
+       "spk": "you",
+       "en": "Thanks. Where is the gate?",
+       "zh": "谢谢，登机口在哪里？"
+      }
+     ]
+    },
+    "conversational": {
+     "phrases": [
+      {
+       "en": "I'm checking in for the 9:40 flight to New York.",
+       "zh": "我要办理 9 点 40 飞纽约的航班值机。"
+      },
+      {
+       "en": "Can I check this bag through to New York?",
+       "zh": "这个包能直挂到纽约吗？",
+       "note": "through = 直挂到最终目的地，转机时不用取。"
+      },
+      {
+       "en": "I'd prefer an aisle seat if one's available.",
+       "zh": "如果有的话，我想要靠过道的座位。"
+      },
+      {
+       "en": "How long before boarding should I be at the gate?",
+       "zh": "登机前多久要到登机口？"
+      },
+      {
+       "en": "Is the flight on time?",
+       "zh": "航班准点吗？"
+      }
+     ],
+     "dialogue": [
+      {
+       "spk": "agent",
+       "en": "Good morning. Where are you flying today?",
+       "zh": "早上好，您今天飞哪里？"
+      },
+      {
+       "spk": "you",
+       "en": "New York. I'm on the 9:40 flight.",
+       "zh": "纽约，9 点 40 那班。"
+      },
+      {
+       "spk": "agent",
+       "en": "May I see your passport and confirmation?",
+       "zh": "可以看一下您的护照和订票确认吗？"
+      },
+      {
+       "spk": "you",
+       "en": "Sure. Here they are.",
+       "zh": "好的，都在这儿。"
+      },
+      {
+       "spk": "agent",
+       "en": "Do you have any bags to check?",
+       "zh": "有行李要托运吗？"
+      },
+      {
+       "spk": "you",
+       "en": "One suitcase. Can I take this backpack on board?",
+       "zh": "一个行李箱。这个背包能带上飞机吗？"
+      },
+      {
+       "spk": "agent",
+       "en": "Yes, if it fits under the seat. Here's your boarding pass.",
+       "zh": "可以，只要能塞进座位下面。这是您的登机牌。"
+      },
+      {
+       "spk": "you",
+       "en": "Great. Which gate does it leave from?",
+       "zh": "好的，从哪个登机口起飞？"
+      }
+     ]
+    },
+    "advanced": {
+     "phrases": [
+      {
+       "en": "I booked basic economy. Does that include a checked bag?",
+       "zh": "我订的是基础经济舱，包含托运行李吗？"
+      },
+      {
+       "en": "My connection in Chicago is only fifty minutes. Is this bag checked through?",
+       "zh": "我在芝加哥转机只有五十分钟，这个包是直挂吗？"
+      },
+      {
+       "en": "If the first flight is delayed, will I be rebooked automatically?",
+       "zh": "如果第一班延误，会自动给我改签吗？"
+      },
+      {
+       "en": "Could you put a priority tag on it? My medication is in there.",
+       "zh": "能贴个优先标签吗？我的药在里面。"
+      },
+      {
+       "en": "Is there any chance of an upgrade?",
+       "zh": "有可能升舱吗？"
+      }
+     ],
+     "dialogue": [
+      {
+       "spk": "agent",
+       "en": "Good morning. Reservation number?",
+       "zh": "早上好，预订号是多少？"
+      },
+      {
+       "spk": "you",
+       "en": "It's K7P2QX. I'm connecting in Chicago at 11:15.",
+       "zh": "K7P2QX。我在芝加哥 11 点 15 转机。"
+      },
+      {
+       "spk": "agent",
+       "en": "That's a tight connection. Are you checking any bags?",
+       "zh": "转机时间很紧。有行李要托运吗？"
+      },
+      {
+       "spk": "you",
+       "en": "Just this one. Can you check it through to New York?",
+       "zh": "就这个。能直挂到纽约吗？"
+      },
+      {
+       "spk": "agent",
+       "en": "Yes, but it may not make the connection. Keep your medication in your carry-on.",
+       "zh": "可以，但行李可能赶不上。药请放在随身包里。"
+      },
+      {
+       "spk": "you",
+       "en": "Good point. Is there an earlier flight I could take instead?",
+       "zh": "有道理。有没有更早的航班可以改？"
+      },
+      {
+       "spk": "agent",
+       "en": "There's one at 8:55 with a seat open. I can move you, but your bag may arrive later.",
+       "zh": "8 点 55 有一班还有座位。我可以给您改，但行李可能会晚到。"
+      },
+      {
+       "spk": "you",
+       "en": "That works. Please put a priority tag on the bag.",
+       "zh": "可以。请给行李贴个优先标签。"
+      },
+      {
+       "spk": "agent",
+       "en": "Done. You're on the 8:55. Boarding starts at 8:25.",
+       "zh": "好了，您改到 8 点 55。8 点 25 开始登机。"
+      },
+      {
+       "spk": "you",
+       "en": "Thanks. I'll head to security now.",
+       "zh": "谢谢，我现在去安检。"
+      }
+     ]
+    }
+   },
+   "listening": [
+    {
+     "id": "passport",
+     "intent_zh": "要护照",
+     "keys": [
+      "passport"
+     ],
+     "asks": [
+      {
+       "en": "Can I see your passport?",
+       "zh": "能看一下您的护照吗？"
+      },
+      {
+       "en": "May I see your passport?",
+       "zh": "我可以看一下您的护照吗？"
+      },
+      {
+       "en": "Passport, please.",
+       "zh": "请出示护照。"
+      },
+      {
+       "en": "Could you hand me your passport?",
+       "zh": "能把护照递给我吗？"
+      }
+     ],
+     "reply": {
+      "en": "Sure. Here you go.",
+      "zh": "当然，给您。"
+     },
+     "pattern": "Can I see…? / May I have…? / Could you hand me…? / …, please.",
+     "note": "Can I 常读成「k'n I」，May I 会连读。"
+    },
+    {
+     "id": "destination",
+     "intent_zh": "问去哪",
+     "keys": [
+      "flying",
+      "destination",
+      "headed"
+     ],
+     "asks": [
+      {
+       "en": "Where are you flying today?",
+       "zh": "您今天飞哪里？"
+      },
+      {
+       "en": "What's your destination?",
+       "zh": "您的目的地是哪里？"
+      },
+      {
+       "en": "Where are you headed?",
+       "zh": "您要去哪儿？"
+      },
+      {
+       "en": "What's your final destination?",
+       "zh": "您的最终目的地是哪里？"
+      }
+     ],
+     "reply": {
+      "en": "New York.",
+      "zh": "纽约。"
+     },
+     "pattern": "Where are you flying / headed? / What's your (final) destination?"
+    },
+    {
+     "id": "bags",
+     "intent_zh": "问行李",
+     "keys": [
+      "bags"
+     ],
+     "asks": [
+      {
+       "en": "Are you checking any bags?",
+       "zh": "有行李要托运吗？"
+      },
+      {
+       "en": "Do you have any bags to check?",
+       "zh": "您有行李要托运吗？"
+      },
+      {
+       "en": "Any bags to check today?",
+       "zh": "今天有行李要托运吗？"
+      },
+      {
+       "en": "How many bags are you checking?",
+       "zh": "您要托运几件行李？"
+      }
+     ],
+     "reply": {
+      "en": "Just this one.",
+      "zh": "就这一件。"
+     },
+     "pattern": "Are you checking any bags? / Do you have any bags to check? / How many bags…?"
+    },
+    {
+     "id": "seat",
+     "intent_zh": "问座位",
+     "keys": [
+      "seat",
+      "window",
+      "aisle"
+     ],
+     "asks": [
+      {
+       "en": "Do you have a seat preference?",
+       "zh": "您对座位有偏好吗？"
+      },
+      {
+       "en": "Window or aisle?",
+       "zh": "靠窗还是靠过道？"
+      },
+      {
+       "en": "Any preference for a window or aisle seat?",
+       "zh": "想要靠窗还是靠过道的座位？"
+      }
+     ],
+     "reply": {
+      "en": "Window, please.",
+      "zh": "靠窗，谢谢。"
+     },
+     "pattern": "Do you have a preference? / Window or aisle? / Any preference for…?"
+    }
+   ]
+  },
+  {
+   "id": "bag-drop",
+   "title_en": "At the bag drop",
+   "title_zh": "在行李托运柜台",
+   "levels": {
+    "survival": {
+     "phrases": [
+      {
+       "en": "I'm dropping off this bag.",
+       "zh": "我来托运这个包。"
+      },
+      {
+       "en": "Is this bag too heavy?",
+       "zh": "这个包超重了吗？"
+      },
+      {
+       "en": "Can I take this on board?",
+       "zh": "这个能带上飞机吗？"
+      },
+      {
+       "en": "Where do I pick it up?",
+       "zh": "我在哪里取行李？"
+      }
+     ],
+     "dialogue": [
+      {
+       "spk": "agent",
+       "en": "Place your bag on the scale, please.",
+       "zh": "请把包放到秤上。"
+      },
+      {
+       "spk": "you",
+       "en": "Sure. Is it too heavy?",
+       "zh": "好的，超重了吗？"
+      },
+      {
+       "spk": "agent",
+       "en": "It's five pounds over.",
+       "zh": "超了五磅。"
+      },
+      {
+       "spk": "you",
+       "en": "How much is the fee?",
+       "zh": "费用是多少？"
+      },
+      {
+       "spk": "agent",
+       "en": "Thirty dollars. You can pay at the counter.",
+       "zh": "三十美元，可以在柜台付。"
+      },
+      {
+       "spk": "you",
+       "en": "Okay. Where do I pick it up?",
+       "zh": "好的，我在哪里取行李？"
+      }
+     ]
+    },
+    "conversational": {
+     "phrases": [
+      {
+       "en": "I already checked in online. Can I just drop this bag?",
+       "zh": "我已经网上值机了，能只托运行李吗？"
+      },
+      {
+       "en": "Do I need to take out my liquids?",
+       "zh": "液体需要拿出来吗？"
+      },
+      {
+       "en": "Can I gate-check this stroller?",
+       "zh": "这个婴儿车能在登机口托运吗？"
+      },
+      {
+       "en": "Is there a fee for a second bag?",
+       "zh": "第二件行李收费吗？"
+      },
+      {
+       "en": "Will it go straight through to Los Angeles?",
+       "zh": "会直挂到洛杉矶吗？"
+      }
+     ],
+     "dialogue": [
+      {
+       "spk": "agent",
+       "en": "Are you checking in online or at the counter?",
+       "zh": "您是网上值机还是柜台值机？"
+      },
+      {
+       "spk": "you",
+       "en": "Online. I just need to drop this bag.",
+       "zh": "网上。我只用托运这个包。"
+      },
+      {
+       "spk": "agent",
+       "en": "Any liquids or batteries in the bag?",
+       "zh": "包里有液体或电池吗？"
+      },
+      {
+       "spk": "you",
+       "en": "No. Just clothes and a charger.",
+       "zh": "没有，只有衣服和充电器。"
+      },
+      {
+       "spk": "agent",
+       "en": "It's two pounds over. I can let it go this time.",
+       "zh": "超了两磅，这次可以放您过。"
+      },
+      {
+       "spk": "you",
+       "en": "Thanks. Does it go straight through to Los Angeles?",
+       "zh": "谢谢。会直挂到洛杉矶吗？"
+      },
+      {
+       "spk": "agent",
+       "en": "Yes. You'll pick it up at baggage claim in LA.",
+       "zh": "会。您在洛杉矶行李转盘取。"
+      },
+      {
+       "spk": "you",
+       "en": "Perfect. Have a good one.",
+       "zh": "太好了，祝您顺利。"
+      }
+     ]
+    },
+    "advanced": {
+     "phrases": [
+      {
+       "en": "The tag says Chicago, but my final destination is Denver.",
+       "zh": "标签写的是芝加哥，但我的目的地是丹佛。"
+      },
+      {
+       "en": "Could you weigh it again? The scale at home said it was under the limit.",
+       "zh": "能再称一次吗？我家的秤显示没超重。"
+      },
+      {
+       "en": "If it's over, can I move something to my carry-on?",
+       "zh": "如果超重，我能拿点东西到随身包里吗？"
+      },
+      {
+       "en": "Is the bag covered if it's delayed?",
+       "zh": "行李延误有赔偿吗？"
+      },
+      {
+       "en": "Can you mark it as fragile?",
+       "zh": "能标成易碎吗？"
+      }
+     ],
+     "dialogue": [
+      {
+       "spk": "agent",
+       "en": "This bag is eight pounds over the limit.",
+       "zh": "这个包超重八磅。"
+      },
+      {
+       "spk": "you",
+       "en": "That's strange. The scale at home said it was fine. Could you weigh it again?",
+       "zh": "奇怪，我家的秤显示没超。能再称一次吗？"
+      },
+      {
+       "spk": "agent",
+       "en": "It's the same. I can charge the overweight fee, or you can move something to your carry-on.",
+       "zh": "一样。我可以收超重费，或者您拿点东西到随身包里。"
+      },
+      {
+       "spk": "you",
+       "en": "I'll move my shoes. Can I do that here?",
+       "zh": "我把鞋拿出来。能在这里弄吗？"
+      },
+      {
+       "spk": "agent",
+       "en": "Sure. Step over to the side, please.",
+       "zh": "可以，请到旁边。"
+      },
+      {
+       "spk": "you",
+       "en": "Okay. Also, the tag says Chicago, but I'm going to Denver.",
+       "zh": "好了。还有，标签写的是芝加哥，但我去丹佛。"
+      },
+      {
+       "spk": "agent",
+       "en": "Good catch. Let me reprint the tag.",
+       "zh": "还好您说了。我重新打一张。"
+      },
+      {
+       "spk": "you",
+       "en": "Thanks. Is the bag covered if it's delayed?",
+       "zh": "谢谢。行李延误有赔偿吗？"
+      },
+      {
+       "spk": "agent",
+       "en": "Yes, up to a certain amount. Keep your receipt.",
+       "zh": "有，有上限。保留好收据。"
+      },
+      {
+       "spk": "you",
+       "en": "Will do. Can you mark it as fragile?",
+       "zh": "好的。能标成易碎吗？"
+      }
+     ]
+    }
+   },
+   "listening": [
+    {
+     "id": "scale",
+     "intent_zh": "让称重",
+     "keys": [
+      "scale",
+      "belt",
+      "weigh"
+     ],
+     "asks": [
+      {
+       "en": "Place your bag on the scale, please.",
+       "zh": "请把包放到秤上。"
+      },
+      {
+       "en": "Could you put your bag on the belt?",
+       "zh": "能把包放到传送带上吗？"
+      },
+      {
+       "en": "Go ahead and weigh it here.",
+       "zh": "就在这里称吧。"
+      }
+     ],
+     "reply": {
+      "en": "Sure.",
+      "zh": "好的。"
+     },
+     "pattern": "Place / put … on the scale. / Go ahead and weigh it."
+    },
+    {
+     "id": "contents",
+     "intent_zh": "问包内物品",
+     "keys": [
+      "liquids",
+      "batteries",
+      "sharp"
+     ],
+     "asks": [
+      {
+       "en": "Any liquids or batteries in the bag?",
+       "zh": "包里有液体或电池吗？"
+      },
+      {
+       "en": "Is there anything sharp or fragile in there?",
+       "zh": "里面有尖锐或易碎物品吗？"
+      },
+      {
+       "en": "Do you have any lithium batteries packed?",
+       "zh": "您包里有锂电池吗？"
+      }
+     ],
+     "reply": {
+      "en": "No, just clothes and a charger.",
+      "zh": "没有，只有衣服和充电器。"
+     },
+     "pattern": "Any liquids / batteries / sharp objects…? / Is there anything…?"
+    },
+    {
+     "id": "overweight",
+     "intent_zh": "说超重",
+     "keys": [
+      "over",
+      "overweight"
+     ],
+     "asks": [
+      {
+       "en": "It's a few pounds over.",
+       "zh": "超重了几磅。"
+      },
+      {
+       "en": "This one's overweight.",
+       "zh": "这件超重了。"
+      },
+      {
+       "en": "You're five pounds over the limit.",
+       "zh": "您超重五磅。"
+      }
+     ],
+     "reply": {
+      "en": "How much is the fee?",
+      "zh": "费用是多少？"
+     },
+     "pattern": "It's … over. / You're … over the limit. / This one's overweight."
+    },
+    {
+     "id": "through",
+     "intent_zh": "问直挂",
+     "keys": [
+      "through",
+      "connection"
+     ],
+     "asks": [
+      {
+       "en": "Is this going all the way to Los Angeles?",
+       "zh": "这件会一直运到洛杉矶吗？"
+      },
+      {
+       "en": "Are you checking it through to your final destination?",
+       "zh": "这件会直挂到最终目的地吗？"
+      },
+      {
+       "en": "Will you pick it up at your connection?",
+       "zh": "您转机时要取行李吗？"
+      }
+     ],
+     "reply": {
+      "en": "It's checked through to LA.",
+      "zh": "直挂到洛杉矶。"
+     },
+     "pattern": "Is this going all the way to…? / Are you checking it through to…?",
+     "note": "through / straight through 都是「直挂」。"
+    }
+   ]
+  },
+  {
+   "id": "info",
+   "title_en": "At the information desk",
+   "title_zh": "在问询台",
+   "levels": {
+    "survival": {
+     "phrases": [
+      {
+       "en": "Where is gate 34?",
+       "zh": "34 号登机口在哪里？"
+      },
+      {
+       "en": "I'm looking for baggage claim.",
+       "zh": "我在找行李转盘。"
+      },
+      {
+       "en": "Can you help me?",
+       "zh": "你能帮我吗？"
+      },
+      {
+       "en": "Do I need to go through security again?",
+       "zh": "我需要重新安检吗？"
+      }
+     ],
+     "dialogue": [
+      {
+       "spk": "you",
+       "en": "Excuse me. Where is gate 34?",
+       "zh": "打扰一下，34 号登机口在哪里？"
+      },
+      {
+       "spk": "info",
+       "en": "Take the train to Terminal B. It's about ten minutes.",
+       "zh": "坐小火车到 B 航站楼，大约十分钟。"
+      },
+      {
+       "spk": "you",
+       "en": "Do I need to go through security again?",
+       "zh": "我需要重新安检吗？"
+      },
+      {
+       "spk": "info",
+       "en": "No, stay inside the terminal.",
+       "zh": "不用，留在航站楼里。"
+      },
+      {
+       "spk": "you",
+       "en": "Great. Where is baggage claim?",
+       "zh": "好的。行李转盘在哪里？"
+      },
+      {
+       "spk": "info",
+       "en": "It's on the lower level, near exit 3.",
+       "zh": "在下一层，3 号出口附近。"
+      }
+     ]
+    },
+    "conversational": {
+     "phrases": [
+      {
+       "en": "My flight was delayed. Will I still make my connection?",
+       "zh": "我的航班延误了。还能赶上转机吗？"
+      },
+      {
+       "en": "The board shows a gate change. Where's the new gate?",
+       "zh": "显示牌说登机口变了。新登机口在哪里？"
+      },
+      {
+       "en": "Can you check if my bag was loaded?",
+       "zh": "能查一下我的行李装上飞机了吗？"
+      },
+      {
+       "en": "Is there a shuttle to the other terminal?",
+       "zh": "有去另一个航站楼的摆渡车吗？"
+      },
+      {
+       "en": "Where can I charge my phone?",
+       "zh": "哪里可以给手机充电？"
+      }
+     ],
+     "dialogue": [
+      {
+       "spk": "you",
+       "en": "My flight from Seattle was delayed. Will I still make my connection?",
+       "zh": "我从西雅图来的航班延误了。还能赶上转机吗？"
+      },
+      {
+       "spk": "info",
+       "en": "What's your connecting flight?",
+       "zh": "您的转机航班是哪班？"
+      },
+      {
+       "spk": "you",
+       "en": "The 6:20 to Boston.",
+       "zh": "6 点 20 飞波士顿那班。"
+      },
+      {
+       "spk": "info",
+       "en": "You'll land at 5:45. It's tight, but the gates are close.",
+       "zh": "您 5 点 45 落地。很紧，但登机口很近。"
+      },
+      {
+       "spk": "you",
+       "en": "The board shows a gate change. Where's the new gate?",
+       "zh": "显示牌说登机口变了。新登机口在哪里？"
+      },
+      {
+       "spk": "info",
+       "en": "Gate C12. Take the escalator up one level.",
+       "zh": "C12。坐扶梯上一层。"
+      },
+      {
+       "spk": "you",
+       "en": "Thanks. Can you check if my bag was loaded?",
+       "zh": "谢谢。能查一下我的行李装上飞机了吗？"
+      },
+      {
+       "spk": "info",
+       "en": "I can see it was scanned. It should be on board.",
+       "zh": "我看到扫描记录了，应该已经上飞机。"
+      }
+     ]
+    },
+    "advanced": {
+     "phrases": [
+      {
+       "en": "I missed my connection because of the delay. What are my options?",
+       "zh": "因为延误我错过了转机。我有哪些选择？"
+      },
+      {
+       "en": "Can you rebook me on the next available flight?",
+       "zh": "能把我改到下一班有空位的航班吗？"
+      },
+      {
+       "en": "Am I entitled to a hotel if I'm stuck overnight?",
+       "zh": "如果滞留一晚，我有权住酒店吗？"
+      },
+      {
+       "en": "My bag is still in Seattle. Can you file a delayed baggage report?",
+       "zh": "我的行李还在西雅图。能登记行李延误吗？"
+      },
+      {
+       "en": "Could you give me a written confirmation for my insurance?",
+       "zh": "能给我一份书面证明用于保险吗？"
+      }
+     ],
+     "dialogue": [
+      {
+       "spk": "you",
+       "en": "I missed my connection because of the delay. What are my options?",
+       "zh": "因为延误我错过了转机。我有哪些选择？"
+      },
+      {
+       "spk": "info",
+       "en": "I'm sorry. The next flight to Boston is tomorrow at 7 a.m.",
+       "zh": "很抱歉。下一班飞波士顿是明早 7 点。"
+      },
+      {
+       "spk": "you",
+       "en": "Can you rebook me on it?",
+       "zh": "能把我改到那班吗？"
+      },
+      {
+       "spk": "info",
+       "en": "Yes, I can put you on standby or confirm a seat for a fee.",
+       "zh": "可以，我可以给您候补，或者付费确认座位。"
+      },
+      {
+       "spk": "you",
+       "en": "What's the fee?",
+       "zh": "费用多少？"
+      },
+      {
+       "spk": "info",
+       "en": "Eighty dollars. The airline may waive it because of the delay.",
+       "zh": "八十美元。因为是延误，航司可能会免。"
+      },
+      {
+       "spk": "you",
+       "en": "Please try to waive it. Am I entitled to a hotel if I'm stuck overnight?",
+       "zh": "请试着免掉。如果滞留一晚，我有权住酒店吗？"
+      },
+      {
+       "spk": "info",
+       "en": "Yes, there's a hotel voucher if the delay is the airline's fault.",
+       "zh": "有，如果是航司原因，有酒店券。"
+      },
+      {
+       "spk": "you",
+       "en": "Good. My bag is still in Seattle. Can you file a delayed baggage report?",
+       "zh": "好。我的行李还在西雅图。能登记行李延误吗？"
+      },
+      {
+       "spk": "info",
+       "en": "I can. Keep this claim number for your insurance.",
+       "zh": "可以。保留这个申报号用于保险。"
+      }
+     ]
+    }
+   },
+   "listening": [
+    {
+     "id": "help",
+     "intent_zh": "主动帮忙",
+     "keys": [
+      "help",
+      "looking"
+     ],
+     "asks": [
+      {
+       "en": "Can I help you with something?",
+       "zh": "需要帮忙吗？"
+      },
+      {
+       "en": "What can I do for you?",
+       "zh": "我能帮您什么？"
+      },
+      {
+       "en": "Are you looking for something?",
+       "zh": "您在找什么吗？"
+      }
+     ],
+     "reply": {
+      "en": "I'm looking for gate 34.",
+      "zh": "我在找 34 号登机口。"
+     },
+     "pattern": "Can I help you…? / What can I do for you? / Are you looking for…?"
+    },
+    {
+     "id": "gate",
+     "intent_zh": "问去哪个口",
+     "keys": [
+      "gate",
+      "trying"
+     ],
+     "asks": [
+      {
+       "en": "Which gate are you looking for?",
+       "zh": "您在找哪个登机口？"
+      },
+      {
+       "en": "Where are you trying to go?",
+       "zh": "您要去哪里？"
+      },
+      {
+       "en": "Do you know your gate number?",
+       "zh": "您知道登机口号码吗？"
+      }
+     ],
+     "reply": {
+      "en": "Gate 34.",
+      "zh": "34 号登机口。"
+     },
+     "pattern": "Which … are you looking for? / Where are you trying to…? / Do you know…?"
+    },
+    {
+     "id": "connection",
+     "intent_zh": "问转机",
+     "keys": [
+      "connecting",
+      "connection",
+      "miss"
+     ],
+     "asks": [
+      {
+       "en": "Are you connecting to another flight?",
+       "zh": "您要转机吗？"
+      },
+      {
+       "en": "What's your connecting flight?",
+       "zh": "您的转机航班是哪班？"
+      },
+      {
+       "en": "Did you miss your connection?",
+       "zh": "您错过转机了吗？"
+      }
+     ],
+     "reply": {
+      "en": "Yes, the 6:20 to Boston.",
+      "zh": "是的，6 点 20 飞波士顿那班。"
+     },
+     "pattern": "Are you connecting…? / What's your connecting flight? / Did you miss…?"
+    },
+    {
+     "id": "delay",
+     "intent_zh": "说延误/改签",
+     "keys": [
+      "delayed",
+      "rebook",
+      "next flight"
+     ],
+     "asks": [
+      {
+       "en": "Your flight's been delayed.",
+       "zh": "您的航班延误了。"
+      },
+      {
+       "en": "The next flight is tomorrow morning.",
+       "zh": "下一班是明早。"
+      },
+      {
+       "en": "Would you like me to rebook you?",
+       "zh": "要我帮您改签吗？"
+      }
+     ],
+     "reply": {
+      "en": "Yes, please rebook me.",
+      "zh": "好，请帮我改签。"
+     },
+     "pattern": "… has been delayed. / The next flight is… / Would you like me to rebook you?",
+     "note": "flight's = flight has，听上去像「flight's」。"
+    }
+   ]
+  }
+ ],
+ "levels": [
+  "survival",
+  "conversational",
+  "advanced"
+ ],
+ "sprites": {
+  "items-f": {
+   "file": "airport-check-in-items-f.mp3",
+   "holds": {
+    "w:check-in-counter": [
+     0.0,
+     1.872
+    ],
+    "e:check-in-counter:0": [
+     1.872,
+     5.52
+    ],
+    "p:check-in-counter:0": [
+     5.52,
+     7.728
+    ],
+    "p:check-in-counter:1": [
+     7.728,
+     11.376
+    ],
+    "w:passport": [
+     11.376,
+     13.248
+    ],
+    "e:passport:0": [
+     13.248,
+     16.584
+    ],
+    "p:passport:0": [
+     16.584,
+     19.416
+    ],
+    "w:boarding-pass": [
+     19.416,
+     21.288
+    ],
+    "e:boarding-pass:0": [
+     21.288,
+     25.296
+    ],
+    "p:boarding-pass:0": [
+     25.296,
+     27.432
+    ],
+    "w:baggage-tag": [
+     27.432,
+     29.304
+    ],
+    "e:baggage-tag:0": [
+     29.304,
+     32.976
+    ],
+    "p:baggage-tag:0": [
+     32.976,
+     35.064
+    ],
+    "w:baggage-scale": [
+     35.064,
+     36.936
+    ],
+    "e:baggage-scale:0": [
+     36.936,
+     41.04
+    ],
+    "p:baggage-scale:0": [
+     41.04,
+     42.912
+    ],
+    "w:suitcase": [
+     42.912,
+     44.784
+    ],
+    "e:suitcase:0": [
+     44.784,
+     48.792
+    ],
+    "p:suitcase:0": [
+     48.792,
+     50.784
+    ],
+    "w:carry-on": [
+     50.784,
+     52.656
+    ],
+    "e:carry-on:0": [
+     52.656,
+     56.184
+    ],
+    "p:carry-on:0": [
+     56.184,
+     58.416
+    ],
+    "w:line": [
+     58.416,
+     60.288
+    ],
+    "e:line:0": [
+     60.288,
+     63.792
+    ],
+    "p:line:0": [
+     63.792,
+     65.664
+    ],
+    "w:departure-board": [
+     65.664,
+     67.536
+    ],
+    "e:departure-board:0": [
+     67.536,
+     71.688
+    ],
+    "p:departure-board:0": [
+     71.688,
+     73.68
+    ],
+    "w:information-desk": [
+     73.68,
+     75.552
+    ],
+    "e:information-desk:0": [
+     75.552,
+     79.104
+    ],
+    "p:information-desk:0": [
+     79.104,
+     81.048
+    ]
+   }
+  },
+  "items-m": {
+   "file": "airport-check-in-items-m.mp3",
+   "holds": {
+    "w:check-in-counter": [
+     0.0,
+     1.872
+    ],
+    "e:check-in-counter:0": [
+     1.872,
+     5.352
+    ],
+    "p:check-in-counter:0": [
+     5.352,
+     7.536
+    ],
+    "p:check-in-counter:1": [
+     7.536,
+     11.016
+    ],
+    "w:passport": [
+     11.016,
+     12.888
+    ],
+    "e:passport:0": [
+     12.888,
+     15.912
+    ],
+    "p:passport:0": [
+     15.912,
+     18.48
+    ],
+    "w:boarding-pass": [
+     18.48,
+     20.352
+    ],
+    "e:boarding-pass:0": [
+     20.352,
+     23.928
+    ],
+    "p:boarding-pass:0": [
+     23.928,
+     26.016
+    ],
+    "w:baggage-tag": [
+     26.016,
+     27.888
+    ],
+    "e:baggage-tag:0": [
+     27.888,
+     31.08
+    ],
+    "p:baggage-tag:0": [
+     31.08,
+     32.976
+    ],
+    "w:baggage-scale": [
+     32.976,
+     34.848
+    ],
+    "e:baggage-scale:0": [
+     34.848,
+     38.736
+    ],
+    "p:baggage-scale:0": [
+     38.736,
+     40.608
+    ],
+    "w:suitcase": [
+     40.608,
+     42.48
+    ],
+    "e:suitcase:0": [
+     42.48,
+     46.464
+    ],
+    "p:suitcase:0": [
+     46.464,
+     48.36
+    ],
+    "w:carry-on": [
+     48.36,
+     50.232
+    ],
+    "e:carry-on:0": [
+     50.232,
+     53.52
+    ],
+    "p:carry-on:0": [
+     53.52,
+     55.512
+    ],
+    "w:line": [
+     55.512,
+     56.304
+    ],
+    "e:line:0": [
+     56.304,
+     59.592
+    ],
+    "p:line:0": [
+     59.592,
+     61.464
+    ],
+    "w:departure-board": [
+     61.464,
+     63.336
+    ],
+    "e:departure-board:0": [
+     63.336,
+     67.08
+    ],
+    "p:departure-board:0": [
+     67.08,
+     68.952
+    ],
+    "w:information-desk": [
+     68.952,
+     70.824
+    ],
+    "e:information-desk:0": [
+     70.824,
+     73.92
+    ],
+    "p:information-desk:0": [
+     73.92,
+     75.792
+    ]
+   }
+  },
+  "phrases-survival-f": {
+   "file": "airport-check-in-phrases-survival-f.mp3",
+   "holds": {
+    "ph:survival:0": [
+     0.0,
+     1.872
+    ],
+    "ph:survival:1": [
+     1.872,
+     3.744
+    ],
+    "ph:survival:2": [
+     3.744,
+     5.616
+    ],
+    "ph:survival:3": [
+     5.616,
+     7.488
+    ],
+    "ph:survival:4": [
+     7.488,
+     9.456
+    ],
+    "ph:survival:5": [
+     9.456,
+     11.328
+    ],
+    "ph:survival:6": [
+     11.328,
+     13.2
+    ],
+    "ph:survival:7": [
+     13.2,
+     15.072
+    ],
+    "ph:survival:8": [
+     15.072,
+     16.944
+    ],
+    "ph:survival:9": [
+     16.944,
+     19.032
+    ],
+    "ph:survival:10": [
+     19.032,
+     20.904
+    ],
+    "ph:survival:11": [
+     20.904,
+     23.04
+    ]
+   }
+  },
+  "phrases-survival-m": {
+   "file": "airport-check-in-phrases-survival-m.mp3",
+   "holds": {
+    "ph:survival:0": [
+     0.0,
+     1.872
+    ],
+    "ph:survival:1": [
+     1.872,
+     3.744
+    ],
+    "ph:survival:2": [
+     3.744,
+     5.616
+    ],
+    "ph:survival:3": [
+     5.616,
+     7.488
+    ],
+    "ph:survival:4": [
+     7.488,
+     9.36
+    ],
+    "ph:survival:5": [
+     9.36,
+     11.232
+    ],
+    "ph:survival:6": [
+     11.232,
+     13.104
+    ],
+    "ph:survival:7": [
+     13.104,
+     14.976
+    ],
+    "ph:survival:8": [
+     14.976,
+     16.848
+    ],
+    "ph:survival:9": [
+     16.848,
+     18.72
+    ],
+    "ph:survival:10": [
+     18.72,
+     20.592
+    ],
+    "ph:survival:11": [
+     20.592,
+     22.608
+    ]
+   }
+  },
+  "dialogue-survival": {
+   "file": "airport-check-in-dialogue-survival.mp3",
+   "holds": {
+    "dl:survival:0": [
+     0.0,
+     2.784
+    ],
+    "dl:survival:1": [
+     2.784,
+     4.656
+    ],
+    "dl:survival:2": [
+     4.656,
+     6.528
+    ],
+    "dl:survival:3": [
+     6.528,
+     8.4
+    ],
+    "dl:survival:4": [
+     8.4,
+     10.272
+    ],
+    "dl:survival:5": [
+     10.272,
+     12.24
+    ],
+    "dl:survival:6": [
+     12.24,
+     14.592
+    ],
+    "dl:survival:7": [
+     14.592,
+     16.536
+    ],
+    "dl:survival:8": [
+     16.536,
+     18.408
+    ],
+    "dl:survival:9": [
+     18.408,
+     20.28
+    ],
+    "dl:survival:10": [
+     20.28,
+     23.256
+    ],
+    "dl:survival:11": [
+     23.256,
+     25.176
+    ],
+    "dl:survival:12": [
+     25.176,
+     27.792
+    ],
+    "dl:survival:13": [
+     27.792,
+     31.464
+    ],
+    "dl:survival:14": [
+     31.464,
+     33.48
+    ],
+    "dl:survival:15": [
+     33.48,
+     35.952
+    ],
+    "dl:survival:16": [
+     35.952,
+     38.184
+    ],
+    "dl:survival:17": [
+     38.184,
+     40.704
+    ]
+   }
+  },
+  "phrases-conversational-f": {
+   "file": "airport-check-in-phrases-conversational-f.mp3",
+   "holds": {
+    "ph:conversational:0": [
+     0.0,
+     3.144
+    ],
+    "ph:conversational:1": [
+     3.144,
+     5.352
+    ],
+    "ph:conversational:2": [
+     5.352,
+     8.28
+    ],
+    "ph:conversational:3": [
+     8.28,
+     11.088
+    ],
+    "ph:conversational:4": [
+     11.088,
+     12.96
+    ],
+    "ph:conversational:5": [
+     12.96,
+     16.8
+    ],
+    "ph:conversational:6": [
+     16.8,
+     18.888
+    ],
+    "ph:conversational:7": [
+     18.888,
+     20.784
+    ],
+    "ph:conversational:8": [
+     20.784,
+     22.848
+    ],
+    "ph:conversational:9": [
+     22.848,
+     25.296
+    ],
+    "ph:conversational:10": [
+     25.296,
+     28.8
+    ],
+    "ph:conversational:11": [
+     28.8,
+     32.448
+    ],
+    "ph:conversational:12": [
+     32.448,
+     34.608
+    ],
+    "ph:conversational:13": [
+     34.608,
+     36.792
+    ],
+    "ph:conversational:14": [
+     36.792,
+     38.688
+    ]
+   }
+  },
+  "phrases-conversational-m": {
+   "file": "airport-check-in-phrases-conversational-m.mp3",
+   "holds": {
+    "ph:conversational:0": [
+     0.0,
+     2.856
+    ],
+    "ph:conversational:1": [
+     2.856,
+     4.872
+    ],
+    "ph:conversational:2": [
+     4.872,
+     7.704
+    ],
+    "ph:conversational:3": [
+     7.704,
+     10.392
+    ],
+    "ph:conversational:4": [
+     10.392,
+     12.264
+    ],
+    "ph:conversational:5": [
+     12.264,
+     15.504
+    ],
+    "ph:conversational:6": [
+     15.504,
+     17.376
+    ],
+    "ph:conversational:7": [
+     17.376,
+     19.248
+    ],
+    "ph:conversational:8": [
+     19.248,
+     21.168
+    ],
+    "ph:conversational:9": [
+     21.168,
+     23.52
+    ],
+    "ph:conversational:10": [
+     23.52,
+     26.568
+    ],
+    "ph:conversational:11": [
+     26.568,
+     29.688
+    ],
+    "ph:conversational:12": [
+     29.688,
+     31.56
+    ],
+    "ph:conversational:13": [
+     31.56,
+     33.6
+    ],
+    "ph:conversational:14": [
+     33.6,
+     35.472
+    ]
+   }
+  },
+  "dialogue-conversational": {
+   "file": "airport-check-in-dialogue-conversational.mp3",
+   "holds": {
+    "dl:conversational:0": [
+     0.0,
+     2.64
+    ],
+    "dl:conversational:1": [
+     2.64,
+     5.232
+    ],
+    "dl:conversational:2": [
+     5.232,
+     7.752
+    ],
+    "dl:conversational:3": [
+     7.752,
+     9.624
+    ],
+    "dl:conversational:4": [
+     9.624,
+     11.496
+    ],
+    "dl:conversational:5": [
+     11.496,
+     14.736
+    ],
+    "dl:conversational:6": [
+     14.736,
+     18.696
+    ],
+    "dl:conversational:7": [
+     18.696,
+     21.096
+    ],
+    "dl:conversational:8": [
+     21.096,
+     23.688
+    ],
+    "dl:conversational:9": [
+     23.688,
+     26.28
+    ],
+    "dl:conversational:10": [
+     26.28,
+     28.8
+    ],
+    "dl:conversational:11": [
+     28.8,
+     31.224
+    ],
+    "dl:conversational:12": [
+     31.224,
+     34.728
+    ],
+    "dl:conversational:13": [
+     34.728,
+     37.92
+    ],
+    "dl:conversational:14": [
+     37.92,
+     41.4
+    ],
+    "dl:conversational:15": [
+     41.4,
+     43.272
+    ],
+    "dl:conversational:16": [
+     43.272,
+     46.896
+    ],
+    "dl:conversational:17": [
+     46.896,
+     48.768
+    ],
+    "dl:conversational:18": [
+     48.768,
+     50.64
+    ],
+    "dl:conversational:19": [
+     50.64,
+     55.272
+    ],
+    "dl:conversational:20": [
+     55.272,
+     58.392
+    ],
+    "dl:conversational:21": [
+     58.392,
+     62.064
+    ],
+    "dl:conversational:22": [
+     62.064,
+     64.728
+    ],
+    "dl:conversational:23": [
+     64.728,
+     68.112
+    ]
+   }
+  },
+  "phrases-advanced-f": {
+   "file": "airport-check-in-phrases-advanced-f.mp3",
+   "holds": {
+    "ph:advanced:0": [
+     0.0,
+     3.984
+    ],
+    "ph:advanced:1": [
+     3.984,
+     8.904
+    ],
+    "ph:advanced:2": [
+     8.904,
+     13.008
+    ],
+    "ph:advanced:3": [
+     13.008,
+     17.016
+    ],
+    "ph:advanced:4": [
+     17.016,
+     19.032
+    ],
+    "ph:advanced:5": [
+     19.032,
+     23.256
+    ],
+    "ph:advanced:6": [
+     23.256,
+     27.288
+    ],
+    "ph:advanced:7": [
+     27.288,
+     30.408
+    ],
+    "ph:advanced:8": [
+     30.408,
+     32.52
+    ],
+    "ph:advanced:9": [
+     32.52,
+     34.392
+    ],
+    "ph:advanced:10": [
+     34.392,
+     38.376
+    ],
+    "ph:advanced:11": [
+     38.376,
+     40.968
+    ],
+    "ph:advanced:12": [
+     40.968,
+     43.944
+    ],
+    "ph:advanced:13": [
+     43.944,
+     48.264
+    ],
+    "ph:advanced:14": [
+     48.264,
+     51.336
+    ]
+   }
+  },
+  "phrases-advanced-m": {
+   "file": "airport-check-in-phrases-advanced-m.mp3",
+   "holds": {
+    "ph:advanced:0": [
+     0.0,
+     3.504
+    ],
+    "ph:advanced:1": [
+     3.504,
+     8.304
+    ],
+    "ph:advanced:2": [
+     8.304,
+     12.0
+    ],
+    "ph:advanced:3": [
+     12.0,
+     15.456
+    ],
+    "ph:advanced:4": [
+     15.456,
+     17.328
+    ],
+    "ph:advanced:5": [
+     17.328,
+     21.12
+    ],
+    "ph:advanced:6": [
+     21.12,
+     24.768
+    ],
+    "ph:advanced:7": [
+     24.768,
+     27.576
+    ],
+    "ph:advanced:8": [
+     27.576,
+     29.64
+    ],
+    "ph:advanced:9": [
+     29.64,
+     31.512
+    ],
+    "ph:advanced:10": [
+     31.512,
+     35.112
+    ],
+    "ph:advanced:11": [
+     35.112,
+     38.04
+    ],
+    "ph:advanced:12": [
+     38.04,
+     40.944
+    ],
+    "ph:advanced:13": [
+     40.944,
+     44.88
+    ],
+    "ph:advanced:14": [
+     44.88,
+     47.712
+    ]
+   }
+  },
+  "dialogue-advanced": {
+   "file": "airport-check-in-dialogue-advanced.mp3",
+   "holds": {
+    "dl:advanced:0": [
+     0.0,
+     2.568
+    ],
+    "dl:advanced:1": [
+     2.568,
+     7.56
+    ],
+    "dl:advanced:2": [
+     7.56,
+     10.944
+    ],
+    "dl:advanced:3": [
+     10.944,
+     13.536
+    ],
+    "dl:advanced:4": [
+     13.536,
+     18.648
+    ],
+    "dl:advanced:5": [
+     18.648,
+     21.888
+    ],
+    "dl:advanced:6": [
+     21.888,
+     28.104
+    ],
+    "dl:advanced:7": [
+     28.104,
+     31.32
+    ],
+    "dl:advanced:8": [
+     31.32,
+     36.504
+    ],
+    "dl:advanced:9": [
+     36.504,
+     38.904
+    ],
+    "dl:advanced:10": [
+     38.904,
+     41.688
+    ],
+    "dl:advanced:11": [
+     41.688,
+     45.936
+    ],
+    "dl:advanced:12": [
+     45.936,
+     51.552
+    ],
+    "dl:advanced:13": [
+     51.552,
+     54.168
+    ],
+    "dl:advanced:14": [
+     54.168,
+     57.288
+    ],
+    "dl:advanced:15": [
+     57.288,
+     61.656
+    ],
+    "dl:advanced:16": [
+     61.656,
+     64.392
+    ],
+    "dl:advanced:17": [
+     64.392,
+     67.272
+    ],
+    "dl:advanced:18": [
+     67.272,
+     70.752
+    ],
+    "dl:advanced:19": [
+     70.752,
+     73.08
+    ],
+    "dl:advanced:20": [
+     73.08,
+     76.68
+    ],
+    "dl:advanced:21": [
+     76.68,
+     81.456
+    ],
+    "dl:advanced:22": [
+     81.456,
+     83.328
+    ],
+    "dl:advanced:23": [
+     83.328,
+     87.264
+    ],
+    "dl:advanced:24": [
+     87.264,
+     89.136
+    ],
+    "dl:advanced:25": [
+     89.136,
+     93.072
+    ],
+    "dl:advanced:26": [
+     93.072,
+     97.2
+    ],
+    "dl:advanced:27": [
+     97.2,
+     101.592
+    ],
+    "dl:advanced:28": [
+     101.592,
+     106.2
+    ],
+    "dl:advanced:29": [
+     106.2,
+     109.752
+    ]
+   }
+  },
+  "listen-f": {
+   "file": "airport-check-in-listen-f.mp3",
+   "holds": {
+    "l:check-in:passport:0": [
+     0.0,
+     1.872
+    ],
+    "l:check-in:passport:1": [
+     1.872,
+     3.744
+    ],
+    "l:check-in:passport:2": [
+     3.744,
+     5.616
+    ],
+    "l:check-in:passport:3": [
+     5.616,
+     7.488
+    ],
+    "l:check-in:destination:0": [
+     7.488,
+     9.36
+    ],
+    "l:check-in:destination:1": [
+     9.36,
+     11.232
+    ],
+    "l:check-in:destination:2": [
+     11.232,
+     13.104
+    ],
+    "l:check-in:destination:3": [
+     13.104,
+     15.048
+    ],
+    "l:check-in:bags:0": [
+     15.048,
+     16.92
+    ],
+    "l:check-in:bags:1": [
+     16.92,
+     18.792
+    ],
+    "l:check-in:bags:2": [
+     18.792,
+     20.664
+    ],
+    "l:check-in:bags:3": [
+     20.664,
+     22.632
+    ],
+    "l:check-in:seat:0": [
+     22.632,
+     24.504
+    ],
+    "l:check-in:seat:1": [
+     24.504,
+     26.376
+    ],
+    "l:check-in:seat:2": [
+     26.376,
+     29.112
+    ],
+    "l:bag-drop:scale:0": [
+     29.112,
+     31.464
+    ],
+    "l:bag-drop:scale:1": [
+     31.464,
+     33.336
+    ],
+    "l:bag-drop:scale:2": [
+     33.336,
+     35.328
+    ],
+    "l:bag-drop:contents:0": [
+     35.328,
+     37.848
+    ],
+    "l:bag-drop:contents:1": [
+     37.848,
+     40.68
+    ],
+    "l:bag-drop:contents:2": [
+     40.68,
+     42.912
+    ],
+    "l:bag-drop:overweight:0": [
+     42.912,
+     44.784
+    ],
+    "l:bag-drop:overweight:1": [
+     44.784,
+     46.656
+    ],
+    "l:bag-drop:overweight:2": [
+     46.656,
+     48.912
+    ],
+    "l:bag-drop:through:0": [
+     48.912,
+     51.456
+    ],
+    "l:bag-drop:through:1": [
+     51.456,
+     54.048
+    ],
+    "l:bag-drop:through:2": [
+     54.048,
+     55.92
+    ],
+    "l:info:help:0": [
+     55.92,
+     57.792
+    ],
+    "l:info:help:1": [
+     57.792,
+     59.664
+    ],
+    "l:info:help:2": [
+     59.664,
+     61.536
+    ],
+    "l:info:gate:0": [
+     61.536,
+     63.408
+    ],
+    "l:info:gate:1": [
+     63.408,
+     65.28
+    ],
+    "l:info:gate:2": [
+     65.28,
+     67.152
+    ],
+    "l:info:connection:0": [
+     67.152,
+     69.12
+    ],
+    "l:info:connection:1": [
+     69.12,
+     70.992
+    ],
+    "l:info:connection:2": [
+     70.992,
+     72.864
+    ],
+    "l:info:delay:0": [
+     72.864,
+     74.736
+    ],
+    "l:info:delay:1": [
+     74.736,
+     77.16
+    ],
+    "l:info:delay:2": [
+     77.16,
+     79.032
+    ]
+   }
+  },
+  "listen-m": {
+   "file": "airport-check-in-listen-m.mp3",
+   "holds": {
+    "l:check-in:passport:0": [
+     0.0,
+     1.872
+    ],
+    "l:check-in:passport:1": [
+     1.872,
+     3.744
+    ],
+    "l:check-in:passport:2": [
+     3.744,
+     5.616
+    ],
+    "l:check-in:passport:3": [
+     5.616,
+     7.488
+    ],
+    "l:check-in:destination:0": [
+     7.488,
+     9.36
+    ],
+    "l:check-in:destination:1": [
+     9.36,
+     11.232
+    ],
+    "l:check-in:destination:2": [
+     11.232,
+     13.104
+    ],
+    "l:check-in:destination:3": [
+     13.104,
+     14.976
+    ],
+    "l:check-in:bags:0": [
+     14.976,
+     16.848
+    ],
+    "l:check-in:bags:1": [
+     16.848,
+     18.72
+    ],
+    "l:check-in:bags:2": [
+     18.72,
+     20.592
+    ],
+    "l:check-in:bags:3": [
+     20.592,
+     22.464
+    ],
+    "l:check-in:seat:0": [
+     22.464,
+     24.336
+    ],
+    "l:check-in:seat:1": [
+     24.336,
+     26.208
+    ],
+    "l:check-in:seat:2": [
+     26.208,
+     29.016
+    ],
+    "l:bag-drop:scale:0": [
+     29.016,
+     31.488
+    ],
+    "l:bag-drop:scale:1": [
+     31.488,
+     33.36
+    ],
+    "l:bag-drop:scale:2": [
+     33.36,
+     35.232
+    ],
+    "l:bag-drop:contents:0": [
+     35.232,
+     37.68
+    ],
+    "l:bag-drop:contents:1": [
+     37.68,
+     40.2
+    ],
+    "l:bag-drop:contents:2": [
+     40.2,
+     42.384
+    ],
+    "l:bag-drop:overweight:0": [
+     42.384,
+     44.256
+    ],
+    "l:bag-drop:overweight:1": [
+     44.256,
+     46.128
+    ],
+    "l:bag-drop:overweight:2": [
+     46.128,
+     48.072
+    ],
+    "l:bag-drop:through:0": [
+     48.072,
+     50.64
+    ],
+    "l:bag-drop:through:1": [
+     50.64,
+     53.28
+    ],
+    "l:bag-drop:through:2": [
+     53.28,
+     55.152
+    ],
+    "l:info:help:0": [
+     55.152,
+     57.024
+    ],
+    "l:info:help:1": [
+     57.024,
+     58.896
+    ],
+    "l:info:help:2": [
+     58.896,
+     60.768
+    ],
+    "l:info:gate:0": [
+     60.768,
+     62.64
+    ],
+    "l:info:gate:1": [
+     62.64,
+     64.512
+    ],
+    "l:info:gate:2": [
+     64.512,
+     66.384
+    ],
+    "l:info:connection:0": [
+     66.384,
+     68.352
+    ],
+    "l:info:connection:1": [
+     68.352,
+     70.224
+    ],
+    "l:info:connection:2": [
+     70.224,
+     72.096
+    ],
+    "l:info:delay:0": [
+     72.096,
+     73.968
+    ],
+    "l:info:delay:1": [
+     73.968,
+     76.104
+    ],
+    "l:info:delay:2": [
+     76.104,
+     77.976
+    ]
+   }
+  }
+ },
+ "audio": "/travel/audio/sprites/"
+};
+const LEVEL_LABEL = {survival:"Survival", conversational:"Conversational", advanced:"Advanced"};
+const LOCATIONS = [
+  ["airport-check-in","Check-in"],
+  ["airport-security","Security"],
+  ["airport-boarding","Boarding"]
+];
+let voice = localStorage.getItem("travel-voice") === "m" ? "m" : "f";
+let level = localStorage.getItem("travel-level") || "survival";
+let current = null;
+
+const player = document.getElementById("player");
+const panel = document.getElementById("panel");
+let token = 0;
+
+function icon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';}
+function esc(s){return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+function play(spriteName, holdKey, button){
+  const sp = DATA.sprites[spriteName];
+  if (!sp) return;
+  const span = sp.holds[holdKey];
+  if (!span) return;
+  const my = ++token;
+  if (document.querySelector('.play[data-playing="true"]')) {
+    document.querySelectorAll('.play').forEach(b => b.dataset.playing = "false");
+  }
+  const start = () => {
+    player.currentTime = span[0];
+    player.play().catch(() => {});
+    if (button) button.dataset.playing = "true";
+  };
+  if (player.dataset.sprite !== spriteName) {
+    player.dataset.sprite = spriteName;
+    player.src = DATA.audio + sp.file;
+    player.onloadedmetadata = start;
+    player.load();
+  } else { start(); }
+  player.ontimeupdate = () => {
+    if (my !== token) return;
+    if (player.currentTime >= span[1] - 0.01) {
+      player.pause();
+      document.querySelectorAll('.play').forEach(b => b.dataset.playing = "false");
+      player.ontimeupdate = null;
+    }
+  };
+}
+
+function playButton(spriteName, holdKey){
+  return '<button class="play" data-sprite="'+spriteName+'" data-hold="'+holdKey+'" aria-label="Play">'+icon()+'</button>';
+}
+
+function bindPlays(root){
+  root.querySelectorAll(".play").forEach(b => {
+    b.addEventListener("click", () => play(b.dataset.sprite, b.dataset.hold, b));
+  });
+}
+
+function tabs(){
+  const el = document.getElementById("tabs");
+  el.innerHTML = LOCATIONS.map(([id,label]) =>
+    '<a href="/travel/'+id+'.html" '+(id===DATA.id?'aria-current="page"':'')+'>'+label+'</a>').join("");
+}
+
+function hotspots(){
+  const stage = document.getElementById("stage");
+  stage.innerHTML = '<img src="'+DATA.background+'" alt="'+esc(DATA.title_en)+'" width="'+DATA.canvas.w+'" height="'+DATA.canvas.h+'">';
+  const add = (kind, o) => {
+    const b = document.createElement("button");
+    b.className = "hot " + kind;
+    b.style.left = o.x + "%";
+    b.style.top = o.y + "%";
+    if (o.hit && o.hit.w && DATA.canvas.w) {
+      b.style.width = Math.max(34, o.hit.w / 100 * 0 + 34) + "px";
+    }
+    b.setAttribute("aria-label", o.label_en + (o.label_zh ? " · " + o.label_zh : ""));
+    b.innerHTML = '<span class="tag">'+esc(o.label_en)+'<small>'+esc(o.label_zh)+'</small></span>';
+    b.addEventListener("click", () => kind === "item" ? showItem(o.id) : showEncounter(o.encounter));
+    stage.appendChild(b);
+  };
+  DATA.items.forEach(i => add("item", i));
+  DATA.characters.forEach(c => add("character", c));
+}
+
+function showItem(id){
+  const item = DATA.items.find(i => i.id === id);
+  if (!item) return;
+  const w = item.word;
+  current = {kind:"item", id};
+  const ex = (w.examples && w.examples[0]) || item.phrases[0];
+  let html = '<div class="card">';
+  html += '<div class="word">'+esc(w.en)+' <span class="ipa">/'+esc(w.ipa)+'/</span> <span class="pos">'+esc(w.pos)+'</span></div>';
+  html += '<p class="zh">'+esc(w.zh)+'</p>';
+  if (ex) {
+    html += '<p class="ex">'+playButton("items-"+voice, "e:"+id+":0")+' '+esc(ex.en)+'<span class="zh">'+esc(ex.zh)+'</span></p>';
+  }
+  if (item.phrases.length) {
+    html += '<div class="block"><h3>In the hall</h3><ul class="lines">';
+    item.phrases.forEach((p, i) => {
+      html += '<li><span class="who"></span><span class="say">'+esc(p.en)+'<span class="zh">'+esc(p.zh)+'</span></span>'
+            + playButton("items-"+voice, "p:"+id+":"+i) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+  if (w.l1_note) html += '<p class="note">'+esc(w.l1_note)+'</p>';
+  html += '</div>';
+  panel.innerHTML = html;
+  bindPlays(panel);
+  play("items-"+voice, "w:"+id, panel.querySelector(".play"));
+}
+
+function showEncounter(encId){
+  const enc = DATA.encounters.find(e => e.id === encId);
+  if (!enc) return;
+  current = {kind:"enc", id:encId};
+  const lv = enc.levels[level] || {phrases:[], dialogue:[]};
+  let html = '<div class="enc"><h2>'+esc(enc.title_en)+'</h2><p class="zh">'+esc(enc.title_zh)+'</p>';
+  html += '<div class="row"><div class="levels">';
+  DATA.levels.forEach(l => {
+    html += '<button data-level="'+l+'" aria-pressed="'+(l===level)+'">'+LEVEL_LABEL[l]+'</button>';
+  });
+  html += '</div><button class="toggle" id="zh-toggle">中</button></div>';
+
+  if (lv.phrases.length) {
+    html += '<div class="block"><h3>Phrases</h3><ul class="lines">';
+    lv.phrases.forEach((p, i) => {
+      html += '<li><span class="who"></span><span class="say">'+esc(p.en)+'<span class="zh">'+esc(p.zh)+'</span></span>'
+            + playButton("phrases-"+level+"-"+voice, "ph:"+level+":"+i) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+  if (lv.dialogue.length) {
+    html += '<div class="block"><h3>Dialogue</h3><ul class="lines">';
+    lv.dialogue.forEach((l, i) => {
+      const spk = DATA.speakers[l.spk] || {en:l.spk, zh:""};
+      html += '<li><span class="who">'+esc(spk.en)+'</span><span class="say">'+esc(l.en)+'<span class="zh">'+esc(l.zh)+'</span></span>'
+            + playButton("dialogue-"+level, "dl:"+level+":"+i) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+  if (enc.listening && enc.listening.length) {
+    html += '<div class="block"><h3>What they may ask</h3>';
+    enc.listening.forEach(li => {
+      html += '<div class="listen"><div class="intent">'+esc(li.intent_zh)+'</div><ul class="asks">';
+      li.asks.forEach((a, i) => {
+        html += '<li><span>'+esc(a.en)+'</span>'
+              + playButton("listen-"+voice, "l:"+enc.id+":"+li.id+":"+i) + '</li>';
+      });
+      html += '</ul>';
+      html += '<p class="reply">'+esc(li.reply.en)+' <span class="zh">'+esc(li.reply.zh)+'</span></p>';
+      if (li.pattern) html += '<p class="pattern">'+esc(li.pattern)+'</p>';
+      if (li.note) html += '<p class="note">'+esc(li.note)+'</p>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  panel.innerHTML = html;
+  bindPlays(panel);
+  panel.querySelectorAll(".levels button").forEach(b => {
+    b.addEventListener("click", () => {
+      level = b.dataset.level;
+      localStorage.setItem("travel-level", level);
+      showEncounter(encId);
+    });
+  });
+  const zh = panel.querySelector("#zh-toggle");
+  zh.addEventListener("click", () => document.body.classList.toggle("hide-zh"));
+  panel.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+tabs();
+hotspots();
+document.body.classList.toggle("hide-zh", localStorage.getItem("travel-zh") === "0");
+document.addEventListener("keydown", e => {
+  const i = DATA.items.findIndex(x => x.id === (current && current.id));
+  if (e.key === "Escape") panel.innerHTML = "";
+});
+</script>
+<script src="/theme.js"></script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE_EN__ · Travel English</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1d1d1f; --muted:#66666c; --rule:#e0e0e0;
+    --surface:#f5f5f7; --surface-strong:#e8e8ed;
+    --accent:var(--blue,#0066cc); --tint:var(--blue-tint,#e8f2ff);
+    --on-accent:var(--on-blue,#fff);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
+      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#000; --fg:#f5f5f7; --muted:#98989d; --rule:#38383a;
+      --surface:#1c1c1e; --surface-strong:#2c2c2e;
+      --accent:var(--blue,#2997ff); --tint:var(--blue-tint,#102a43);
+      color-scheme:dark; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; }
+  .page { max-width:980px; margin:0 auto; padding:clamp(28px,5vh,56px) 20px 96px; }
+  .crumbs { margin:0 0 12px; color:var(--muted); font-size:13px; }
+  .crumbs a { color:var(--muted); text-decoration:none; }
+  .crumbs a:hover { color:var(--accent); }
+  h1 { margin:0; font-size:clamp(1.7rem,4.4vw,2.4rem); font-weight:700;
+    letter-spacing:-0.03em; line-height:1.1; }
+
+  .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 16px; }
+  .tabs a { font-size:14px; padding:7px 15px; border:1px solid var(--rule);
+    border-radius:999px; color:var(--fg); text-decoration:none; }
+  .tabs a:hover { background:var(--surface); }
+  .tabs a[aria-current="page"] { background:var(--accent); border-color:var(--accent);
+    color:var(--on-accent); }
+
+  .stage { position:relative; border-radius:18px; overflow:hidden;
+    background:var(--surface); margin:0 0 18px; }
+  .stage img { display:block; width:100%; height:auto; }
+  .hot { position:absolute; width:34px; height:34px; padding:0;
+    transform:translate(-50%,-50%); border:0; border-radius:50%;
+    background:transparent; cursor:pointer; }
+  .hot::before { content:""; position:absolute; inset:11px; border-radius:50%;
+    background:#fff; box-shadow:0 0 0 1.5px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.28);
+    opacity:.85; transition:transform .15s, opacity .15s, box-shadow .15s; }
+  .hot::after { content:""; position:absolute; inset:4px; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.75); opacity:0;
+    transition:opacity .15s; }
+  .hot:hover::before, .hot:focus-visible::before { transform:scale(1.35);
+    opacity:1; box-shadow:0 0 0 2px var(--accent), 0 3px 10px rgba(0,0,0,.35); }
+  .hot:hover::after, .hot:focus-visible::after { opacity:1; }
+  .hot:focus-visible { outline:none; }
+  .hot .tag { position:absolute; left:50%; bottom:calc(100% - 2px);
+    transform:translateX(-50%); white-space:nowrap; font-size:12px; line-height:1.2;
+    padding:5px 9px; border-radius:8px; background:var(--fg); color:var(--bg);
+    opacity:0; pointer-events:none; transition:opacity .15s; }
+  .hot:hover .tag, .hot:focus-visible .tag { opacity:1; }
+  .hot .tag small { display:block; font-size:11px; opacity:.7; }
+  .hot.character::before { background:var(--accent);
+    box-shadow:0 0 0 1.5px #fff, 0 2px 6px rgba(0,0,0,.28); }
+
+  .panel { min-height:1px; }
+  .card { border:1px solid var(--rule); border-radius:16px; padding:22px 24px; }
+  .card .word { font-size:clamp(1.5rem,3.6vw,2rem); font-weight:700;
+    letter-spacing:-0.02em; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .card .ipa { font-size:15px; color:var(--muted); font-weight:400; }
+  .card .pos { font-size:13px; color:var(--muted); font-style:italic; }
+  .card .zh { margin:6px 0 0; font-size:16px; color:var(--muted); }
+  .card .ex { margin:16px 0 0; font-size:17px; line-height:1.55; }
+  .card .ex .zh { display:block; margin-top:3px; font-size:14px; }
+  .card .note { margin:14px 0 0; font-size:13.5px; color:var(--muted);
+    line-height:1.55; }
+
+  .play { display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; padding:0; border:0; border-radius:50%;
+    background:var(--tint); color:var(--accent); cursor:pointer; flex:none;
+    vertical-align:middle; }
+  .play:hover { background:var(--surface-strong); }
+  .play svg { width:14px; height:14px; fill:currentColor; }
+  .play[data-playing="true"] { background:var(--accent); color:var(--on-accent); }
+
+  .enc h2 { margin:0 0 4px; font-size:clamp(1.2rem,2.8vw,1.55rem);
+    font-weight:700; letter-spacing:-0.02em; }
+  .enc .zh { color:var(--muted); font-size:14px; margin:0; }
+  .row { display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin:18px 0 6px; }
+  .levels { display:flex; gap:6px; }
+  .levels button, .toggle { appearance:none; font:inherit; font-size:13px;
+    padding:6px 13px; border:1px solid var(--rule); border-radius:999px;
+    background:transparent; color:var(--fg); cursor:pointer; }
+  .levels button:hover, .toggle:hover { background:var(--surface); }
+  .levels button[aria-pressed="true"] { background:var(--accent);
+    border-color:var(--accent); color:var(--on-accent); }
+  .lines { list-style:none; margin:14px 0 0; padding:0; }
+  .lines li { display:grid; grid-template-columns:auto 1fr auto; gap:10px;
+    align-items:baseline; padding:9px 0; border-top:1px solid var(--rule); }
+  .lines li:first-child { border-top:0; }
+  .who { font-size:12px; color:var(--muted); min-width:52px; }
+  .say { font-size:16px; line-height:1.5; }
+  .say .zh { display:block; font-size:13.5px; color:var(--muted); margin-top:2px; }
+  body.hide-zh .zh { display:none; }
+
+  .block { margin-top:26px; }
+  .block h3 { margin:0 0 8px; font-size:14px; font-weight:600; color:var(--muted);
+    letter-spacing:.02em; text-transform:uppercase; }
+  .listen { border:1px solid var(--rule); border-radius:14px; padding:16px 18px;
+    margin-top:10px; }
+  .listen .intent { font-weight:600; font-size:15px; }
+  .listen .asks { list-style:none; margin:8px 0 0; padding:0; }
+  .listen .asks li { display:flex; gap:8px; align-items:baseline; padding:4px 0;
+    font-size:15.5px; }
+  .listen .reply { margin:8px 0 0; font-size:15px; }
+  .listen .reply .zh { display:block; margin-top:2px; font-size:13.5px;
+    color:var(--muted); }
+  .listen .pattern { margin:8px 0 0; font-size:13px; color:var(--muted); }
+  .listen .note { margin:6px 0 0; font-size:13px; color:var(--muted); }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="crumbs"><a href="/">NPESL</a> / <a href="/travel/">Travel English</a> / <span>__TITLE_EN__</span></p>
+  <h1>__TITLE_EN__</h1>
+  <div class="tabs" id="tabs"></div>
+  <div class="stage" id="stage"></div>
+  <section class="panel" id="panel" aria-live="polite"></section>
+</div>
+<audio id="player" preload="none"></audio>
+<script>
+const DATA = __DATA__;
+const LEVEL_LABEL = {survival:"Survival", conversational:"Conversational", advanced:"Advanced"};
+const LOCATIONS = [
+  ["airport-check-in","Check-in"],
+  ["airport-security","Security"],
+  ["airport-boarding","Boarding"]
+];
+let voice = localStorage.getItem("travel-voice") === "m" ? "m" : "f";
+let level = localStorage.getItem("travel-level") || "survival";
+let current = null;
+
+const player = document.getElementById("player");
+const panel = document.getElementById("panel");
+let token = 0;
+
+function icon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';}
+function esc(s){return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+function play(spriteName, holdKey, button){
+  const sp = DATA.sprites[spriteName];
+  if (!sp) return;
+  const span = sp.holds[holdKey];
+  if (!span) return;
+  const my = ++token;
+  if (document.querySelector('.play[data-playing="true"]')) {
+    document.querySelectorAll('.play').forEach(b => b.dataset.playing = "false");
+  }
+  const start = () => {
+    player.currentTime = span[0];
+    player.play().catch(() => {});
+    if (button) button.dataset.playing = "true";
+  };
+  if (player.dataset.sprite !== spriteName) {
+    player.dataset.sprite = spriteName;
+    player.src = DATA.audio + sp.file;
+    player.onloadedmetadata = start;
+    player.load();
+  } else { start(); }
+  player.ontimeupdate = () => {
+    if (my !== token) return;
+    if (player.currentTime >= span[1] - 0.01) {
+      player.pause();
+      document.querySelectorAll('.play').forEach(b => b.dataset.playing = "false");
+      player.ontimeupdate = null;
+    }
+  };
+}
+
+function playButton(spriteName, holdKey){
+  return '<button class="play" data-sprite="'+spriteName+'" data-hold="'+holdKey+'" aria-label="Play">'+icon()+'</button>';
+}
+
+function bindPlays(root){
+  root.querySelectorAll(".play").forEach(b => {
+    b.addEventListener("click", () => play(b.dataset.sprite, b.dataset.hold, b));
+  });
+}
+
+function tabs(){
+  const el = document.getElementById("tabs");
+  el.innerHTML = LOCATIONS.map(([id,label]) =>
+    '<a href="/travel/'+id+'.html" '+(id===DATA.id?'aria-current="page"':'')+'>'+label+'</a>').join("");
+}
+
+function hotspots(){
+  const stage = document.getElementById("stage");
+  stage.innerHTML = '<img src="'+DATA.background+'" alt="'+esc(DATA.title_en)+'" width="'+DATA.canvas.w+'" height="'+DATA.canvas.h+'">';
+  const add = (kind, o) => {
+    const b = document.createElement("button");
+    b.className = "hot " + kind;
+    b.style.left = o.x + "%";
+    b.style.top = o.y + "%";
+    if (o.hit && o.hit.w && DATA.canvas.w) {
+      b.style.width = Math.max(34, o.hit.w / 100 * 0 + 34) + "px";
+    }
+    b.setAttribute("aria-label", o.label_en + (o.label_zh ? " · " + o.label_zh : ""));
+    b.innerHTML = '<span class="tag">'+esc(o.label_en)+'<small>'+esc(o.label_zh)+'</small></span>';
+    b.addEventListener("click", () => kind === "item" ? showItem(o.id) : showEncounter(o.encounter));
+    stage.appendChild(b);
+  };
+  DATA.items.forEach(i => add("item", i));
+  DATA.characters.forEach(c => add("character", c));
+}
+
+function showItem(id){
+  const item = DATA.items.find(i => i.id === id);
+  if (!item) return;
+  const w = item.word;
+  current = {kind:"item", id};
+  const ex = (w.examples && w.examples[0]) || item.phrases[0];
+  let html = '<div class="card">';
+  html += '<div class="word">'+esc(w.en)+' <span class="ipa">/'+esc(w.ipa)+'/</span> <span class="pos">'+esc(w.pos)+'</span></div>';
+  html += '<p class="zh">'+esc(w.zh)+'</p>';
+  if (ex) {
+    html += '<p class="ex">'+playButton("items-"+voice, "e:"+id+":0")+' '+esc(ex.en)+'<span class="zh">'+esc(ex.zh)+'</span></p>';
+  }
+  if (item.phrases.length) {
+    html += '<div class="block"><h3>In the hall</h3><ul class="lines">';
+    item.phrases.forEach((p, i) => {
+      html += '<li><span class="who"></span><span class="say">'+esc(p.en)+'<span class="zh">'+esc(p.zh)+'</span></span>'
+            + playButton("items-"+voice, "p:"+id+":"+i) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+  if (w.l1_note) html += '<p class="note">'+esc(w.l1_note)+'</p>';
+  html += '</div>';
+  panel.innerHTML = html;
+  bindPlays(panel);
+  play("items-"+voice, "w:"+id, panel.querySelector(".play"));
+}
+
+function showEncounter(encId){
+  const enc = DATA.encounters.find(e => e.id === encId);
+  if (!enc) return;
+  current = {kind:"enc", id:encId};
+  const lv = enc.levels[level] || {phrases:[], dialogue:[]};
+  let html = '<div class="enc"><h2>'+esc(enc.title_en)+'</h2><p class="zh">'+esc(enc.title_zh)+'</p>';
+  html += '<div class="row"><div class="levels">';
+  DATA.levels.forEach(l => {
+    html += '<button data-level="'+l+'" aria-pressed="'+(l===level)+'">'+LEVEL_LABEL[l]+'</button>';
+  });
+  html += '</div><button class="toggle" id="zh-toggle">中</button></div>';
+
+  if (lv.phrases.length) {
+    html += '<div class="block"><h3>Phrases</h3><ul class="lines">';
+    lv.phrases.forEach((p, i) => {
+      html += '<li><span class="who"></span><span class="say">'+esc(p.en)+'<span class="zh">'+esc(p.zh)+'</span></span>'
+            + playButton("phrases-"+level+"-"+voice, "ph:"+level+":"+i) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+  if (lv.dialogue.length) {
+    html += '<div class="block"><h3>Dialogue</h3><ul class="lines">';
+    lv.dialogue.forEach((l, i) => {
+      const spk = DATA.speakers[l.spk] || {en:l.spk, zh:""};
+      html += '<li><span class="who">'+esc(spk.en)+'</span><span class="say">'+esc(l.en)+'<span class="zh">'+esc(l.zh)+'</span></span>'
+            + playButton("dialogue-"+level, "dl:"+level+":"+i) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+  if (enc.listening && enc.listening.length) {
+    html += '<div class="block"><h3>What they may ask</h3>';
+    enc.listening.forEach(li => {
+      html += '<div class="listen"><div class="intent">'+esc(li.intent_zh)+'</div><ul class="asks">';
+      li.asks.forEach((a, i) => {
+        html += '<li><span>'+esc(a.en)+'</span>'
+              + playButton("listen-"+voice, "l:"+enc.id+":"+li.id+":"+i) + '</li>';
+      });
+      html += '</ul>';
+      html += '<p class="reply">'+esc(li.reply.en)+' <span class="zh">'+esc(li.reply.zh)+'</span></p>';
+      if (li.pattern) html += '<p class="pattern">'+esc(li.pattern)+'</p>';
+      if (li.note) html += '<p class="note">'+esc(li.note)+'</p>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  panel.innerHTML = html;
+  bindPlays(panel);
+  panel.querySelectorAll(".levels button").forEach(b => {
+    b.addEventListener("click", () => {
+      level = b.dataset.level;
+      localStorage.setItem("travel-level", level);
+      showEncounter(encId);
+    });
+  });
+  const zh = panel.querySelector("#zh-toggle");
+  zh.addEventListener("click", () => document.body.classList.toggle("hide-zh"));
+  panel.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+tabs();
+hotspots();
+document.body.classList.toggle("hide-zh", localStorage.getItem("travel-zh") === "0");
+document.addEventListener("keydown", e => {
+  const i = DATA.items.findIndex(x => x.id === (current && current.id));
+  if (e.key === "Escape") panel.innerHTML = "";
+});
+</script>
+<script src="/theme.js"></script>
+</body>
+</html>
