@@ -154,21 +154,27 @@ def clip_hash(text: str) -> str:
 # Word-level <emphasis> is only reliable on a few Azure voices; Ava/Andrew
 # respond to a prosody lift instead.  Primary and secondary stresses get
 # different strengths so the line keeps an English stress-timed rhythm.
-PRIMARY_RATE = "-15%"
-PRIMARY_PITCH = "+30%"
-PRIMARY_VOLUME = "+12%"
-SECONDARY_RATE = "-6%"
-SECONDARY_PITCH = "+14%"
-SECONDARY_VOLUME = "+5%"
+PRIMARY_RATE = "-12%"
+PRIMARY_PITCH = "+24%"
+PRIMARY_VOLUME = "+9%"
+SECONDARY_RATE = "-5%"
+SECONDARY_PITCH = "+10%"
+SECONDARY_VOLUME = "+3%"
 PRIMARY_TAG = (f"<prosody rate='{PRIMARY_RATE}' pitch='{PRIMARY_PITCH}' "
                f"volume='{PRIMARY_VOLUME}'>")
 SECONDARY_TAG = (f"<prosody rate='{SECONDARY_RATE}' "
                  f"pitch='{SECONDARY_PITCH}' volume='{SECONDARY_VOLUME}'>")
-PROSODY_VERSION = "v3"
+# List intonation: non-final items rise, the final item falls.
+RISE_TAG = (f"<prosody rate='{SECONDARY_RATE}' volume='{SECONDARY_VOLUME}' "
+            "contour='(0%,+0%) (100%,+22%)'>")
+FALL_TAG = (f"<prosody rate='{PRIMARY_RATE}' volume='{PRIMARY_VOLUME}' "
+            "contour='(0%,+0%) (35%,+18%) (100%,-12%)'>")
+PROSODY_VERSION = "v4"
 
-# (primary token indices, secondary token indices), both in WORD_RE order.
-StressSpec = tuple[tuple[int, ...], tuple[int, ...]]
-NO_STRESS: StressSpec = ((), ())
+# (primary, secondary, list-rise, list-fall) token indices, WORD_RE order.
+StressSpec = tuple[tuple[int, ...], tuple[int, ...],
+                   tuple[int, ...], tuple[int, ...]]
+NO_STRESS: StressSpec = ((), (), (), ())
 
 
 def _word_index(text: str, word: str, taken: set) -> int:
@@ -199,21 +205,25 @@ def _resolve_values(text: str, values, taken: set | None = None) -> set:
 
 
 def stress_spec(story: dict, text: str) -> StressSpec:
-    """Resolve a story's stress entry to (primary, secondary) token indices.
+    """Resolve a story's stress entry to token-index groups.
 
-    Entries may name words (``"sister"``, ``"sister#2"``) or token indices;
-    word names make the semantic choice reviewable.  A legacy flat list is
-    read as primary-only.
+    Groups are ``(primary, secondary, rise, fall)``.  Entries may name words
+    (``"sister"``, ``"sister#2"``) or token indices; word names make the
+    semantic choice reviewable.  A legacy flat list is read as primary-only.
     """
     raw = (story.get("stress") or {}).get(text)
     if not raw:
         return NO_STRESS
     if isinstance(raw, dict):
         primary = _resolve_values(text, raw.get("primary", ()))
-        secondary = _resolve_values(
-            text, raw.get("secondary", ()), primary) - primary
-        return tuple(sorted(primary)), tuple(sorted(secondary))
-    return tuple(sorted(_resolve_values(text, raw))), ()
+        secondary = _resolve_values(text, raw.get("secondary", ()))
+        rise = _resolve_values(text, raw.get("rise", ()))
+        fall = _resolve_values(text, raw.get("fall", ()))
+        rise -= primary | fall
+        secondary = (secondary | rise) - primary - fall
+        return (tuple(sorted(primary)), tuple(sorted(secondary)),
+                tuple(sorted(rise)), tuple(sorted(fall)))
+    return tuple(sorted(_resolve_values(text, raw))), (), (), ()
 
 
 def stress_note(story: dict, text: str) -> str:
@@ -222,22 +232,28 @@ def stress_note(story: dict, text: str) -> str:
 
 
 def stress_sig(spec: StressSpec) -> str:
-    primary, secondary = spec
+    primary, secondary, rise, fall = spec
     return (f"p:{','.join(str(i) for i in primary)};"
-            f"s:{','.join(str(i) for i in secondary)}")
+            f"s:{','.join(str(i) for i in secondary)};"
+            f"r:{','.join(str(i) for i in rise)};"
+            f"f:{','.join(str(i) for i in fall)}")
 
 
 def stress_inner(text: str, spec: StressSpec) -> str:
-    """SSML inner body: plain text with primary/secondary words lifted."""
-    primary, secondary = spec
-    if not primary and not secondary:
+    """SSML inner body: primary/secondary words plus list rise/fall."""
+    primary, secondary, rise, fall = spec
+    if not primary and not secondary and not rise and not fall:
         return xml_escape(text)
     matches = list(pron.WORD_RE.finditer(text))
     out: list[str] = []
     cursor = 0
     for index, match in enumerate(matches):
-        if index in primary:
+        if index in fall:
+            tag = FALL_TAG
+        elif index in primary:
             tag = PRIMARY_TAG
+        elif index in rise:
+            tag = RISE_TAG
         elif index in secondary:
             tag = SECONDARY_TAG
         else:
@@ -1034,6 +1050,11 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
 .q-zh {
   display:block; margin-top:2px; color:var(--muted);
   font-size:14.5px; line-height:1.6; letter-spacing:0;
+}
+.story .stress-note, .qs .stress-note {
+  font-size:13.5px; line-height:1.6; color:var(--muted);
+  border-left:3px solid var(--rule); padding-left:9px;
+  margin-top:5px;
 }
 /* Karaoke: the spoken part of the sentence lights up word by word. */
 .s .w {
@@ -2622,6 +2643,12 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
                     + html.escape(zh_sent)
                     + "</span>"
                 )
+            note = stress_note(story, sent)
+            if note:
+                inner += (
+                    '<span class="zh stress-note" lang="zh-CN">重音：'
+                    + html.escape(note) + "</span>"
+                )
             blocks.append('<div class="sent">' + inner + "</div>")
         # 没有中文时上面的循环已经产出同样的结构，不要再渲染一遍
         # （sentence_html 会按顺序消耗 sprite 片段，重复调用会错位）。
@@ -2635,6 +2662,10 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
             if zh_q:
                 inner += ('<span class="q-zh" lang="zh-CN">'
                           + html.escape(zh_q) + "</span>")
+            note = stress_note(story, q)
+            if note:
+                inner += ('<span class="q-zh stress-note" lang="zh-CN">重音：'
+                          + html.escape(note) + "</span>")
             rows.append('<li><div class="q-body">' + inner + "</div></li>")
         return '<ol class="qlist">' + "".join(rows) + "</ol>"
 

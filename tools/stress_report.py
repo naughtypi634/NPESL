@@ -60,13 +60,17 @@ def token_count(text: str) -> int:
 
 
 def marked_html(text: str, spec) -> str:
-    primary, secondary = spec
+    primary, secondary, rise, fall = spec
     matches = list(pron.WORD_RE.finditer(text))
     out: list[str] = []
     cursor = 0
     for index, match in enumerate(matches):
-        if index in primary:
+        if index in fall:
+            cls, mark = "primary", "↓"
+        elif index in primary:
             cls, mark = "primary", "1"
+        elif index in rise:
+            cls, mark = "secondary", "↑"
         elif index in secondary:
             cls, mark = "secondary", "2"
         else:
@@ -80,7 +84,7 @@ def marked_html(text: str, spec) -> str:
 
 
 def words_line(text: str, spec) -> str:
-    primary, secondary = spec
+    primary, secondary, rise, fall = spec
     matches = list(pron.WORD_RE.finditer(text))
 
     def names(indices):
@@ -90,7 +94,8 @@ def words_line(text: str, spec) -> str:
         ) or "—"
 
     return (f"主重音 1：{names(primary)}　"
-            f"次重音 2：{names(secondary)}")
+            f"次重音 2：{names(secondary)}　"
+            f"升调 ↑：{names(rise)}　降调 ↓：{names(fall)}")
 
 
 def audio_block(text: str, spec) -> str:
@@ -157,27 +162,33 @@ def main() -> int:
         )
         for section, text in playable(story):
             spec = build_site.stress_spec(story, text)
-            primary, secondary = spec
+            primary, secondary, rise, fall = spec
             if section in {"body", "comp", "conv"} and not primary:
                 if args.require_all:
                     print(f"FIX  {story['title']} [{section}] 未标注：{text[:60]}…")
                     fixes += 1
                 else:
                     warnings += 1
-            if not primary and not secondary:
+            if not primary and not secondary and not rise and not fall:
                 continue
             annotated += 1
             count = token_count(text)
             if not 1 <= len(primary) <= 3:
                 print(f"FIX  {story['title']}: 主重音应为 1–3 个，实际 {len(primary)}：{text[:50]}…")
                 fixes += 1
-            if len(secondary) > 6:
-                print(f"FIX  {story['title']}: 次重音超过 6 个：{text[:50]}…")
+            if len(secondary) > 8:
+                print(f"FIX  {story['title']}: 次重音超过 8 个：{text[:50]}…")
+                fixes += 1
+            if len(rise) > 5 or len(fall) > 3:
+                print(f"FIX  {story['title']}: 升降调过多：{text[:50]}…")
                 fixes += 1
             if set(primary) & set(secondary):
                 print(f"FIX  {story['title']}: 主/次重音重叠：{text[:50]}…")
                 fixes += 1
-            bad = [i for i in (*primary, *secondary)
+            if set(rise) & set(fall):
+                print(f"FIX  {story['title']}: 同一词既升又降：{text[:50]}…")
+                fixes += 1
+            bad = [i for i in (*primary, *secondary, *rise, *fall)
                    if i < 0 or i >= count]
             if bad:
                 print(f"FIX  {story['title']}: 索引越界 {bad}（共 {count} 个词）：{text[:50]}…")

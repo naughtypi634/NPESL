@@ -70,7 +70,9 @@ UNITS.append({
                 "Growing up, we spent a lot of time together as a family, whether it was playing board games, going on hikes, or just sitting around the dinner table and catching up on our day.": {
                     "primary": ["family", "day"],
                     "secondary": ["games", "hikes", "table"],
-                    "note": "主句焦点是 family（一家人在一起）；三个并列活动 games / hikes / table 是举例，末项 day 收束。",
+                    "rise": ["games", "hikes"],
+                    "fall": ["day"],
+                    "note": "主句焦点是 family（一家人在一起）；三个并列活动 games / hikes / table 是举例，前两项升调，末项 day 降调收束。",
                 },
                 "My parents have been married for over 30 years, and they have always been great role models for me and my siblings.": {
                     "primary": ["years", "models"],
@@ -80,7 +82,9 @@ UNITS.append({
                 "They are hardworking, honest, and always put their family first.": {
                     "primary": ["first"],
                     "secondary": ["hardworking", "honest", "family"],
-                    "note": "put their family first 是习语，first 是焦点；hardworking / honest / family 是并列成分。",
+                    "rise": ["hardworking", "honest"],
+                    "fall": ["first"],
+                    "note": "put their family first 是习语，first 是焦点；hardworking / honest 两项升调，first 降调收束。",
                 },
                 "My mom is a teacher, and she has always been passionate about education and helping others.": {
                     "primary": ["teacher", "education"],
@@ -100,7 +104,9 @@ UNITS.append({
                 "He's always been a bit of a daredevil, which has led to a few scraped knees and broken bones over the years!": {
                     "primary": ["daredevil", "bones"],
                     "secondary": ["scraped", "broken"],
-                    "note": "daredevil 是性格判断；后半句用 scraped knees / broken bones 举例说明后果，bones 收束。",
+                    "rise": ["scraped"],
+                    "fall": ["bones"],
+                    "note": "daredevil 是性格判断；后半句用 scraped knees / broken bones 举例，scraped 升调，bones 降调收束。",
                 },
                 "My older sister is married and has two children, and she's an amazing mom.": {
                     "primary": ["married", "mom"],
@@ -170,7 +176,9 @@ UNITS.append({
                 "How have family roles and structures changed over the years in your country?": {
                     "primary": ["changed"],
                     "secondary": ["roles", "structures", "country"],
-                    "note": "问变化，changed 是焦点；roles / structures 是变化对象。",
+                    "rise": ["roles"],
+                    "fall": ["structures"],
+                    "note": "问变化，changed 是焦点；roles / structures 是并列对象，roles 升调，structures 降调。",
                 },
                 "How important is it to have a close relationship with your siblings?": {
                     "primary": ["important"],
@@ -185,12 +193,16 @@ UNITS.append({
                 "How often do you have family reunions or meet relatives?": {
                     "primary": ["often"],
                     "secondary": ["reunions", "relatives"],
-                    "note": "问频率，often 是焦点；reunions / relatives 是并列活动。",
+                    "rise": ["reunions"],
+                    "fall": ["relatives"],
+                    "note": "问频率，often 是焦点；reunions / relatives 是并列活动，reunions 升调，relatives 降调。",
                 },
                 "Do you think it’s better to have a big family or a small family?": {
                     "primary": ["big", "small"],
                     "secondary": ["better"],
-                    "note": "选择疑问句，对比项 big / small 各带焦点；better 是评价框架。",
+                    "rise": ["big"],
+                    "fall": ["small"],
+                    "note": "选择疑问句，对比项 big / small 各带焦点；big 升调，small 降调收束。",
                 },
                 "What are some cultural differences in the way families are structured and function in your country compared to others?": {
                     "primary": ["differences"],

@@ -144,7 +144,7 @@ def synthesize_ssml_with_words(inner: str, voice: str, rate: str = "+0%",
     result = synthesizer.speak_ssml_async(
         ssml_body(inner, voice, rate, lang)).get()
     if result.reason != speechsdk.ResultReason.SynthesizingAudioCompleted:
-        detail = speechsdk.SpeechSynthesisCancellationDetails.from_result(result)
+        detail = result.cancellation_details
         raise RuntimeError(f"Azure TTS failed: {detail.reason} {detail.error_details}")
     audio = result.audio_data
     if not audio or not starts:
