@@ -70,9 +70,9 @@ UNITS.append({
                 "Growing up, we spent a lot of time together as a family, whether it was playing board games, going on hikes, or just sitting around the dinner table and catching up on our day.": {
                     "primary": ["family", "day"],
                     "secondary": ["games", "hikes", "table"],
-                    "rise": ["games", "hikes"],
-                    "fall": ["day"],
-                    "note": "主句焦点是 family（一家人在一起）；三个并列活动 games / hikes / table 是举例，前两项升调，末项 day 降调收束。",
+                    "rise": ["board", "games", "on", "hikes"],
+                    "fall": ["our", "day"],
+                    "note": "主句焦点是 family（一家人在一起）；三个并列活动是举例，前两项整段升调，末项 our day 降调收束。",
                 },
                 "My parents have been married for over 30 years, and they have always been great role models for me and my siblings.": {
                     "primary": ["years", "models"],
@@ -104,9 +104,9 @@ UNITS.append({
                 "He's always been a bit of a daredevil, which has led to a few scraped knees and broken bones over the years!": {
                     "primary": ["daredevil", "bones"],
                     "secondary": ["scraped", "broken"],
-                    "rise": ["scraped"],
-                    "fall": ["bones"],
-                    "note": "daredevil 是性格判断；后半句用 scraped knees / broken bones 举例，scraped 升调，bones 降调收束。",
+                    "rise": ["scraped", "knees"],
+                    "fall": ["broken", "bones"],
+                    "note": "daredevil 是性格判断；后半句用 scraped knees / broken bones 举例，前项升调，末项降调收束。",
                 },
                 "My older sister is married and has two children, and she's an amazing mom.": {
                     "primary": ["married", "mom"],
@@ -200,9 +200,9 @@ UNITS.append({
                 "Do you think it’s better to have a big family or a small family?": {
                     "primary": ["big", "small"],
                     "secondary": ["better"],
-                    "rise": ["big"],
-                    "fall": ["small"],
-                    "note": "选择疑问句，对比项 big / small 各带焦点；big 升调，small 降调收束。",
+                    "rise": ["big", "family"],
+                    "fall": ["small", "family#2"],
+                    "note": "选择疑问句，对比项 big family / small family 各带焦点；前项升调，末项降调收束。",
                 },
                 "What are some cultural differences in the way families are structured and function in your country compared to others?": {
                     "primary": ["differences"],

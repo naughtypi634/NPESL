@@ -166,10 +166,10 @@ SECONDARY_TAG = (f"<prosody rate='{SECONDARY_RATE}' "
                  f"pitch='{SECONDARY_PITCH}' volume='{SECONDARY_VOLUME}'>")
 # List intonation: non-final items rise, the final item falls.
 RISE_TAG = (f"<prosody rate='{SECONDARY_RATE}' volume='{SECONDARY_VOLUME}' "
-            "contour='(0%,+0%) (100%,+22%)'>")
+            "contour='(0%,+0%) (55%,+7%) (100%,+16%)'>")
 FALL_TAG = (f"<prosody rate='{PRIMARY_RATE}' volume='{PRIMARY_VOLUME}' "
-            "contour='(0%,+0%) (35%,+18%) (100%,-12%)'>")
-PROSODY_VERSION = "v4"
+            "contour='(0%,+0%) (40%,+10%) (100%,-10%)'>")
+PROSODY_VERSION = "v5"
 
 # (primary, secondary, list-rise, list-fall) token indices, WORD_RE order.
 StressSpec = tuple[tuple[int, ...], tuple[int, ...],
@@ -240,27 +240,52 @@ def stress_sig(spec: StressSpec) -> str:
 
 
 def stress_inner(text: str, spec: StressSpec) -> str:
-    """SSML inner body: primary/secondary words plus list rise/fall."""
+    """SSML inner body: primary/secondary words plus list rise/fall.
+
+    Consecutive rise (or fall) tokens are wrapped as one span, so the
+    contour runs across the whole list item instead of a single syllable.
+    """
     primary, secondary, rise, fall = spec
     if not primary and not secondary and not rise and not fall:
         return xml_escape(text)
     matches = list(pron.WORD_RE.finditer(text))
+
+    def group(index: int) -> str:
+        if index in fall:
+            return "fall"
+        if index in primary:
+            return "primary"
+        if index in rise:
+            return "rise"
+        if index in secondary:
+            return "secondary"
+        return ""
+
+    tags = {
+        "fall": FALL_TAG,
+        "primary": PRIMARY_TAG,
+        "rise": RISE_TAG,
+        "secondary": SECONDARY_TAG,
+    }
     out: list[str] = []
     cursor = 0
-    for index, match in enumerate(matches):
-        if index in fall:
-            tag = FALL_TAG
-        elif index in primary:
-            tag = PRIMARY_TAG
-        elif index in rise:
-            tag = RISE_TAG
-        elif index in secondary:
-            tag = SECONDARY_TAG
-        else:
+    index = 0
+    while index < len(matches):
+        kind = group(index)
+        if not kind:
+            index += 1
             continue
-        out.append(xml_escape(text[cursor:match.start()]))
-        out.append(tag + xml_escape(match.group(0)) + "</prosody>")
-        cursor = match.end()
+        end_index = index
+        if kind in ("rise", "fall"):
+            while (end_index + 1 < len(matches)
+                   and group(end_index + 1) == kind):
+                end_index += 1
+        start = matches[index].start()
+        end = matches[end_index].end()
+        out.append(xml_escape(text[cursor:start]))
+        out.append(tags[kind] + xml_escape(text[start:end]) + "</prosody>")
+        cursor = end
+        index = end_index + 1
     out.append(xml_escape(text[cursor:]))
     return "".join(out)
 
@@ -1053,8 +1078,14 @@ html.marks-off .el { color:inherit; font-weight:inherit; }
 }
 .story .stress-note, .qs .stress-note {
   font-size:13.5px; line-height:1.6; color:var(--muted);
-  border-left:3px solid var(--rule); padding-left:9px;
-  margin-top:5px;
+  background:var(--surface); border-left:3px solid var(--blue);
+  border-radius:0 8px 8px 0; padding:6px 10px; margin-top:7px;
+}
+.stress-note b {
+  display:inline-block; margin-right:6px; padding:0 6px;
+  border-radius:999px; background:var(--blue-tint); color:var(--blue);
+  font-size:11px; font-weight:700; letter-spacing:.02em;
+  vertical-align:1px;
 }
 /* Karaoke: the spoken part of the sentence lights up word by word. */
 .s .w {
@@ -2646,7 +2677,7 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
             note = stress_note(story, sent)
             if note:
                 inner += (
-                    '<span class="zh stress-note" lang="zh-CN">重音：'
+                    '<span class="zh stress-note" lang="zh-CN"><b>重音</b>'
                     + html.escape(note) + "</span>"
                 )
             blocks.append('<div class="sent">' + inner + "</div>")
@@ -2664,7 +2695,7 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
                           + html.escape(zh_q) + "</span>")
             note = stress_note(story, q)
             if note:
-                inner += ('<span class="q-zh stress-note" lang="zh-CN">重音：'
+                inner += ('<span class="q-zh stress-note" lang="zh-CN"><b>重音</b>'
                           + html.escape(note) + "</span>")
             rows.append('<li><div class="q-body">' + inner + "</div></li>")
         return '<ol class="qlist">' + "".join(rows) + "</ol>"
