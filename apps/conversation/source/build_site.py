@@ -121,7 +121,26 @@ def load_level(level: str) -> list:
     spec = importlib.util.spec_from_file_location(f"cs_{level}", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return mod.UNITS
+    units = mod.UNITS
+    # Optional per-unit stress files let batches be authored independently.
+    # Schema: {"unit": 1, "stories": {"<story title>": {"<sentence>": {...}}}}
+    stress_dir = SRC / level / "stress"
+    if stress_dir.is_dir():
+        for stress_path in sorted(stress_dir.glob("*.json")):
+            try:
+                data = json.loads(stress_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            unit_no = data.get("unit")
+            if not isinstance(unit_no, int) or not 1 <= unit_no <= len(units):
+                continue
+            stories = data.get("stories") or {}
+            for story in units[unit_no - 1]["stories"]:
+                entries = stories.get(story["title"])
+                if entries:
+                    story["stress"] = entries
+                    story["tts"] = "azure"
+    return units
 
 
 def load_zh(level: str) -> dict:

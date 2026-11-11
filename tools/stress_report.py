@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 import html
-import importlib.util
 import re
 import sys
 from pathlib import Path
@@ -118,11 +117,7 @@ def audio_block(text: str, spec) -> str:
 
 
 def load_unit(level: str, unit_no: int) -> dict:
-    path = ROOT / "content" / "conversation" / level / "content.py"
-    spec = importlib.util.spec_from_file_location(f"stress_{level}", path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod.UNITS[unit_no - 1]
+    return build_site.load_level(level)[unit_no - 1]
 
 
 def main() -> int:
