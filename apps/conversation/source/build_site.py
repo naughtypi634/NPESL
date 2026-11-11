@@ -252,10 +252,10 @@ def stress_inner(text: str, spec: StressSpec) -> str:
     def group(index: int) -> str:
         if index in fall:
             return "fall"
-        if index in primary:
-            return "primary"
         if index in rise:
             return "rise"
+        if index in primary:
+            return "primary"
         if index in secondary:
             return "secondary"
         return ""

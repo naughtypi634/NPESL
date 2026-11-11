@@ -1126,6 +1126,7 @@ UNITS.append({
     "stories": [
         {
             "title": "Popular jobs and careers",
+            "tts": "azure",
             "vocab": [
                 "monotonous",
                 "impact",
@@ -1163,6 +1164,161 @@ UNITS.append({
                 "If you could have any job or a career, what would it be?",
                 "What advice would you give to someone who is just starting out in their career?",
             ],
+            "stress": {
+                "As a software engineer, I have always been fascinated by the power of code.": {
+                    "primary": ["power"],
+                    "secondary": ["engineer", "code"],
+                    "note": "As a software engineer 是身份背景；信息焦点是 the power of code，power 主，code 次。",
+                },
+                "Being able to create something out of nothing, solve complex problems, and make people's lives easier is truly rewarding.": {
+                    "primary": ["rewarding"],
+                    "secondary": ["create", "solve", "easier"],
+                    "rise": ["nothing", "problems"],
+                    "fall": ["easier"],
+                    "note": "三个能力并列：create / solve 两项升调，make lives easier 降调；句末评价 rewarding 是主焦点。",
+                },
+                "However, there are also aspects of my job that I don't particularly enjoy.": {
+                    "primary": ["enjoy"],
+                    "secondary": ["aspects", "particularly"],
+                    "note": "转折落在 don't particularly enjoy；enjoy 是否定焦点，aspects 是对象。",
+                },
+                "One thing that I love about my job is the challenge of it.": {
+                    "primary": ["challenge"],
+                    "secondary": ["love", "job"],
+                    "note": "One thing... 是框架；真正要说的核心是 the challenge。",
+                },
+                "Every project is different, and it requires me to use different tools and technologies.": {
+                    "primary": ["different", "different#2", "technologies"],
+                    "secondary": ["project", "tools"],
+                    "rise": ["tools"],
+                    "fall": ["technologies"],
+                    "note": "两个分句都说 different；后半句 tools / technologies 是并列，tools 升、technologies 降收束。",
+                },
+                "I enjoy learning new things and using that knowledge to solve problems.": {
+                    "primary": ["enjoy"],
+                    "secondary": ["learning", "knowledge", "problems"],
+                    "note": "enjoy 是评价核心；learning / knowledge / problems 是具体内容。",
+                },
+                "It's also a job that requires constant learning and keeping up with the latest trends in the industry.": {
+                    "primary": ["learning", "trends"],
+                    "secondary": ["constant", "latest", "industry"],
+                    "rise": ["learning"],
+                    "fall": ["trends"],
+                    "note": "两个并列要求：constant learning 升，latest trends 降；industry 是范围。",
+                },
+                "On the other hand, there are times when I feel frustrated with my job.": {
+                    "primary": ["frustrated"],
+                    "secondary": ["times", "job"],
+                    "note": "On the other hand 是转折框架；情绪焦点是 frustrated。",
+                },
+                "Sometimes the work can be monotonous, and I feel like I'm just writing lines of code without making a significant impact.": {
+                    "primary": ["monotonous", "impact"],
+                    "secondary": ["work", "code", "significant"],
+                    "note": "两个分句各一个核心：monotonous 是工作状态，impact 是缺失的结果。",
+                },
+                "It can also be stressful when deadlines are tight, and there's a lot of pressure to deliver high-quality work.": {
+                    "primary": ["stressful", "pressure"],
+                    "secondary": ["deadlines", "tight", "high-quality"],
+                    "note": "两个分句：stressful 是感受，pressure 是压力来源；tight / high-quality 是支撑信息。",
+                },
+                "Despite the challenges, I know that I'm in a field that is always evolving, and I'm proud to be a part of it.": {
+                    "primary": ["evolving", "proud"],
+                    "secondary": ["challenges", "field", "part"],
+                    "note": "Despite the challenges 是让步；两个核心是 evolving 和 proud。",
+                },
+                "Being a software engineer allows me to use my creativity and technical skills to create meaningful solutions.": {
+                    "primary": ["solutions"],
+                    "secondary": ["creativity", "skills", "meaningful"],
+                    "rise": ["creativity"],
+                    "fall": ["skills"],
+                    "note": "句末 meaningful solutions 是落点；creativity / skills 是手段，creativity 升、skills 降。",
+                },
+                "What is the main character's profession?": {
+                    "primary": ["profession"],
+                    "secondary": ["main", "character's"],
+                    "note": "问职业，profession 是焦点。",
+                },
+                "What does the main character enjoy about their job?": {
+                    "primary": ["enjoy"],
+                    "secondary": ["main", "character", "job"],
+                    "note": "问享受什么，enjoy 是焦点。",
+                },
+                "Does the main character like every aspect of their job?": {
+                    "primary": ["every"],
+                    "secondary": ["aspect", "job"],
+                    "note": "问是否喜欢“每一个”方面，every 是确认焦点。",
+                },
+                "What frustrates the main character about their job?": {
+                    "primary": ["frustrates"],
+                    "secondary": ["main", "character", "job"],
+                    "note": "问 frustrates 的来源，动词是焦点。",
+                },
+                "Why is the main character proud to be a software engineer?": {
+                    "primary": ["proud"],
+                    "secondary": ["main", "character", "engineer"],
+                    "note": "问 proud 的原因，proud 是焦点。",
+                },
+                "What factors do you consider when choosing a job or career?": {
+                    "primary": ["factors"],
+                    "secondary": ["choosing", "job"],
+                    "rise": ["job"],
+                    "fall": ["career"],
+                    "note": "问 factors；job / career 并列，job 升、career 降。",
+                },
+                "What are some popular jobs in your country? Why do you think they are popular?": {
+                    "primary": ["popular", "popular#2"],
+                    "secondary": ["jobs", "country"],
+                    "note": "两个问题都落在 popular：第一个问哪些，第二个问原因。",
+                },
+                "What are some in-demand jobs in your field or industry?": {
+                    "primary": ["in-demand"],
+                    "secondary": ["jobs", "field"],
+                    "rise": ["field"],
+                    "fall": ["industry"],
+                    "note": "问 in-demand；field / industry 并列，field 升、industry 降。",
+                },
+                "What has been your personal experience with job interviews?": {
+                    "primary": ["experience"],
+                    "secondary": ["personal", "interviews"],
+                    "note": "问个人经历，experience 是焦点。",
+                },
+                "What do you think are the most important skills to have in order to be successful in your chosen profession?": {
+                    "primary": ["skills"],
+                    "secondary": ["important", "successful", "profession"],
+                    "note": "问最重要的 skills；successful / profession 是目的和范围。",
+                },
+                "Do you think people should pursue careers solely based on salary and benefits? Why or why not?": {
+                    "primary": ["solely"],
+                    "secondary": ["careers", "salary"],
+                    "rise": ["salary"],
+                    "fall": ["benefits"],
+                    "note": "solely 是限定焦点；salary / benefits 并列，salary 升、benefits 降。",
+                },
+                "What do you think are the pros and cons of working remotely?": {
+                    "primary": ["pros", "cons"],
+                    "secondary": ["working", "remotely"],
+                    "rise": ["pros"],
+                    "fall": ["cons"],
+                    "note": "pros / cons 是并列对比，pros 升、cons 降；remotely 是范围。",
+                },
+                "Have you ever had a job that you didn't enjoy? What did you do about it?": {
+                    "primary": ["enjoy", "do"],
+                    "secondary": ["job", "about"],
+                    "note": "两个问题：第一问 didn't enjoy，焦点在 enjoy；第二问的动词 do 是焦点。",
+                },
+                "If you could have any job or a career, what would it be?": {
+                    "primary": ["any"],
+                    "secondary": ["job", "be"],
+                    "rise": ["job"],
+                    "fall": ["career"],
+                    "note": "any 是假设焦点；job / career 并列，job 升、career 降。",
+                },
+                "What advice would you give to someone who is just starting out in their career?": {
+                    "primary": ["advice"],
+                    "secondary": ["starting", "career"],
+                    "note": "advice 是请求的核心；starting out 是对象的状态。",
+                },
+            },
         },
         {
             "title": "Workplace culture and colleagues",
