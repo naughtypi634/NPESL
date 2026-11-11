@@ -173,11 +173,15 @@ async function probeConversationPage() {
     return { start, end, text: b.dataset.text };
   })()`);
   if (!info) return { ok: false, detail: '没有可点读的句子' };
-  const started = await waitFor('!!(window.__lastAudio && window.__lastAudio.currentTime > 0)');
-  const wait = Math.min(Math.max(info.end - info.start, 0.4), 4) * 1000 + 700;
-  await sleep(wait);
-  // 跨域音频经 CDN 时偶尔比本地慢半拍，等到真正暂停再读位置。
-  const paused = await waitFor('!!(window.__lastAudio && window.__lastAudio.paused)', 2500);
+  // 首次从 CDN 下载整页 sprite 可能超过 5 秒。确认媒体真的在目标句子
+  // 区间播放后，再按句长等它停下，避免把加载时间算进播放时长。
+  const started = await waitFor(
+    `!!(window.__lastAudio && !window.__lastAudio.paused
+      && window.__lastAudio.currentTime >= ${info.start - 0.1})`, 20000);
+  const duration = Math.max(info.end - info.start, 0.4);
+  const paused = started && await waitFor(
+    '!!(window.__lastAudio && window.__lastAudio.paused)',
+    Math.ceil(duration / 0.7 * 1000) + 2500);
   const t = await evaluate('window.__lastAudio ? window.__lastAudio.currentTime : -1');
   const ok = started && paused && t >= info.start - 0.1 && t <= info.end + 0.35;
   return {

@@ -1332,6 +1332,10 @@ PLAY_JS = """
   player.playbackRate = activeSpeed;
   player.preservesPitch = true;
   var current = null;
+  // One canonical playback phase makes the sentence player's lifecycle easy
+  // to inspect. The selected sentence, playlist and media element remain the
+  // source of playback data; this phase describes the user-visible lifecycle.
+  var playbackPhase = 'idle'; // idle | loading | playing | paused | error
   var voice = 'f';
   var playlist = null;
   var statusTimer = null;
@@ -1440,6 +1444,7 @@ PLAY_JS = """
 
   function stopAudio() {
     try { player.pause(); } catch (e) {}
+    playbackPhase = 'idle';
     stopTick();
     hideStatus();
     clearWords();
@@ -1582,7 +1587,7 @@ PLAY_JS = """
 
   function updateToggle() {
     if (!dockToggle) return;
-    var playing = !!(current && !player.paused);
+    var playing = playbackPhase === 'playing';
     dockToggle.setAttribute('aria-pressed', playing ? 'true' : 'false');
     dockToggle.setAttribute('aria-label', playing ? '暂停' : '播放');
   }
@@ -1691,6 +1696,7 @@ PLAY_JS = """
   function pauseActive() {
     if (!current) return;
     try { player.pause(); } catch (e) {}
+    playbackPhase = 'paused';
     stopTick();
     syncDock();
     updateToggle();
@@ -1732,6 +1738,7 @@ PLAY_JS = """
         if (done) {
           done();
         } else if (!btn.classList.contains('ktv')) {
+          playbackPhase = 'idle';
           unmark();
           hideDock();
         }
@@ -1860,6 +1867,7 @@ PLAY_JS = """
     spanFrom = span[0];
     spanTo = span[1];
     loadingBtn = btn;
+    playbackPhase = 'loading';
     activeOnEnd = onEnd || null;
     // A new sentence always starts at the page-wide default speed; the menu
     // in the player only overrides the sentence it was opened for.
@@ -1887,6 +1895,7 @@ PLAY_JS = """
     if (!current && !playlist) return;
     if (btn && current && current !== btn) return;
     stopPlaylist();
+    playbackPhase = 'error';
     showStatus('语音加载失败，请重试或切换音色');
   }
 
@@ -1959,8 +1968,18 @@ PLAY_JS = """
   player.addEventListener('error', function () {
     if (current) audioFailed(current);
   });
-  player.addEventListener('play', updateToggle);
-  player.addEventListener('pause', updateToggle);
+  player.addEventListener('play', function () {
+    playbackPhase = 'playing';
+    updateToggle();
+  });
+  player.addEventListener('pause', function () {
+    // A pause event can arrive after a new sentence has entered its loading
+    // phase. Only a real playing → paused transition should update the phase.
+    if (current && playbackPhase === 'playing') {
+      playbackPhase = 'paused';
+    }
+    updateToggle();
+  });
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) return;
     if (playlist) stopPlaylist(); else stopAudio();
