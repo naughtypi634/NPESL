@@ -33,7 +33,6 @@ CONVERSATION_CONTENT = CONTENT / "conversation"
 DRILL_CONTENT = CONTENT / "drill"
 COLLOCATION_CONTENT = CONTENT / "collocation"
 CHARTS_CONTENT = CONTENT / "charts"
-TRAVEL_CONTENT = CONTENT / "travel"
 
 # ---- 应用 ----
 SITE_APP = APPS / "site"
@@ -44,7 +43,6 @@ PHENOMENA_APP = APPS / "phenomena"
 COLLOCATION_APP = APPS / "collocation"
 CONVERSATION_APP = APPS / "conversation"
 CHARTS_APP = APPS / "charts"
-TRAVEL_APP = APPS / "travel"
 
 PHONICS_AUDIO = PHONICS_APP / "audio"
 PHONICS_SOURCE_AUDIO = PHONICS_APP / "source" / "audio"
@@ -52,7 +50,6 @@ IPA_AUDIO = IPA_APP / "audio"
 DRILL_AUDIO = DRILL_APP / "audio"
 PHENOMENA_AUDIO = PHENOMENA_APP / "audio"
 COLLOCATION_AUDIO = COLLOCATION_APP / "audio"
-TRAVEL_AUDIO = TRAVEL_APP / "audio"
 
 # ---- 内容文件 ----
 DRILL_BANK_JSON = DRILL_CONTENT / "questions.json"
