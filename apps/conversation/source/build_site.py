@@ -816,6 +816,7 @@ a { color:inherit; }
 .level:first-child { justify-self:start; }
 .level:nth-child(2) { justify-self:center; }
 .level:last-child { justify-self:end; }
+.level-pane[hidden] { display:none; }
 @media (max-width:420px) {
   .level { padding:8px 12px; font-size:13px; }
   .level .cn { display:none; }
@@ -2280,16 +2281,24 @@ def back(href: str, label: str) -> str:
     )
 
 
-def level_pills(current: str, prefix: str) -> str:
-    links = []
-    for lv in LEVELS:
-        en, cn = LEVEL_LABEL[lv]
-        current_attr = ' aria-current="page"' if lv == current else ""
-        links.append(
-            f'<a class="level" href="{prefix}{lv.lower()}/"{current_attr}>'
-            f'{en}<span class="cn">{cn}</span></a>'
+def level_rows(level: str, units: list) -> str:
+    base = level.lower()
+    sections = []
+    for ui, unit in enumerate(units, 1):
+        rows = []
+        for si, story in enumerate(unit["stories"], 1):
+            slug = f"{ui:02d}-{si:02d}-{slugify(story['title'])}"
+            rows.append(
+                f'<a class="row" href="{base}/{slug}">'
+                f'<span class="num">{si:02d}</span>'
+                f'<span class="t">{html.escape(story["title"])}</span>'
+                '<span class="arrow">›</span></a>'
+            )
+        sections.append(
+            f'<section class="unit"><h2>{html.escape(unit["title"])}</h2>'
+            '<nav class="stories">' + "".join(rows) + "</nav></section>\n"
         )
-    return '<nav class="levels">' + "".join(links) + "</nav>\n"
+    return "".join(sections)
 
 
 def level_title(lv: str) -> str:
@@ -2310,50 +2319,100 @@ def write(path: Path, text: str) -> None:
 # --------------------------------------------------------------------------
 # pages
 # --------------------------------------------------------------------------
-def make_index() -> str:
-    """旧入口直接进 Beginner 篇目列表；级别在列表页顶部切换。"""
-    return """<!doctype html>
+LEVEL_SWITCH_JS = """
+(function () {
+  var defaultKey = __DEFAULT__;
+  var names = __NAMES__;
+  var pills = [].slice.call(document.querySelectorAll('.level[data-level]'));
+  var panes = [].slice.call(document.querySelectorAll('.level-pane[data-level]'));
+  var heading = document.getElementById('level-title');
+  function apply(key) {
+    if (!names[key]) key = defaultKey;
+    for (var i = 0; i < panes.length; i++) {
+      panes[i].hidden = panes[i].getAttribute('data-level') !== key;
+    }
+    for (var j = 0; j < pills.length; j++) {
+      if (pills[j].getAttribute('data-level') === key) {
+        pills[j].setAttribute('aria-current', 'page');
+      } else {
+        pills[j].removeAttribute('aria-current');
+      }
+    }
+    if (heading) heading.textContent = names[key];
+    document.title = 'Conversation Starters · ' + names[key];
+  }
+  function fromHash() {
+    apply((location.hash || '').replace('#', '').toLowerCase());
+  }
+  for (var i = 0; i < pills.length; i++) {
+    pills[i].addEventListener('click', function (event) {
+      event.preventDefault();
+      var key = this.getAttribute('data-level');
+      apply(key);
+      if (location.hash !== '#' + key) {
+        history.replaceState(null, '', '#' + key);
+      }
+    });
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+"""
+
+
+def make_index(all_data: dict) -> str:
+    """一页装下三个级别，顶部按钮原地切换，不重新加载页面。"""
+    levels = [lv for lv in LEVELS if lv in all_data]
+    first = levels[0]
+    names = {lv.lower(): level_title(lv) for lv in levels}
+    pills = []
+    panes = []
+    for lv in levels:
+        key = lv.lower()
+        en, cn = LEVEL_LABEL[lv]
+        current = ' aria-current="page"' if lv == first else ""
+        hidden = "" if lv == first else " hidden"
+        pills.append(
+            f'<a class="level" href="#{key}" data-level="{key}"{current}>'
+            f'{en}<span class="cn">{cn}</span></a>'
+        )
+        panes.append(
+            f'<section class="level-pane" data-level="{key}"{hidden}>'
+            + level_rows(lv, all_data[lv])
+            + "</section>\n"
+        )
+    script = (LEVEL_SWITCH_JS
+              .replace("__DEFAULT__", json.dumps(first.lower()))
+              .replace("__NAMES__", json.dumps(names, ensure_ascii=False)))
+    body = (
+        head(f"Conversation Starters · {level_title(first)}", "../", "",
+             audio_base=audio_base_for(first))
+        + back("../", "NPESL")
+        + f'<h1 id="level-title">{level_title(first)}</h1>\n'
+        + '<nav class="levels">' + "".join(pills) + "</nav>\n"
+        + "".join(panes)
+        + f"<script>{script}</script>\n"
+        + tail("../", audio_base_for(first))
+    )
+    return body
+
+
+def make_level_redirect(level: str) -> str:
+    """旧的 `/conversation/<level>/` 入口回到总列表并选中该级别。"""
+    key = level.lower()
+    return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Conversation Starters</title>
-<link rel="canonical" href="a1/">
-<meta http-equiv="refresh" content="0; url=a1/">
-<script>location.replace("a1/" + location.search + location.hash);</script>
+<link rel="canonical" href="../#{key}">
+<meta http-equiv="refresh" content="0; url=../#{key}">
+<script>location.replace("../#{key}" + location.search);</script>
 </head>
 <body></body>
 </html>
 """
-
-
-def make_level(level: str, units: list) -> str:
-    en, cn = LEVEL_LABEL[level]
-    sections = []
-    for ui, unit in enumerate(units, 1):
-        rows = []
-        for si, story in enumerate(unit["stories"], 1):
-            slug = f"{ui:02d}-{si:02d}-{slugify(story['title'])}"
-            rows.append(
-                f'<a class="row" href="{slug}">'
-                f'<span class="num">{si:02d}</span>'
-                f'<span class="t">{html.escape(story["title"])}</span>'
-                '<span class="arrow">›</span></a>'
-            )
-        sections.append(
-            f'<section class="unit"><h2>{html.escape(unit["title"])}</h2>'
-            '<nav class="stories">' + "".join(rows) + "</nav></section>\n"
-        )
-    body = (
-        head(f"Conversation Starters · {level_title(level)}", "../../", "",
-             audio_base=audio_base_for(level))
-        + back("../../", "NPESL")
-        + f'<h1>{level_title(level)}</h1>\n'
-        + level_pills(level, "../")
-        + "".join(sections)
-        + tail("../../", audio_base_for(level))
-    )
-    return body
 
 
 class PageAudio:
@@ -2717,13 +2776,13 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
             rows.append('<li><div class="q-body">' + inner + "</div></li>")
         return '<ol class="qlist">' + "".join(rows) + "</ol>"
 
-    # 线上这条页面是 /conversation/a1/01-01-family（Cloudflare Pages 去掉
-    # .html 时是 308），浏览器按「文件」解析相对地址，写 ../ 会直接跳到
-    # /conversation/。显式带上级别目录，回的是这一级的篇目列表。
+    # 线上是 /conversation/a1/01-01-family（无扩展名）。`../` 从
+    # .html 和 pretty URL 都回到 /conversation/，再带上级别 hash，
+    # 列表会停在原来这一级。
     body = (
         head(f"{story['title']} · {level_title(level)} · Conversation Starters", "../../",
              STORY_CSS, "en", audio_base=audio_base_for(level))
-        + back(f"../{level.lower()}/", f"{en} {cn}".strip())
+        + back(f"../#{level.lower()}", f"{en} {cn}".strip())
         + f'<p class="unit-label">{html.escape(unit["title"])}</p>\n'
         + title
         + toolbar_html()
@@ -2816,12 +2875,13 @@ def main() -> int:
         if cache_dir.exists():
             audio_maps[voice["key"]] = {p.stem for p in cache_dir.rglob("*.mp3")}
 
-    # 页面
-    write(out / "index.html", make_index())
+    # 总列表始终包含全部级别；只重建某一级时，其余级别的内容照常读进来。
+    index_data = {lv: (data[lv] if lv in data else load_level(lv)) for lv in LEVELS}
+    write(out / "index.html", make_index(index_data))
     stories = 0
     for lv in page_levels:
         units = data[lv]
-        write(out / lv.lower() / "index.html", make_level(lv, units))
+        write(out / lv.lower() / "index.html", make_level_redirect(lv))
         pages_in_level = []
         for ui, unit in enumerate(units, 1):
             for si, story in enumerate(unit["stories"], 1):

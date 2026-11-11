@@ -676,13 +676,14 @@ const cases = [
   {
     name: 'conversation-chrome', path: '/conversation/a1/01-01-family.html',
     async run() {
-      // 返回键要回这一级的篇目列表。线上是无扩展名地址
-      // （/conversation/a1/01-01-family），写 ../ 会多退一层到 /conversation/。
+      // 返回键要回总列表，并带上这一级的 hash，列表停在原级别。
       const back = await evaluate(`(() => {
         const a = document.querySelector('.npesl-back');
-        return a ? new URL(a.getAttribute('href'), location.href).pathname : '';
+        if (!a) return null;
+        const u = new URL(a.getAttribute('href'), location.href);
+        return { path: u.pathname, hash: u.hash };
       })()`);
-      const backOk = back === '/conversation/a1/';
+      const backOk = back && back.path === '/conversation/' && back.hash === '#a1';
 
       // 播放条出现时主题按钮不能消失；手机上还要让到播放条上方，别被压住。
       await send('Emulation.setDeviceMetricsOverride', {
@@ -713,8 +714,45 @@ const cases = [
       const ok = backOk && dock && theme && !!box && !box.overlap && box.gap >= 0;
       return {
         ok,
-        detail: `back=${back} dock=${dock} theme=${theme} `
+        detail: `back=${back ? back.path + back.hash : ''} dock=${dock} theme=${theme} `
           + `overlap=${box ? box.overlap : 'n/a'} gap=${box ? box.gap : 'n/a'}`,
+      };
+    },
+  },
+  {
+    name: 'conversation-switch', path: '/conversation/',
+    async run() {
+      // 级别按钮原地切换：不换页面，只换显示的列表、标题和 hash。
+      const state = () => evaluate(`(() => ({
+        path: location.pathname,
+        hash: location.hash,
+        title: document.querySelector('h1').textContent,
+        docTitle: document.title,
+        visible: [...document.querySelectorAll('.level-pane')]
+          .filter((p) => !p.hidden).map((p) => p.dataset.level),
+        current: (document.querySelector('.level[aria-current="page"]') || {})
+          .getAttribute('data-level'),
+      }))()`);
+      const first = await state();
+      const firstName = first.docTitle;
+      await evaluate('document.querySelector(".level[data-level=b1]").click()');
+      const middle = await state();
+      await evaluate('document.querySelector(".level[data-level=eslse]").click()');
+      const last = await state();
+      await evaluate('document.querySelector(".level[data-level=a1]").click()');
+      const back = await state();
+      const seen = [first, middle, last, back];
+      const want = ['a1', 'b1', 'eslse', 'a1'];
+      const names = ['Beginner', 'Intermediate', 'ESLSE', 'Beginner'];
+      const ok = seen.every((s, i) => s.path === '/conversation/'
+        && s.current === want[i] && s.title === names[i]
+        && s.visible.length === 1 && s.visible[0] === want[i])
+        && middle.hash === '#b1' && last.hash === '#eslse'
+        && back.hash === '#a1' && firstName.includes('Beginner');
+      return {
+        ok,
+        detail: seen.map((s) => `${s.title}:${s.hash}:${s.visible.join('')}`).join(' ')
+          + ` title=${JSON.stringify(firstName)}`,
       };
     },
   },
