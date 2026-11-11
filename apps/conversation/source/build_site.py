@@ -803,12 +803,22 @@ a { color:inherit; }
   margin:0 0 10px; color:var(--muted); font-size:13px; font-weight:600;
   letter-spacing:0.06em; text-transform:uppercase;
 }
-.levels { display:flex; flex-wrap:wrap; gap:8px; margin-top:26px; }
+.levels {
+  display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
+  gap:8px; margin-top:26px;
+}
 .level {
-  display:inline-flex; align-items:baseline; gap:7px;
+  display:inline-flex; align-items:baseline; gap:7px; white-space:nowrap;
   padding:9px 16px; border-radius:999px; text-decoration:none;
   background:var(--surface); color:var(--fg); font-size:14px; font-weight:600;
   transition:background-color .15s ease,color .15s ease;
+}
+.level:first-child { justify-self:start; }
+.level:nth-child(2) { justify-self:center; }
+.level:last-child { justify-self:end; }
+@media (max-width:420px) {
+  .level { padding:8px 12px; font-size:13px; }
+  .level .cn { display:none; }
 }
 .level:hover { background:var(--surface-strong); }
 .level[aria-current="page"] { background:var(--blue); color:var(--on-blue); }
@@ -2301,24 +2311,20 @@ def write(path: Path, text: str) -> None:
 # pages
 # --------------------------------------------------------------------------
 def make_index() -> str:
-    rows = []
-    for lv in LEVELS:
-        en, cn = LEVEL_LABEL[lv]
-        label = f"{en} · {cn}" if cn else en
-        rows.append(
-            f'<a class="row" href="{lv.lower()}/">'
-            f'<span class="num"></span>'
-            f'<span class="t">{label}</span>'
-            '<span class="arrow">›</span></a>'
-        )
-    body = (
-        head("Conversation Starters", "../", "")
-        + back("../", "NPESL")
-        + '<h1>Conversation Starters</h1>\n'
-        + '<nav class="list">' + "".join(rows) + "</nav>\n"
-        + tail("../")
-    )
-    return body
+    """旧入口直接进 Beginner 篇目列表；级别在列表页顶部切换。"""
+    return """<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conversation Starters</title>
+<link rel="canonical" href="a1/">
+<meta http-equiv="refresh" content="0; url=a1/">
+<script>location.replace("a1/" + location.search + location.hash);</script>
+</head>
+<body></body>
+</html>
+"""
 
 
 def make_level(level: str, units: list) -> str:
@@ -2341,7 +2347,7 @@ def make_level(level: str, units: list) -> str:
     body = (
         head(f"Conversation Starters · {level_title(level)}", "../../", "",
              audio_base=audio_base_for(level))
-        + back("../", "Conversation Starters")
+        + back("../../", "NPESL")
         + f'<h1>{level_title(level)}</h1>\n'
         + level_pills(level, "../")
         + "".join(sections)
