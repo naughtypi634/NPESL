@@ -69,10 +69,10 @@ UNITS.append({
                 },
                 "Growing up, we spent a lot of time together as a family, whether it was playing board games, going on hikes, or just sitting around the dinner table and catching up on our day.": {
                     "primary": ["family", "day"],
-                    "secondary": ["games", "hikes", "table"],
-                    "rise": ["board", "games", "on", "hikes"],
+                    "secondary": ["games", "hikes"],
+                    "rise": ["games", "hikes"],
                     "fall": ["our", "day"],
-                    "note": "主句焦点是 family（一家人在一起）；三个并列活动是举例，前两项整段升调，末项 our day 降调收束。",
+                    "note": "主句焦点是 family（一家人在一起）；两个并列活动 games / hikes 升调，末项 our day 降调收束。dinner table 只是背景，不标重音。",
                 },
                 "My parents have been married for over 30 years, and they have always been great role models for me and my siblings.": {
                     "primary": ["years", "models"],
