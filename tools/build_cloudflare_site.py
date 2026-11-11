@@ -11,7 +11,7 @@ splits into two deploy roots:
         phonics/                    自然拼读 48 课（index + lessons）
         ipa/                        美式英语音标表（index + audio）
         drill/                      Question Drill（index + audio/f,m）
-        conversation/               Conversation Starters 页面（A1–C2 + ESLSE）
+        conversation/               Conversation Starters 页面（Beginner / Intermediate / ESLSE）
 
     build/cloudflare-audio/         音频站 → 项目 npesl-audio
         audio/ava/sprites/…         全部级别女声（每页一条 sprite）

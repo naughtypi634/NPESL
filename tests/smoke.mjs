@@ -308,7 +308,7 @@ async function probeConversationPlayAll() {
 
 // Every level, both voices: the sprite must seek, play, and light a word.
 async function probeConversationLevels() {
-  const levels = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2', 'eslse'];
+  const levels = ['a1', 'b1', 'eslse'];
   const notes = [];
   for (const level of levels) {
     await goto(`/conversation/${level}/01-01-family.html`);

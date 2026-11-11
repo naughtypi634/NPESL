@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站。应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters A1–C2 + ESLSE、常见发音现象 30 章、短语搭配。旅行英语的内容与音频母版保留，交互层已清空，待从头重做，暂不上线。
+成人英语练习网站。应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters Beginner / Intermediate / ESLSE、常见发音现象 30 章、短语搭配。旅行英语的内容与音频母版保留，交互层已清空，待从头重做，暂不上线。
 
 **本库是独立项目。** 2026-10-28 从 ESLStudio 复制出来，作为岔路点独立演进；不读、不写、不依赖 ESLStudio 或任何其他仓库。内容与代码都在本库内。
 
@@ -20,7 +20,7 @@ build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
 - Python 一律用本库 `.venv`。
 - **路径常量集中在 `tools/paths.py`**。要搬目录，只改它，然后重跑全部构建并用 `tools/audit_build.py --diff` 证明产物没变。
 - 站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`、`/collocation/`），源目录不能直接当站点预览；预览走 `tools/build_cloudflare_site.py` 的暂存目录。
-- 对话各级（A1–C2 与 ESLSE）的页面都指向独立音频站 `https://npesl-audio.pages.dev/audio/`，所有级别的 sprite 都在音频站，不要再给 ESLSE 单独开本地路径分支。`tools/check_assets.py` 按音频站校验。
+- 对话各级（Beginner / Intermediate 与 ESLSE）的页面都指向独立音频站 `https://npesl-audio.pages.dev/audio/`，所有级别的 sprite 都在音频站，不要再给 ESLSE 单独开本地路径分支。`tools/check_assets.py` 按音频站校验。
 
 ## 二 · 内容标准
 

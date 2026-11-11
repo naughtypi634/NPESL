@@ -32,7 +32,7 @@ import requests
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 CONTENT = ROOT / "content" / "conversation"
-LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2", "ESLSE")
+LEVELS = ("A1", "B1", "ESLSE")
 
 ENDPOINT = os.environ.get("ZH_TRANSLATE_URL",
                           "https://api.deepseek.com/anthropic/v1/messages")

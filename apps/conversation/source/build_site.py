@@ -27,7 +27,7 @@ Cloudflare Pages 单次部署 20,000 个文件的上限。页面统一引用音�
 用法：
     python -I apps/conversation/source/build_site.py                 # 全部页面 + 男女两套语音
     python -I apps/conversation/source/build_site.py --levels A1
-    python -I apps/conversation/source/build_site.py --audio-levels A1,A2
+    python -I apps/conversation/source/build_site.py --audio-levels A1,B1
     python -I apps/conversation/source/build_site.py --voices female
     python -I apps/conversation/source/build_site.py --no-audio      # 只建页面
 """
@@ -73,14 +73,10 @@ AUDIO_BASE_OVERRIDE = None
 # 所有级别（含 ESLSE）统一走音频站。改用 sprite 后音频站只有 700 个文件，
 # 不再受 Cloudflare Pages 20,000 文件上限约束，页面里也只出现一种音频地址。
 
-LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2", "ESLSE")
+LEVELS = ("A1", "B1", "ESLSE")
 LEVEL_LABEL = {
     "A1": ("Beginner", "入门"),
-    "A2": ("Elementary", "初级"),
     "B1": ("Intermediate", "中级"),
-    "B2": ("Upper Intermediate", "中高级"),
-    "C1": ("Advanced", "高级"),
-    "C2": ("Proficiency", "精通"),
     "ESLSE": ("ESLSE", ""),
 }
 VOICES = [
@@ -2281,16 +2277,14 @@ def level_pills(current: str, prefix: str) -> str:
         current_attr = ' aria-current="page"' if lv == current else ""
         links.append(
             f'<a class="level" href="{prefix}{lv.lower()}/"{current_attr}>'
-            f'{lv}<span class="cn">{cn}</span></a>'
+            f'{en}<span class="cn">{cn}</span></a>'
         )
     return '<nav class="levels">' + "".join(links) + "</nav>\n"
 
 
 def level_title(lv: str) -> str:
-    en, cn = LEVEL_LABEL[lv]
-    if en == lv:
-        return en
-    return f"{lv} · {en}"
+    en, _ = LEVEL_LABEL[lv]
+    return en
 
 
 def audio_base_for(level: str) -> str:
@@ -2310,11 +2304,10 @@ def make_index() -> str:
     rows = []
     for lv in LEVELS:
         en, cn = LEVEL_LABEL[lv]
-        num = lv if len(lv) <= 2 else ""
         label = f"{en} · {cn}" if cn else en
         rows.append(
             f'<a class="row" href="{lv.lower()}/">'
-            f'<span class="num">{num}</span>'
+            f'<span class="num"></span>'
             f'<span class="t">{label}</span>'
             '<span class="arrow">›</span></a>'
         )
@@ -2346,7 +2339,7 @@ def make_level(level: str, units: list) -> str:
             '<nav class="stories">' + "".join(rows) + "</nav></section>\n"
         )
     body = (
-        head(f"Conversation Starters · {level}", "../../", "",
+        head(f"Conversation Starters · {level_title(level)}", "../../", "",
              audio_base=audio_base_for(level))
         + back("../", "Conversation Starters")
         + f'<h1>{level_title(level)}</h1>\n'
@@ -2722,9 +2715,9 @@ def make_story(level: str, unit: dict, ui: int, story: dict, si: int,
     # .html 时是 308），浏览器按「文件」解析相对地址，写 ../ 会直接跳到
     # /conversation/。显式带上级别目录，回的是这一级的篇目列表。
     body = (
-        head(f"{story['title']} · {level} · Conversation Starters", "../../",
+        head(f"{story['title']} · {level_title(level)} · Conversation Starters", "../../",
              STORY_CSS, "en", audio_base=audio_base_for(level))
-        + back(f"../{level.lower()}/", f"{level} {cn}".strip())
+        + back(f"../{level.lower()}/", f"{en} {cn}".strip())
         + f'<p class="unit-label">{html.escape(unit["title"])}</p>\n'
         + title
         + toolbar_html()

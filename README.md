@@ -7,7 +7,7 @@
 | 自然拼读阅读训练 48 课 | https://npesl.pages.dev/phonics/ | `apps/phonics/` |
 | 美式英语音标表 | https://npesl.pages.dev/ipa/ | `apps/ipa/` |
 | Question Drill 中译英随机练习 | https://npesl.pages.dev/drill/ | `apps/drill/` |
-| Conversation Starters A1–C2 + ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `apps/conversation/` |
+| Conversation Starters Beginner / Intermediate / ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `apps/conversation/` |
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
 | 短语搭配 Collocations（41 主题 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
 
@@ -106,7 +106,7 @@ npx --yes wrangler@latest pages deploy build\cloudflare-site --project-name npes
 npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npesl-audio --branch main
 ```
 
-主站是 https://npesl.pages.dev/。音频单独部署到 https://npesl-audio.pages.dev/audio/：A1–C2 与 ESLSE 全部级别的两套语音都是每页一条的 sprite（约 700 个文件），页面统一指向音频站。两边都远低于 Cloudflare Pages 单次 20,000 个文件的上限，但分开部署可以让音频按 immutable 长缓存独立更新。
+主站是 https://npesl.pages.dev/。音频单独部署到 https://npesl-audio.pages.dev/audio/：Beginner、Intermediate 与 ESLSE 的两套语音都是每页一条的 sprite，页面统一指向音频站。两边都远低于 Cloudflare Pages 单次 20,000 个文件的上限，但分开部署可以让音频按 immutable 长缓存独立更新。
 
 ## 自检
 
