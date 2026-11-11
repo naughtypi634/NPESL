@@ -59,7 +59,7 @@ def token_count(text: str) -> int:
 
 
 def marked_html(text: str, spec) -> str:
-    primary, secondary, rise, fall = spec
+    primary, secondary, rise, fall, weak = spec
     matches = list(pron.WORD_RE.finditer(text))
     out: list[str] = []
     cursor = 0
@@ -72,6 +72,8 @@ def marked_html(text: str, spec) -> str:
             cls, mark = "secondary", "↑"
         elif index in secondary:
             cls, mark = "secondary", "2"
+        elif index in weak:
+            cls, mark = "weak", "3"
         else:
             continue
         out.append(html.escape(text[cursor:match.start()]))
@@ -83,7 +85,7 @@ def marked_html(text: str, spec) -> str:
 
 
 def words_line(text: str, spec) -> str:
-    primary, secondary, rise, fall = spec
+    primary, secondary, rise, fall, weak = spec
     matches = list(pron.WORD_RE.finditer(text))
 
     def names(indices):
@@ -94,7 +96,8 @@ def words_line(text: str, spec) -> str:
 
     return (f"主重音 1：{names(primary)}　"
             f"次重音 2：{names(secondary)}　"
-            f"升调 ↑：{names(rise)}　降调 ↓：{names(fall)}")
+            f"升调 ↑：{names(rise)}　降调 ↓：{names(fall)}　"
+            f"弱化 3：{names(weak)}")
 
 
 def audio_block(text: str, spec) -> str:
@@ -157,7 +160,7 @@ def main() -> int:
         )
         for section, text in playable(story):
             spec = build_site.stress_spec(story, text)
-            primary, secondary, rise, fall = spec
+            primary, secondary, rise, fall, weak = spec
             if section in {"body", "comp", "conv"} and not primary:
                 if args.require_all:
                     print(f"FIX  {story['title']} [{section}] 未标注：{text[:60]}…")
@@ -177,13 +180,16 @@ def main() -> int:
             if len(rise) > 5 or len(fall) > 3:
                 print(f"FIX  {story['title']}: 升降调过多：{text[:50]}…")
                 fixes += 1
+            if len(weak) > 4:
+                print(f"FIX  {story['title']}: 弱化词过多：{text[:50]}…")
+                fixes += 1
             if set(primary) & set(secondary):
                 print(f"FIX  {story['title']}: 主/次重音重叠：{text[:50]}…")
                 fixes += 1
             if set(rise) & set(fall):
                 print(f"FIX  {story['title']}: 同一词既升又降：{text[:50]}…")
                 fixes += 1
-            bad = [i for i in (*primary, *secondary, *rise, *fall)
+            bad = [i for i in (*primary, *secondary, *rise, *fall, *weak)
                    if i < 0 or i >= count]
             if bad:
                 print(f"FIX  {story['title']}: 索引越界 {bad}（共 {count} 个词）：{text[:50]}…")
@@ -233,6 +239,8 @@ p.en {{ margin:0 0 8px; font-size:16px; }}
   padding:0 2px; font-weight:650; }}
 .secondary {{ color:var(--s); background:var(--s-soft); border-radius:4px;
   padding:0 2px; font-weight:550; }}
+.weak {{ color:var(--muted); background:var(--rule); border-radius:4px;
+  padding:0 2px; }}
 sup {{ font-size:9px; margin-left:1px; opacity:.75; }}
 p.words {{ margin:0 0 8px; color:var(--muted); font-size:13px; }}
 p.note {{ margin:0 0 8px; color:var(--muted); font-size:13px;
@@ -245,7 +253,7 @@ audio {{ width:min(280px,100%); height:32px; }}
 p.none {{ color:var(--muted); font-size:13px; margin:0; }}
 </style></head><body><main>
 <h1>{label} · logical stress</h1>
-<p class="lead">{len(rows_html)} 篇、{annotated} 句已标注。绿色 1 为主重音，橙色 2 为次重音。</p>
+<p class="lead">{len(rows_html)} 篇、{annotated} 句已标注。绿色 1 为主重音，橙色 2 为次重音，灰色 3 为弱化。</p>
 {''.join(rows_html)}
 </main></body></html>"""
 
