@@ -700,6 +700,40 @@ __BANK_SCRIPT__
 const BANK = __BANK_DATA__;
 const CHIPS = window.NPESL_CHIPS;
 
+/* ── 显式状态机 ─────────────────────────────────────────────────
+   页面里四台机器，状态和事件都写死在转移表里；DOM 只从状态推导，
+   不再靠零散布尔量互相猜。运行时快照见 window.__drill.snapshot()。
+
+   session  idle → asking ⇄ revealed
+            asking/revealed --start→ asking（旧题入历史）
+            asking/revealed --prev→ asking|revealed（出历史）
+            --restart→ 清掉历史、重新抽题
+   filters  <bucket>/<chip>：换 bucket 时 chip 归 all；chip 必须在 bucket 内
+   browser  closed → open → closing → closed；closing 时可以重新 open
+   audio    idle → loading → seeking → playing；任意非 idle --stop/fail→ idle
+*/
+function createMachine(name, initial, table) {
+  let state = initial;
+  const listeners = [];
+  return {
+    name: name,
+    get state() { return state; },
+    can(event) {
+      return !!(table[state] && table[state][event]);
+    },
+    send(event, payload) {
+      const row = table[state];
+      const next = row && row[event];
+      const target = typeof next === 'function' ? next(payload) : next;
+      if (target == null) return false;   // 当前状态不允许，或被守卫拦下
+      state = target;
+      for (const fn of listeners) fn(state, event, payload);
+      return true;
+    },
+    on(fn) { listeners.push(fn); },
+  };
+}
+
 const $ = (id) => document.getElementById(id);
 
 function showError(message) {
@@ -896,20 +930,38 @@ window.addEventListener('resize', () => {
 
 const player = new Audio();
 player.preload = 'none';
-let playingBtn = null;
-let cueRaf = 0;
-let spriteVoice = null;
 const SOURCES = new Map();
 const SOURCE_KEYS = [];
 let loadedSrc = null;
 
-function markIdle() {
-  if (cueRaf) { cancelAnimationFrame(cueRaf); cueRaf = 0; }
-  if (playingBtn) playingBtn.classList.remove('is-playing');
-  playingBtn = null;
+/* 播放器状态：idle → loading（取 sprite）→ seeking（跳到本句）→ playing。
+   audioBtn 是当前高亮按钮；audioToken 是异步回调的代次，换句或停下就作废。 */
+let audioBtn = null;
+let audioRaf = 0;
+let audioToken = 0;
+let audioStopAt = 0;
+
+const audio = createMachine('audio', 'idle', {
+  idle: { load: 'loading' },
+  loading: { load: 'loading', seek: 'seeking', stop: 'idle', fail: 'idle' },
+  seeking: { load: 'loading', play: 'playing', stop: 'idle', fail: 'idle' },
+  playing: { load: 'loading', finish: 'idle', stop: 'idle', fail: 'idle' },
+});
+
+function audioAlive(token) {
+  return token === audioToken && audio.state !== 'idle';
 }
 
-player.addEventListener('ended', markIdle);
+function audioClear() {
+  if (audioRaf) { cancelAnimationFrame(audioRaf); audioRaf = 0; }
+  if (audioBtn) {
+    audioBtn.classList.remove('is-playing');
+    delete audioBtn.dataset.state;
+    audioBtn = null;
+  }
+}
+
+function audioStop() { audio.send('stop'); }
 
 /* Cloudflare Pages 的静态资源不支持 Range 请求（Range 被忽略，永远 200 整包），
    媒体元素在没有 Range 时连 seekable 都只有 [0,0]，点第二个说法会播回第一句。
@@ -941,28 +993,71 @@ function sourceFor(url) {
   return pending;
 }
 
-/* 每题每音色一条 sprite：audio/sprites/<name>-<voice>.mp3。
-   每句只知道自己在 sprite 里的起止时间。找不到就停下，
-   不回退到设备语音。 */
-function playCue(btn, answer, voice) {
-  const question = current;
-  const at = answer && answer.at && answer.at[voice];
-  const sprite = question && question.sp && question.sp[voice];
-  if (playingBtn === btn && !player.paused) {
-    player.pause();
-    markIdle();
+function startCueWatch(token, stopAt) {
+  if (audioRaf) cancelAnimationFrame(audioRaf);
+  const tick = () => {
+    if (!audioAlive(token) || audio.state !== 'playing') { audioRaf = 0; return; }
+    if (player.currentTime >= stopAt - 0.008) { audio.send('finish'); return; }
+    audioRaf = requestAnimationFrame(tick);
+  };
+  audioRaf = requestAnimationFrame(tick);
+}
+
+/* rAF 在后台标签页会被节流；timeupdate 兜底，保证停在句子末尾，
+   而不是一路播到整条 sprite 的终点。 */
+player.addEventListener('timeupdate', () => {
+  if (audio.state === 'playing' && player.currentTime >= audioStopAt - 0.008) {
+    audio.send('finish');
+  }
+});
+player.addEventListener('ended', () => {
+  if (audio.state === 'playing') audio.send('finish');
+});
+
+audio.on((state, event, payload) => {
+  const card = $('card');
+  if (card) card.setAttribute('data-audio', state);
+
+  if (event === 'load') {
+    audioToken += 1;
+    audioClear();
+    try { player.pause(); } catch (e) {}
+    audioBtn = payload.btn;
+    audioBtn.classList.add('is-playing');
+    audioBtn.dataset.state = 'loading';
+    audioStopAt = payload.at[1];
+    const token = audioToken;
+    const url = 'audio/sprites/' + payload.sprite + '-' + payload.voice + '.mp3';
+    player.onerror = () => { if (audioAlive(token)) audio.send('fail'); };
+    sourceFor(url).then((src) => {
+      if (!audioAlive(token)) return;
+      if (!src) { audio.send('fail'); return; }
+      if (loadedSrc !== src) {
+        player.src = src;
+        loadedSrc = src;
+      }
+      beginCue(token, payload.at[0]);
+    });
     return;
   }
-  markIdle();
+  if (event === 'seek') {
+    if (audioBtn) audioBtn.dataset.state = 'seeking';
+    return;
+  }
+  if (event === 'play') {
+    if (audioBtn) audioBtn.dataset.state = 'playing';
+    startCueWatch(audioToken, audioStopAt);
+    return;
+  }
+  /* stop / fail / finish：停声、清高亮、作废所有在途回调。 */
+  audioToken += 1;
+  audioClear();
   try { player.pause(); } catch (e) {}
-  if (!at || !sprite) return;
-  const url = 'audio/sprites/' + sprite + '-' + voice + '.mp3';
-  const fail = () => { if (playingBtn === btn) markIdle(); };
-  player.onerror = fail;
-  playingBtn = btn;
-  btn.classList.add('is-playing');
-  const startAt = at[0];
-  const stopAt = at[1];
+});
+
+function beginCue(token, startAt) {
+  if (!audioAlive(token)) return;
+  const fail = () => { if (audioAlive(token)) audio.send('fail'); };
 
   // 只有落进 seekable 的位置才跳得动；站点不支持 Range 时它长期只有 [0,0]。
   const seekableEnd = () => {
@@ -976,39 +1071,30 @@ function playCue(btn, answer, voice) {
 
   // 拿不到整包时（本地文件、跨域不让 fetch）只有媒体元素可用：等目标位置变
   // 成可跳的再试，别把用户丢在错误的位置上。
-  const waitForData = (seek, from, attempt) => {
-    if (playingBtn !== btn) return;
-    if (seekableEnd() >= from - 0.01) { seek(); return; }
+  const waitForData = (attempt) => {
+    if (!audioAlive(token)) return;
+    if (seekableEnd() >= startAt - 0.01) { seek(); return; }
     if (attempt > 40) { fail(); return; }
-    setTimeout(() => waitForData(seek, from, attempt + 1), 250);
+    setTimeout(() => waitForData(attempt + 1), 250);
   };
 
   let retries = 0;
   const play = () => {
-    if (playingBtn !== btn) return;
+    if (!audioAlive(token)) return;
     if (player.currentTime < startAt - 0.15) {
       // seek 没落地：宁可等数据，也不要从整条音频的开头播起。
       if (++retries > 3) { fail(); return; }
-      waitForData(seek, startAt, 0);
+      waitForData(0);
       return;
     }
     player.playbackRate = 1;
     const started = player.play();
+    audio.send('play');
     if (started && started.catch) started.catch(fail);
-    const tick = () => {
-      if (playingBtn !== btn) return;
-      if (player.currentTime >= stopAt - 0.008) {
-        player.pause();
-        markIdle();
-        return;
-      }
-      cueRaf = requestAnimationFrame(tick);
-    };
-    cueRaf = requestAnimationFrame(tick);
   };
 
   const seek = () => {
-    if (playingBtn !== btn) return;
+    if (!audioAlive(token)) return;
     if (Math.abs(player.currentTime - startAt) < 0.02) { play(); return; }
     let done = false;
     const onSeeked = () => {
@@ -1023,7 +1109,7 @@ function playCue(btn, answer, voice) {
     } catch (e) {
       player.removeEventListener('seeked', onSeeked);
       done = true;
-      waitForData(seek, startAt, 0);
+      waitForData(0);
       return;
     }
     // 个别浏览器 seek 后不派发 seeked，别把用户卡在原地。
@@ -1031,55 +1117,43 @@ function playCue(btn, answer, voice) {
       if (done) return;
       done = true;
       player.removeEventListener('seeked', onSeeked);
-      if (playingBtn === btn) play();
+      if (audioAlive(token)) play();
     }, 1500);
   };
 
-  const begin = () => {
-    if (playingBtn !== btn) return;
-    if (player.readyState < 1) {
-      const onLoaded = () => {
-        player.removeEventListener('loadedmetadata', onLoaded);
-        seek();
-      };
-      player.addEventListener('loadedmetadata', onLoaded);
-      try { player.load(); } catch (e) {}
-    } else {
+  if (player.readyState < 1) {
+    const onLoaded = () => {
+      player.removeEventListener('loadedmetadata', onLoaded);
+      if (!audioAlive(token)) return;
+      audio.send('seek');
       seek();
-    }
-  };
-
-  sourceFor(url).then((src) => {
-    if (playingBtn !== btn) return;
-    if (!src) { fail(); return; }
-    if (loadedSrc !== src) {
-      player.src = src;
-      loadedSrc = src;
-      spriteVoice = voice;
-    }
-    begin();
-  });
+    };
+    player.addEventListener('loadedmetadata', onLoaded);
+    try { player.load(); } catch (e) {}
+  } else {
+    audio.send('seek');
+    seek();
+  }
 }
 
-let bucket = 'all';
-let cat = 'all';
-let deck = [];
-let current = null;
-let revealed = false;
-let history = [];
-const HISTORY_MAX = 50;
-let browserTimer = 0;
-let browseTrigger = null;
-let browserAll = [];
-let browserItems = [];
-let browserFirst = -1;
-let browserLast = -1;
-let browserRaf = 0;
-let searchTimer = 0;
+/* 每题每音色一条 sprite：audio/sprites/<name>-<voice>.mp3。
+   每句只知道自己在 sprite 里的起止时间。找不到就停下，
+   不回退到设备语音。 */
+function playCue(btn, answer, voice) {
+  const at = answer && answer.at && answer.at[voice];
+  const sprite = current && current.sp && current.sp[voice];
+  // 同一个按钮再点一次 = 停；任何其他按钮 = 换句（loading 中也一样）。
+  if (audioBtn === btn && audio.state !== 'idle') {
+    audio.send('stop');
+    return;
+  }
+  if (!at || !sprite) { audio.send('stop'); return; }
+  audio.send('load', { btn: btn, at: at, sprite: sprite, voice: voice });
+}
 
-const chipLabel = (id) => (CHIPS.chips[id] || {}).label || id;
-const bucketDef = (id) => (CHIPS.buckets || []).find((b) => b.id === id);
-const bucketLabel = (id) => (bucketDef(id) || {}).label || '全部场景';
+function chipLabel(id) { return (CHIPS.chips[id] || {}).label || id; }
+function bucketDef(id) { return (CHIPS.buckets || []).find((b) => b.id === id); }
+function bucketLabel(id) { return (bucketDef(id) || {}).label || '全部场景'; }
 
 function allChipIds() {
   const seen = new Set();
@@ -1091,6 +1165,125 @@ function allChipIds() {
   }
   return out;
 }
+
+/* ── session：题目生命周期 ─────────────────────────────────────── */
+let current = null;
+let deck = [];
+let past = [];
+const HISTORY_MAX = 50;
+
+const session = createMachine('session', 'idle', {
+  idle: {
+    start: () => startQuestion(false),
+    select: (q) => selectQuestion(q),
+    restart: () => startQuestion(true),
+  },
+  asking: {
+    start: () => startQuestion(false),
+    reveal: 'revealed',
+    prev: () => restorePrevious(),
+    select: (q) => selectQuestion(q),
+    restart: () => startQuestion(true),
+  },
+  revealed: {
+    start: () => startQuestion(false),
+    prev: () => restorePrevious(),
+    select: (q) => selectQuestion(q),
+    restart: () => startQuestion(true),
+  },
+});
+
+function remember(q, wasRevealed) {
+  past.push({ q: q, revealed: wasRevealed });
+  if (past.length > HISTORY_MAX) past.shift();
+}
+
+function startQuestion(restart) {
+  if (restart) {
+    deck = [];
+    past = [];
+    current = null;
+  } else if (current) {
+    remember(current, session.state === 'revealed');
+  }
+  const q = draw();
+  if (!q) return null;
+  current = q;
+  return 'asking';
+}
+
+function selectQuestion(q) {
+  if (q === current) return null;
+  if (current) remember(current, session.state === 'revealed');
+  deck = deck.filter((x) => x !== q);
+  current = q;
+  return 'asking';
+}
+
+function restorePrevious() {
+  if (!past.length) return null;
+  const entry = past.pop();
+  current = entry.q;
+  return entry.revealed ? 'revealed' : 'asking';
+}
+
+/* ── filters：bucket/chip 两维筛选 ──────────────────────────────── */
+const filters = createMachine('filters', 'all/all', (() => {
+  const table = {};
+  const add = (state) => {
+    const bucket = state.split('/')[0];
+    table[state] = {
+      bucket: (id) => {
+        if (id !== 'all' && !bucketDef(id)) return null;
+        const next = id + '/all';
+        return next === filters.state && current ? null : next;
+      },
+      chip: (id) => {
+        if (id !== 'all') {
+          const valid = bucket === 'all'
+            ? allChipIds().indexOf(id) !== -1
+            : bucketDef(bucket).chips.indexOf(id) !== -1;
+          if (!valid) return null;
+        }
+        const next = bucket + '/' + id;
+        return next === filters.state && current ? null : next;
+      },
+    };
+  };
+  add('all/all');
+  for (const b of CHIPS.buckets || []) {
+    add(b.id + '/all');
+    for (const id of b.chips) add(b.id + '/' + id);
+  }
+  for (const id of allChipIds()) add('all/' + id);
+  return table;
+})());
+
+function filterBucket() { return filters.state.split('/')[0]; }
+function filterChip() { return filters.state.split('/')[1]; }
+
+/* ── browser：浏览题库浮层 ─────────────────────────────────────── */
+let browseTrigger = null;
+let browserAfter = null;
+let browserTimer = 0;
+let browserAll = [];
+let browserItems = [];
+let browserFirst = -1;
+let browserLast = -1;
+let browserRaf = 0;
+let searchTimer = 0;
+
+const browser = createMachine('browser', 'closed', {
+  closed: { open: 'open' },
+  open: { close: 'closing' },
+  closing: { open: 'open', finish: 'closed' },
+});
+
+/* 换题、翻页、换筛选都走这里：先停掉上一句的播放，再重画。 */
+session.on(() => {
+  audioStop();
+  paintSession();
+});
 
 function fillCats() {
   const top = $('buckets');
@@ -1105,20 +1298,20 @@ function fillCats() {
     btn.className = 'catBtn';
     btn.dataset.bucket = b.id;
     btn.textContent = b.label;
-    btn.setAttribute('aria-pressed', String(b.id === bucket));
+    btn.setAttribute('aria-pressed', String(b.id === filterBucket()));
     btn.addEventListener('click', () => selectBucket(b.id));
     top.appendChild(btn);
   }
 
-  const def = bucketDef(bucket);
-  const ids = bucket === 'all' ? allChipIds() : (def ? def.chips : []);
+  const def = bucketDef(filterBucket());
+  const ids = filterBucket() === 'all' ? allChipIds() : (def ? def.chips : []);
   for (const id of ['all'].concat(ids)) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'catBtn';
     btn.dataset.cat = id;
     btn.textContent = id === 'all' ? '全部' : chipLabel(id);
-    btn.setAttribute('aria-pressed', String(id === cat));
+    btn.setAttribute('aria-pressed', String(id === filterChip()));
     btn.addEventListener('click', () => selectChip(id));
     sub.appendChild(btn);
   }
@@ -1126,25 +1319,25 @@ function fillCats() {
 
 function syncFilters() {
   for (const btn of $('buckets').querySelectorAll('.catBtn')) {
-    btn.setAttribute('aria-pressed', String(btn.dataset.bucket === bucket));
+    btn.setAttribute('aria-pressed', String(btn.dataset.bucket === filterBucket()));
   }
   for (const btn of $('cats').querySelectorAll('.catBtn')) {
-    btn.setAttribute('aria-pressed', String(btn.dataset.cat === cat));
+    btn.setAttribute('aria-pressed', String(btn.dataset.cat === filterChip()));
   }
   updateBrowseCount();
 }
 
 function pool() {
   let list = BANK;
-  const def = bucketDef(bucket);
+  const def = bucketDef(filterBucket());
   if (def) list = list.filter((q) => def.chips.indexOf(q.chip) !== -1);
-  if (cat !== 'all') list = list.filter((q) => q.chip === cat);
+  if (filterChip() !== 'all') list = list.filter((q) => q.chip === filterChip());
   return list;
 }
 
 function scopeLabel() {
-  if (cat !== 'all') return chipLabel(cat);
-  if (bucket !== 'all') return bucketLabel(bucket);
+  if (filterChip() !== 'all') return chipLabel(filterChip());
+  if (filterBucket() !== 'all') return bucketLabel(filterBucket());
   return '全部场景';
 }
 
@@ -1154,6 +1347,13 @@ function updateBrowseCount() {
   const browse = $('browse');
   if (browse) browse.setAttribute('aria-label', '浏览' + name + '题目');
 }
+
+/* 筛选是 session 的上游：换范围就清历史、重新抽题。 */
+filters.on((state, event) => {
+  if (event === 'bucket') fillCats();
+  syncFilters();
+  session.send('restart');
+});
 
 /* 浮层打开时把页面其余部分设为 inert（含注入的主题按钮），
    Tab 不会跑到浮层后面去。 */
@@ -1173,7 +1373,7 @@ function rowHeight() {
    搜索只过滤数据，不逐行改 DOM，所以 2247 题也不会卡。 */
 function renderBrowserWindow(force) {
   const list = $('questionList');
-  if (list.hidden || $('browser').hidden) return;
+  if (browser.state !== 'open' || list.hidden) return;
   const rowH = rowHeight();
   const total = browserItems.length;
   const padTop = 8;
@@ -1214,13 +1414,9 @@ function renderBrowserWindow(force) {
   list.appendChild(frag);
 }
 
-function openBrowser(trigger) {
-  const el = $('browser');
-  if (!el.hidden && !browserTimer) return;
-  clearTimeout(browserTimer);
+function prepareBrowser() {
   clearTimeout(searchTimer);
-  browserTimer = 0;
-  browseTrigger = trigger || $('browse');
+  searchTimer = 0;
   const search = $('browserSearch');
   search.value = '';
   $('browserEmpty').hidden = true;
@@ -1232,18 +1428,6 @@ function openBrowser(trigger) {
   browserItems = browserAll;
   browserFirst = browserLast = -1;
   $('browserTitle').textContent = scopeLabel();
-
-  el.hidden = false;
-  el.classList.remove('is-closing');
-  document.body.classList.add('is-browser-open');
-  setBackgroundInert(true);
-  $('browse').setAttribute('aria-expanded', 'true');
-  if (DESKTOP.matches) {
-    search.focus();
-  } else {
-    const sheet = document.querySelector('.browserSheet');
-    if (sheet) sheet.focus();
-  }
 
   const list = $('questionList');
   list.scrollTop = 0;
@@ -1257,6 +1441,60 @@ function openBrowser(trigger) {
     }
   }
 }
+
+function openBrowser(trigger) {
+  if (!browser.can('open')) return;
+  browser.send('open', trigger || $('browse'));
+}
+
+/* 浮层的 DOM 全部从 browser.state 推导；动画时长只属于 closing→closed。 */
+browser.on((state, event, payload) => {
+  const el = $('browser');
+  el.dataset.state = state;
+
+  if (event === 'open') {
+    clearTimeout(browserTimer);
+    browserTimer = 0;
+    browserAfter = null;
+    browseTrigger = payload || browseTrigger || $('browse');
+    if (browserRaf) { cancelAnimationFrame(browserRaf); browserRaf = 0; }
+    el.hidden = false;
+    el.classList.remove('is-closing');
+    document.body.classList.add('is-browser-open');
+    setBackgroundInert(true);
+    $('browse').setAttribute('aria-expanded', 'true');
+    prepareBrowser();
+    if (DESKTOP.matches) {
+      $('browserSearch').focus();
+    } else {
+      const sheet = document.querySelector('.browserSheet');
+      if (sheet) sheet.focus();
+    }
+    return;
+  }
+
+  if (event === 'close') {
+    clearTimeout(searchTimer);
+    if (browserRaf) { cancelAnimationFrame(browserRaf); browserRaf = 0; }
+    el.classList.add('is-closing');
+    $('browse').setAttribute('aria-expanded', 'false');
+    browserTimer = setTimeout(() => {
+      browserTimer = 0;
+      browser.send('finish');
+    }, 160);
+    return;
+  }
+
+  /* finish：动画结束，真正收起并把焦点还回去。 */
+  el.hidden = true;
+  el.classList.remove('is-closing');
+  document.body.classList.remove('is-browser-open');
+  setBackgroundInert(false);
+  const after = browserAfter;
+  browserAfter = null;
+  if (typeof after === 'function') after();
+  else (browseTrigger || $('browse')).focus();
+});
 
 function applySearch() {
   const query = $('browserSearch').value.trim().toLowerCase();
@@ -1276,24 +1514,9 @@ function scheduleSearch() {
 }
 
 function closeBrowser(after) {
-  const el = $('browser');
-  if (el.hidden || browserTimer) return;
-  clearTimeout(searchTimer);
-  if (browserRaf) {
-    cancelAnimationFrame(browserRaf);
-    browserRaf = 0;
-  }
-  el.classList.add('is-closing');
-  $('browse').setAttribute('aria-expanded', 'false');
-  browserTimer = setTimeout(() => {
-    browserTimer = 0;
-    el.hidden = true;
-    el.classList.remove('is-closing');
-    document.body.classList.remove('is-browser-open');
-    setBackgroundInert(false);
-    if (typeof after === 'function') after();
-    else (browseTrigger || $('browse')).focus();
-  }, 160);
+  if (!browser.can('close')) return;
+  browserAfter = typeof after === 'function' ? after : null;
+  browser.send('close');
 }
 
 function selectFromBrowser(q) {
@@ -1302,39 +1525,11 @@ function selectFromBrowser(q) {
     if (same) (browseTrigger || $('browse')).focus();
     else $('reveal').focus();
   });
-  if (same) return;
-  if (current) {
-    history.push({ q: current, revealed: revealed });
-    if (history.length > HISTORY_MAX) history.shift();
-  }
-  deck = deck.filter((x) => x !== q);
-  current = q;
-  revealed = false;
-  if (playingBtn) player.pause();
-  paintQuestion();
+  if (!same) session.send('select', q);
 }
 
-function selectBucket(value) {
-  if (value === bucket && cat === 'all' && current) return;
-  bucket = value;
-  cat = 'all';
-  deck = [];
-  history = [];
-  current = null;
-  fillCats();
-  syncFilters();
-  showQuestion();
-}
-
-function selectChip(value) {
-  if (value === cat && current) return;
-  cat = value;
-  deck = [];
-  history = [];
-  current = null;
-  syncFilters();
-  showQuestion();
-}
+function selectBucket(value) { filters.send('bucket', value); }
+function selectChip(value) { filters.send('chip', value); }
 
 function rebuildDeck() {
   const a = pool().slice();
@@ -1395,64 +1590,43 @@ function renderAnswers() {
   });
 }
 
-/* 题面、答案和按钮状态都从 current / revealed / history 重新画，
+/* 题面、答案和按钮状态都从 session.state / current / past 重新画，
    所以「上一题」可以原样恢复之前那道题（包括有没有显示英文）。 */
-function paintQuestion() {
-  if (!current) return;
+function paintSession() {
+  const isRevealed = session.state === 'revealed';
+  const card = $('card');
+  card.dataset.state = session.state;
+  if (!current) {
+    card.hidden = true;
+    $('empty').hidden = false;
+    return;
+  }
   $('empty').hidden = true;
-  $('card').hidden = false;
+  card.hidden = false;
   $('chip').textContent = chipLabel(current.chip);
   $('scene').textContent = current.scene;
   $('zh').textContent = current.zh;
   const list = $('answers');
   clear(list);
-  if (revealed) renderAnswers();
-  list.hidden = !revealed;
-  $('reveal').hidden = revealed;
-  $('skip').hidden = revealed;
-  $('next').hidden = !revealed;
-  $('prev').disabled = history.length === 0;
+  if (isRevealed) renderAnswers();
+  list.hidden = !isRevealed;
+  $('reveal').hidden = isRevealed;
+  $('skip').hidden = isRevealed;
+  $('next').hidden = !isRevealed;
+  $('prev').disabled = past.length === 0;
   fitText();
 }
 
-function showQuestion() {
-  if (current) {
-    history.push({ q: current, revealed: revealed });
-    if (history.length > HISTORY_MAX) history.shift();
-  }
-  const q = draw();
-  if (!q) return;
-  current = q;
-  revealed = false;
-  if (playingBtn) player.pause();
-  paintQuestion();
-}
-
-function goPrev() {
-  if (!history.length) return;
-  const entry = history.pop();
-  if (playingBtn) player.pause();
-  current = entry.q;
-  revealed = entry.revealed;
-  paintQuestion();
-}
-
-function reveal() {
-  if (revealed || !current) return;
-  revealed = true;
-  paintQuestion();
-}
-
 function primaryAction() {
-  if (!current || revealed) showQuestion();
-  else reveal();
+  if (!current || session.state === 'revealed') session.send('start');
+  else session.send('reveal');
 }
 
-$('gen').addEventListener('click', showQuestion);
-$('reveal').addEventListener('click', reveal);
-$('next').addEventListener('click', showQuestion);
-$('skip').addEventListener('click', showQuestion);
-$('prev').addEventListener('click', goPrev);
+$('gen').addEventListener('click', () => session.send('start'));
+$('reveal').addEventListener('click', () => session.send('reveal'));
+$('next').addEventListener('click', () => session.send('start'));
+$('skip').addEventListener('click', () => session.send('start'));
+$('prev').addEventListener('click', () => session.send('prev'));
 $('browse').addEventListener('click', () => openBrowser($('browse')));
 $('browserSearch').addEventListener('input', scheduleSearch);
 $('questionList').addEventListener('scroll', () => {
@@ -1468,7 +1642,7 @@ $('browserBackdrop').addEventListener('click', () => closeBrowser());
 window.addEventListener('resize', fitText);
 
 document.addEventListener('keydown', (e) => {
-  if (!$('browser').hidden) {
+  if (browser.state !== 'closed') {
     if (e.key === 'Escape') {
       e.preventDefault();
       closeBrowser();
@@ -1476,9 +1650,9 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (e.key === 'ArrowLeft') {
-    if (history.length) {
+    if (past.length) {
       e.preventDefault();
-      goPrev();
+      session.send('prev');
     }
     return;
   }
@@ -1488,9 +1662,43 @@ document.addEventListener('keydown', (e) => {
   primaryAction();
 });
 
+/* 给测试和无头代理一个稳定读口：不用从 DOM 倒推当前状态。 */
+window.__drill = Object.freeze({
+  snapshot() {
+    return {
+      session: {
+        state: session.state,
+        zh: current ? current.zh : null,
+        past: past.length,
+        deck: deck.length,
+      },
+      filters: {
+        state: filters.state,
+        bucket: filterBucket(),
+        chip: filterChip(),
+        pool: pool().length,
+      },
+      browser: {
+        state: browser.state,
+        query: $('browserSearch').value,
+        rendered: browserFirst < 0 ? 0 : browserLast - browserFirst,
+        total: browserItems.length,
+      },
+      audio: {
+        state: audio.state,
+        voice: audioBtn ? audioBtn.dataset.voice : null,
+        time: player.currentTime,
+      },
+    };
+  },
+});
+
 try {
   fillCats();
   updateBrowseCount();
+  $('browser').dataset.state = browser.state;
+  $('card').dataset.state = session.state;
+  $('card').dataset.audio = audio.state;
 } catch (err) {
   showError(err && err.message ? err.message : String(err));
 }
