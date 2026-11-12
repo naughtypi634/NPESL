@@ -72,7 +72,8 @@ UNITS.append({
                     "secondary": ["games", "hikes"],
                     "rise": ["games", "hikes"],
                     "fall": ["our", "day"],
-                    "note": "主句焦点是 family（一家人在一起）；两个并列活动 games / hikes 升调，末项 our day 降调收束。dinner table 只是背景，不标重音。",
+                    "weak": ["table"],
+                    "note": "主句焦点是 family（一家人在一起）；两个并列活动 games / hikes 升调，末项 our day 降调收束。dinner table 只是背景，table 用弱读压下。",
                 },
                 "My parents have been married for over 30 years, and they have always been great role models for me and my siblings.": {
                     "primary": ["years", "models"],

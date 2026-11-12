@@ -170,7 +170,7 @@ def clip_hash(text: str) -> str:
 # respond to a prosody lift instead.  Primary and secondary stresses get
 # different strengths so the line keeps an English stress-timed rhythm.
 PRIMARY_RATE = "-12%"
-PRIMARY_PITCH = "+24%"
+PRIMARY_PITCH = "+12%"
 PRIMARY_VOLUME = "+9%"
 SECONDARY_RATE = "-5%"
 SECONDARY_PITCH = "+10%"
@@ -188,7 +188,7 @@ WEAK_TAG = (f"<prosody rate='{WEAK_RATE}' pitch='{WEAK_PITCH}' "
 RISE_TAG = "<prosody contour='(0%,+0%) (50%,+5%) (100%,+25%)'>"
 FALL_TAG = (f"<prosody rate='{PRIMARY_RATE}' volume='{PRIMARY_VOLUME}' "
             "contour='(0%,+0%) (40%,+10%) (100%,-10%)'>")
-PROSODY_VERSION = "v8"
+PROSODY_VERSION = "v10"
 
 # (primary, secondary, list-rise, list-fall, weak) token indices, WORD_RE
 # order.  ``weak`` is a deliberate de-emphasis: a word that should stay in the
@@ -322,6 +322,54 @@ def stress_inner(text: str, spec: StressSpec) -> str:
     return "".join(out)
 
 
+# Azure ignores nested <prosody pitch> once an utterance gets longer than
+# roughly 60 characters; rate and volume still apply, so a weak word keeps
+# its natural pitch accent.  An <s> boundary resets that limit, so a weak
+# word's clause is wrapped in one.  Only the weak clause is segmented, so the
+# rest of the line keeps its normal flow.
+SEGMENT_LIMIT = 55
+_SEG_SPLIT = re.compile(r"(?<=[,;])\s+")
+_CONJ_SPLIT = re.compile(r"(?=\b(?:and|or|but)\b\s)")
+
+
+def needs_segments(text: str, spec: StressSpec) -> bool:
+    return bool(spec[4]) and len(text) > SEGMENT_LIMIT
+
+
+def _segments(text: str) -> list:
+    out = []
+    for chunk in _SEG_SPLIT.split(text):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        if len(chunk) > SEGMENT_LIMIT:
+            out.extend(x.strip() for x in _CONJ_SPLIT.split(chunk) if x.strip())
+        else:
+            out.append(chunk)
+    return out
+
+
+def stress_inner_segmented(text: str, spec: StressSpec) -> str:
+    """Inner body with the clause holding a weak word wrapped in <s>."""
+    chunks = _segments(text)
+    if len(chunks) < 2:
+        return stress_inner(text, spec)
+    offset = 0
+    parts = []
+    for chunk in chunks:
+        count = len(list(pron.WORD_RE.finditer(chunk)))
+        local = tuple(
+            tuple(i - offset for i in group if offset <= i < offset + count)
+            for group in spec
+        )
+        body = stress_inner(chunk, local)
+        if any(offset <= i < offset + count for i in spec[4]):
+            body = f"<s>{body}</s>"
+        parts.append(body)
+        offset += count
+    return " ".join(parts)
+
+
 def clip_key(text: str, spec: StressSpec = NO_STRESS,
              engine: str = "edge") -> str:
     """Cache key.
@@ -333,6 +381,8 @@ def clip_key(text: str, spec: StressSpec = NO_STRESS,
     if engine != "azure":
         return clip_hash(text)
     material = f"azure\0{text}\0{stress_sig(spec)}\0{PROSODY_VERSION}"
+    if needs_segments(text, spec):
+        material += "\0seg"
     return hashlib.sha1(material.encode("utf-8")).hexdigest()[:16]
 
 
@@ -578,7 +628,9 @@ def synth_azure_one(text: str, spec: StressSpec, voice: str,
     error = ""
     for attempt in range(1, 4):
         try:
-            inner = stress_inner(text, spec)
+            inner = (stress_inner_segmented(text, spec)
+                     if needs_segments(text, spec)
+                     else stress_inner(text, spec))
             audio, words = azure_speech.synthesize_ssml_with_words(
                 inner, voice, "+0%")
             if not audio or not words:
