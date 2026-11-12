@@ -23,7 +23,20 @@
 
   drag.bind = function (handle, opts) {
     var axis = opts.axis || 'y';
-    var moved = false;
+    // idle -> pressed (pointer down) -> dragging (past the 4px threshold).
+    // A tap goes pressed -> idle without committing; cancel restores the
+    // snapshot. The phase is mirrored to data-phase for tests and agents.
+    var phase = NC.phase({
+      name: 'drag',
+      initial: 'idle',
+      transitions: {
+        idle: ['pressed'],
+        pressed: ['dragging', 'idle'],
+        dragging: ['idle']
+      },
+      onChange: function (next) { handle.setAttribute('data-phase', next); }
+    });
+    handle.setAttribute('data-phase', 'idle');
     var active = null;
     var snapshot = null;
     var startX = 0;
@@ -66,26 +79,46 @@
       pending = null;
     }
 
+    function onPointerUp(event) { finish(event, false); }
+    function onPointerCancel(event) { finish(event, true); }
+
+    // While a gesture is in flight the window owns pointermove / up / cancel.
+    // This is the same listener set whether pointer capture is available or
+    // not, so a lost capture cannot strand the machine in dragging.
+    function listen() {
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerCancel);
+    }
+
+    function unlisten() {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+    }
+
     function start(event) {
+      if (!phase.is('idle')) return;
       if (event.button != null && event.button !== 0) return;
       pointerId = event.pointerId;
       startX = event.clientX;
       startY = event.clientY;
       active = valueNow();
       snapshot = axis === 'xy' ? { x: active.x, y: active.y } : active;
-      moved = false;
+      if (!phase.set('pressed')) return;
       try { handle.setPointerCapture(pointerId); } catch (err) {}
+      listen();
       handle.classList.add('dragging');
       if (opts.onStart) opts.onStart(event);
       event.preventDefault();
     }
 
     function move(event) {
-      if (pointerId == null || event.pointerId !== pointerId) return;
+      if (phase.is('idle') || event.pointerId !== pointerId) return;
       var dx = event.clientX - startX;
       var dy = event.clientY - startY;
-      if (!moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
-      moved = true;
+      if (phase.is('pressed') && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+      phase.set('dragging');
       if (axis === 'xy') {
         var unitsX = (opts.xMax - opts.xMin) / (opts.pixelWidth || 560);
         var unitsY = (opts.yMax - opts.yMin) / (opts.pixelHeight || 260);
@@ -104,7 +137,9 @@
     }
 
     function finish(event, canceled) {
-      if (pointerId == null || (event && event.pointerId !== pointerId)) return;
+      if (phase.is('idle') || (event && event.pointerId !== pointerId)) return;
+      unlisten();
+      var didMove = phase.is('dragging');
       if (pending != null) {
         var last = pending;
         pending = null;
@@ -118,7 +153,7 @@
         opts.set(snapshot);
         updateAria(handle, opts, snapshot);
         if (opts.onUpdate) opts.onUpdate(snapshot);
-      } else if (moved) {
+      } else if (didMove) {
         updateAria(handle, opts, valueNow());
         if (opts.onCommit) opts.onCommit(valueNow());
         if (opts.focusOnCommit) {
@@ -133,14 +168,11 @@
       try { handle.releasePointerCapture(pointerId); } catch (err) {}
       pointerId = null;
       active = null;
-      moved = false;
+      phase.set('idle');
       handle.classList.remove('dragging');
     }
 
     handle.addEventListener('pointerdown', start);
-    handle.addEventListener('pointermove', move);
-    handle.addEventListener('pointerup', function (event) { finish(event, false); });
-    handle.addEventListener('pointercancel', function (event) { finish(event, true); });
     handle.addEventListener('lostpointercapture', function (event) {
       if (pointerId != null) finish(event, true);
     });

@@ -225,9 +225,20 @@
     handles.forEach(function (item) {
       var index = item.index;
       var nextIndex = (index + 1) % dataset.parts.length;
-      var dragging = false;
+      // The same idle -> pressed -> dragging machine as linear handles, but
+      // measured in accumulated angle rather than pixels.
+      var phase = NC.phase({
+        name: 'pie-drag',
+        initial: 'idle',
+        transitions: {
+          idle: ['pressed'],
+          pressed: ['dragging', 'idle'],
+          dragging: ['idle']
+        },
+        onChange: function (next) { item.handle.group.setAttribute('data-phase', next); }
+      });
+      item.handle.group.setAttribute('data-phase', 'idle');
       var startValues = null;
-      var moved = false;
       var lastAngle = 0;
       var turn = 0;
       var pointerId = null;
@@ -257,30 +268,46 @@
         });
       }
 
+      function onPointerUp(event) { up(event, false); }
+      function onPointerCancel(event) { up(event, true); }
+
+      function listen() {
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerCancel);
+      }
+
+      function unlisten() {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerCancel);
+      }
+
       function down(event) {
+        if (!phase.is('idle')) return;
         if (event.button != null && event.button !== 0) return;
-        dragging = true;
-        moved = false;
         turn = 0;
         pointerId = event.pointerId;
         lastAngle = pointAngle(event);
         startValues = dataset.parts.map(function (part) { return part.value; });
         try { item.handle.group.setPointerCapture(pointerId); } catch (err) {}
         item.handle.group.classList.add('dragging');
+        phase.set('pressed');
+        listen();
         showTip(index);
         event.preventDefault();
       }
 
       function move(event) {
-        if (!dragging || event.pointerId !== pointerId) return;
+        if (phase.is('idle') || event.pointerId !== pointerId) return;
         var angle = pointAngle(event);
         var step = angle - lastAngle;
         if (step > Math.PI) step -= Math.PI * 2;
         if (step < -Math.PI) step += Math.PI * 2;
         turn += step;
         lastAngle = angle;
-        if (!moved && Math.abs(turn) < 0.01) return;
-        moved = true;
+        if (phase.is('pressed') && Math.abs(turn) < 0.01) return;
+        phase.set('dragging');
         var pair = startValues[index] + startValues[nextIndex];
         var minTurn = (3 - startValues[index]) / 100 * Math.PI * 2;
         var maxTurn = (pair - 3 - startValues[index]) / 100 * Math.PI * 2;
@@ -292,11 +319,15 @@
       }
 
       function up(event, canceled) {
-        if (!dragging) return;
-        dragging = false;
+        if (phase.is('idle')) return;
+        unlisten();
+        var didMove = phase.is('dragging');
+        // Flip first so releasePointerCapture's lostpointercapture cannot
+        // re-enter this handler.
+        phase.set('idle');
         try { item.handle.group.releasePointerCapture(pointerId); } catch (err) {}
         item.handle.group.classList.remove('dragging');
-        if (!moved || canceled) {
+        if (!didMove || canceled) {
           dataset.parts.forEach(function (part, i) { part.value = startValues[i]; });
           lab.changed(false);
         } else {
@@ -307,12 +338,18 @@
       }
 
       item.handle.group.addEventListener('pointerdown', down);
-      item.handle.group.addEventListener('pointermove', move);
-      item.handle.group.addEventListener('pointerup', function (event) { up(event, false); });
-      item.handle.group.addEventListener('pointercancel', function (event) { up(event, true); });
+      item.handle.group.addEventListener('lostpointercapture', function (event) {
+        if (phase.is('idle') || event.pointerId !== pointerId) return;
+        up(event, true);
+      });
       item.handle.group.addEventListener('focus', function () { showTip(index); });
       item.handle.group.addEventListener('blur', hideTip);
       item.handle.group.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !phase.is('idle')) {
+          up(event, true);
+          event.preventDefault();
+          return;
+        }
         var delta = 0;
         if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') delta = event.shiftKey ? -5 : -1;
         else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') delta = event.shiftKey ? 5 : 1;

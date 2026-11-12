@@ -20,6 +20,10 @@
 
   function close(lab) {
     if (!lab) return;
+    if (lab.editorTimer) {
+      clearTimeout(lab.editorTimer);
+      lab.editorTimer = null;
+    }
     if (lab.editorOutside) {
       document.removeEventListener('pointerdown', lab.editorOutside);
       lab.editorOutside = null;
@@ -28,6 +32,7 @@
       if (lab.editor.parentNode) lab.editor.parentNode.removeChild(lab.editor);
       lab.editor = null;
     }
+    if (lab.plot) lab.plot.setAttribute('data-editor', 'closed');
   }
 
   NC.editValue = function (lab, opts) {
@@ -86,6 +91,7 @@
     editor.style.top = point.y + 'px';
     editor.style.transform = above ? 'translate(-50%, calc(-100% - 12px))' : 'translate(-50%, 16px)';
     lab.editor = editor;
+    lab.plot.setAttribute('data-editor', 'open');
 
     function commit() {
       var raw = Number(input.value);
@@ -115,7 +121,9 @@
       }
     });
 
-    setTimeout(function () {
+    lab.editorTimer = setTimeout(function () {
+      lab.editorTimer = null;
+      if (lab.editor !== editor) return;
       input.focus();
       input.select();
       var outside = function (event) {
@@ -128,24 +136,65 @@
   };
 
   // A click on a draggable mark opens the numeric editor; a drag does not.
+  // idle -> pressed on pointer down. A pointer that ends anywhere else
+  // (document pointerup) drops back to idle, so the machine can never get
+  // stuck waiting for a release it will not see.
   NC.bindValueClick = function (target, lab, makeOptions) {
     if (!target) return;
     var startX = 0;
     var startY = 0;
-    var down = false;
+    var pointerId = null;
+    var phase = NC.phase({
+      name: 'click-edit',
+      initial: 'idle',
+      transitions: {
+        idle: ['pressed'],
+        pressed: ['idle']
+      },
+      onChange: function (next) { target.setAttribute('data-phase', next); }
+    });
+    target.setAttribute('data-phase', 'idle');
+
+    function unlisten() {
+      document.removeEventListener('pointerup', onOutsideUp);
+      document.removeEventListener('pointercancel', onOutsideCancel);
+    }
+
+    function reset() {
+      unlisten();
+      pointerId = null;
+      phase.set('idle');
+    }
+
+    function onOutsideUp(event) {
+      if (event.pointerId !== pointerId) return;
+      reset();
+    }
+
+    function onOutsideCancel(event) {
+      if (event.pointerId !== pointerId) return;
+      reset();
+    }
+
     target.addEventListener('pointerdown', function (event) {
+      if (!phase.is('idle')) return;
       if (event.button != null && event.button !== 0) return;
       startX = event.clientX;
       startY = event.clientY;
-      down = true;
+      pointerId = event.pointerId;
+      phase.set('pressed');
+      document.addEventListener('pointerup', onOutsideUp);
+      document.addEventListener('pointercancel', onOutsideCancel);
     });
+
     target.addEventListener('pointerup', function (event) {
-      if (!down) return;
-      down = false;
-      if (Math.abs(event.clientX - startX) > 4 || Math.abs(event.clientY - startY) > 4) return;
+      if (!phase.is('pressed') || event.pointerId !== pointerId) return;
+      var moved = Math.abs(event.clientX - startX) > 4 || Math.abs(event.clientY - startY) > 4;
+      reset();
+      if (moved) return;
       NC.editValue(lab, makeOptions());
     });
-    target.addEventListener('pointercancel', function () { down = false; });
+
     target.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') {
         event.preventDefault();

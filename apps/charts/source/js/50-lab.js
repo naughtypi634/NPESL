@@ -11,7 +11,9 @@
     this.liveNode = section.querySelector('[data-live]');
     this.modesHost = section.querySelector('[data-modes]');
     this.renderer = NC.renderers[type.renderer];
-    this.mounted = false;
+    this.mountState = 'unmounted';
+    section.setAttribute('data-mount-state', this.mountState);
+    this.controlsBound = false;
     this.compact = false;
     this.result = null;
     this.mode = {};
@@ -23,16 +25,34 @@
     });
   }
 
+  // Lifecycle: unmounted -> mounting -> mounted. A failed mount returns to
+  // unmounted so the next activation can retry.
   Lab.prototype.mount = function () {
-    if (this.mounted) return;
-    this.mounted = true;
-    this.section.setAttribute('data-mounted', 'true');
-    this.renderer.mount(this);
-    this.bindControls();
-    this.refresh(true);
+    if (this.mountState !== 'unmounted') return;
+    this.mountState = 'mounting';
+    this.section.setAttribute('data-mount-state', this.mountState);
+    try {
+      this.renderer.mount(this);
+      this.bindControls();
+      this.refresh(true);
+      this.mountState = 'mounted';
+      this.section.setAttribute('data-mount-state', this.mountState);
+      this.section.setAttribute('data-mounted', 'true');
+    } catch (error) {
+      this.mountState = 'unmounted';
+      this.section.setAttribute('data-mount-state', this.mountState);
+      this.section.setAttribute('data-mounted', 'false');
+      throw error;
+    }
+  };
+
+  Lab.prototype.isMounted = function () {
+    return this.mountState === 'mounted';
   };
 
   Lab.prototype.bindControls = function () {
+    if (this.controlsBound) return;
+    this.controlsBound = true;
     var self = this;
     var reset = this.section.querySelector('[data-reset]');
     if (reset) {
@@ -52,9 +72,15 @@
 
   Lab.prototype.setMode = function (patch) {
     var next = patch || {};
+    var changed = false;
     Object.keys(next).forEach(function (key) {
+      if (this.mode[key] === next[key]) return;
       this.mode[key] = next[key];
+      changed = true;
     }, this);
+    // Re-selecting the active mode must not throw away the rendered chart,
+    // focus, or the process-step selection.
+    if (!changed) return;
     if (this.renderer.render) this.renderer.render(this);
     this.refresh(false);
   };
@@ -66,6 +92,9 @@
     }
     this.result = result;
     this.setDescription(result, commit);
+    // Optional renderer hook for decorations that depend on both the chart
+    // and the freshly written description (process step linking).
+    if (this.renderer.sync) this.renderer.sync(this);
   };
 
   Lab.prototype.setDescription = function (result, commit) {
@@ -117,7 +146,7 @@
   Lab.prototype.onExternalChange = function (payload) {
     if (payload && payload.source === this.type.id) return;
     this.dataset = NC.state.datasets[this.key];
-    if (!this.mounted) return;
+    if (!this.isMounted()) return;
     this.renderer.render(this);
     this.refresh(false);
   };
@@ -130,7 +159,7 @@
       var lab = NC.state.labs[id];
       if (lab.key !== key) return;
       lab.dataset = NC.state.datasets[key];
-      if (!lab.mounted) return;
+      if (!lab.isMounted()) return;
       lab.renderer.render(lab);
       lab.refresh(true);
     });

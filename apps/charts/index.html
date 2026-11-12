@@ -1487,7 +1487,7 @@ html[data-theme="glass"] .site-head {
 
 .plot-hit { cursor: crosshair; }
 
-.handle { cursor: ns-resize; }
+.handle { cursor: ns-resize; touch-action: none; }
 .handle .hit { fill: transparent; }
 .handle .dot {
   fill: var(--bg);
@@ -1861,6 +1861,7 @@ html[data-theme="glass"] .site-head {
 
   NC.state = {
     level: 'B1',
+    activeType: null,
     reducedMotion: false,
     data: null,
     datasets: null,
@@ -1972,6 +1973,67 @@ html[data-theme="glass"] .site-head {
     (NC.bus[name] = NC.bus[name] || []).push(fn);
   };
 })(window);
+
+;
+(function (NC) {
+  'use strict';
+
+  if (NC.debug == null) NC.debug = false;
+
+  // Every interactive widget on this page is a finite state machine. Keeping
+  // the transition table in one place makes the legal moves explicit for
+  // people reading the code, prevents half-applied states, and gives tests and
+  // agents a stable value to assert on. `onChange(next, previous, detail)`
+  // runs after the state flips, so callers can mirror it onto the DOM.
+  //
+  //   var phase = NC.phase({
+  //     name: 'drag',
+  //     initial: 'idle',
+  //     transitions: {
+  //       idle: ['pressed'],
+  //       pressed: ['dragging', 'idle'],
+  //       dragging: ['idle']
+  //     },
+  //     onChange: function (next) { handle.setAttribute('data-phase', next); }
+  //   });
+  //
+  // `set` is idempotent; an illegal move is refused (and warned about when
+  // NC.debug is on) instead of silently corrupting the UI.
+  NC.phase = function (spec) {
+    var name = spec.name || 'phase';
+    var transitions = spec.transitions || {};
+    var current = spec.initial;
+    if (!transitions[current]) transitions[current] = [];
+
+    function can(next) {
+      if (next === current) return true;
+      var allowed = transitions[current];
+      return !!allowed && allowed.indexOf(next) !== -1;
+    }
+
+    function set(next, detail) {
+      if (next === current) return true;
+      if (!can(next)) {
+        if (NC.debug) {
+          console.warn('phase[' + name + ']: illegal transition ' + current + ' -> ' + next);
+        }
+        return false;
+      }
+      var previous = current;
+      current = next;
+      if (spec.onChange) spec.onChange(current, previous, detail || {});
+      return true;
+    }
+
+    return {
+      name: name,
+      get: function () { return current; },
+      is: function (value) { return current === value; },
+      can: can,
+      set: set
+    };
+  };
+})(window.NPESLCharts);
 
 ;
 (function (NC) {
@@ -2522,7 +2584,20 @@ html[data-theme="glass"] .site-head {
 
   drag.bind = function (handle, opts) {
     var axis = opts.axis || 'y';
-    var moved = false;
+    // idle -> pressed (pointer down) -> dragging (past the 4px threshold).
+    // A tap goes pressed -> idle without committing; cancel restores the
+    // snapshot. The phase is mirrored to data-phase for tests and agents.
+    var phase = NC.phase({
+      name: 'drag',
+      initial: 'idle',
+      transitions: {
+        idle: ['pressed'],
+        pressed: ['dragging', 'idle'],
+        dragging: ['idle']
+      },
+      onChange: function (next) { handle.setAttribute('data-phase', next); }
+    });
+    handle.setAttribute('data-phase', 'idle');
     var active = null;
     var snapshot = null;
     var startX = 0;
@@ -2565,26 +2640,46 @@ html[data-theme="glass"] .site-head {
       pending = null;
     }
 
+    function onPointerUp(event) { finish(event, false); }
+    function onPointerCancel(event) { finish(event, true); }
+
+    // While a gesture is in flight the window owns pointermove / up / cancel.
+    // This is the same listener set whether pointer capture is available or
+    // not, so a lost capture cannot strand the machine in dragging.
+    function listen() {
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerCancel);
+    }
+
+    function unlisten() {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+    }
+
     function start(event) {
+      if (!phase.is('idle')) return;
       if (event.button != null && event.button !== 0) return;
       pointerId = event.pointerId;
       startX = event.clientX;
       startY = event.clientY;
       active = valueNow();
       snapshot = axis === 'xy' ? { x: active.x, y: active.y } : active;
-      moved = false;
+      if (!phase.set('pressed')) return;
       try { handle.setPointerCapture(pointerId); } catch (err) {}
+      listen();
       handle.classList.add('dragging');
       if (opts.onStart) opts.onStart(event);
       event.preventDefault();
     }
 
     function move(event) {
-      if (pointerId == null || event.pointerId !== pointerId) return;
+      if (phase.is('idle') || event.pointerId !== pointerId) return;
       var dx = event.clientX - startX;
       var dy = event.clientY - startY;
-      if (!moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
-      moved = true;
+      if (phase.is('pressed') && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+      phase.set('dragging');
       if (axis === 'xy') {
         var unitsX = (opts.xMax - opts.xMin) / (opts.pixelWidth || 560);
         var unitsY = (opts.yMax - opts.yMin) / (opts.pixelHeight || 260);
@@ -2603,7 +2698,9 @@ html[data-theme="glass"] .site-head {
     }
 
     function finish(event, canceled) {
-      if (pointerId == null || (event && event.pointerId !== pointerId)) return;
+      if (phase.is('idle') || (event && event.pointerId !== pointerId)) return;
+      unlisten();
+      var didMove = phase.is('dragging');
       if (pending != null) {
         var last = pending;
         pending = null;
@@ -2617,7 +2714,7 @@ html[data-theme="glass"] .site-head {
         opts.set(snapshot);
         updateAria(handle, opts, snapshot);
         if (opts.onUpdate) opts.onUpdate(snapshot);
-      } else if (moved) {
+      } else if (didMove) {
         updateAria(handle, opts, valueNow());
         if (opts.onCommit) opts.onCommit(valueNow());
         if (opts.focusOnCommit) {
@@ -2632,14 +2729,11 @@ html[data-theme="glass"] .site-head {
       try { handle.releasePointerCapture(pointerId); } catch (err) {}
       pointerId = null;
       active = null;
-      moved = false;
+      phase.set('idle');
       handle.classList.remove('dragging');
     }
 
     handle.addEventListener('pointerdown', start);
-    handle.addEventListener('pointermove', move);
-    handle.addEventListener('pointerup', function (event) { finish(event, false); });
-    handle.addEventListener('pointercancel', function (event) { finish(event, true); });
     handle.addEventListener('lostpointercapture', function (event) {
       if (pointerId != null) finish(event, true);
     });
@@ -2736,6 +2830,10 @@ html[data-theme="glass"] .site-head {
 
   function close(lab) {
     if (!lab) return;
+    if (lab.editorTimer) {
+      clearTimeout(lab.editorTimer);
+      lab.editorTimer = null;
+    }
     if (lab.editorOutside) {
       document.removeEventListener('pointerdown', lab.editorOutside);
       lab.editorOutside = null;
@@ -2744,6 +2842,7 @@ html[data-theme="glass"] .site-head {
       if (lab.editor.parentNode) lab.editor.parentNode.removeChild(lab.editor);
       lab.editor = null;
     }
+    if (lab.plot) lab.plot.setAttribute('data-editor', 'closed');
   }
 
   NC.editValue = function (lab, opts) {
@@ -2802,6 +2901,7 @@ html[data-theme="glass"] .site-head {
     editor.style.top = point.y + 'px';
     editor.style.transform = above ? 'translate(-50%, calc(-100% - 12px))' : 'translate(-50%, 16px)';
     lab.editor = editor;
+    lab.plot.setAttribute('data-editor', 'open');
 
     function commit() {
       var raw = Number(input.value);
@@ -2831,7 +2931,9 @@ html[data-theme="glass"] .site-head {
       }
     });
 
-    setTimeout(function () {
+    lab.editorTimer = setTimeout(function () {
+      lab.editorTimer = null;
+      if (lab.editor !== editor) return;
       input.focus();
       input.select();
       var outside = function (event) {
@@ -2844,24 +2946,65 @@ html[data-theme="glass"] .site-head {
   };
 
   // A click on a draggable mark opens the numeric editor; a drag does not.
+  // idle -> pressed on pointer down. A pointer that ends anywhere else
+  // (document pointerup) drops back to idle, so the machine can never get
+  // stuck waiting for a release it will not see.
   NC.bindValueClick = function (target, lab, makeOptions) {
     if (!target) return;
     var startX = 0;
     var startY = 0;
-    var down = false;
+    var pointerId = null;
+    var phase = NC.phase({
+      name: 'click-edit',
+      initial: 'idle',
+      transitions: {
+        idle: ['pressed'],
+        pressed: ['idle']
+      },
+      onChange: function (next) { target.setAttribute('data-phase', next); }
+    });
+    target.setAttribute('data-phase', 'idle');
+
+    function unlisten() {
+      document.removeEventListener('pointerup', onOutsideUp);
+      document.removeEventListener('pointercancel', onOutsideCancel);
+    }
+
+    function reset() {
+      unlisten();
+      pointerId = null;
+      phase.set('idle');
+    }
+
+    function onOutsideUp(event) {
+      if (event.pointerId !== pointerId) return;
+      reset();
+    }
+
+    function onOutsideCancel(event) {
+      if (event.pointerId !== pointerId) return;
+      reset();
+    }
+
     target.addEventListener('pointerdown', function (event) {
+      if (!phase.is('idle')) return;
       if (event.button != null && event.button !== 0) return;
       startX = event.clientX;
       startY = event.clientY;
-      down = true;
+      pointerId = event.pointerId;
+      phase.set('pressed');
+      document.addEventListener('pointerup', onOutsideUp);
+      document.addEventListener('pointercancel', onOutsideCancel);
     });
+
     target.addEventListener('pointerup', function (event) {
-      if (!down) return;
-      down = false;
-      if (Math.abs(event.clientX - startX) > 4 || Math.abs(event.clientY - startY) > 4) return;
+      if (!phase.is('pressed') || event.pointerId !== pointerId) return;
+      var moved = Math.abs(event.clientX - startX) > 4 || Math.abs(event.clientY - startY) > 4;
+      reset();
+      if (moved) return;
       NC.editValue(lab, makeOptions());
     });
-    target.addEventListener('pointercancel', function () { down = false; });
+
     target.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -5942,9 +6085,20 @@ html[data-theme="glass"] .site-head {
     handles.forEach(function (item) {
       var index = item.index;
       var nextIndex = (index + 1) % dataset.parts.length;
-      var dragging = false;
+      // The same idle -> pressed -> dragging machine as linear handles, but
+      // measured in accumulated angle rather than pixels.
+      var phase = NC.phase({
+        name: 'pie-drag',
+        initial: 'idle',
+        transitions: {
+          idle: ['pressed'],
+          pressed: ['dragging', 'idle'],
+          dragging: ['idle']
+        },
+        onChange: function (next) { item.handle.group.setAttribute('data-phase', next); }
+      });
+      item.handle.group.setAttribute('data-phase', 'idle');
       var startValues = null;
-      var moved = false;
       var lastAngle = 0;
       var turn = 0;
       var pointerId = null;
@@ -5974,30 +6128,46 @@ html[data-theme="glass"] .site-head {
         });
       }
 
+      function onPointerUp(event) { up(event, false); }
+      function onPointerCancel(event) { up(event, true); }
+
+      function listen() {
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerCancel);
+      }
+
+      function unlisten() {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerCancel);
+      }
+
       function down(event) {
+        if (!phase.is('idle')) return;
         if (event.button != null && event.button !== 0) return;
-        dragging = true;
-        moved = false;
         turn = 0;
         pointerId = event.pointerId;
         lastAngle = pointAngle(event);
         startValues = dataset.parts.map(function (part) { return part.value; });
         try { item.handle.group.setPointerCapture(pointerId); } catch (err) {}
         item.handle.group.classList.add('dragging');
+        phase.set('pressed');
+        listen();
         showTip(index);
         event.preventDefault();
       }
 
       function move(event) {
-        if (!dragging || event.pointerId !== pointerId) return;
+        if (phase.is('idle') || event.pointerId !== pointerId) return;
         var angle = pointAngle(event);
         var step = angle - lastAngle;
         if (step > Math.PI) step -= Math.PI * 2;
         if (step < -Math.PI) step += Math.PI * 2;
         turn += step;
         lastAngle = angle;
-        if (!moved && Math.abs(turn) < 0.01) return;
-        moved = true;
+        if (phase.is('pressed') && Math.abs(turn) < 0.01) return;
+        phase.set('dragging');
         var pair = startValues[index] + startValues[nextIndex];
         var minTurn = (3 - startValues[index]) / 100 * Math.PI * 2;
         var maxTurn = (pair - 3 - startValues[index]) / 100 * Math.PI * 2;
@@ -6009,11 +6179,15 @@ html[data-theme="glass"] .site-head {
       }
 
       function up(event, canceled) {
-        if (!dragging) return;
-        dragging = false;
+        if (phase.is('idle')) return;
+        unlisten();
+        var didMove = phase.is('dragging');
+        // Flip first so releasePointerCapture's lostpointercapture cannot
+        // re-enter this handler.
+        phase.set('idle');
         try { item.handle.group.releasePointerCapture(pointerId); } catch (err) {}
         item.handle.group.classList.remove('dragging');
-        if (!moved || canceled) {
+        if (!didMove || canceled) {
           dataset.parts.forEach(function (part, i) { part.value = startValues[i]; });
           lab.changed(false);
         } else {
@@ -6024,12 +6198,18 @@ html[data-theme="glass"] .site-head {
       }
 
       item.handle.group.addEventListener('pointerdown', down);
-      item.handle.group.addEventListener('pointermove', move);
-      item.handle.group.addEventListener('pointerup', function (event) { up(event, false); });
-      item.handle.group.addEventListener('pointercancel', function (event) { up(event, true); });
+      item.handle.group.addEventListener('lostpointercapture', function (event) {
+        if (phase.is('idle') || event.pointerId !== pointerId) return;
+        up(event, true);
+      });
       item.handle.group.addEventListener('focus', function () { showTip(index); });
       item.handle.group.addEventListener('blur', hideTip);
       item.handle.group.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !phase.is('idle')) {
+          up(event, true);
+          event.preventDefault();
+          return;
+        }
         var delta = 0;
         if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') delta = event.shiftKey ? -5 : -1;
         else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') delta = event.shiftKey ? 5 : 1;
@@ -6220,15 +6400,24 @@ html[data-theme="glass"] .site-head {
     host.appendChild(group);
   }
 
+  // The selected step is data, not just a class: it survives a voice change
+  // re-render and is exposed on the wrap for tests and agents.
   function highlight(lab, stepId) {
+    var active = stepId || '';
+    if (lab.processState) {
+      lab.processState.activeStep = active || null;
+      if (lab.processState.wrap) lab.processState.wrap.setAttribute('data-active-step', active);
+    }
     var stepNodes = lab.plot.querySelectorAll('.process-step');
     Array.prototype.forEach.call(stepNodes, function (node) {
-      node.classList.toggle('is-active', node.getAttribute('data-step') === stepId);
+      var on = node.getAttribute('data-step') === active;
+      node.classList.toggle('is-active', on);
+      node.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     var blocks = lab.section.querySelectorAll('[data-desc-lines] .sentence');
     Array.prototype.forEach.call(blocks, function (block) {
       var focus = (block.getAttribute('data-focus') || '').split(' ');
-      block.classList.toggle('is-linked', focus.indexOf(stepId) !== -1);
+      block.classList.toggle('is-linked', active !== '' && focus.indexOf(active) !== -1);
     });
   }
 
@@ -6239,9 +6428,12 @@ html[data-theme="glass"] .site-head {
     lab.svg = null;
 
     var dataset = lab.dataset;
+    var previousStep = lab.processState ? lab.processState.activeStep : null;
     var wrap = document.createElement('div');
     wrap.className = 'process-flow';
-    wrap.setAttribute('role', 'list');
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', '流程步骤');
+    wrap.setAttribute('data-active-step', previousStep || '');
 
     dataset.steps.forEach(function (step, index) {
       if (index > 0) {
@@ -6255,24 +6447,21 @@ html[data-theme="glass"] .site-head {
       node.type = 'button';
       node.className = 'process-step';
       node.setAttribute('data-step', step.id);
-      node.setAttribute('role', 'listitem');
+      node.setAttribute('aria-pressed', 'false');
       node.innerHTML =
         '<span class="process-icon">' + icon(step.icon) + '</span>' +
         '<span class="process-title" lang="en">' + NC.escapeHtml(step.title_en) + '</span>' +
         '<span class="process-zh">' + NC.escapeHtml(step.title_zh) + '</span>';
       node.addEventListener('click', function () {
-        var active = node.classList.contains('is-active');
-        if (active) {
-          highlight(lab, '');
-        } else {
-          highlight(lab, step.id);
-        }
+        var active = lab.processState && lab.processState.activeStep === step.id;
+        highlight(lab, active ? '' : step.id);
       });
       wrap.appendChild(node);
     });
 
     lab.plot.appendChild(wrap);
-    lab.processState = { wrap: wrap };
+    lab.processState = { wrap: wrap, activeStep: previousStep || null };
+    highlight(lab, previousStep);
     lab.motion = null;
   }
 
@@ -6284,6 +6473,10 @@ html[data-theme="glass"] .site-head {
     mount: function (lab) { render(lab); },
     render: render,
     update: function () {},
+    sync: function (lab) {
+      if (!lab.processState) return;
+      highlight(lab, lab.processState.activeStep);
+    },
     describe: describe,
     table: function () { return null; }
   };
@@ -6421,16 +6614,33 @@ html[data-theme="glass"] .site-head {
     shell.appendChild(cue);
     lab.plot.appendChild(shell);
 
+    if (lab.tableObserver) {
+      lab.tableObserver.disconnect();
+      lab.tableObserver = null;
+    }
     lab.tableState = { rows: rows, dataset: dataset, shell: shell, scroll: scroll };
+    // Overflow is a state of the viewport, not of the data: it changes on
+    // scroll and when the container resizes, not only on re-render.
+    scroll.addEventListener('scroll', function () { updateCue(lab); }, { passive: true });
+    if ('ResizeObserver' in window) {
+      lab.tableObserver = new ResizeObserver(function () { updateCue(lab); });
+      lab.tableObserver.observe(scroll);
+    }
     updateCue(lab);
     lab.motion = null;
   }
 
   function updateCue(lab) {
     var state = lab.tableState;
-    if (!state) return;
-    var overflow = state.scroll.scrollWidth > state.scroll.clientWidth + 1;
+    if (!state || !state.scroll) return;
+    var max = state.scroll.scrollWidth - state.scroll.clientWidth;
+    var x = state.scroll.scrollLeft;
+    var overflow = max > 1;
+    var start = overflow && x > 2;
+    var end = overflow && x < max - 2;
+    var mode = !overflow ? 'none' : start && end ? 'both' : start ? 'start' : 'end';
     state.shell.setAttribute('data-overflow', overflow ? 'true' : 'false');
+    state.shell.setAttribute('data-scroll', mode);
   }
 
   function updateTotals(lab) {
@@ -6845,7 +7055,9 @@ html[data-theme="glass"] .site-head {
     this.liveNode = section.querySelector('[data-live]');
     this.modesHost = section.querySelector('[data-modes]');
     this.renderer = NC.renderers[type.renderer];
-    this.mounted = false;
+    this.mountState = 'unmounted';
+    section.setAttribute('data-mount-state', this.mountState);
+    this.controlsBound = false;
     this.compact = false;
     this.result = null;
     this.mode = {};
@@ -6857,16 +7069,34 @@ html[data-theme="glass"] .site-head {
     });
   }
 
+  // Lifecycle: unmounted -> mounting -> mounted. A failed mount returns to
+  // unmounted so the next activation can retry.
   Lab.prototype.mount = function () {
-    if (this.mounted) return;
-    this.mounted = true;
-    this.section.setAttribute('data-mounted', 'true');
-    this.renderer.mount(this);
-    this.bindControls();
-    this.refresh(true);
+    if (this.mountState !== 'unmounted') return;
+    this.mountState = 'mounting';
+    this.section.setAttribute('data-mount-state', this.mountState);
+    try {
+      this.renderer.mount(this);
+      this.bindControls();
+      this.refresh(true);
+      this.mountState = 'mounted';
+      this.section.setAttribute('data-mount-state', this.mountState);
+      this.section.setAttribute('data-mounted', 'true');
+    } catch (error) {
+      this.mountState = 'unmounted';
+      this.section.setAttribute('data-mount-state', this.mountState);
+      this.section.setAttribute('data-mounted', 'false');
+      throw error;
+    }
+  };
+
+  Lab.prototype.isMounted = function () {
+    return this.mountState === 'mounted';
   };
 
   Lab.prototype.bindControls = function () {
+    if (this.controlsBound) return;
+    this.controlsBound = true;
     var self = this;
     var reset = this.section.querySelector('[data-reset]');
     if (reset) {
@@ -6886,9 +7116,15 @@ html[data-theme="glass"] .site-head {
 
   Lab.prototype.setMode = function (patch) {
     var next = patch || {};
+    var changed = false;
     Object.keys(next).forEach(function (key) {
+      if (this.mode[key] === next[key]) return;
       this.mode[key] = next[key];
+      changed = true;
     }, this);
+    // Re-selecting the active mode must not throw away the rendered chart,
+    // focus, or the process-step selection.
+    if (!changed) return;
     if (this.renderer.render) this.renderer.render(this);
     this.refresh(false);
   };
@@ -6900,6 +7136,9 @@ html[data-theme="glass"] .site-head {
     }
     this.result = result;
     this.setDescription(result, commit);
+    // Optional renderer hook for decorations that depend on both the chart
+    // and the freshly written description (process step linking).
+    if (this.renderer.sync) this.renderer.sync(this);
   };
 
   Lab.prototype.setDescription = function (result, commit) {
@@ -6951,7 +7190,7 @@ html[data-theme="glass"] .site-head {
   Lab.prototype.onExternalChange = function (payload) {
     if (payload && payload.source === this.type.id) return;
     this.dataset = NC.state.datasets[this.key];
-    if (!this.mounted) return;
+    if (!this.isMounted()) return;
     this.renderer.render(this);
     this.refresh(false);
   };
@@ -6964,7 +7203,7 @@ html[data-theme="glass"] .site-head {
       var lab = NC.state.labs[id];
       if (lab.key !== key) return;
       lab.dataset = NC.state.datasets[key];
-      if (!lab.mounted) return;
+      if (!lab.isMounted()) return;
       lab.renderer.render(lab);
       lab.refresh(true);
     });
@@ -6979,9 +7218,20 @@ html[data-theme="glass"] .site-head {
 
   var REPLAY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v6h-6"/></svg>';
 
-  var state = {
-    typeId: null
-  };
+  // Timed one-shot classes (panel entrance, level-switch fade). One owner per
+  // node, so a rapid re-trigger cannot leave the class stuck or have an older
+  // timer strip it from a newer animation.
+  function pulse(node, cls, ms) {
+    if (!node) return;
+    node.classList.remove(cls);
+    void node.offsetWidth;
+    node.classList.add(cls);
+    if (node.__pulseTimer) window.clearTimeout(node.__pulseTimer);
+    node.__pulseTimer = window.setTimeout(function () {
+      node.__pulseTimer = null;
+      node.classList.remove(cls);
+    }, ms);
+  }
 
   function sceneFor(type) {
     var dataset = NC.state.datasets && type.dataset ? NC.state.datasets[type.dataset] : null;
@@ -7170,7 +7420,7 @@ html[data-theme="glass"] .site-head {
     if (keys.indexOf(event.key) === -1) return;
     event.preventDefault();
     var types = sortedTypes();
-    var current = types.map(function (type) { return type.id; }).indexOf(state.typeId);
+    var current = types.map(function (type) { return type.id; }).indexOf(NC.state.activeType);
     var next = current;
     if (event.key === 'ArrowRight') next = (current + 1) % types.length;
     if (event.key === 'ArrowLeft') next = (current - 1 + types.length) % types.length;
@@ -7192,18 +7442,40 @@ html[data-theme="glass"] .site-head {
     return (head ? head.getBoundingClientRect().height : 0) + 16;
   }
 
+  function scrollToPanel(panel) {
+    if (!panel) return;
+    var top = panel.getBoundingClientRect().top + window.scrollY - headerOffset();
+    if (Math.abs(window.scrollY - top) > 8) {
+      window.scrollTo({ top: top, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+    }
+  }
+
   function activate(id) {
     var types = sortedTypes();
     var known = types.some(function (type) { return type.id === id; });
     if (!known) id = types[0].id;
-    var first = state.typeId == null;
+    var first = NC.state.activeType == null;
+    var lab = NC.state.labs[id];
+    var panel = NC.byId('chart-' + id);
+
+    // Re-clicking the active tab brings the chart back into view; it does not
+    // rebuild it or replay the entrance animation. A half-finished mount is
+    // retried.
+    if (!first && id === NC.state.activeType) {
+      if (lab && !lab.isMounted()) lab.mount();
+      if (panel && window.scrollY > 80) scrollToPanel(panel);
+      return;
+    }
+
     var wasScrolled = window.scrollY > 80;
-    state.typeId = id;
+    var wasMounted = lab ? lab.isMounted() : false;
+    NC.state.activeType = id;
+    document.documentElement.setAttribute('data-charts-type', id);
     types.forEach(function (type) {
-      var panel = NC.byId('chart-' + type.id);
+      var node = NC.byId('chart-' + type.id);
       var tab = NC.byId('tab-' + type.id);
       var selected = type.id === id;
-      if (panel) panel.hidden = !selected;
+      if (node) node.hidden = !selected;
       if (tab) {
         tab.setAttribute('aria-selected', selected ? 'true' : 'false');
         tab.tabIndex = selected ? 0 : -1;
@@ -7218,25 +7490,17 @@ html[data-theme="glass"] .site-head {
       scroller.scrollTo({ left: left, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
     }
 
-    var lab = NC.state.labs[id];
     if (lab) {
       lab.mount();
-      if (lab.renderer.render) lab.renderer.render(lab);
-      lab.refresh(false);
-    }
-    var panel = NC.byId('chart-' + id);
-    if (panel && !NC.state.reducedMotion) {
-      panel.classList.remove('is-entering');
-      void panel.offsetWidth;
-      panel.classList.add('is-entering');
-      window.setTimeout(function () { panel.classList.remove('is-entering'); }, 800);
-    }
-    if (!first && wasScrolled && panel) {
-      var top = panel.getBoundingClientRect().top + window.scrollY - headerOffset();
-      if (Math.abs(window.scrollY - top) > 8) {
-        window.scrollTo({ top: top, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+      // A lab that was mounted before was hidden while the viewport may have
+      // changed; re-fit it. A fresh mount has already rendered and refreshed.
+      if (wasMounted && lab.renderer.render) {
+        lab.renderer.render(lab);
+        lab.refresh(false);
       }
     }
+    if (panel && !NC.state.reducedMotion) pulse(panel, 'is-entering', 800);
+    if (!first && wasScrolled && panel) scrollToPanel(panel);
     if (NC.motion && lab) NC.motion.play(lab);
     try {
       window.history.replaceState(null, '', '#chart-' + id);
@@ -7255,7 +7519,7 @@ html[data-theme="glass"] .site-head {
       var id = typeFromHash();
       var types = sortedTypes();
       var known = types.some(function (type) { return type.id === id; });
-      if (known && id !== state.typeId) activate(id);
+      if (known && id !== NC.state.activeType) activate(id);
     });
   }
 
@@ -7326,7 +7590,10 @@ html[data-theme="glass"] .site-head {
       var saved = localStorage.getItem('npesl-charts-level');
       if (saved && NC.LEVELS.indexOf(saved) !== -1) NC.state.level = saved;
     } catch (err) {}
+    var applied = false;
     function apply(level, animate) {
+      if (NC.LEVELS.indexOf(level) === -1) level = 'B1';
+      var changed = !applied || NC.state.level !== level;
       NC.state.level = level;
       document.documentElement.setAttribute('data-charts-level', level);
       if (switchEl) switchEl.setAttribute('data-active', level);
@@ -7334,18 +7601,12 @@ html[data-theme="glass"] .site-head {
         button.setAttribute('aria-pressed', button.getAttribute('data-level') === level ? 'true' : 'false');
       });
       try { localStorage.setItem('npesl-charts-level', level); } catch (err) {}
+      if (!changed) return;
+      applied = true;
       Object.keys(NC.state.labs).forEach(function (id) {
         var lab = NC.state.labs[id];
-        if (!lab.mounted) return;
-        if (animate) {
-          var desc = lab.section.querySelector('[data-desc]');
-          if (desc) {
-            desc.classList.remove('is-level-switching');
-            void desc.offsetWidth;
-            desc.classList.add('is-level-switching');
-            window.setTimeout(function () { desc.classList.remove('is-level-switching'); }, 240);
-          }
-        }
+        if (!lab.isMounted()) return;
+        if (animate) pulse(lab.section.querySelector('[data-desc]'), 'is-level-switching', 240);
         lab.refresh(false);
       });
     }
@@ -7362,7 +7623,7 @@ html[data-theme="glass"] .site-head {
     function fit() {
       Object.keys(NC.state.labs).forEach(function (id) {
         var lab = NC.state.labs[id];
-        if (!lab.mounted || !lab.svg || !NC.renderCommon || !NC.renderCommon.fit) return;
+        if (!lab.isMounted() || !lab.svg || !NC.renderCommon || !NC.renderCommon.fit) return;
         var compact = NC.renderCommon.fit(lab.svg);
         if (lab.compact !== compact) {
           lab.compact = compact;
@@ -7380,8 +7641,25 @@ html[data-theme="glass"] .site-head {
 
   function setupReducedMotion() {
     var query = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-    NC.state.reducedMotion = !!(query && query.matches);
-    document.documentElement.setAttribute('data-reduced-motion', NC.state.reducedMotion ? 'true' : 'false');
+    function apply(matches) {
+      var reduced = !!matches;
+      if (NC.state.reducedMotion === reduced) {
+        document.documentElement.setAttribute('data-reduced-motion', reduced ? 'true' : 'false');
+        return;
+      }
+      NC.state.reducedMotion = reduced;
+      document.documentElement.setAttribute('data-reduced-motion', reduced ? 'true' : 'false');
+      if (reduced && NC.motion) {
+        Object.keys(NC.state.labs).forEach(function (id) {
+          var lab = NC.state.labs[id];
+          if (lab.isMounted()) NC.motion.play(lab);
+        });
+      }
+    }
+    apply(query && query.matches);
+    if (!query) return;
+    if (query.addEventListener) query.addEventListener('change', function (event) { apply(event.matches); });
+    else if (query.addListener) query.addListener(function (event) { apply(event.matches); });
   }
 
   ui.build = function () {
@@ -7424,7 +7702,31 @@ html[data-theme="glass"] .site-head {
     NC.test = {
       mountAll: NC.ui.mountAll,
       labs: NC.state.labs,
-      state: NC.state
+      state: NC.state,
+      // One serializable view of every machine, for tests and agents.
+      snapshot: function () {
+        var labs = {};
+        Object.keys(NC.state.labs).forEach(function (id) {
+          var lab = NC.state.labs[id];
+          var tip = lab.plot ? lab.plot.querySelector('.chart-tip') : null;
+          labs[id] = {
+            mountState: lab.mountState,
+            compact: !!lab.compact,
+            mode: lab.mode,
+            editor: lab.plot ? lab.plot.getAttribute('data-editor') || 'closed' : null,
+            activeStep: lab.processState ? lab.processState.activeStep : null,
+            tableScroll: lab.tableState ? lab.tableState.shell.getAttribute('data-scroll') : null,
+            tooltip: tip ? tip.getAttribute('data-visible') === 'true' : false
+          };
+        });
+        return {
+          version: NC.version,
+          activeType: NC.state.activeType,
+          level: NC.state.level,
+          reducedMotion: NC.state.reducedMotion,
+          labs: labs
+        };
+      }
     };
   }
 

@@ -129,16 +129,33 @@
     shell.appendChild(cue);
     lab.plot.appendChild(shell);
 
+    if (lab.tableObserver) {
+      lab.tableObserver.disconnect();
+      lab.tableObserver = null;
+    }
     lab.tableState = { rows: rows, dataset: dataset, shell: shell, scroll: scroll };
+    // Overflow is a state of the viewport, not of the data: it changes on
+    // scroll and when the container resizes, not only on re-render.
+    scroll.addEventListener('scroll', function () { updateCue(lab); }, { passive: true });
+    if ('ResizeObserver' in window) {
+      lab.tableObserver = new ResizeObserver(function () { updateCue(lab); });
+      lab.tableObserver.observe(scroll);
+    }
     updateCue(lab);
     lab.motion = null;
   }
 
   function updateCue(lab) {
     var state = lab.tableState;
-    if (!state) return;
-    var overflow = state.scroll.scrollWidth > state.scroll.clientWidth + 1;
+    if (!state || !state.scroll) return;
+    var max = state.scroll.scrollWidth - state.scroll.clientWidth;
+    var x = state.scroll.scrollLeft;
+    var overflow = max > 1;
+    var start = overflow && x > 2;
+    var end = overflow && x < max - 2;
+    var mode = !overflow ? 'none' : start && end ? 'both' : start ? 'start' : 'end';
     state.shell.setAttribute('data-overflow', overflow ? 'true' : 'false');
+    state.shell.setAttribute('data-scroll', mode);
   }
 
   function updateTotals(lab) {

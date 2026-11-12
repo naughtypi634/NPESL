@@ -13,6 +13,7 @@
 
   NC.state = {
     level: 'B1',
+    activeType: null,
     reducedMotion: false,
     data: null,
     datasets: null,

@@ -36,15 +36,24 @@
     host.appendChild(group);
   }
 
+  // The selected step is data, not just a class: it survives a voice change
+  // re-render and is exposed on the wrap for tests and agents.
   function highlight(lab, stepId) {
+    var active = stepId || '';
+    if (lab.processState) {
+      lab.processState.activeStep = active || null;
+      if (lab.processState.wrap) lab.processState.wrap.setAttribute('data-active-step', active);
+    }
     var stepNodes = lab.plot.querySelectorAll('.process-step');
     Array.prototype.forEach.call(stepNodes, function (node) {
-      node.classList.toggle('is-active', node.getAttribute('data-step') === stepId);
+      var on = node.getAttribute('data-step') === active;
+      node.classList.toggle('is-active', on);
+      node.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     var blocks = lab.section.querySelectorAll('[data-desc-lines] .sentence');
     Array.prototype.forEach.call(blocks, function (block) {
       var focus = (block.getAttribute('data-focus') || '').split(' ');
-      block.classList.toggle('is-linked', focus.indexOf(stepId) !== -1);
+      block.classList.toggle('is-linked', active !== '' && focus.indexOf(active) !== -1);
     });
   }
 
@@ -55,9 +64,12 @@
     lab.svg = null;
 
     var dataset = lab.dataset;
+    var previousStep = lab.processState ? lab.processState.activeStep : null;
     var wrap = document.createElement('div');
     wrap.className = 'process-flow';
-    wrap.setAttribute('role', 'list');
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', '流程步骤');
+    wrap.setAttribute('data-active-step', previousStep || '');
 
     dataset.steps.forEach(function (step, index) {
       if (index > 0) {
@@ -71,24 +83,21 @@
       node.type = 'button';
       node.className = 'process-step';
       node.setAttribute('data-step', step.id);
-      node.setAttribute('role', 'listitem');
+      node.setAttribute('aria-pressed', 'false');
       node.innerHTML =
         '<span class="process-icon">' + icon(step.icon) + '</span>' +
         '<span class="process-title" lang="en">' + NC.escapeHtml(step.title_en) + '</span>' +
         '<span class="process-zh">' + NC.escapeHtml(step.title_zh) + '</span>';
       node.addEventListener('click', function () {
-        var active = node.classList.contains('is-active');
-        if (active) {
-          highlight(lab, '');
-        } else {
-          highlight(lab, step.id);
-        }
+        var active = lab.processState && lab.processState.activeStep === step.id;
+        highlight(lab, active ? '' : step.id);
       });
       wrap.appendChild(node);
     });
 
     lab.plot.appendChild(wrap);
-    lab.processState = { wrap: wrap };
+    lab.processState = { wrap: wrap, activeStep: previousStep || null };
+    highlight(lab, previousStep);
     lab.motion = null;
   }
 
@@ -100,6 +109,10 @@
     mount: function (lab) { render(lab); },
     render: render,
     update: function () {},
+    sync: function (lab) {
+      if (!lab.processState) return;
+      highlight(lab, lab.processState.activeStep);
+    },
     describe: describe,
     table: function () { return null; }
   };

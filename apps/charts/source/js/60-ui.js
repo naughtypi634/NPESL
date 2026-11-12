@@ -5,9 +5,20 @@
 
   var REPLAY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v6h-6"/></svg>';
 
-  var state = {
-    typeId: null
-  };
+  // Timed one-shot classes (panel entrance, level-switch fade). One owner per
+  // node, so a rapid re-trigger cannot leave the class stuck or have an older
+  // timer strip it from a newer animation.
+  function pulse(node, cls, ms) {
+    if (!node) return;
+    node.classList.remove(cls);
+    void node.offsetWidth;
+    node.classList.add(cls);
+    if (node.__pulseTimer) window.clearTimeout(node.__pulseTimer);
+    node.__pulseTimer = window.setTimeout(function () {
+      node.__pulseTimer = null;
+      node.classList.remove(cls);
+    }, ms);
+  }
 
   function sceneFor(type) {
     var dataset = NC.state.datasets && type.dataset ? NC.state.datasets[type.dataset] : null;
@@ -196,7 +207,7 @@
     if (keys.indexOf(event.key) === -1) return;
     event.preventDefault();
     var types = sortedTypes();
-    var current = types.map(function (type) { return type.id; }).indexOf(state.typeId);
+    var current = types.map(function (type) { return type.id; }).indexOf(NC.state.activeType);
     var next = current;
     if (event.key === 'ArrowRight') next = (current + 1) % types.length;
     if (event.key === 'ArrowLeft') next = (current - 1 + types.length) % types.length;
@@ -218,18 +229,40 @@
     return (head ? head.getBoundingClientRect().height : 0) + 16;
   }
 
+  function scrollToPanel(panel) {
+    if (!panel) return;
+    var top = panel.getBoundingClientRect().top + window.scrollY - headerOffset();
+    if (Math.abs(window.scrollY - top) > 8) {
+      window.scrollTo({ top: top, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+    }
+  }
+
   function activate(id) {
     var types = sortedTypes();
     var known = types.some(function (type) { return type.id === id; });
     if (!known) id = types[0].id;
-    var first = state.typeId == null;
+    var first = NC.state.activeType == null;
+    var lab = NC.state.labs[id];
+    var panel = NC.byId('chart-' + id);
+
+    // Re-clicking the active tab brings the chart back into view; it does not
+    // rebuild it or replay the entrance animation. A half-finished mount is
+    // retried.
+    if (!first && id === NC.state.activeType) {
+      if (lab && !lab.isMounted()) lab.mount();
+      if (panel && window.scrollY > 80) scrollToPanel(panel);
+      return;
+    }
+
     var wasScrolled = window.scrollY > 80;
-    state.typeId = id;
+    var wasMounted = lab ? lab.isMounted() : false;
+    NC.state.activeType = id;
+    document.documentElement.setAttribute('data-charts-type', id);
     types.forEach(function (type) {
-      var panel = NC.byId('chart-' + type.id);
+      var node = NC.byId('chart-' + type.id);
       var tab = NC.byId('tab-' + type.id);
       var selected = type.id === id;
-      if (panel) panel.hidden = !selected;
+      if (node) node.hidden = !selected;
       if (tab) {
         tab.setAttribute('aria-selected', selected ? 'true' : 'false');
         tab.tabIndex = selected ? 0 : -1;
@@ -244,25 +277,17 @@
       scroller.scrollTo({ left: left, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
     }
 
-    var lab = NC.state.labs[id];
     if (lab) {
       lab.mount();
-      if (lab.renderer.render) lab.renderer.render(lab);
-      lab.refresh(false);
-    }
-    var panel = NC.byId('chart-' + id);
-    if (panel && !NC.state.reducedMotion) {
-      panel.classList.remove('is-entering');
-      void panel.offsetWidth;
-      panel.classList.add('is-entering');
-      window.setTimeout(function () { panel.classList.remove('is-entering'); }, 800);
-    }
-    if (!first && wasScrolled && panel) {
-      var top = panel.getBoundingClientRect().top + window.scrollY - headerOffset();
-      if (Math.abs(window.scrollY - top) > 8) {
-        window.scrollTo({ top: top, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+      // A lab that was mounted before was hidden while the viewport may have
+      // changed; re-fit it. A fresh mount has already rendered and refreshed.
+      if (wasMounted && lab.renderer.render) {
+        lab.renderer.render(lab);
+        lab.refresh(false);
       }
     }
+    if (panel && !NC.state.reducedMotion) pulse(panel, 'is-entering', 800);
+    if (!first && wasScrolled && panel) scrollToPanel(panel);
     if (NC.motion && lab) NC.motion.play(lab);
     try {
       window.history.replaceState(null, '', '#chart-' + id);
@@ -281,7 +306,7 @@
       var id = typeFromHash();
       var types = sortedTypes();
       var known = types.some(function (type) { return type.id === id; });
-      if (known && id !== state.typeId) activate(id);
+      if (known && id !== NC.state.activeType) activate(id);
     });
   }
 
@@ -352,7 +377,10 @@
       var saved = localStorage.getItem('npesl-charts-level');
       if (saved && NC.LEVELS.indexOf(saved) !== -1) NC.state.level = saved;
     } catch (err) {}
+    var applied = false;
     function apply(level, animate) {
+      if (NC.LEVELS.indexOf(level) === -1) level = 'B1';
+      var changed = !applied || NC.state.level !== level;
       NC.state.level = level;
       document.documentElement.setAttribute('data-charts-level', level);
       if (switchEl) switchEl.setAttribute('data-active', level);
@@ -360,18 +388,12 @@
         button.setAttribute('aria-pressed', button.getAttribute('data-level') === level ? 'true' : 'false');
       });
       try { localStorage.setItem('npesl-charts-level', level); } catch (err) {}
+      if (!changed) return;
+      applied = true;
       Object.keys(NC.state.labs).forEach(function (id) {
         var lab = NC.state.labs[id];
-        if (!lab.mounted) return;
-        if (animate) {
-          var desc = lab.section.querySelector('[data-desc]');
-          if (desc) {
-            desc.classList.remove('is-level-switching');
-            void desc.offsetWidth;
-            desc.classList.add('is-level-switching');
-            window.setTimeout(function () { desc.classList.remove('is-level-switching'); }, 240);
-          }
-        }
+        if (!lab.isMounted()) return;
+        if (animate) pulse(lab.section.querySelector('[data-desc]'), 'is-level-switching', 240);
         lab.refresh(false);
       });
     }
@@ -388,7 +410,7 @@
     function fit() {
       Object.keys(NC.state.labs).forEach(function (id) {
         var lab = NC.state.labs[id];
-        if (!lab.mounted || !lab.svg || !NC.renderCommon || !NC.renderCommon.fit) return;
+        if (!lab.isMounted() || !lab.svg || !NC.renderCommon || !NC.renderCommon.fit) return;
         var compact = NC.renderCommon.fit(lab.svg);
         if (lab.compact !== compact) {
           lab.compact = compact;
@@ -406,8 +428,25 @@
 
   function setupReducedMotion() {
     var query = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-    NC.state.reducedMotion = !!(query && query.matches);
-    document.documentElement.setAttribute('data-reduced-motion', NC.state.reducedMotion ? 'true' : 'false');
+    function apply(matches) {
+      var reduced = !!matches;
+      if (NC.state.reducedMotion === reduced) {
+        document.documentElement.setAttribute('data-reduced-motion', reduced ? 'true' : 'false');
+        return;
+      }
+      NC.state.reducedMotion = reduced;
+      document.documentElement.setAttribute('data-reduced-motion', reduced ? 'true' : 'false');
+      if (reduced && NC.motion) {
+        Object.keys(NC.state.labs).forEach(function (id) {
+          var lab = NC.state.labs[id];
+          if (lab.isMounted()) NC.motion.play(lab);
+        });
+      }
+    }
+    apply(query && query.matches);
+    if (!query) return;
+    if (query.addEventListener) query.addEventListener('change', function (event) { apply(event.matches); });
+    else if (query.addListener) query.addListener(function (event) { apply(event.matches); });
   }
 
   ui.build = function () {
