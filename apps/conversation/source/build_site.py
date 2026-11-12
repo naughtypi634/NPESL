@@ -169,26 +169,33 @@ def clip_hash(text: str) -> str:
 # Word-level <emphasis> is only reliable on a few Azure voices; Ava/Andrew
 # respond to a prosody lift instead.  Primary and secondary stresses get
 # different strengths so the line keeps an English stress-timed rhythm.
-PRIMARY_RATE = "-12%"
-PRIMARY_PITCH = "+12%"
-PRIMARY_VOLUME = "+9%"
-SECONDARY_RATE = "-5%"
-SECONDARY_PITCH = "+10%"
-SECONDARY_VOLUME = "+3%"
+#
+# Azure only honours word-level pitch when the word sits in its own <s>
+# segment: a <prosody pitch> nested inside a longer sentence is silently
+# dropped (any value below roughly +25% has no effect at all).  The build
+# therefore wraps the clause that carries a mark in <s>; untagged clauses
+# stay in place so the line keeps its flow and no extra pause is inserted.
+PRIMARY_RATE = "-8%"
+PRIMARY_PITCH = "+25%"
+PRIMARY_VOLUME = "+4%"
+SECONDARY_RATE = "-4%"
+SECONDARY_PITCH = "+25%"
+SECONDARY_VOLUME = "+2%"
 PRIMARY_TAG = (f"<prosody rate='{PRIMARY_RATE}' pitch='{PRIMARY_PITCH}' "
                f"volume='{PRIMARY_VOLUME}'>")
 SECONDARY_TAG = (f"<prosody rate='{SECONDARY_RATE}' "
                  f"pitch='{SECONDARY_PITCH}' volume='{SECONDARY_VOLUME}'>")
 WEAK_RATE = "+8%"
-WEAK_PITCH = "-20%"
-WEAK_VOLUME = "-12%"
+WEAK_PITCH = "-30%"
+WEAK_VOLUME = "-6%"
 WEAK_TAG = (f"<prosody rate='{WEAK_RATE}' pitch='{WEAK_PITCH}' "
             f"volume='{WEAK_VOLUME}'>")
-# List intonation: non-final items rise, the final item falls.
-RISE_TAG = "<prosody contour='(0%,+0%) (50%,+5%) (100%,+25%)'>"
-FALL_TAG = (f"<prosody rate='{PRIMARY_RATE}' volume='{PRIMARY_VOLUME}' "
-            "contour='(0%,+0%) (40%,+10%) (100%,-10%)'>")
-PROSODY_VERSION = "v10"
+# List intonation: non-final items step up, the final item keeps the
+# sentence's natural fall.  <prosody contour> is inert on Ava/Andrew, so the
+# rise is a pitch step on the item word.
+RISE_TAG = "<prosody pitch='+25%' rate='-2%'>"
+FALL_TAG = f"<prosody rate='{SECONDARY_RATE}' volume='{PRIMARY_VOLUME}'>"
+PROSODY_VERSION = "v11"
 
 # (primary, secondary, list-rise, list-fall, weak) token indices, WORD_RE
 # order.  ``weak`` is a deliberate de-emphasis: a word that should stay in the
@@ -322,18 +329,19 @@ def stress_inner(text: str, spec: StressSpec) -> str:
     return "".join(out)
 
 
-# Azure ignores nested <prosody pitch> once an utterance gets longer than
-# roughly 60 characters; rate and volume still apply, so a weak word keeps
-# its natural pitch accent.  An <s> boundary resets that limit, so a weak
-# word's clause is wrapped in one.  Only the weak clause is segmented, so the
-# rest of the line keeps its normal flow.
+# Azure drops a word-level <prosody pitch> when it is nested inside a longer
+# sentence: only values at the coarse extreme survive, so the small lifts the
+# stress model needs never reach the audio.  An <s> boundary makes the clause
+# its own utterance and the pitch then scales linearly.  Only clauses that
+# carry a mark are wrapped, so untagged text keeps its natural flow and no
+# extra pause is inserted.
 SEGMENT_LIMIT = 55
-_SEG_SPLIT = re.compile(r"(?<=[,;])\s+")
+_SEG_SPLIT = re.compile(r"(?<=[,;:])\s+")
 _CONJ_SPLIT = re.compile(r"(?=\b(?:and|or|but)\b\s)")
 
 
 def needs_segments(text: str, spec: StressSpec) -> bool:
-    return bool(spec[4]) and len(text) > SEGMENT_LIMIT
+    return any(spec)
 
 
 def _segments(text: str) -> list:
@@ -350,10 +358,10 @@ def _segments(text: str) -> list:
 
 
 def stress_inner_segmented(text: str, spec: StressSpec) -> str:
-    """Inner body with the clause holding a weak word wrapped in <s>."""
+    """Inner body with every marked clause wrapped in its own <s>."""
     chunks = _segments(text)
     if len(chunks) < 2:
-        return stress_inner(text, spec)
+        return f"<s>{stress_inner(text, spec)}</s>"
     offset = 0
     parts = []
     for chunk in chunks:
@@ -363,7 +371,7 @@ def stress_inner_segmented(text: str, spec: StressSpec) -> str:
             for group in spec
         )
         body = stress_inner(chunk, local)
-        if any(offset <= i < offset + count for i in spec[4]):
+        if any(local):
             body = f"<s>{body}</s>"
         parts.append(body)
         offset += count
@@ -2918,6 +2926,8 @@ def main() -> int:
                         help="输出目录（默认 apps/conversation）")
     parser.add_argument("--audio-base", default=None,
                         help="覆盖页面里的音频地址（本地预览用，如 /audio/）")
+    parser.add_argument("--unit", default="",
+                        help="只建这些单元，逗号分隔（如 1 或 1,2）；默认全部")
     args = parser.parse_args()
     global AUDIO_BASE_OVERRIDE
     AUDIO_BASE_OVERRIDE = args.audio_base
@@ -2935,6 +2945,13 @@ def main() -> int:
     voices = [VOICE_BY_KEY[k] for k in voice_keys]
 
     data = {lv: load_level(lv) for lv in page_levels}
+    wanted_units = {int(x) for x in args.unit.replace(" ", "").split(",") if x}
+    if wanted_units:
+        # Keep the original unit number so page slugs stay stable.
+        for lv in page_levels:
+            data[lv] = [dict(unit, no=index)
+                        for index, unit in enumerate(data[lv], 1)
+                        if index in wanted_units]
     zh_data = {lv: load_zh(lv) for lv in page_levels}
     vocab_data = {lv: load_vocab_zh(lv) for lv in page_levels}
     active_audio = set(page_levels) & audio_levels
@@ -2972,7 +2989,8 @@ def main() -> int:
         units = data[lv]
         write(out / lv.lower() / "index.html", make_level_redirect(lv))
         pages_in_level = []
-        for ui, unit in enumerate(units, 1):
+        for index, unit in enumerate(units, 1):
+            ui = unit.get("no", index)
             for si, story in enumerate(unit["stories"], 1):
                 slug = f"{ui:02d}-{si:02d}-{slugify(story['title'])}"
                 pages_in_level.append((ui, unit, story, si, slug))
