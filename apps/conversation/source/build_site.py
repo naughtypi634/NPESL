@@ -179,12 +179,17 @@ PRIMARY_RATE = "-8%"
 PRIMARY_PITCH = "+25%"
 PRIMARY_VOLUME = "+4%"
 SECONDARY_RATE = "-4%"
-SECONDARY_PITCH = "+25%"
 SECONDARY_VOLUME = "+2%"
 PRIMARY_TAG = (f"<prosody rate='{PRIMARY_RATE}' pitch='{PRIMARY_PITCH}' "
                f"volume='{PRIMARY_VOLUME}'>")
-SECONDARY_TAG = (f"<prosody rate='{SECONDARY_RATE}' "
-                 f"pitch='{SECONDARY_PITCH}' volume='{SECONDARY_VOLUME}'>")
+# A sentence-final word cannot take a pitch step: it reads as a question
+# rise ("practical?", "common?").  There the beat comes from rate and volume,
+# and the sentence's own declination supplies the fall.
+FINAL_PRIMARY_TAG = (f"<prosody rate='{PRIMARY_RATE}' "
+                     f"volume='{PRIMARY_VOLUME}'>")
+# Secondary stress has no usable pitch level between 0 and +25%, so it is
+# carried by timing and volume alone and never competes with the primary.
+SECONDARY_TAG = f"<prosody rate='{SECONDARY_RATE}' volume='{SECONDARY_VOLUME}'>"
 WEAK_RATE = "+8%"
 WEAK_PITCH = "-30%"
 WEAK_VOLUME = "-6%"
@@ -194,8 +199,9 @@ WEAK_TAG = (f"<prosody rate='{WEAK_RATE}' pitch='{WEAK_PITCH}' "
 # sentence's natural fall.  <prosody contour> is inert on Ava/Andrew, so the
 # rise is a pitch step on the item word.
 RISE_TAG = "<prosody pitch='+25%' rate='-2%'>"
-FALL_TAG = f"<prosody rate='{SECONDARY_RATE}' volume='{PRIMARY_VOLUME}'>"
-PROSODY_VERSION = "v11"
+FALL_TAG = (f"<prosody rate='{SECONDARY_RATE}' volume='{SECONDARY_VOLUME}' "
+            "pitch='-30%'>")
+PROSODY_VERSION = "v13"
 
 # (primary, secondary, list-rise, list-fall, weak) token indices, WORD_RE
 # order.  ``weak`` is a deliberate de-emphasis: a word that should stay in the
@@ -275,7 +281,8 @@ def stress_sig(spec: StressSpec) -> str:
     return sig
 
 
-def stress_inner(text: str, spec: StressSpec) -> str:
+def stress_inner(text: str, spec: StressSpec,
+                 final: int | None = None) -> str:
     """SSML inner body: primary/secondary words plus list rise/fall.
 
     Consecutive rise (or fall) tokens are wrapped as one span, so the
@@ -306,6 +313,7 @@ def stress_inner(text: str, spec: StressSpec) -> str:
         "secondary": SECONDARY_TAG,
         "weak": WEAK_TAG,
     }
+    final_index = len(matches) - 1 if final is None else final
     out: list[str] = []
     cursor = 0
     index = 0
@@ -321,8 +329,11 @@ def stress_inner(text: str, spec: StressSpec) -> str:
                 end_index += 1
         start = matches[index].start()
         end = matches[end_index].end()
+        tag = tags[kind]
+        if kind == "primary" and end_index == final_index:
+            tag = FINAL_PRIMARY_TAG
         out.append(xml_escape(text[cursor:start]))
-        out.append(tags[kind] + xml_escape(text[start:end]) + "</prosody>")
+        out.append(tag + xml_escape(text[start:end]) + "</prosody>")
         cursor = end
         index = end_index + 1
     out.append(xml_escape(text[cursor:]))
@@ -364,13 +375,14 @@ def stress_inner_segmented(text: str, spec: StressSpec) -> str:
         return f"<s>{stress_inner(text, spec)}</s>"
     offset = 0
     parts = []
-    for chunk in chunks:
+    for number, chunk in enumerate(chunks):
         count = len(list(pron.WORD_RE.finditer(chunk)))
         local = tuple(
             tuple(i - offset for i in group if offset <= i < offset + count)
             for group in spec
         )
-        body = stress_inner(chunk, local)
+        at_end = count - 1 if number == len(chunks) - 1 else -1
+        body = stress_inner(chunk, local, at_end)
         if any(local):
             body = f"<s>{body}</s>"
         parts.append(body)

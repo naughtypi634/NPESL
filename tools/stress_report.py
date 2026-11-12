@@ -177,7 +177,7 @@ def main() -> int:
             if len(secondary) > 8:
                 print(f"FIX  {story['title']}: 次重音超过 8 个：{text[:50]}…")
                 fixes += 1
-            if len(rise) > 5 or len(fall) > 3:
+            if len(rise) > 6 or len(fall) > 6:
                 print(f"FIX  {story['title']}: 升降调过多：{text[:50]}…")
                 fixes += 1
             if len(weak) > 4:

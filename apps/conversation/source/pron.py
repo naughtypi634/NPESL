@@ -166,6 +166,7 @@ that's there's here's what's who's where's when's why's how's
 """.split()
 
 FINITE_VERBS = set(IRREGULAR_FINITE) | set(CONTRACTIONS) | set(VERB_BASES)
+POSSESSIVE_PRONOUNS = {"mine", "yours", "his", "hers", "ours", "theirs"}
 for _base in VERB_BASES:
     FINITE_VERBS.add(_base + "s")
     FINITE_VERBS.add(_base + "es")
@@ -696,6 +697,15 @@ def _analyse(sentence: str):
         prev = lows[i - 1]
         nxt = lows[i + 1] if i + 1 < n else ""
 
+        if (low in FINITE_VERBS and prev in POSSESSIVE_PRONOUNS
+                and i - chunk_start >= 3):
+            # "A family like ours | asks ..." — a possessive pronoun at the
+            # end of a long subject closes the group, so the verb starts a
+            # new one and the two do not link.
+            sense_before[i] = None
+            bar_after[i - 1] = None
+            chunk_start = i
+            continue
         if low in COORD and i - chunk_start >= 3 and nxt in COORD_GATE:
             sense_before[i] = None
             bar_after[i - 1] = None
