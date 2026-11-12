@@ -1213,8 +1213,38 @@ const cases = [
         const widths = new Set(rows.map((x) => Math.round(x.getBoundingClientRect().width)));
         return { overflow, rows: rows.length, widths: widths.size };
       })()`);
-      const ok = r && r.overflow <= 1 && r.rows === 30 && r.widths === 1;
-      return { ok, detail: `overflow=${r && r.overflow} rows=${r && r.rows} widths=${r && r.widths}` };
+      // 筛选状态机：切分类只亮一个 chip、只显示一组；未知保存值退回 all。
+      const filter = await evaluate(`(() => {
+        if (!window.__phenomena || typeof window.__phenomena.snapshot !== 'function') return null;
+        const initial = window.__phenomena.snapshot().filter;
+        const chip = [...document.querySelectorAll('.chips button')]
+          .find((b) => b.getAttribute('data-cat') !== 'all');
+        if (!chip) return null;
+        const cat = chip.getAttribute('data-cat');
+        chip.click();
+        const shown = [...document.querySelectorAll('.group')]
+          .filter((g) => g.style.display !== 'none')
+          .map((g) => g.getAttribute('data-cat'));
+        const pressed = document.querySelector('.chips button[aria-pressed="true"]');
+        const result = {
+          initial, cat, on: window.__phenomena.snapshot().filter, shown,
+          pressed: pressed && pressed.getAttribute('data-cat'),
+          body: document.body.getAttribute('data-filter'),
+        };
+        document.querySelector('.chips button[data-cat="all"]').click();
+        result.restored = window.__phenomena.snapshot().filter;
+        return result;
+      })()`);
+      const filterOk = filter && filter.initial === 'all' && filter.on === filter.cat
+        && filter.shown.length === 1 && filter.shown[0] === filter.cat
+        && filter.pressed === filter.cat && filter.body === filter.cat
+        && filter.restored === 'all';
+      const ok = r && r.overflow <= 1 && r.rows === 30 && r.widths === 1 && filterOk;
+      return {
+        ok,
+        detail: `overflow=${r && r.overflow} rows=${r && r.rows} widths=${r && r.widths} `
+          + `filter=${filterOk ? 'ok' : JSON.stringify(filter)}`,
+      };
     },
   },
   {
@@ -1229,10 +1259,88 @@ const cases = [
         return parseFloat(b.getAttribute('data-start-f'));
       })()`);
       if (start === null) return { ok: false, detail: '没有中段句子可点' };
+
+      // 状态机：初始 idle，快照可读；重复点同一个句子应回 idle 而不是重播。
+      const initial = await evaluate(`(() => {
+        if (!window.__phenomena || typeof window.__phenomena.snapshot !== 'function') return null;
+        const s = window.__phenomena.snapshot();
+        return {
+          page: s.page, audio: s.audio.state, queue: s.queue.state,
+          voice: s.voice, lang: s.lang,
+          bodyAudio: document.body.getAttribute('data-audio'),
+          bodyVoice: document.body.getAttribute('data-voice-state'),
+          pressed: document.querySelectorAll('[data-voice][aria-pressed="true"]').length,
+        };
+      })()`);
       const p = await playAndProbe('button.line[data-smoke]');
+      const toggled = await evaluate(`(() => {
+        document.querySelector('button.line[data-smoke]').click();
+        const s = window.__phenomena.snapshot();
+        return {
+          state: s.audio.state,
+          playing: document.querySelectorAll('.line.playing').length,
+          body: document.body.getAttribute('data-audio'),
+        };
+      })()`);
+      const stateOk = !!initial && initial.page === 'lesson'
+        && initial.audio === 'idle' && initial.queue === 'off'
+        && initial.bodyAudio === 'idle' && initial.bodyVoice === initial.voice
+        && initial.pressed === 1
+        && toggled.state === 'idle' && toggled.playing === 0 && toggled.body === 'idle';
+
+      // 换音色：正在播的句子用另一条 sprite 重放，连播按钮仍归位。
+      const switched = await evaluate(`(() => {
+        const next = window.__phenomena.snapshot().voice === 'f' ? 'm' : 'f';
+        document.querySelector('[data-voice="' + next + '"]').click();
+        return {
+          want: next,
+          voice: window.__phenomena.snapshot().voice,
+          body: document.body.getAttribute('data-voice-state'),
+          pressed: document.querySelector('[data-voice="' + next + '"]')
+            .getAttribute('aria-pressed'),
+        };
+      })()`);
+      await evaluate("document.querySelector('button.line[data-smoke]').click()");
+      const replayed = await waitFor(
+        "window.__phenomena.snapshot().audio.state === 'playing'", 8000);
+      const maleSrc = await evaluate(
+        'window.__lastAudio ? (window.__lastAudio.currentSrc || window.__lastAudio.src) : ""');
+      const voiceOk = switched.voice === switched.want
+        && switched.body === switched.want && switched.pressed === 'true'
+        && replayed && maleSrc && maleSrc !== p.src;
+
+      // 连播：开 → queue=playing，第一句播完自动推进，关 → queue=off 且声音停。
+      const queue = await evaluate(`(() => {
+        document.querySelector('[data-play-all]').click();
+        return window.__phenomena.snapshot().queue.state;
+      })()`);
+      const advanced = await waitFor(
+        "window.__phenomena.snapshot().queue.state === 'playing' "
+        + "&& window.__phenomena.snapshot().queue.at >= 1", 10000);
+      const queueStopped = await evaluate(`(() => {
+        document.querySelector('[data-play-all]').click();
+        const s = window.__phenomena.snapshot();
+        return {
+          queue: s.queue.state, audio: s.audio.state,
+          pressed: document.querySelector('[data-play-all]').getAttribute('aria-pressed'),
+        };
+      })()`);
+      const queueOk = queue === 'playing' && advanced
+        && queueStopped.queue === 'off'
+        && queueStopped.audio === 'idle' && queueStopped.pressed === 'false';
+
+      const playbackOk = p.started && p.currentTime >= start - 0.1
+        && p.mediaErrors.length === 0;
+      const ok = stateOk && voiceOk && queueOk && playbackOk;
       return {
-        ok: p.started && p.currentTime >= start - 0.1 && p.mediaErrors.length === 0,
-        detail: `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start}`,
+        ok,
+        detail: `state=${stateOk ? 'ok' : `init=${JSON.stringify(initial)} `
+            + `toggle=${JSON.stringify(toggled)}`} `
+          + `voice=${voiceOk ? 'ok' : `${JSON.stringify(switched)} replayed=${replayed} `
+            + `src=${maleSrc === p.src ? 'same' : 'different'}`} `
+          + `queue=${queueOk ? 'ok' : `${queue}/advanced=${advanced}/`
+            + JSON.stringify(queueStopped)} `
+          + `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start}`,
       };
     },
   },

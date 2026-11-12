@@ -71,23 +71,63 @@
 </div>
 <script>
 (function(){
-var CHIP_KEY='rs-cat';
-var chips=document.querySelectorAll('.chips button');
-var groups=document.querySelectorAll('.group');
-function apply(cat){
-  for(var i=0;i<groups.length;i++){
-    groups[i].style.display=(cat==='all'||groups[i].getAttribute('data-cat')===cat)?'':'none';
+  /* 页面的隐式状态都收进转移表：只允许表里列出的转移，非法事件返回
+     false，界面不会停在半路。运行时快照见 window.__phenomena.snapshot()。 */
+  function createMachine(name, initial, table) {
+    var state = initial;
+    var listeners = [];
+    return {
+      name: name,
+      get state() { return state; },
+      can: function (event) {
+        return !!(table[state] && table[state][event]);
+      },
+      send: function (event, payload) {
+        var row = table[state];
+        var next = row && row[event];
+        var target = typeof next === 'function' ? next(payload) : next;
+        if (target == null) return false;   // 当前状态不允许，或被守卫拦下
+        state = target;
+        for (var i = 0; i < listeners.length; i++) {
+          listeners[i](state, event, payload);
+        }
+        return true;
+      },
+      on: function (fn) { listeners.push(fn); }
+    };
   }
-  for(var j=0;j<chips.length;j++){
-    chips[j].setAttribute('aria-pressed',chips[j].getAttribute('data-cat')===cat?'true':'false');
-  }
-  try{localStorage.setItem(CHIP_KEY,cat);}catch(e){}
-}
-for(var k=0;k<chips.length;k++){
-  chips[k].addEventListener('click',function(e){apply(e.currentTarget.getAttribute('data-cat'));});
-}
-var saved='all';try{saved=localStorage.getItem(CHIP_KEY)||'all';}catch(e){}
-apply(saved);
+
+  var CHIP_KEY='rs-cat';
+  var chips=[].slice.call(document.querySelectorAll('.chips button'));
+  var groups=[].slice.call(document.querySelectorAll('.group'));
+  var known={};
+  chips.forEach(function(chip){ known[chip.getAttribute('data-cat')]=true; });
+
+  /* 筛选：all 或某个分类。保存的分类在内容改版后可能已经不存在，
+     这时退回 all，不会出现「分组全隐藏、chip 全灭」的悬空状态。 */
+  var table={};
+  Object.keys(known).forEach(function(cat){
+    table[cat]={ select:function(next){ return known[next] ? next : null; } };
+  });
+  var filter=createMachine('filter','all',table);
+  filter.on(function(state){
+    document.body.setAttribute('data-filter',state);
+    groups.forEach(function(group){
+      group.style.display=(state==='all'||group.getAttribute('data-cat')===state)?'':'none';
+    });
+    chips.forEach(function(chip){
+      chip.setAttribute('aria-pressed',chip.getAttribute('data-cat')===state?'true':'false');
+    });
+    try{localStorage.setItem(CHIP_KEY,state);}catch(e){}
+  });
+  chips.forEach(function(chip){
+    chip.addEventListener('click',function(){ filter.send('select',chip.getAttribute('data-cat')); });
+  });
+  var saved='all';try{saved=localStorage.getItem(CHIP_KEY)||'all';}catch(e){}
+  filter.send('select', known[saved] ? saved : 'all');
+  window.__phenomena=Object.freeze({
+    snapshot:function(){ return { page:'index', filter: filter.state }; }
+  });
 })();
 </script>
 </body>
