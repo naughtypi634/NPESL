@@ -433,6 +433,34 @@ const cases = [
         };
       })()`);
       if (!info) return { ok: false, detail: '没有中段录音可点' };
+      // 状态机：播放阶段可读，重复点同一个词应直接回 idle 而不是重播。
+      const stateApi = await evaluate(
+        "!!(window.__ipa && typeof window.__ipa.snapshot === 'function')");
+      const navState = await evaluate(`(() => {
+        const s = window.__ipa.snapshot().nav;
+        return {
+          state: s.state,
+          section: s.section,
+          current: document.querySelectorAll('#sectionNav a[aria-current="true"]').length,
+        };
+      })()`);
+      await evaluate("document.querySelector('button.word[data-smoke]').click()");
+      const reachedActive = await waitFor(
+        "window.__ipa.snapshot().audio.state !== 'idle'", 8000);
+      const toggled = await evaluate(`(() => {
+        const b = document.querySelector('button.word[data-smoke]');
+        b.click();
+        const audio = window.__ipa.snapshot().audio;
+        return {
+          state: audio.state,
+          highlighted: document.querySelectorAll('button.word.playing').length,
+          body: document.body.getAttribute('data-audio'),
+        };
+      })()`);
+      const stateOk = stateApi && reachedActive && navState.current === 1
+        && !!navState.section && navState.state === 'idle'
+        && toggled.state === 'idle' && toggled.highlighted === 0
+        && toggled.body === 'idle';
       const female = await playAndProbe('button.word[data-smoke]');
       const switched = await evaluate(`(() => {
         const b = document.querySelector('button.word[data-smoke]');
@@ -449,8 +477,10 @@ const cases = [
       const maleOk = switched && male.started && male.currentTime >= info.m - 0.1
         && male.src !== female.src && male.mediaErrors.length === 0;
       return {
-        ok: femaleOk && maleOk,
-        detail: `f t=${female.currentTime?.toFixed(2)} want≥${info.f}; `
+        ok: stateOk && femaleOk && maleOk,
+        detail: `state=${stateOk ? 'ok' : `FAIL nav=${navState.state}/${navState.section} `
+            + `toggle=${toggled.state}/${toggled.highlighted}/${toggled.body}`}; `
+          + `f t=${female.currentTime?.toFixed(2)} want≥${info.f}; `
           + `m t=${male.currentTime?.toFixed(2)} want≥${info.m} `
           + `src=${male.src === female.src ? 'same' : 'different'}`,
       };

@@ -724,9 +724,35 @@ TEMPLATE = """<!doctype html>
 </div>
 <script>
 (function () {
+  /* 页面的隐式状态都收进转移表：只允许表里列出的转移，非法事件返回
+     false，界面不会停在半路。运行时快照见 window.__ipa.snapshot()。 */
+  function createMachine(name, initial, table) {
+    var state = initial;
+    var listeners = [];
+    return {
+      name: name,
+      get state() { return state; },
+      can: function (event) {
+        return !!(table[state] && table[state][event]);
+      },
+      send: function (event, payload) {
+        var row = table[state];
+        var next = row && row[event];
+        var target = typeof next === 'function' ? next(payload) : next;
+        if (target == null) return false;   // 当前状态不允许，或被守卫拦下
+        state = target;
+        for (var i = 0; i < listeners.length; i++) {
+          listeners[i](state, event, payload);
+        }
+        return true;
+      },
+      on: function (fn) { listeners.push(fn); }
+    };
+  }
+
   var player = new Audio();
   player.preload = 'none';
-  var active = null, token = 0;
+  var active = null, audioToken = 0, audioRaf = 0, audioStopAt = 0;
   var SOURCES = {}, SOURCE_KEYS = [], loadedSrc = null;
   var VOICES_KEY = 'npesl-ipa-voices';
   var saved = {};
@@ -737,18 +763,29 @@ TEMPLATE = """<!doctype html>
     saved = {};
   }
 
-  function clearActive() {
+  /* 播放：idle → loading（取 sprite）→ seeking（跳到本词）→ playing。
+     任意非 idle 状态都能被 stop / fail 打断；换词直接走 load。 */
+  var audio = createMachine('audio', 'idle', {
+    idle:    { load: 'loading' },
+    loading: { load: 'loading', seek: 'seeking', stop: 'idle', fail: 'idle' },
+    seeking: { load: 'loading', play: 'playing', stop: 'idle', fail: 'idle' },
+    playing: { load: 'loading', finish: 'idle', stop: 'idle', fail: 'idle' }
+  });
+
+  function audioAlive(token) {
+    return token === audioToken && audio.state !== 'idle';
+  }
+
+  function audioClear() {
+    if (audioRaf) { cancelAnimationFrame(audioRaf); audioRaf = 0; }
     if (active) {
       active.classList.remove('playing');
+      delete active.dataset.state;
       active = null;
     }
   }
 
-  function stop() {
-    token += 1;
-    player.pause();
-    clearActive();
-  }
+  function audioStop() { audio.send('stop'); }
 
   function cardVoice(card) {
     var pressed = card.querySelector('.voice button[aria-pressed="true"]');
@@ -801,58 +838,100 @@ TEMPLATE = """<!doctype html>
     return end;
   }
 
-  // 拿不到整包时（本地文件、跨域不让 fetch）只有媒体元素可用：等目标位置变
-  // 成可跳的再试，别把用户丢在错误的位置上。
-  function waitForData(current, seek, from, attempt) {
-    if (current !== token) return;
-    if (seekableEnd() >= from - 0.01) { seek(); return; }
-    if (attempt > 40) { clearActive(); return; }
-    setTimeout(function () { waitForData(current, seek, from, attempt + 1); }, 250);
+  /* rAF 在后台标签页会被节流，timeupdate 兜底，保证停在单词末尾，
+     而不是一路播到整条 sprite 的终点。 */
+  function startCueWatch(token, stopAt) {
+    if (audioRaf) cancelAnimationFrame(audioRaf);
+    var tick = function () {
+      if (!audioAlive(token) || audio.state !== 'playing') { audioRaf = 0; return; }
+      if (player.currentTime >= stopAt - 0.008) { audio.send('finish'); return; }
+      audioRaf = requestAnimationFrame(tick);
+    };
+    audioRaf = requestAnimationFrame(tick);
   }
 
-  function startSpan(current, from, stopAt) {
-    var raf = 0, retries = 0;
+  audio.on(function (state, event, payload) {
+    document.body.setAttribute('data-audio', state);
+
+    if (event === 'load') {
+      audioToken += 1;
+      audioClear();
+      try { player.pause(); } catch (e) {}
+      active = payload.btn;
+      active.classList.add('playing');
+      active.dataset.state = 'loading';
+      audioStopAt = payload.end;
+      var token = audioToken;
+      sourceFor(payload.source).then(function (src) {
+        if (!audioAlive(token)) return;
+        if (!src) { audio.send('fail'); return; }
+        if (loadedSrc !== src) {
+          player.src = src;
+          loadedSrc = src;
+        }
+        beginCue(token, payload.start, payload.end);
+      });
+      return;
+    }
+    if (event === 'seek') {
+      if (active) active.dataset.state = 'seeking';
+      return;
+    }
+    if (event === 'play') {
+      if (active) active.dataset.state = 'playing';
+      startCueWatch(audioToken, payload.stopAt);
+      return;
+    }
+    /* stop / fail / finish：停声、清高亮、作废所有在途回调。 */
+    audioToken += 1;
+    audioClear();
+    try { player.pause(); } catch (e) {}
+  });
+
+  function beginCue(token, startAt, stopAt) {
+    if (!audioAlive(token)) return;
+    var fail = function () { if (audioAlive(token)) audio.send('fail'); };
+
+    // 拿不到整包时（本地文件、跨域不让 fetch）只有媒体元素可用：等目标位置变
+    // 成可跳的再试，别把用户丢在错误的位置上。
+    var waitForData = function (attempt) {
+      if (!audioAlive(token)) return;
+      if (seekableEnd() >= startAt - 0.01) { seek(); return; }
+      if (attempt > 40) { fail(); return; }
+      setTimeout(function () { waitForData(attempt + 1); }, 250);
+    };
+
+    var retries = 0;
     var play = function () {
-      if (current !== token) return;
-      if (player.currentTime < from - 0.15) {
+      if (!audioAlive(token)) return;
+      if (player.currentTime < startAt - 0.15) {
         // seek 没落地：宁可等数据，也不要从整条音频的开头播起。
-        if (++retries > 3) { clearActive(); return; }
-        waitForData(current, seek, from, 0);
+        if (++retries > 3) { fail(); return; }
+        waitForData(0);
         return;
       }
       var result = player.play();
-      var tick = function () {
-        if (current !== token) return;
-        if (player.currentTime >= stopAt - 0.008) {
-          player.pause();
-          cancelAnimationFrame(raf);
-          clearActive();
-          return;
-        }
-        raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-      if (result && result.catch) {
-        result.catch(function () { if (current === token) clearActive(); });
-      }
+      audio.send('play', { stopAt: stopAt });
+      if (result && result.catch) result.catch(fail);
     };
+
     var seek = function () {
-      if (current !== token) return;
-      if (Math.abs(player.currentTime - from) < 0.02) { play(); return; }
+      if (!audioAlive(token)) return;
+      if (Math.abs(player.currentTime - startAt) < 0.02) { play(); return; }
       var done = false;
       var onSeeked = function () {
         if (done) return;
         done = true;
         player.removeEventListener('seeked', onSeeked);
-        if (current === token) play();
+        play();
       };
       player.addEventListener('seeked', onSeeked);
       try {
-        player.currentTime = from;
+        player.currentTime = startAt;
       } catch (e) {
         player.removeEventListener('seeked', onSeeked);
         done = true;
-        waitForData(current, seek, from, 0);
+        waitForData(0);
         return;
       }
       // 个别浏览器 seek 后不派发 seeked，别把用户卡在原地。
@@ -860,17 +939,21 @@ TEMPLATE = """<!doctype html>
         if (done) return;
         done = true;
         player.removeEventListener('seeked', onSeeked);
-        if (current === token) play();
+        if (audioAlive(token)) play();
       }, 1500);
     };
+
     if (player.readyState < 1) {
       var onLoaded = function () {
         player.removeEventListener('loadedmetadata', onLoaded);
+        if (!audioAlive(token)) return;
+        audio.send('seek');
         seek();
       };
       player.addEventListener('loadedmetadata', onLoaded);
       try { player.load(); } catch (e) {}
     } else {
+      audio.send('seek');
       seek();
     }
   }
@@ -883,43 +966,52 @@ TEMPLATE = """<!doctype html>
     var end = parseFloat(button.getAttribute('data-end-' + voice));
     var source = card.getAttribute('data-sprite-' + voice);
     if (!source || !isFinite(start) || !isFinite(end)) return;
-    stop();
-    var current = ++token;
-    active = button;
-    button.classList.add('playing');
-    sourceFor(source).then(function (src) {
-      if (current !== token) return;
-      if (!src) { clearActive(); return; }
-      if (loadedSrc !== src) {
-        player.src = src;
-        loadedSrc = src;
-      }
-      startSpan(current, start, end);
+    // 同一个词再点一次 = 停；其他词 = 换词，loading 中也一样。
+    if (active === button && audio.state !== 'idle') {
+      audio.send('stop');
+      return;
+    }
+    audio.send('load', {
+      btn: button, voice: voice, source: source, start: start, end: end
     });
   }
 
+  var voiceMachines = {};
+
+  /* 每张卡的音色是一个两状态机（f ⇄ m）：按钮的 aria-pressed、
+     卡片的 data-voice 和 localStorage 都从同一份状态渲染。 */
   Array.prototype.forEach.call(document.querySelectorAll('.card'), function (card) {
     var sound = card.getAttribute('data-sound');
     var buttons = Array.prototype.slice.call(
       card.querySelectorAll('.voice button[data-voice]')
     );
-    var voice = saved[sound] === 'm' ? 'm' : 'f';
+    var initial = saved[sound] === 'm' ? 'm' : 'f';
+    var voice = createMachine('voice:' + sound, initial, {
+      f: { select: function (next) { return next === 'm' ? 'm' : null; } },
+      m: { select: function (next) { return next === 'f' ? 'f' : null; } }
+    });
+    voiceMachines[sound] = voice;
+
+    voice.on(function (state) {
+      buttons.forEach(function (item) {
+        item.setAttribute('aria-pressed', String(item.dataset.voice === state));
+      });
+      card.setAttribute('data-voice', state);
+      saved[sound] = state;
+      try {
+        localStorage.setItem(VOICES_KEY, JSON.stringify(saved));
+      } catch (e) {}
+      if (audio.state !== 'idle') audio.send('stop');
+    });
+
     buttons.forEach(function (button) {
       button.setAttribute('aria-pressed',
-        String(button.dataset.voice === voice));
+        String(button.dataset.voice === initial));
       button.addEventListener('click', function () {
-        if (button.dataset.voice === voice) return;
-        voice = button.dataset.voice;
-        buttons.forEach(function (item) {
-          item.setAttribute('aria-pressed', String(item === button));
-        });
-        saved[sound] = voice;
-        try {
-          localStorage.setItem(VOICES_KEY, JSON.stringify(saved));
-        } catch (e) {}
-        stop();
+        voice.send('select', button.dataset.voice);
       });
     });
+    card.setAttribute('data-voice', initial);
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.word'),
@@ -927,9 +1019,19 @@ TEMPLATE = """<!doctype html>
       button.addEventListener('click', function () { play(button); });
     });
 
-  player.addEventListener('ended', clearActive);
+  player.addEventListener('timeupdate', function () {
+    if (audio.state === 'playing' && player.currentTime >= audioStopAt - 0.008) {
+      audio.send('finish');
+    }
+  });
+  player.addEventListener('ended', function () {
+    if (audio.state === 'playing') audio.send('finish');
+  });
+  player.addEventListener('error', function () {
+    if (audio.state !== 'idle') audio.send('fail');
+  });
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) stop();
+    if (document.hidden) audioStop();
   });
 
   var navLinks = Array.prototype.slice.call(
@@ -939,34 +1041,99 @@ TEMPLATE = """<!doctype html>
     document.querySelectorAll('main > .group')
   );
 
+  var navCurrent = null, navTarget = null, navTimer = 0;
+
+  /* 分区导航：idle 跟随滚动，jumping 是点 tab 后的程序化滚动。
+     跳转期间只认目标分区，避免平滑滚动路过其他分区时把高亮抢走。 */
+  var nav = createMachine('nav', 'idle', {
+    idle:    { select: 'jumping' },
+    jumping: { select: 'jumping', settle: 'idle' }
+  });
+
+  nav.on(function (state) {
+    if (navTimer) { clearTimeout(navTimer); navTimer = 0; }
+    if (state !== 'jumping') return;
+    // 个别情况下目标分区始终没有进入观察带，兜底解锁。
+    navTimer = setTimeout(function () {
+      navTimer = 0;
+      nav.send('settle');
+    }, 900);
+  });
+
   function setCurrent(sectionId) {
+    if (!sectionId) return;
+    navCurrent = sectionId;
+    document.body.setAttribute('data-section', sectionId);
     navLinks.forEach(function (link) {
       var current = link.dataset.target === sectionId;
       link.setAttribute('aria-current', String(current));
-      var nav = link.parentElement;
-      if (current && nav.scrollWidth > nav.clientWidth) {
-        nav.scrollTo({
-          left: link.offsetLeft - (nav.clientWidth - link.offsetWidth) / 2,
+      var rail = link.parentElement;
+      if (current && rail.scrollWidth > rail.clientWidth) {
+        rail.scrollTo({
+          left: link.offsetLeft - (rail.clientWidth - link.offsetWidth) / 2,
           behavior: 'smooth'
         });
       }
     });
   }
 
+  function sectionFromHash() {
+    var hash = location.hash.replace('#', '');
+    for (var i = 0; i < groups.length; i++) {
+      if (groups[i].id === hash) return hash;
+    }
+    return groups.length ? groups[0].id : null;
+  }
+
+  setCurrent(sectionFromHash());
+
   navLinks.forEach(function (link) {
     link.addEventListener('click', function () {
-      setCurrent(link.dataset.target);
+      navTarget = link.dataset.target;
+      setCurrent(navTarget);
+      nav.send('select');
     });
   });
 
   if ('IntersectionObserver' in window && groups.length) {
     var observer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting) setCurrent(entry.target.id);
+        if (!entry.isIntersecting) return;
+        if (nav.state === 'jumping') {
+          if (entry.target.id !== navTarget) return;
+          nav.send('settle');
+        }
+        setCurrent(entry.target.id);
       });
     }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
     groups.forEach(function (group) { observer.observe(group); });
   }
+
+  document.body.setAttribute('data-audio', audio.state);
+
+  /* 给测试和无头代理一个稳定读口：不用从 DOM 倒推当前状态。 */
+  window.__ipa = Object.freeze({
+    snapshot: function () {
+      var card = active ? active.closest('.card') : null;
+      var voices = {};
+      for (var sound in voiceMachines) {
+        if (Object.prototype.hasOwnProperty.call(voiceMachines, sound)) {
+          voices[sound] = voiceMachines[sound].state;
+        }
+      }
+      return {
+        audio: {
+          state: audio.state,
+          word: active ? active.textContent.replace(/\\s+/g, ' ').trim() : null,
+          sound: card ? card.getAttribute('data-sound') : null,
+          voice: card ? cardVoice(card) : null,
+          time: player.currentTime
+        },
+        voices: voices,
+        nav: { state: nav.state, section: navCurrent }
+      };
+    }
+  });
 
   var back = document.getElementById('ipa-back');
   if (back) {
