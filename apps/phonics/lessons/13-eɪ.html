@@ -481,15 +481,84 @@
   (function () {
     var map = JSON.parse(document.getElementById("audioMap").textContent);
     var VOICE_KEYS = ["f", "m"];
-    var audios = {};
-    // 两条音轨是独立文件。Pages 不支持 Range，直接 seek 会被夹回 0 秒；
-    // 点读时先把整条音频取成 blob，换成 blob: 地址再跳。
+    /* 页面的隐式状态都收进转移表：只允许表里列出的转移，非法事件返回
+       false，界面不会停在半路。运行时快照见 window.__phonics.snapshot()。 */
+    function createMachine(name, initial, table) {
+      var state = initial;
+      var listeners = [];
+      return {
+        name: name,
+        get state() { return state; },
+        can: function (event) {
+          return !!(table[state] && table[state][event]);
+        },
+        send: function (event, payload) {
+          var row = table[state];
+          var next = row && row[event];
+          var target = typeof next === "function" ? next(payload) : next;
+          if (target == null) return false;   // 当前状态不允许，或被守卫拦下
+          state = target;
+          for (var i = 0; i < listeners.length; i++) {
+            listeners[i](state, event, payload);
+          }
+          return true;
+        },
+        on: function (fn) { listeners.push(fn); }
+      };
+    }
+
+    /* 两条音轨各自一个媒体元素。Pages 不支持 Range，直接 seek 会被夹回 0 秒；
+       点读时先把整条音频取成 blob，换成 blob: 地址再跳。 */
+    var players = {};
     VOICE_KEYS.forEach(function (key) {
       var track = new Audio();
       track.preload = "none";
-      track.src = map[key];
-      audios[key] = track;
+      if (map[key]) track.src = map[key];
+      players[key] = track;
     });
+
+    /* 每条音轨的取包过程：idle → fetching → ready（blob，或退回直连）。 */
+    function createSource(key) {
+      return createMachine("source:" + key, "idle", {
+        idle:     { fetch: "fetching", direct: "ready", missing: "missing" },
+        fetching: { resolve: "ready", fallback: "ready", missing: "missing" },
+        ready:    {},
+        missing:  {}
+      });
+    }
+    var sources = { f: createSource("f"), m: createSource("m") };
+    var SOURCES = {};
+
+    function sourceFor(key) {
+      if (SOURCES[key]) return SOURCES[key];
+      var machine = sources[key];
+      var url = map[key];
+      var canFetch = url && location.protocol !== "file:" && window.fetch
+        && window.URL && URL.createObjectURL;
+      if (!url) {
+        machine.send("missing");
+        SOURCES[key] = Promise.resolve(null);
+        return SOURCES[key];
+      }
+      if (!canFetch) {
+        machine.send("direct");
+        SOURCES[key] = Promise.resolve(url);
+        return SOURCES[key];
+      }
+      machine.send("fetch");
+      SOURCES[key] = fetch(url).then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.blob();
+      }).then(function (blob) {
+        machine.send("resolve");
+        return URL.createObjectURL(blob) + "#" + url.split("/").pop();
+      }).catch(function () {
+        machine.send("fallback");
+        return url;
+      });
+      return SOURCES[key];
+    }
+
     var SPEED_KEY = "npesl-phonics-speed";
     var SPEED_MIN = 0.7;
     var SPEED_MAX = 1.5;
@@ -500,125 +569,70 @@
       if (savedSpeed >= SPEED_MIN && savedSpeed <= SPEED_MAX) speed = savedSpeed;
     } catch (e) {}
     VOICE_KEYS.forEach(function (key) {
-      audios[key].playbackRate = speed;
+      players[key].playbackRate = speed;
     });
-    var voice = "f";
-    var audio = audios[voice];
+
+    /* 播放：idle → loading（取音轨/等元数据）→ seeking（跳到起点）→ playing。
+       任意非 idle 状态都能被 stop / fail 打断；换片段直接走 load。 */
+    var audio = createMachine("audio", "idle", {
+      idle:    { load: "loading" },
+      loading: { load: "loading", seek: "seeking", stop: "idle", fail: "idle" },
+      seeking: { load: "loading", play: "playing", stop: "idle", fail: "idle" },
+      playing: { load: "loading", finish: "idle", stop: "idle", fail: "idle" }
+    });
+
+    /* 连播：整条音轨从头放到尾，off → playing；结束或被打断回 off。 */
+    var queue = createMachine("queue", "off", {
+      off:     { start: "playing" },
+      playing: { stop: "off" }
+    });
+
+    /* 底部提示：hidden ↔ sticky（失败时挂住，下一次播放或中断收起）。 */
+    var status = createMachine("status", "hidden", {
+      hidden: { hold: "sticky" },
+      sticky: { hold: "sticky", hide: "hidden" }
+    });
+
+    /* 音色：f ⇄ m。按钮 aria-pressed 与 body 的 data-voice-state 都从状态渲染。 */
+    var voiceMachine = createMachine("voice", "f", {
+      f: { select: function (next) { return next === "m" ? "m" : null; } },
+      m: { select: function (next) { return next === "f" ? "f" : null; } }
+    });
+
+    var voice = voiceMachine.state;
+    var player = players[voice];
 
     var sections = Array.prototype.slice.call(document.querySelectorAll(".sentence"));
     var chunks = Array.prototype.slice.call(document.querySelectorAll(".chunk"));
+    // 给点读元素和无头代理一个稳定的坐标，不用从 DOM 位置倒推。
+    chunks.forEach(function (el, index) {
+      el.setAttribute("data-kind", "chunk");
+      el.setAttribute("data-index", String(index));
+    });
+    sections.forEach(function (el, index) {
+      el.setAttribute("data-kind", "sentence");
+      el.setAttribute("data-index", String(index));
+      var speaker = el.querySelector(".speaker");
+      if (speaker) {
+        speaker.setAttribute("data-kind", "speaker");
+        speaker.setAttribute("data-index", String(index));
+      }
+    });
+
     var voiceSeg = document.getElementById("voiceSeg");
     var playAllBtn = document.getElementById("playAll");
     var playAllLabel = document.getElementById("playAllLabel");
     var icoPlay = document.getElementById("icoPlay");
     var icoStop = document.getElementById("icoStop");
     var statusEl = document.getElementById("status");
-    var state = null;
-    // 每次 stop()/start() 递增；异步回调（seeked、guard）用它判断自己是否过期，
-    // 否则连点两次时旧的 seek 回调会把新的一次播放带偏。
-    var generation = 0;
 
-    function showStatus(text) {
-      statusEl.textContent = text;
-      statusEl.hidden = false;
-    }
+    var active = null;          // 当前点读的 chunk / sentence 区块
+    var audioMode = null;       // chunk | sentence | all
+    var audioToken = 0, audioRaf = 0, audioStopAt = null;
+    var hlChunk = null, hlSection = null;
 
-    function speedLabel(value) {
-      return String(Math.round(value * 100) / 100).replace(/0$/, "") + "×";
-    }
-
-    function setSpeed(value, save) {
-      var n = Number(value);
-      if (!isFinite(n)) n = SPEED_DEFAULT;
-      n = Math.max(SPEED_MIN, Math.min(SPEED_MAX, Math.round(n * 100) / 100));
-      speed = n;
-      VOICE_KEYS.forEach(function (key) {
-        audios[key].playbackRate = n;
-      });
-      var label = document.querySelector("[data-speed-label]");
-      if (label) label.textContent = speedLabel(n);
-      var input = document.querySelector("[data-speed-input]");
-      if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
-      if (save) {
-        try { localStorage.setItem(SPEED_KEY, String(n)); } catch (e) {}
-      }
-    }
-
-    function clearMarks() {
-      document.querySelectorAll(".is-playing, .is-active").forEach(function (el) {
-        el.classList.remove("is-playing", "is-active");
-      });
-    }
-
-    function setPlayAll(on) {
-      playAllBtn.setAttribute("aria-pressed", on ? "true" : "false");
-      if (on) {
-        icoPlay.setAttribute("hidden", "");
-        icoStop.removeAttribute("hidden");
-      } else {
-        icoPlay.removeAttribute("hidden");
-        icoStop.setAttribute("hidden", "");
-      }
-      playAllLabel.textContent = on ? "停止" : "全文连读";
-    }
-
-    function stop() {
-      generation++;
-      if (state) {
-        cancelAnimationFrame(state.raf);
-        state = null;
-      }
-      audio.pause();
-      audio.onended = null;
-      clearMarks();
-      setPlayAll(false);
-    }
-
-    function whenReady(callback) {
-      if (audio.readyState >= 1) {
-        callback();
-        return;
-      }
-      var handler = function () {
-        audio.removeEventListener("loadedmetadata", handler);
-        callback();
-      };
-      audio.addEventListener("loadedmetadata", handler);
-      audio.load();
-    }
-
-    // Pages 不支持 Range，整条取进内存换成 blob: 地址后 seekable 才是全段。
-    var blobUrls = {};
-    var blobFetches = {};
-    function prepareSource(key, callback) {
-      if (blobUrls[key]) {
-        if ((audios[key].src || "").indexOf("blob:") !== 0) {
-          audios[key].src = blobUrls[key];
-        }
-        callback();
-        return;
-      }
-      if (!blobFetches[key]) {
-        var url = map[key];
-        var canFetch = location.protocol !== "file:" && window.fetch
-          && window.URL && URL.createObjectURL;
-        blobFetches[key] = canFetch ? fetch(url).then(function (res) {
-          if (!res.ok) throw new Error("HTTP " + res.status);
-          return res.blob();
-        }).then(function (blob) {
-          blobUrls[key] = URL.createObjectURL(blob) + "#" + url.split("/").pop();
-          return true;
-        }).catch(function () {
-          return false;
-        }) : Promise.resolve(false);
-      }
-      blobFetches[key].then(function (ok) {
-        if (ok) {
-          audios[key].src = blobUrls[key];
-          try { audios[key].load(); } catch (e) {}
-        }
-        callback();
-      });
+    function audioAlive(token) {
+      return token === audioToken && audio.state !== "idle";
     }
 
     function stamp(el, kind) {
@@ -633,20 +647,38 @@
       return found;
     }
 
+    function clearMarks() {
+      hlChunk = null;
+      hlSection = null;
+      var marked = document.querySelectorAll(".is-playing, .is-active");
+      for (var i = 0; i < marked.length; i++) {
+        marked[i].classList.remove("is-playing", "is-active");
+      }
+    }
+
+    function audioClear() {
+      if (audioRaf) { cancelAnimationFrame(audioRaf); audioRaf = 0; }
+      clearMarks();
+      if (active) {
+        active.removeAttribute("data-state");
+        active = null;
+      }
+    }
+
     function highlight(time) {
       var chunk = current(chunks, time);
-      if (chunk !== state.hlChunk) {
-        if (state.hlChunk) state.hlChunk.classList.remove("is-playing");
-        state.hlChunk = chunk;
+      if (chunk !== hlChunk) {
+        if (hlChunk) hlChunk.classList.remove("is-playing");
+        hlChunk = chunk;
         if (chunk) chunk.classList.add("is-playing");
       }
       var section = current(sections, time);
-      if (section !== state.hlSection) {
-        if (state.hlSection) {
-          var oldSpeaker = state.hlSection.querySelector(".speaker");
+      if (section !== hlSection) {
+        if (hlSection) {
+          var oldSpeaker = hlSection.querySelector(".speaker");
           if (oldSpeaker) oldSpeaker.classList.remove("is-active");
         }
-        state.hlSection = section;
+        hlSection = section;
         if (section) {
           var speaker = section.querySelector(".speaker");
           if (speaker) speaker.classList.add("is-active");
@@ -654,126 +686,328 @@
       }
     }
 
-    function fail() {
-      stop();
-      showStatus("这段音频没能播放，请刷新页面再试。");
+    /* rAF 在后台标签页会被节流，timeupdate 兜底，保证停在片段末尾。 */
+    function startCueWatch(token, stopAt) {
+      if (audioRaf) cancelAnimationFrame(audioRaf);
+      var watchPlayer = player;
+      var tick = function () {
+        if (!audioAlive(token) || watchPlayer !== player
+            || audio.state !== "playing") { audioRaf = 0; return; }
+        var time = watchPlayer.currentTime;
+        if (stopAt !== null && time >= stopAt - 0.006) {
+          audio.send("finish");
+          return;
+        }
+        if (audioMode !== "chunk") highlight(time);
+        audioRaf = requestAnimationFrame(tick);
+      };
+      audioRaf = requestAnimationFrame(tick);
     }
 
-    function start(startTime, endTime, mode, el) {
-      stop();
-      var gen = generation;
-      var key = voice;
-      audio = audios[key];
-      state = { raf: 0, stopAt: endTime, mode: mode, hlChunk: null, hlSection: null };
-      if (mode === "chunk") {
-        el.classList.add("is-playing");
-        state.hlChunk = el;
+    function cueFor(payload) {
+      if (payload.mode === "all") {
+        return {
+          start: typeof payload.startAt === "number" ? payload.startAt : 0,
+          stopAt: null
+        };
       }
-      if (mode === "sentence") {
-        el.querySelector(".speaker").classList.add("is-active");
-        state.hlSection = el;
-      }
-      if (mode === "all") setPlayAll(true);
-      prepareSource(key, function () {
-        if (!state || gen !== generation) return;
-        whenReady(function () {
-          if (!state || gen !== generation) return;
-          // iOS Safari 的 seek 是异步的：设完 currentTime 立刻 play，
-          // 跳转可能还没落地就开始播，导致句子开头被吃掉。
-          // 留一点前置余量，并等 seeked 再播。
-          var LEAD = 0.12;
-          var from = Math.max(0, startTime - LEAD);
-          var started = false;
-          var play = function () {
-            if (started || !state || gen !== generation) return;
-            started = true;
-            // 音频换成外链后，load() 可能把 playbackRate 重置回 1。
-            audio.playbackRate = speed;
-            audio.onended = function () {
-              if (state) stop();
-            };
-            audio.play().then(function () {
-              var tick = function () {
-                if (!state || gen !== generation) return;
-                var time = audio.currentTime;
-                if (state.stopAt !== null && time >= state.stopAt - 0.006) {
-                  stop();
-                  return;
-                }
-                if (state.mode !== "chunk") highlight(time);
-                state.raf = requestAnimationFrame(tick);
-              };
-              tick();
-            }).catch(function (error) {
-              if (error && error.name === "AbortError") return;
-              fail();
-            });
-          };
-          var seek = function () {
-            if (!state || gen !== generation) return;
-            if (Math.abs(audio.currentTime - from) < 0.02) {
-              play();
-              return;
-            }
-            var onSeeked = function () {
-              audio.removeEventListener("seeked", onSeeked);
-              clearTimeout(guard);
-              if (gen !== generation) return;
-              play();
-            };
-            // 网络音频的 seek 比内存 Blob 慢，guard 放宽到 600ms；
-            // 真没落到实处就再设一次，避免从上一句的位置开始播。
-            var guard = setTimeout(function () {
-              audio.removeEventListener("seeked", onSeeked);
-              if (gen !== generation) return;
-              if (Math.abs(audio.currentTime - from) > 0.05) audio.currentTime = from;
-              play();
-            }, 600);
-            audio.addEventListener("seeked", onSeeked);
-            try {
-              audio.currentTime = from;
-            } catch (error) {
-              audio.removeEventListener("seeked", onSeeked);
-              clearTimeout(guard);
-              play();
-            }
-          };
+      var start = stamp(payload.el, "start");
+      var stopAt = stamp(payload.el, "end");
+      if (!isFinite(start) || !isFinite(stopAt)) return null;
+      return { start: start, stopAt: stopAt };
+    }
+
+    function beginCue(token, startAt, stopAt) {
+      if (!audioAlive(token)) return;
+      var fail = function () { if (audioAlive(token)) audio.send("fail"); };
+      var cuePlayer = player;
+
+      // iOS Safari 的 seek 是异步的：设完 currentTime 立刻 play，
+      // 跳转可能还没落地就开始播，导致句子开头被吃掉。
+      // 留一点前置余量，并等 seeked 再播。
+      var LEAD = 0.12;
+      var from = Math.max(0, startAt - LEAD);
+
+      var play = function () {
+        if (!audioAlive(token) || cuePlayer !== player) return;
+        // 音频换成 blob/外链后，load() 可能把 playbackRate 重置回 1。
+        cuePlayer.playbackRate = speed;
+        var started = cuePlayer.play();
+        audio.send("play", { stopAt: stopAt });
+        if (started && started.catch) {
+          started.catch(function (error) {
+            if (error && error.name === "AbortError") return;
+            fail();
+          });
+        }
+      };
+
+      var seek = function () {
+        if (!audioAlive(token) || cuePlayer !== player) return;
+        if (Math.abs(cuePlayer.currentTime - from) < 0.02) {
+          play();
+          return;
+        }
+        var done = false;
+        var onSeeked = function () {
+          if (done) return;
+          done = true;
+          cuePlayer.removeEventListener("seeked", onSeeked);
+          if (audioAlive(token)) play();
+        };
+        // 网络音频的 seek 比内存 Blob 慢，guard 放宽到 600ms；
+        // 真没落到实处就再设一次，避免从上一句的位置开始播。
+        var guard = setTimeout(function () {
+          if (done) return;
+          done = true;
+          cuePlayer.removeEventListener("seeked", onSeeked);
+          if (!audioAlive(token) || cuePlayer !== player) return;
+          if (Math.abs(cuePlayer.currentTime - from) > 0.05) {
+            cuePlayer.currentTime = from;
+          }
+          play();
+        }, 600);
+        cuePlayer.addEventListener("seeked", onSeeked);
+        try {
+          cuePlayer.currentTime = from;
+        } catch (error) {
+          cuePlayer.removeEventListener("seeked", onSeeked);
+          clearTimeout(guard);
+          done = true;
+          play();
+        }
+      };
+
+      if (cuePlayer.readyState < 1) {
+        var onLoaded = function () {
+          cuePlayer.removeEventListener("loadedmetadata", onLoaded);
+          if (!audioAlive(token) || cuePlayer !== player) return;
+          audio.send("seek");
           seek();
+        };
+        cuePlayer.addEventListener("loadedmetadata", onLoaded);
+        try { cuePlayer.load(); } catch (e) {}
+      } else {
+        audio.send("seek");
+        seek();
+      }
+    }
+
+    function renderVoice(state) {
+      document.body.setAttribute("data-voice-state", state);
+      Array.prototype.forEach.call(
+        voiceSeg.querySelectorAll("button[data-voice]"),
+        function (btn) {
+          btn.setAttribute("aria-pressed", String(btn.dataset.voice === state));
+        }
+      );
+    }
+
+    function renderQueue(state) {
+      document.body.setAttribute("data-queue", state);
+      var on = state === "playing";
+      playAllBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      if (on) {
+        icoPlay.setAttribute("hidden", "");
+        icoStop.removeAttribute("hidden");
+      } else {
+        icoPlay.removeAttribute("hidden");
+        icoStop.setAttribute("hidden", "");
+      }
+      playAllLabel.textContent = on ? "停止" : "全文连读";
+    }
+
+    function renderStatus(state) {
+      document.body.setAttribute("data-status", state);
+      if (state === "hidden") {
+        statusEl.textContent = "";
+        statusEl.hidden = true;
+      } else {
+        statusEl.hidden = false;
+      }
+    }
+
+    function showStatus(text) {
+      statusEl.textContent = text;
+      status.send("hold");
+    }
+
+    function hideStatus() {
+      status.send("hide");
+    }
+
+    audio.on(function (state, event, payload) {
+      document.body.setAttribute("data-audio", state);
+
+      if (event === "load") {
+        audioToken += 1;
+        audioClear();
+        hideStatus();
+        // 两条音轨独立：换音色或换片段时把旧的也停掉，避免两条同时出声。
+        VOICE_KEYS.forEach(function (key) {
+          try { players[key].pause(); } catch (e) {}
         });
+        var token = audioToken;
+        var voiceKey = voice;
+        player = players[voiceKey];
+        active = payload.el;
+        audioMode = payload.mode;
+        if (active) {
+          active.setAttribute("data-state", "loading");
+          if (payload.mode === "chunk") {
+            active.classList.add("is-playing");
+            hlChunk = active;
+          } else if (payload.mode === "sentence") {
+            var speaker = active.querySelector(".speaker");
+            if (speaker) speaker.classList.add("is-active");
+            hlSection = active;
+          }
+        }
+        var cue = cueFor(payload);
+        if (!cue) {
+          audio.send("fail");
+          return;
+        }
+        audioStopAt = cue.stopAt;
+        sourceFor(voiceKey).then(function (src) {
+          if (!audioAlive(token)) return;
+          if (!src) { audio.send("fail"); return; }
+          if (players[voiceKey].getAttribute("src") !== src) {
+            players[voiceKey].src = src;
+          }
+          beginCue(token, cue.start, cue.stopAt);
+        });
+        return;
+      }
+
+      if (event === "seek") {
+        if (active) active.setAttribute("data-state", "seeking");
+        return;
+      }
+
+      if (event === "play") {
+        if (active) active.setAttribute("data-state", "playing");
+        startCueWatch(audioToken, payload.stopAt);
+        return;
+      }
+
+      /* stop / fail / finish：停声、清高亮、作废所有在途回调。 */
+      audioToken += 1;
+      audioClear();
+      VOICE_KEYS.forEach(function (key) {
+        try { players[key].pause(); } catch (e) {}
       });
+
+      if (event === "finish") {
+        if (queue.state === "playing") queue.send("stop");
+        return;
+      }
+      if (event === "fail") {
+        if (queue.state === "playing") queue.send("stop");
+        showStatus("这段音频没能播放，请刷新页面再试。");
+        return;
+      }
+      // stop：连播按钮一并归位。
+      if (queue.state === "playing") queue.send("stop");
+    });
+
+    queue.on(function (state) {
+      renderQueue(state);
+      // 手动停止或失败打断时，把音频一起收掉；已经 idle 时 send 会被表拦下。
+      if (state === "off") audio.send("stop");
+    });
+
+    status.on(function (state) {
+      renderStatus(state);
+    });
+
+    function playCue(el, mode) {
+      // 同一个片段：播放或加载中再点一次 = 停，而不是从头重播。
+      var same = active === el && audio.state !== "idle";
+      if (queue.state === "playing") queue.send("stop");
+      if (same) { audio.send("stop"); return; }
+      audio.send("load", { el: el, mode: mode });
     }
 
     document.getElementById("passage").addEventListener("click", function (event) {
       var chunk = event.target.closest(".chunk");
-      if (chunk) {
-        start(stamp(chunk, "start"), stamp(chunk, "end"), "chunk", chunk);
-        return;
-      }
+      if (chunk) { playCue(chunk, "chunk"); return; }
       var speaker = event.target.closest(".speaker");
-      if (speaker) {
-        var section = speaker.closest(".sentence");
-        start(stamp(section, "start"), stamp(section, "end"), "sentence", section);
-      }
+      if (speaker) playCue(speaker.closest(".sentence"), "sentence");
     });
 
     playAllBtn.addEventListener("click", function () {
-      if (state && state.mode === "all") {
-        stop();
-        return;
+      if (queue.state === "playing") { queue.send("stop"); return; }
+      queue.send("start");
+      audio.send("load", { el: null, mode: "all" });
+    });
+
+    voiceMachine.on(function (state) {
+      var resumeAt = player.currentTime;
+      voice = state;
+      player = players[state];
+      renderVoice(state);
+      // 正在播或正在加载时换音色：同一个片段用新音色重放；
+      // 连播则从同一时间点接着放，不打断故事。
+      if (audio.state !== "idle" && (active || audioMode === "all")) {
+        var payload = { el: active, mode: audioMode };
+        if (audioMode === "all") payload.startAt = resumeAt;
+        audio.send("load", payload);
       }
-      start(0, null, "all", null);
     });
 
     voiceSeg.addEventListener("click", function (event) {
       var btn = event.target.closest("button[data-voice]");
-      if (!btn || btn.dataset.voice === voice) return;
-      stop();
-      voice = btn.dataset.voice;
-      audio = audios[voice];
-      Array.prototype.forEach.call(voiceSeg.querySelectorAll("button"), function (item) {
-        item.setAttribute("aria-pressed", item === btn ? "true" : "false");
+      if (!btn) return;
+      voiceMachine.send("select", btn.dataset.voice);
+    });
+
+    VOICE_KEYS.forEach(function (key) {
+      var media = players[key];
+      media.addEventListener("timeupdate", function () {
+        if (media !== player) return;
+        if (audio.state === "playing" && audioStopAt !== null
+            && media.currentTime >= audioStopAt - 0.008) {
+          audio.send("finish");
+        }
+      });
+      media.addEventListener("ended", function () {
+        if (media === player && audio.state === "playing") audio.send("finish");
+      });
+      media.addEventListener("error", function () {
+        if (media === player && audio.state !== "idle") audio.send("fail");
+      });
+      media.addEventListener("loadedmetadata", function () {
+        try { media.playbackRate = speed; } catch (e) {}
       });
     });
+
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) return;
+      if (queue.state === "playing") queue.send("stop");
+      else audio.send("stop");
+    });
+
+    function speedLabel(value) {
+      return String(Math.round(value * 100) / 100).replace(/0$/, "") + "×";
+    }
+
+    function setSpeed(value, save) {
+      var n = Number(value);
+      if (!isFinite(n)) n = SPEED_DEFAULT;
+      n = Math.max(SPEED_MIN, Math.min(SPEED_MAX, Math.round(n * 100) / 100));
+      speed = n;
+      VOICE_KEYS.forEach(function (key) {
+        players[key].playbackRate = n;
+      });
+      var label = document.querySelector("[data-speed-label]");
+      if (label) label.textContent = speedLabel(n);
+      var input = document.querySelector("[data-speed-input]");
+      if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+      if (save) {
+        try { localStorage.setItem(SPEED_KEY, String(n)); } catch (e) {}
+      }
+    }
 
     var speedInput = document.querySelector("[data-speed-input]");
     if (speedInput) {
@@ -789,6 +1023,35 @@
       });
     }
     setSpeed(speed, false);
+
+    renderVoice(voiceMachine.state);
+    renderQueue(queue.state);
+    renderStatus(status.state);
+    document.body.setAttribute("data-audio", audio.state);
+
+    /* 给测试和无头代理一个稳定读口：不用从 DOM 倒推当前状态。 */
+    window.__phonics = Object.freeze({
+      snapshot: function () {
+        return {
+          page: "lesson",
+          audio: {
+            state: audio.state,
+            mode: audioMode,
+            element: active ? {
+              kind: active.getAttribute("data-kind"),
+              index: Number(active.getAttribute("data-index"))
+            } : null,
+            stopAt: audioStopAt,
+            time: player.currentTime
+          },
+          voice: voiceMachine.state,
+          queue: { state: queue.state },
+          status: status.state,
+          speed: speed,
+          sources: { f: sources.f.state, m: sources.m.state }
+        };
+      }
+    });
   })();
 </script>
 </body>

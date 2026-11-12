@@ -385,9 +385,57 @@ const cases = [
   {
     name: 'phonics', path: '/phonics/lessons/01-i.html',
     async run() {
+      // 状态机初始值 + 读口：不靠 DOM 倒推。
+      const initial = await evaluate(`(() => {
+        if (!window.__phonics || typeof window.__phonics.snapshot !== 'function') return null;
+        const s = window.__phonics.snapshot();
+        return {
+          page: s.page, audio: s.audio.state, queue: s.queue.state,
+          voice: s.voice, status: s.status, sources: s.sources,
+          bodyAudio: document.body.getAttribute('data-audio'),
+          bodyVoice: document.body.getAttribute('data-voice-state'),
+          bodyQueue: document.body.getAttribute('data-queue'),
+          bodyStatus: document.body.getAttribute('data-status'),
+          pressed: document.querySelectorAll('#voiceSeg [data-voice][aria-pressed="true"]').length,
+        };
+      })()`);
+
       const female = await playAndProbe('button.chunk');
       const end = await evaluate(
         "parseFloat(document.querySelector('button.chunk').dataset.endF)");
+
+      // 播放或加载中再点同一个片段 = 停，而不是从头重播。
+      const toggled = await evaluate(`(() => {
+        document.querySelector('button.chunk').click();
+        const s = window.__phonics.snapshot();
+        return {
+          state: s.audio.state,
+          marks: document.querySelectorAll('.chunk.is-playing, .speaker.is-active').length,
+          body: document.body.getAttribute('data-audio'),
+        };
+      })()`);
+
+      // 换音色：正在播的片段用另一条音轨重放。
+      const switched = await evaluate(`(() => {
+        document.querySelector('button.chunk').click();
+        const next = window.__phonics.snapshot().voice === 'f' ? 'm' : 'f';
+        document.querySelector('#voiceSeg [data-voice="' + next + '"]').click();
+        return {
+          want: next,
+          voice: window.__phonics.snapshot().voice,
+          body: document.body.getAttribute('data-voice-state'),
+          pressed: document.querySelector('#voiceSeg [data-voice="' + next + '"]')
+            .getAttribute('aria-pressed'),
+        };
+      })()`);
+      const replayed = await waitFor(
+        "window.__phonics.snapshot().audio.state === 'playing'", 8000);
+      const replayedSrc = await evaluate(
+        'window.__lastAudio ? (window.__lastAudio.currentSrc || window.__lastAudio.src) : ""');
+      const voiceOk = switched.voice === switched.want
+        && switched.body === switched.want && switched.pressed === 'true'
+        && replayed && new RegExp('-' + switched.want + '\\.mp3').test(replayedSrc);
+
       // Both voices come from Azure now; the male track is a separate file.
       const maleStart = await evaluate(`(() => {
         const btn = document.querySelector('#voiceSeg [data-voice="m"]');
@@ -402,16 +450,59 @@ const cases = [
       await sleep(400);
       const male = maleStart === null ? null
         : await playAndProbe('button.chunk[data-smoke]');
+
+      // 连播：开 → queue=playing；再点 → off 且声音停。
+      const queueOn = await evaluate(`(() => {
+        document.querySelector('#playAll').click();
+        const s = window.__phonics.snapshot();
+        return {
+          queue: s.queue.state, audio: s.audio.state,
+          body: document.body.getAttribute('data-queue'),
+          pressed: document.querySelector('#playAll').getAttribute('aria-pressed'),
+        };
+      })()`);
+      const queuePlaying = await waitFor(
+        "window.__phonics.snapshot().audio.state === 'playing'", 8000);
+      const queueOff = await evaluate(`(() => {
+        document.querySelector('#playAll').click();
+        const s = window.__phonics.snapshot();
+        return {
+          queue: s.queue.state, audio: s.audio.state,
+          pressed: document.querySelector('#playAll').getAttribute('aria-pressed'),
+        };
+      })()`);
+
+      const stateOk = !!initial && initial.page === 'lesson'
+        && initial.audio === 'idle' && initial.queue === 'off'
+        && initial.voice === 'f' && initial.status === 'hidden'
+        && initial.bodyAudio === 'idle' && initial.bodyVoice === 'f'
+        && initial.bodyQueue === 'off' && initial.bodyStatus === 'hidden'
+        && initial.sources.f === 'idle' && initial.sources.m === 'idle'
+        && initial.pressed === 1;
+      const toggleOk = toggled.state === 'idle' && toggled.marks === 0
+        && toggled.body === 'idle';
+      const queueOk = queueOn.queue === 'playing' && queueOn.body === 'playing'
+        && queueOn.pressed === 'true' && queuePlaying
+        && queueOff.queue === 'off' && queueOff.audio === 'idle'
+        && queueOff.pressed === 'false';
       const femaleOk = female.started && female.currentTime > 0.03
         && female.currentTime <= end + 0.6 && female.mediaErrors.length === 0;
       const maleOk = male !== null && male.started
         && male.currentTime >= maleStart - 0.1 && /-m\.mp3/.test(male.src || '')
         && male.mediaErrors.length === 0;
+      const ok = stateOk && toggleOk && voiceOk && queueOk && femaleOk && maleOk;
       return {
-        ok: femaleOk && maleOk,
-        detail: `f start=${female.started} t=${female.currentTime?.toFixed(2)} `
-          + `end=${end}; m t=${male?.currentTime?.toFixed(2)} want≥${maleStart} `
-          + `src=${male?.src?.split('/').pop()} err=${JSON.stringify(female.mediaErrors.concat(male?.mediaErrors || []))}`,
+        ok,
+        detail: `state=${stateOk ? 'ok' : JSON.stringify(initial)} `
+          + `toggle=${toggleOk ? 'ok' : JSON.stringify(toggled)} `
+          + `voice=${voiceOk ? 'ok' : `${JSON.stringify(switched)} replayed=${replayed} `
+            + `src=${replayedSrc.split('/').pop()}`} `
+          + `queue=${queueOk ? 'ok' : `${JSON.stringify(queueOn)} playing=${queuePlaying} `
+            + JSON.stringify(queueOff)} `
+          + `f start=${female.started} t=${female.currentTime?.toFixed(2)} end=${end}; `
+          + `m t=${male?.currentTime?.toFixed(2)} want≥${maleStart} `
+          + `src=${male?.src?.split('/').pop()} `
+          + `err=${JSON.stringify(female.mediaErrors.concat(male?.mediaErrors || []))}`,
       };
     },
   },
