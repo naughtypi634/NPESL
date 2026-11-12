@@ -166,43 +166,34 @@ def clip_hash(text: str) -> str:
 # --------------------------------------------------------------------------
 # logical stress (信息焦点 + 次重音)
 # --------------------------------------------------------------------------
-# Word-level <emphasis> is only reliable on a few Azure voices; Ava/Andrew
-# respond to a prosody lift instead.  Primary and secondary stresses get
-# different strengths so the line keeps an English stress-timed rhythm.
-#
-# Azure only honours word-level pitch when the word sits in its own <s>
-# segment: a <prosody pitch> nested inside a longer sentence is silently
-# dropped (any value below roughly +25% has no effect at all).  The build
-# therefore wraps the clause that carries a mark in <s>; untagged clauses
-# stay in place so the line keeps its flow and no extra pause is inserted.
-PRIMARY_RATE = "-8%"
-PRIMARY_PITCH = "+25%"
-PRIMARY_VOLUME = "+4%"
-SECONDARY_RATE = "-4%"
-SECONDARY_VOLUME = "+2%"
-PRIMARY_TAG = (f"<prosody rate='{PRIMARY_RATE}' pitch='{PRIMARY_PITCH}' "
-               f"volume='{PRIMARY_VOLUME}'>")
-# A sentence-final word cannot take a pitch step: it reads as a question
-# rise ("practical?", "common?").  There the beat comes from rate and volume,
-# and the sentence's own declination supplies the fall.
-FINAL_PRIMARY_TAG = (f"<prosody rate='{PRIMARY_RATE}' "
-                     f"volume='{PRIMARY_VOLUME}'>")
-# Secondary stress has no usable pitch level between 0 and +25%, so it is
-# carried by timing and volume alone and never competes with the primary.
+# Azure only delivers pitch reliably at the segment level: a <prosody pitch>
+# wrapped around a whole sentence (or a whole <s>) scales linearly on both
+# Ava and Andrew, while a word-level pitch is dropped or snaps to a coarse
+# step, and <prosody contour> is inert.  Intonation is therefore carried by
+# the clause: each marked clause is its own <s> with one pitch setting, so a
+# rise or fall moves the whole phrase smoothly at a comma, never one word.
+# Word-level stress is tempo and loudness, which nest inside the clause and
+# are honoured at any length.
+CLAUSE_PRIMARY_PITCH = "+6%"
+CLAUSE_RISE_PITCH = "+12%"
+CLAUSE_FALL_PITCH = "-10%"
+PRIMARY_RATE = "-15%"
+PRIMARY_VOLUME = "+6%"
+SECONDARY_RATE = "-8%"
+SECONDARY_VOLUME = "+3%"
+WEAK_RATE = "+15%"
+WEAK_VOLUME = "-10%"
+RISE_RATE = "-10%"
+RISE_VOLUME = "+3%"
+FALL_RATE = "-6%"
+FALL_VOLUME = "+2%"
+PRIMARY_TAG = f"<prosody rate='{PRIMARY_RATE}' volume='{PRIMARY_VOLUME}'>"
 SECONDARY_TAG = f"<prosody rate='{SECONDARY_RATE}' volume='{SECONDARY_VOLUME}'>"
-WEAK_RATE = "+8%"
-WEAK_PITCH = "-30%"
-WEAK_VOLUME = "-6%"
-WEAK_TAG = (f"<prosody rate='{WEAK_RATE}' pitch='{WEAK_PITCH}' "
-            f"volume='{WEAK_VOLUME}'>")
-# List intonation: non-final items step up, the final item keeps the
-# sentence's natural fall.  <prosody contour> is inert on Ava/Andrew, so the
-# rise is a pitch step on the item word.
-RISE_TAG = "<prosody pitch='+40%' rate='-6%' volume='+4%'>"
-FALL_TAG = (f"<prosody rate='{SECONDARY_RATE}' volume='{SECONDARY_VOLUME}' "
-            "pitch='-30%'>")
+WEAK_TAG = f"<prosody rate='{WEAK_RATE}' volume='{WEAK_VOLUME}'>"
+RISE_TAG = f"<prosody rate='{RISE_RATE}' volume='{RISE_VOLUME}'>"
+FALL_TAG = f"<prosody rate='{FALL_RATE}' volume='{FALL_VOLUME}'>"
 PAUSE_MS = 220
-PROSODY_VERSION = "v14"
+PROSODY_VERSION = "v15"
 
 # (primary, secondary, list-rise, list-fall, weak, pause) token indices,
 # WORD_RE order.  ``weak`` is a deliberate de-emphasis: a word that should
@@ -287,12 +278,11 @@ def stress_sig(spec: StressSpec) -> str:
     return sig
 
 
-def stress_inner(text: str, spec: StressSpec,
-                 final: int | None = None) -> str:
-    """SSML inner body: primary/secondary words plus list rise/fall.
+def stress_inner(text: str, spec: StressSpec) -> str:
+    """Word-level SSML inside one clause: tempo, loudness and pauses.
 
-    Consecutive rise (or fall) tokens are wrapped as one span, so the
-    contour runs across the whole list item instead of a single syllable.
+    Pitch is set by the caller on the whole clause, because Azure only
+    renders segment-level pitch faithfully.
     """
     primary, secondary, rise, fall, weak, pause = spec
     if not primary and not secondary and not rise and not fall and not weak \
@@ -320,7 +310,6 @@ def stress_inner(text: str, spec: StressSpec,
         "secondary": SECONDARY_TAG,
         "weak": WEAK_TAG,
     }
-    final_index = len(matches) - 1 if final is None else final
     out: list[str] = []
     cursor = 0
     index = 0
@@ -339,10 +328,7 @@ def stress_inner(text: str, spec: StressSpec,
         out.append(xml_escape(text[cursor:start]))
         body = xml_escape(text[start:end])
         if kind:
-            tag = tags[kind]
-            if kind == "primary" and end_index == final_index:
-                tag = FINAL_PRIMARY_TAG
-            out.append(tag + body + "</prosody>")
+            out.append(tags[kind] + body + "</prosody>")
         else:
             out.append(body)
         if end_index in pause:
@@ -381,22 +367,40 @@ def _segments(text: str) -> list:
     return out
 
 
+def clause_pitch(spec: StressSpec) -> str:
+    """One pitch setting for the whole clause."""
+    primary, secondary, rise, fall, weak, pause = spec
+    if fall:
+        return CLAUSE_FALL_PITCH
+    if rise:
+        return CLAUSE_RISE_PITCH
+    if primary:
+        return CLAUSE_PRIMARY_PITCH
+    return "+0%"
+
+
 def stress_inner_segmented(text: str, spec: StressSpec) -> str:
-    """Inner body with every marked clause wrapped in its own <s>."""
+    """Inner body with every marked clause in its own pitched <s>."""
     chunks = _segments(text)
     if len(chunks) < 2:
-        return f"<s>{stress_inner(text, spec)}</s>"
+        body = stress_inner(text, spec)
+        pitch = clause_pitch(spec)
+        if pitch != "+0%":
+            body = f"<prosody pitch='{pitch}'>{body}</prosody>"
+        return f"<s>{body}</s>"
     offset = 0
     parts = []
-    for number, chunk in enumerate(chunks):
+    for chunk in chunks:
         count = len(list(pron.WORD_RE.finditer(chunk)))
         local = tuple(
             tuple(i - offset for i in group if offset <= i < offset + count)
             for group in spec
         )
-        at_end = count - 1 if number == len(chunks) - 1 else -1
-        body = stress_inner(chunk, local, at_end)
+        body = stress_inner(chunk, local)
         if any(local):
+            pitch = clause_pitch(local)
+            if pitch != "+0%":
+                body = f"<prosody pitch='{pitch}'>{body}</prosody>"
             body = f"<s>{body}</s>"
         parts.append(body)
         offset += count

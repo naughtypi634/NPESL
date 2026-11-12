@@ -59,12 +59,16 @@
 
 ## 升调 rise / 降调 fall
 
-只用于真正的并列、列举、选择疑问句。标在并列项的收尾词上。
+标在承载语调的那个词上；**渲染时作用于它所在的整个分句**（分句单独成段，音高在逗号处平滑变化，不会在单词上突然跳一下）。
 
-- 非末项：`"rise": ["games"]`
-- 末项：`"fall": ["day"]`
-- 一个词可以同时是 primary 和 fall；渲染时 fall 优先。
-- 没有并列就不要加 rise/fall。
+- 两项并列 / 选择疑问：前一项 `rise`，后一项 `fall`。
+- 三项以上排比：前面各项都 `rise`，末项 `fall`。
+- 一般疑问句：句末焦点 `rise`。
+- 特殊疑问句：默认由句子自身下降收束，不必额外标 `fall`。
+- 附加疑问句（`right?` / `isn't it?`）：标在附加部分上 `rise`。
+- 陈述句的强断言需要压下去时，可在末段 `fall`。
+
+没有并列或语调需求就不要加 rise/fall。
 
 例：
 
@@ -77,6 +81,20 @@
   "note": "主句焦点是 family；两个并列活动 games / hikes 升调，末项 our day 降调。"
 }
 ```
+
+## 停顿 pause
+
+需要让意群在音频里听出来、但原文没有标点时，用 `pause` 标出停顿前的那个词：
+
+```json
+"A family like ours asks for a bit of responsibility from everybody, and I think it is worth it.": {
+  "primary": ["responsibility", "worth"],
+  "pause": ["ours"],
+  "note": "「A family like ours」后断意群。"
+}
+```
+
+只用于真正需要断句的位置，不要给每个逗号都加。
 
 ## note
 
