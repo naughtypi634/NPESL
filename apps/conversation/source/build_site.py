@@ -198,17 +198,19 @@ WEAK_TAG = (f"<prosody rate='{WEAK_RATE}' pitch='{WEAK_PITCH}' "
 # List intonation: non-final items step up, the final item keeps the
 # sentence's natural fall.  <prosody contour> is inert on Ava/Andrew, so the
 # rise is a pitch step on the item word.
-RISE_TAG = "<prosody pitch='+25%' rate='-2%'>"
+RISE_TAG = "<prosody pitch='+40%' rate='-6%' volume='+4%'>"
 FALL_TAG = (f"<prosody rate='{SECONDARY_RATE}' volume='{SECONDARY_VOLUME}' "
             "pitch='-30%'>")
-PROSODY_VERSION = "v13"
+PAUSE_MS = 220
+PROSODY_VERSION = "v14"
 
-# (primary, secondary, list-rise, list-fall, weak) token indices, WORD_RE
-# order.  ``weak`` is a deliberate de-emphasis: a word that should stay in the
-# background (usually the given information at the end of a sentence).
-StressSpec = tuple[tuple[int, ...], tuple[int, ...],
+# (primary, secondary, list-rise, list-fall, weak, pause) token indices,
+# WORD_RE order.  ``weak`` is a deliberate de-emphasis: a word that should
+# stay in the background.  ``pause`` inserts a short break after the word so
+# a sense group is audible even without punctuation.
+StressSpec = tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...],
                    tuple[int, ...], tuple[int, ...], tuple[int, ...]]
-NO_STRESS: StressSpec = ((), (), (), (), ())
+NO_STRESS: StressSpec = ((), (), (), (), (), ())
 
 
 def _word_index(text: str, word: str, taken: set) -> int:
@@ -241,9 +243,10 @@ def _resolve_values(text: str, values, taken: set | None = None) -> set:
 def stress_spec(story: dict, text: str) -> StressSpec:
     """Resolve a story's stress entry to token-index groups.
 
-    Groups are ``(primary, secondary, rise, fall, weak)``.  Entries may name
-    words (``"sister"``, ``"sister#2"``) or token indices; word names make the
-    semantic choice reviewable.  A legacy flat list is read as primary-only.
+    Groups are ``(primary, secondary, rise, fall, weak, pause)``.  Entries
+    may name words (``"sister"``, ``"sister#2"``) or token indices; word names
+    make the semantic choice reviewable.  A legacy flat list is read as
+    primary-only.
     """
     raw = (story.get("stress") or {}).get(text)
     if not raw:
@@ -254,13 +257,14 @@ def stress_spec(story: dict, text: str) -> StressSpec:
         rise = _resolve_values(text, raw.get("rise", ()))
         fall = _resolve_values(text, raw.get("fall", ()))
         weak = _resolve_values(text, raw.get("weak", ()))
+        pause = _resolve_values(text, raw.get("pause", ()))
         rise -= primary | fall
         secondary = (secondary | rise) - primary - fall
         weak -= primary | secondary | rise | fall
         return (tuple(sorted(primary)), tuple(sorted(secondary)),
                 tuple(sorted(rise)), tuple(sorted(fall)),
-                tuple(sorted(weak)))
-    return tuple(sorted(_resolve_values(text, raw))), (), (), (), ()
+                tuple(sorted(weak)), tuple(sorted(pause)))
+    return tuple(sorted(_resolve_values(text, raw))), (), (), (), (), ()
 
 
 def stress_note(story: dict, text: str) -> str:
@@ -269,7 +273,7 @@ def stress_note(story: dict, text: str) -> str:
 
 
 def stress_sig(spec: StressSpec) -> str:
-    primary, secondary, rise, fall, weak = spec
+    primary, secondary, rise, fall, weak, pause = spec
     sig = (f"p:{','.join(str(i) for i in primary)};"
            f"s:{','.join(str(i) for i in secondary)};"
            f"r:{','.join(str(i) for i in rise)};"
@@ -278,6 +282,8 @@ def stress_sig(spec: StressSpec) -> str:
     # key stays byte-identical (no re-synthesis storm when weak was added).
     if weak:
         sig += f";w:{','.join(str(i) for i in weak)}"
+    if pause:
+        sig += f";x:{','.join(str(i) for i in pause)}"
     return sig
 
 
@@ -288,8 +294,9 @@ def stress_inner(text: str, spec: StressSpec,
     Consecutive rise (or fall) tokens are wrapped as one span, so the
     contour runs across the whole list item instead of a single syllable.
     """
-    primary, secondary, rise, fall, weak = spec
-    if not primary and not secondary and not rise and not fall and not weak:
+    primary, secondary, rise, fall, weak, pause = spec
+    if not primary and not secondary and not rise and not fall and not weak \
+            and not pause:
         return xml_escape(text)
     matches = list(pron.WORD_RE.finditer(text))
 
@@ -319,7 +326,7 @@ def stress_inner(text: str, spec: StressSpec,
     index = 0
     while index < len(matches):
         kind = group(index)
-        if not kind:
+        if not kind and index not in pause:
             index += 1
             continue
         end_index = index
@@ -329,11 +336,17 @@ def stress_inner(text: str, spec: StressSpec,
                 end_index += 1
         start = matches[index].start()
         end = matches[end_index].end()
-        tag = tags[kind]
-        if kind == "primary" and end_index == final_index:
-            tag = FINAL_PRIMARY_TAG
         out.append(xml_escape(text[cursor:start]))
-        out.append(tag + xml_escape(text[start:end]) + "</prosody>")
+        body = xml_escape(text[start:end])
+        if kind:
+            tag = tags[kind]
+            if kind == "primary" and end_index == final_index:
+                tag = FINAL_PRIMARY_TAG
+            out.append(tag + body + "</prosody>")
+        else:
+            out.append(body)
+        if end_index in pause:
+            out.append(f"<break time='{PAUSE_MS}ms'/>")
         cursor = end
         index = end_index + 1
     out.append(xml_escape(text[cursor:]))

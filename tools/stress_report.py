@@ -59,7 +59,7 @@ def token_count(text: str) -> int:
 
 
 def marked_html(text: str, spec) -> str:
-    primary, secondary, rise, fall, weak = spec
+    primary, secondary, rise, fall, weak, pause = spec
     matches = list(pron.WORD_RE.finditer(text))
     out: list[str] = []
     cursor = 0
@@ -74,6 +74,8 @@ def marked_html(text: str, spec) -> str:
             cls, mark = "secondary", "2"
         elif index in weak:
             cls, mark = "weak", "3"
+        elif index in pause:
+            cls, mark = "weak", "⏸"
         else:
             continue
         out.append(html.escape(text[cursor:match.start()]))
@@ -85,7 +87,7 @@ def marked_html(text: str, spec) -> str:
 
 
 def words_line(text: str, spec) -> str:
-    primary, secondary, rise, fall, weak = spec
+    primary, secondary, rise, fall, weak, pause = spec
     matches = list(pron.WORD_RE.finditer(text))
 
     def names(indices):
@@ -160,7 +162,7 @@ def main() -> int:
         )
         for section, text in playable(story):
             spec = build_site.stress_spec(story, text)
-            primary, secondary, rise, fall, weak = spec
+            primary, secondary, rise, fall, weak, pause = spec
             if section in {"body", "comp", "conv"} and not primary:
                 if args.require_all:
                     print(f"FIX  {story['title']} [{section}] 未标注：{text[:60]}…")
