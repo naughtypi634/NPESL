@@ -28,7 +28,7 @@ import build_site  # noqa: E402
 
 OUT = ROOT / "build" / "prosody-b2-unit1"
 CACHE = ROOT / "build" / "tts" / "cs"
-VOICE_DIRS = ("ava", "andrew")
+VOICE_DIRS = ("h2", "c")
 
 
 def split_sentences(text: str) -> list:

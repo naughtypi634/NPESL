@@ -80,8 +80,8 @@ LEVEL_LABEL = {
     "ESLSE": ("ESLSE", ""),
 }
 VOICES = [
-    {"key": "female", "short": "f", "dir": "ava", "tts": "en-US-AvaNeural", "label": "女声"},
-    {"key": "male", "short": "m", "dir": "andrew", "tts": "en-US-AndrewNeural", "label": "男声"},
+    {"key": "female", "short": "f", "dir": "h2", "tts": "qwen-h2", "label": "女声"},
+    {"key": "male", "short": "m", "dir": "c", "tts": "qwen-c", "label": "男声"},
 ]
 VOICE_BY_KEY = {v["key"]: v for v in VOICES}
 
@@ -193,7 +193,7 @@ WEAK_TAG = f"<prosody rate='{WEAK_RATE}' volume='{WEAK_VOLUME}'>"
 RISE_TAG = f"<prosody rate='{RISE_RATE}' volume='{RISE_VOLUME}'>"
 FALL_TAG = f"<prosody rate='{FALL_RATE}' volume='{FALL_VOLUME}'>"
 PAUSE_MS = 220
-PROSODY_VERSION = "v15"
+PROSODY_VERSION = "v16-qwen"
 
 # (primary, secondary, list-rise, list-fall, weak, pause) token indices,
 # WORD_RE order.  ``weak`` is a deliberate de-emphasis: a word that should
@@ -437,7 +437,7 @@ def azure_ready(mp3: Path, text: str, spec: StressSpec) -> bool:
     except (OSError, ValueError):
         return False
     return (
-        meta.get("engine") == "azure"
+        meta.get("engine") in ("azure", "qwen")
         and meta.get("text") == text
         and meta.get("prosody") == stress_sig(spec)
         and meta.get("size") == mp3.stat().st_size
@@ -770,6 +770,11 @@ def generate(voices: list, entries: list[tuple[str, StressSpec, str]],
                     if spec != NO_STRESS:
                         stressed += 1
         plans.append((voice, cache_dir, missing))
+    for voice, _cache_dir, missing in plans:
+        if voice["tts"].startswith("qwen") and missing:
+            raise SystemExit(
+                f"{voice['dir']}: {len(missing)} 条 Qwen 语音缺失，"
+                "先跑 build/qwen-voicedesign/gen_corpus.py")
     if retimed:
         print(f"逐词时间缺失或过期：{retimed} 条需要重新合成（音色 × 句）")
     if azure_lines:
@@ -1403,7 +1408,7 @@ THEME_HEAD = theme_boot("__PREFIX__theme.css", extra_js=(
 PLAY_JS = """
 (function () {
   var AUDIO_BASE = "__AUDIO_BASE__";
-  var VOICE_DIR = { f: 'ava', m: 'andrew' };
+  var VOICE_DIR = { f: 'h2', m: 'c' };
   var SPEED_KEY = 'npesl-speed';
   var SPEED_MIN = 0.7;
   var SPEED_MAX = 1.5;

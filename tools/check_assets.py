@@ -3,8 +3,8 @@
 
 Sprite playback means a page points at one file per voice instead of one per
 sentence, so a stale build can reference a file that was never written (or was
-cleaned up).  This walks the five apps and resolves each reference against the
-deploy trees.
+cleaned up).  This walks every page in the site and resolves each reference
+against the deploy trees.
 
     python -I tools/check_assets.py build/cloudflare-site
     python -I tools/check_assets.py build/cloudflare-site --audio build/cloudflare-audio
@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import AUDIO_URL  # noqa: E402
 
 AUDIO_SITE = f"{AUDIO_URL}/audio/"
-VOICE_DIRS = {"f": "ava", "m": "andrew", "female": "ava", "male": "andrew"}
+VOICE_DIRS = {"f": "h2", "m": "c", "female": "h2", "male": "c"}
 
 
 def load_json_script(text: str, element_id: str) -> dict:
