@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """Build the common pronunciation phenomena (常见发音现象 AmE) course pages.
 
-Every dialogue line gets two clips per voice: the written version (original
-spelling, slowed down) and the spoken version (original spelling at natural
-rate, where Edge reduces function words by itself). Clips are content-addressed,
-so re-running only synthesizes what is new.
+Each dialogue line gets one clip per voice. Lessons whose `tts` is "kokoro"
+are synthesized locally from phonemes: plain text is phonemized with espeak,
+and every marked target is replaced by the lesson's IPA before synthesis, so
+the weak form in the transcript is what the clip actually says. Clips are
+content-addressed, so re-running only synthesizes what is new.
 """
 
 import argparse
@@ -12,9 +13,11 @@ import asyncio
 import hashlib
 import html
 import json
+import os
 import pathlib
 import re
 import shutil
+import subprocess
 import sys
 from xml.sax.saxutils import escape as xml_escape
 
@@ -38,6 +41,12 @@ VOICES = {
 }
 RATE = "+0%"
 MARK_RE = re.compile(r"\[([^|\]]*)\|([^|\]]*)(?:\|([^\]]*))?\]")
+
+# Kokoro 走 sidecar venv：模型和 phonemizer 都不在仓库 .venv 里。
+KOKORO_PYTHON = pathlib.Path(os.environ.get(
+    "KOKORO_PYTHON",
+    BASE.parents[1] / "build" / "tts-local" / "venv" / "Scripts" / "python.exe"))
+KOKORO_WORKER = BASE.parents[1] / "apps" / "collocation" / "source" / "kokoro_worker.py"
 
 
 def mark_parts(part):
@@ -111,6 +120,41 @@ def body_variant(body):
     return "azure:" + hashlib.sha1(body.encode("utf-8")).hexdigest()[:8]
 
 
+def k_phonemes(ipa):
+    """Content IPA -> Kokoro phoneme alphabet（美音 r 一律是 ɹ）。"""
+    return ipa.replace("r", "ɹ")
+
+
+def annotated_segments(lesson, display):
+    """Kokoro payload: plain pieces get phonemized, marked IPA is forced."""
+    ipa_by_form = {
+        plain(target["spoken"]): target["ipa"]
+        for target in lesson.get("targets", [])
+        if target.get("ipa")
+    }
+    segments = []
+    for part in re.split(r"(\[[^\]]*\])", display):
+        if part.startswith("[") and part.endswith("]"):
+            written, spoken, mark_ipa = mark_parts(part)
+            ipa = mark_ipa or ipa_by_form.get(plain(spoken))
+            if ipa:
+                segments.append({"phonemes": k_phonemes(ipa)})
+            else:
+                segments.append({"text": written})
+        elif part.strip():
+            segments.append({"text": part.strip()})
+    return segments
+
+
+def segment_key(segments):
+    return "kokoro:" + json.dumps(segments, ensure_ascii=False, separators=(",", ":"))
+
+
+def kokoro_clips(lesson, display):
+    key = segment_key(annotated_segments(lesson, display))
+    return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
+
+
 def line_clips(lesson, line):
     if lesson.get("tts") == "azure":
         body = annotated_body(lesson, line["display"])
@@ -118,6 +162,8 @@ def line_clips(lesson, line):
         return {
             f"clip-{voice}": clip_rel(body, voice, RATE, variant) for voice in VOICES
         }
+    if lesson.get("tts") == "kokoro":
+        return kokoro_clips(lesson, line["display"])
     text = spoken_text(line)
     return {f"clip-{voice}": clip_rel(text, voice, RATE) for voice in VOICES}
 
@@ -126,6 +172,7 @@ def lesson_jobs(lesson):
     """(relative path, payload, voice, rate, backend) for every clip."""
     jobs = []
     azure = lesson.get("tts") == "azure"
+    kokoro = lesson.get("tts") == "kokoro"
 
     def add_text(text, voice, rate):
         rel = clip_rel(text, voice, rate)
@@ -137,10 +184,18 @@ def lesson_jobs(lesson):
         if rel:
             jobs.append((rel, body, voice, RATE, "azure"))
 
+    def add_kokoro(display, voice):
+        segments = annotated_segments(lesson, display)
+        rel = clip_rel(segment_key(segments), voice, RATE)
+        if rel:
+            jobs.append((rel, segments, voice, RATE, "kokoro"))
+
     for line in lesson["lines"]:
         for voice in VOICES:
             if azure:
                 add_body(annotated_body(lesson, line["display"]), voice)
+            elif kokoro:
+                add_kokoro(line["display"], voice)
             else:
                 add_text(spoken_text(line), voice, RATE)
     for target in lesson.get("targets", []):
@@ -151,6 +206,9 @@ def lesson_jobs(lesson):
         if azure:
             for voice in VOICES:
                 add_body(annotated_body(lesson, demo.get("display") or text), voice)
+        elif kokoro:
+            for voice in VOICES:
+                add_kokoro(demo.get("display") or text, voice)
         else:
             for voice in VOICES:
                 add_text(text, voice, RATE)
@@ -193,6 +251,21 @@ async def synthesize(text, voice, rate, semaphore):
         raise last
 
 
+def run_kokoro(jobs):
+    """整批交给 sidecar venv 一次合成，模型只加载一次。"""
+    manifest = (BASE.parents[1] / "build" / "tts-local"
+                / "jobs-phenomena-kokoro.json")
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    payload = [
+        {"out": str(AUDIO_DIR / rel), "segments": segments, "voice": voice}
+        for rel, segments, voice, rate, backend in jobs
+    ]
+    manifest.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    subprocess.run(
+        [str(KOKORO_PYTHON), str(KOKORO_WORKER), str(manifest)], check=False)
+    return [rel for rel, *_ in jobs if not (AUDIO_DIR / rel).exists()]
+
+
 async def ensure_clips(lessons, voices):
     wanted = {}
     for lesson in lessons:
@@ -207,6 +280,15 @@ async def ensure_clips(lessons, voices):
     print(f"audio: {len(wanted)} clips, {len(missing)} to synthesize")
     if not missing:
         return []
+    failed = []
+    kokoro_jobs = [job for job in missing if job[4] == "kokoro"]
+    other = [job for job in missing if job[4] != "kokoro"]
+    if kokoro_jobs:
+        print(f"audio: kokoro {len(kokoro_jobs)} clips")
+        failed.extend(run_kokoro(kokoro_jobs))
+    if not other:
+        print("audio: done" if not failed else f"audio: {len(failed)} failed")
+        return failed
     semaphore = asyncio.Semaphore(4)
     done = 0
 
@@ -222,14 +304,17 @@ async def ensure_clips(lessons, voices):
             data = await synthesize(payload, voice, rate, semaphore)
         path.write_bytes(data)
         done += 1
-        if done % 10 == 0 or done == len(missing):
-            print(f"audio: {done}/{len(missing)}")
+        if done % 10 == 0 or done == len(other):
+            print(f"audio: {done}/{len(other)}")
 
     results = await asyncio.gather(
-        *(one(*job) for job in missing),
+        *(one(*job) for job in other),
         return_exceptions=True,
     )
-    failed = [job[0] for job, result in zip(missing, results) if isinstance(result, Exception)]
+    failed.extend(
+        job[0] for job, result in zip(other, results)
+        if isinstance(result, Exception)
+    )
     if failed:
         print(f"audio: {len(failed)} failed: {failed[:5]}")
     else:
@@ -325,6 +410,9 @@ def text_clips(lesson, text):
         body = xml_escape(text)
         variant = body_variant(body)
         return {f"clip-{voice}": clip_rel(body, voice, RATE, variant) for voice in VOICES}
+    if lesson.get("tts") == "kokoro":
+        key = segment_key([{"text": text}])
+        return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
     return {f"clip-{voice}": clip_rel(text, voice, RATE) for voice in VOICES}
 
 
@@ -347,6 +435,8 @@ def build_targets(lesson, audio):
                 clips = {
                     f"clip-{voice}": clip_rel(body, voice, RATE, variant) for voice in VOICES
                 }
+            elif lesson.get("tts") == "kokoro":
+                clips = kokoro_clips(lesson, demo.get("display") or text)
             else:
                 clips = text_clips(lesson, text)
             parts.append(

@@ -8,6 +8,10 @@ venv, because onnxruntime is only needed for this optional backend.
 
 jobs.json = [{"out": "...mp3", "text": "...", "voice": "f|m"}, ...]
 
+A job may instead carry "segments", a list of {"text": ...} / {"phonemes": ...}
+pieces: text is phonemized, IPA pieces are passed through, so a build can force
+the pronunciation of specific words without losing the rest of the G2P.
+
 Each clip is written as MPEG-2 Layer III, 24 kHz, 48 kbps CBR, no ID3 — the
 exact shape tools/audio_sprite.py concatenates (144-byte frames).
 """
@@ -41,6 +45,22 @@ def encode(wav: pathlib.Path, mp3: pathlib.Path) -> None:
     )
 
 
+def phonemes_for(kokoro: Kokoro, job: dict) -> str:
+    """Job phoneme string, or '' to let Kokoro phonemize the text itself."""
+    if "phonemes" in job:
+        return job["phonemes"]
+    segments = job.get("segments")
+    if not segments:
+        return ""
+    parts = []
+    for segment in segments:
+        if "phonemes" in segment:
+            parts.append(segment["phonemes"])
+        else:
+            parts.append(kokoro.tokenizer.phonemize(segment["text"], "en-us"))
+    return " ".join(part for part in parts if part)
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -53,8 +73,15 @@ def main() -> int:
         for job in jobs:
             out = pathlib.Path(job["out"])
             out.parent.mkdir(parents=True, exist_ok=True)
-            samples, rate = kokoro.create(
-                job["text"], voice=VOICES[job["voice"]], speed=1.0, lang="en-us")
+            phonemes = phonemes_for(kokoro, job)
+            if phonemes:
+                samples, rate = kokoro.create(
+                    phonemes, voice=VOICES[job["voice"]], speed=1.0,
+                    lang="en-us", is_phonemes=True)
+            else:
+                samples, rate = kokoro.create(
+                    job["text"], voice=VOICES[job["voice"]], speed=1.0,
+                    lang="en-us")
             sf.write(wav, samples, rate)
             encode(wav, out)
             done += 1
