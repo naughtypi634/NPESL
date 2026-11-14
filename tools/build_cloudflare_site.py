@@ -11,6 +11,8 @@ splits into two deploy roots:
         phonics/                    自然拼读 48 课（index + lessons）
         ipa/                        美式英语音标表（index + audio）
         drill/                      Question Drill（index + audio/f,m）
+        phenomena/                  常见发音现象 30 章
+        collocation/                短语搭配 41 个主题
         conversation/               Conversation Starters 页面（Beginner / Intermediate / ESLSE）
 
     build/cloudflare-audio/         音频站 → 项目 npesl-audio
@@ -109,7 +111,6 @@ class PageGroup:
     base: Path
     pattern: str
     url: Callable[[str], str]
-    description: str
     back: BackLink
     skip: frozenset[str] = frozenset()
 
@@ -164,7 +165,7 @@ def replace_back(path: Path, href: str, label: str) -> None:
     inject_back(path, href, label)
 
 
-def inject_head(path: Path, url: str, description: str) -> None:
+def inject_head(path: Path, url: str) -> None:
     text = path.read_text(encoding="utf-8")
     if "og:image" in text:
         return
@@ -201,7 +202,7 @@ def finish_group(group: PageGroup) -> None:
     for page in sorted(group.base.glob(group.pattern)):
         if page.name in group.skip:
             continue
-        inject_head(page, group.url(page.name), group.description)
+        inject_head(page, group.url(page.name))
         inject_theme(page)
         if group.back.replace:
             replace_back(page, group.back.href, group.back.label)
@@ -264,31 +265,26 @@ def main() -> int:
     shutil.copytree(PHONICS / "lessons", phonics_out / "lessons")
     shutil.copytree(PHONICS / "audio", phonics_out / "audio")
     finish_group(PageGroup(
-        phonics_out, "index.html", lambda _: "phonics/",
-        "自然拼读阅读训练 · 48 课 · 成人 A1", site_back))
+        phonics_out, "index.html", lambda _: "phonics/", site_back))
     finish_group(PageGroup(
         phonics_out / "lessons", "*.html",
         lambda name: f"phonics/lessons/{name}",
-        "自然拼读阅读训练 · 成人 A1",
         BackLink("/phonics/", "自然拼读")))
 
     # 美式英语音标表：单页 + 单词音频
     ipa_out = OUT / "ipa"
     shutil.copytree(IPA, ipa_out, ignore=ipa_ignore)
     finish_group(PageGroup(
-        ipa_out, "index.html", lambda _: "ipa/",
-        "美式英语音标表 · 40 个音标 × 10 个单词", site_back))
+        ipa_out, "index.html", lambda _: "ipa/", site_back))
 
     # 常见发音现象：30 章 + 音频
     if PHENOMENA.exists():
         phenomena_out = OUT / "phenomena"
         shutil.copytree(PHENOMENA, phenomena_out, ignore=phenomena_ignore)
         finish_group(PageGroup(
-            phenomena_out, "index.html", lambda _: "phenomena/",
-            "常见发音现象(AmE) · 30 章", site_back))
+            phenomena_out, "index.html", lambda _: "phenomena/", site_back))
         finish_group(PageGroup(
             phenomena_out, "*.html", lambda name: f"phenomena/{name}",
-            "常见发音现象(AmE)",
             BackLink("/phenomena/", "常见发音现象", replace=True),
             frozenset({"index.html"})))
         print("  常见发音现象：已包含")
@@ -300,18 +296,14 @@ def main() -> int:
         collocation_out = OUT / "collocation"
         shutil.copytree(COLLOCATION, collocation_out, ignore=collocation_ignore)
         finish_group(PageGroup(
-            collocation_out, "index.html", lambda _: "collocation/",
-            "短语搭配 Collocations · 30 章", site_back))
+            collocation_out, "index.html", lambda _: "collocation/", site_back))
         finish_group(PageGroup(
             collocation_out, "*.html", lambda name: f"collocation/{name}",
-            "短语搭配 Collocations",
             BackLink("/collocation/", "短语搭配", replace=True),
             frozenset({"index.html"})))
         print("  短语搭配：已包含")
     else:
         print("警告：短语搭配目录不存在，未包含")
-
-    # 旅行英语：内容与音频母版保留，交互与页面层待重做
 
     # Question Drill：目录页 + 男女音频
     drill_out = OUT / "drill"
@@ -321,8 +313,7 @@ def main() -> int:
         shutil.copy2(bank, drill_out / bank.name)
     shutil.copytree(DRILL / "audio", drill_out / "audio", ignore=drill_ignore)
     finish_group(PageGroup(
-        drill_out, "index.html", lambda _: "drill/",
-        "中译英随机练习 · 2,247 题", site_back))
+        drill_out, "index.html", lambda _: "drill/", site_back))
 
     # Conversation Starters：页面进主站，全部级别的两套语音进音频站。
     # 应用目录里的 source/ 是构建器，不属于部署内容。

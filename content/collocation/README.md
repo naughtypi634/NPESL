@@ -2,8 +2,8 @@
 
 页面在 `apps/collocation/`，由 `apps/collocation/source/build.py` 生成。改内容只改这里。
 
-41 个主题，共 **3,299 条**：原 30 个场景 1,279 条（短语动词 / 介词搭配 / 习语），
-加上从《日常英语短语手册》并入的 1,944 条，以及 76 条近义锚点。
+41 个主题，共 **3,296 条**：原 30 个场景 1,279 条（短语动词 / 介词搭配 / 习语），
+其余从《日常英语短语手册》并入，另含 84 条近义锚点。
 `kind` 有 phrasal / prep / idiom / chunk 四种；`chunk` 覆盖单词、`be + -ed 形容词`、
 整句和日常短语。每条都有 `freq`（1–5），主题内按频率从高到低排：
 原顺序 70% + wordfreq 20% + tier 10%。页面不显示类型徽章给 `chunk`，
@@ -67,7 +67,7 @@ communication.json        沟通
 
 ```
 
-主题文件沿用原来的 30 个场景，不再固定每章 30 条。`tier` / `level` 是可选字段。
+主题文件从原来的 30 个场景扩到 41 个，每章条数不再固定。`tier` / `level` 是可选字段。
 写内容的规矩见 `apps/collocation/source/AUTHORING.md`。
 
 ## 来源与取舍
@@ -80,7 +80,7 @@ communication.json        沟通
 做了全量对齐，补入 310 条（154 条短语动词、98 条介词搭配、58 条习语），按场景归入
 现有 30 章。两本书里重复的、英式专用的（排队类表达、knock up 等）和书页标题
 （your turn!）没有重复入库，所以总数是 1,277 而不是 1,308。后来又补了两条反义配对缺的词条
-（`sign out`、`get off on the wrong foot`），现在共 1,279 条。
+（`sign out`、`get off on the wrong foot`），当时共 1,279 条。
 
 相对原书改掉的地方：
 

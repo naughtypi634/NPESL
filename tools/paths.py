@@ -2,8 +2,8 @@
 """Repository paths — the single place that knows the layout.
 
     NPESL/
-      content/   内容源（Markdown、题库批次 JSON）
-      apps/      六个应用（页面、音频、源）
+      content/   内容源（Markdown、题库与词条 JSON）
+      apps/      七个应用目录（六个线上应用 + 商务图表）
       miniprogram/ 微信小程序（与 apps/ 平级）
       tools/     构建、部署、校验脚本
       build/     暂存产物（gitignore）

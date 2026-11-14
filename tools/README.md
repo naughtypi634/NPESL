@@ -15,7 +15,7 @@
 |---|---|
 | `build_all.py` | 按依赖顺序跑全部应用与站点装配；`--only`、`--skip-site`、`--refresh-ipa-audio` |
 | `verify.py` | 一次跑完产物比对、音频引用、英式英语、无头浏览器冒烟 |
-| `build_cloudflare_site.py` | 把七个应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/` |
+| `build_cloudflare_site.py` | 把六个线上应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/`；商务图表英语暂不部署 |
 | `build_ipa_site.py` | 音标表页面 + 全部单词的男女两版录音；默认 `--tts azure`，`--skip-audio` 只用缓存 |
 | `apps/conversation/source/build_site.py` | Conversation Starters 页面与全部级别语音 |
 | `drill/make_audio.py` | Question Drill 逐句语音（读 `content/drill/questions.json`） |
@@ -26,6 +26,8 @@
 | `check_bre.py` | 英式英语扫描（只扫 Markdown） |
 | `preview_site.mjs` | 带 Range 的本地静态服务器 |
 | `edge.mjs` | 无头 Edge 助手；`node tools/edge.mjs` 清残留进程 |
+| `miniprogram/build_data.py` | 从已构建的 IPA / Phonics / Phenomena 页面抽小程序数据 |
+| `miniprogram/upload_audio.py` | 把小程序引用的音频按内容哈希传到微信云存储 |
 
 ## 共享库
 
@@ -50,6 +52,10 @@
 | `apps/collocation/source/validate.py` | 短语搭配内容校验（改内容后必须先跑） |
 | `apps/phonics/source/validate.py` | 自然拼读结构校验 |
 | `apps/phenomena/source/validate.py` | 发音现象标注校验 |
+| `collocation/*.py` | 短语搭配内容流水线：手册导入、词条替换、频率打分、近义 / 反义报告 |
+| `stress_coverage.py` / `stress_report.py` | 逻辑重音覆盖率报告与审核页 |
+| `translate_conversation_zh.py` | 生成 Conversation 中文翻译 |
+| `list_tone_audition.py` / `prosody_audition.py` | 语调与韵律 A/B 试听页 |
 
 ## 一次性 / 分析脚本
 
@@ -65,10 +71,11 @@
 | `apps/phenomena/source/audition_rate.py` | 不同语速试听 |
 | `apps/phonics/source/check_sounds.py` | 用 cmudict 检查音素 |
 | `apps/phonics/source/build_single.py` | 生成单文件版 HTML（tracked，但不在全量构建里） |
+| `apps/charts/source/build.py` / `validate.py` | 商务图表英语本地页面与内容校验（未部署） |
 
 ## 关于「pull 下来就能构建」
 
-仓库里 tracked 的是**已交付的母版音频**（IPA、Phenomena、Phrasal、Drill、Travel）。下面两个缓存是 gitignore 的，新克隆后第一次构建会联网合成：
+仓库里 tracked 的是已交付应用的母版音频（IPA、Phenomena、Collocation、Drill）。下面两个缓存是 gitignore 的，新克隆后第一次构建会联网合成：
 
 - `apps/phonics/source/audio/` —— 自然拼读 96 条故事录音
 - `build/tts/cs/` —— Conversation 的逐句录音与 sidecar

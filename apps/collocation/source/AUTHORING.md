@@ -1,7 +1,7 @@
 # 短语搭配内容规范
 
 源文件在 `content/collocation/`：`themes.json` 定主题，每个主题一个 `<theme>.json`
-（如 `getting-around.json`）。30 个场景主题，每章 32–74 条，新条目追加到对应主题文件
+（如 `getting-around.json`）。41 个主题，每章 28–159 条，新条目追加到对应主题文件
 末尾即可。页面由 `build.py` 生成。
 
 每条都有 `kind`：`phrasal`（短语动词）、`prep`（介词搭配）、`idiom`（习语/固定短语）。
