@@ -76,15 +76,18 @@
     var values = dataset.parts.map(function (part) { return part.value; });
     var sum = total(values);
     var perc = shares(values, sum);
-    var width = 720;
-    var height = 360;
+    var box = common.size(lab.plot);
+    var width = box.width;
+    var height = box.height;
     var root = svg.create(lab.plot, width, height, 'Pie chart of market share by channel. Drag a boundary to change the split.');
     lab.svg = root;
     var compact = common.fit(root);
     lab.compact = compact;
-    var cx = 360;
-    var cy = compact ? 168 : 176;
-    var radius = compact ? 110 : 132;
+    var cx = width / 2;
+    var cy = height * 0.47;
+    var radius = Math.min(width * 0.2, height * 0.36, 220);
+    var half = width / 2;
+    var labelGap = Math.min(48, Math.max(16, half - radius - (compact ? 96 : 112) - 8));
     var start = -Math.PI / 2;
     var cumulative = start;
 
@@ -114,13 +117,14 @@
         d: NC.scale.arc(cx, cy, radius, cumulative, end),
         fill: 'var(--' + part.color + ')',
         class: 'pie-slice',
-        'data-id': part.id
+        'data-id': part.id,
+        'data-index': index
       });
       var mid = cumulative + angle / 2;
       var side = Math.cos(mid) >= 0 ? 1 : -1;
       var p0 = NC.scale.polar(cx, cy, radius + 6, mid);
-      var p1 = { x: cx + side * (radius + 34), y: cy + Math.sin(mid) * (radius + 34) };
-      var p2 = { x: cx + side * (radius + 48), y: p1.y };
+      var p1 = { x: cx + side * (radius + labelGap * 0.55), y: cy + Math.sin(mid) * (radius + labelGap * 0.55) };
+      var p2 = { x: cx + side * (radius + labelGap), y: p1.y };
       var leader = svg.path(leaderLayer, {
         d: 'M ' + p0.x + ' ' + p0.y + ' L ' + p1.x + ' ' + p1.y + ' L ' + p2.x + ' ' + p2.y,
         class: 'pie-leader'
@@ -177,12 +181,41 @@
         now: perc[index],
         radius: common.screenPx(root, 5),
         hitRadius: common.screenPx(root, compact ? 22 : 18),
+        stroke: 'var(--' + part.color + ')',
         label: 'Boundary between ' + part.name_en + ' and ' + dataset.parts[nextIndex].name_en,
         valueText: part.name_en + ' ' + NC.fmt.number(perc[index], 0) + '%, ' + dataset.parts[nextIndex].name_en + ' ' + NC.fmt.number(perc[nextIndex], 0) + '%'
       });
       handle.group.classList.add('pie-handle');
       handle.group.setAttribute('data-index', index);
       handles.push({ index: index, handle: handle });
+    });
+
+    // A slice is also a mark you can edit: hover reveals its two boundaries,
+    // click opens the share editor.
+    dataset.parts.forEach(function (part, index) {
+      var previous = (index - 1 + dataset.parts.length) % dataset.parts.length;
+      common.linkHandle(slices[index], handles[index].handle);
+      common.linkHandle(slices[index], handles[previous].handle);
+      NC.bindValueClick(slices[index], lab, function () {
+        var share = lab.pieState ? lab.pieState.perc[index] : perc[index];
+        var mid = start;
+        for (var i = 0; i < index; i += 1) mid += perc[i] / 100 * Math.PI * 2;
+        mid += (perc[index] / 100 * Math.PI * 2) / 2;
+        var point = NC.scale.polar(cx, cy, radius * 0.7, mid);
+        return {
+          root: root,
+          x: point.x,
+          y: point.y,
+          value: share,
+          min: 3,
+          max: 97,
+          step: 1,
+          label: part.name_en,
+          unit: '%',
+          set: function (value) { setShare(dataset, index, value); },
+          onCommit: function () { lab.changed(true); }
+        };
+      });
     });
 
     function partTip(index) {
@@ -217,6 +250,7 @@
 
     lab.pieState = {
       cx: cx, cy: cy, radius: radius, start: start, height: height,
+      labelGap: labelGap,
       slices: slices, labels: labels, leaders: leaders, handles: handles,
       parts: dataset.parts, root: root, perc: perc,
       tipIndex: null, layoutLabels: layoutLabels, showTip: showTip
@@ -373,23 +407,6 @@
         showTip(index);
       });
       slices[index].addEventListener('pointerleave', hideTip);
-      slices[index].addEventListener('pointerdown', function (event) {
-        if (event.button != null && event.button !== 0) return;
-        var angle = pointAngle(event);
-        var best = 0;
-        var bestDistance = Infinity;
-        for (var i = 0; i < dataset.parts.length; i += 1) {
-          var boundary = start;
-          for (var j = 0; j <= i; j += 1) boundary += perc[j] / 100 * Math.PI * 2;
-          var diff = Math.abs(angle - boundary);
-          diff = Math.min(diff, Math.PI * 2 - diff);
-          if (diff < bestDistance) {
-            bestDistance = diff;
-            best = i;
-          }
-        }
-        if (handles[best]) handles[best].begin(event);
-      });
     });
 
     lab.motion = { slices: slices, labels: labels.map(function (item) { return item.node; }), leaders: leaders, handles: handles.map(function (item) { return item.handle; }) };
@@ -418,8 +435,8 @@
       var mid = cumulative + angle / 2;
       var side = Math.cos(mid) >= 0 ? 1 : -1;
       var p0 = NC.scale.polar(state.cx, state.cy, state.radius + 6, mid);
-      var p1 = { x: state.cx + side * (state.radius + 34), y: state.cy + Math.sin(mid) * (state.radius + 34) };
-      var p2 = { x: state.cx + side * (state.radius + 48), y: p1.y };
+      var p1 = { x: state.cx + side * (state.radius + state.labelGap * 0.55), y: state.cy + Math.sin(mid) * (state.radius + state.labelGap * 0.55) };
+      var p2 = { x: state.cx + side * (state.radius + state.labelGap), y: p1.y };
       var label = state.labels[index];
       label.side = side;
       label.y = p2.y;
@@ -461,6 +478,29 @@
     if (typeof state.tipIndex === 'number') state.showTip(state.tipIndex);
   }
 
+  function highlight(lab, focus) {
+    var state = lab.pieState;
+    if (!state || state.empty) return;
+    var root = state.root;
+    common.clearFocus(root);
+    common.clearDim(root);
+    if (!focus || focus.kind !== 'part') return;
+    var part = lab.dataset.parts[focus.index];
+    if (!part) return;
+    common.dimExcept(root, '.pie-slice', function (node) {
+      return node.getAttribute('data-id') === part.id;
+    });
+    var from = state.start;
+    for (var i = 0; i < focus.index; i += 1) from += state.perc[i] / 100 * Math.PI * 2;
+    var to = from + state.perc[focus.index] / 100 * Math.PI * 2;
+    var layer = common.focusLayer(root);
+    var arc = svg.path(layer, {
+      d: NC.scale.arc(state.cx, state.cy, state.radius + 3, from, to),
+      class: 'focus-ring'
+    });
+    arc.setAttribute('fill', 'none');
+  }
+
   function describe(lab) {
     return NC.desc.pie(lab.dataset, NC.state.level);
   }
@@ -496,6 +536,7 @@
     mount: function (lab) { render(lab); },
     render: render,
     update: update,
+    highlight: highlight,
     describe: describe,
     table: tableSpec
   };

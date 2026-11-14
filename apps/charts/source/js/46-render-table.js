@@ -52,9 +52,11 @@
     var headRow = document.createElement('tr');
     headRow.appendChild(headerCell('Region'));
     dataset.series.forEach(function (series) {
-      headRow.appendChild(headerCell(series.name_en, dataset.unit, true));
+      var th = headerCell(series.name_en, '', true);
+      th.setAttribute('data-series', series.id);
+      headRow.appendChild(th);
     });
-    headRow.appendChild(headerCell('Total', dataset.unit, true));
+    headRow.appendChild(headerCell('Total', '', true));
     headRow.appendChild(headerCell('Share', '', true));
     thead.appendChild(headRow);
     table.appendChild(thead);
@@ -63,6 +65,7 @@
     var rows = [];
     dataset.categories.forEach(function (category, categoryIndex) {
       var tr = document.createElement('tr');
+      tr.setAttribute('data-index', categoryIndex);
 
       var nameCell = document.createElement('th');
       nameCell.scope = 'row';
@@ -74,6 +77,7 @@
       dataset.series.forEach(function (series, seriesIndex) {
         var td = document.createElement('td');
         td.className = 'num-cell edit-cell';
+        td.setAttribute('data-series', series.id);
         var input = document.createElement('input');
         input.type = 'number';
         input.inputMode = 'decimal';
@@ -106,7 +110,7 @@
       tr.appendChild(shareCell);
 
       tbody.appendChild(tr);
-      rows.push({ inputs: inputs, total: totalCell, share: shareCell, index: categoryIndex });
+      rows.push({ tr: tr, inputs: inputs, total: totalCell, share: shareCell, index: categoryIndex });
     });
     table.appendChild(tbody);
 
@@ -191,6 +195,29 @@
     updateCue(lab);
   }
 
+  function highlight(lab, focus) {
+    var state = lab.tableState;
+    if (!state) return;
+    var shell = state.shell;
+    Array.prototype.forEach.call(shell.querySelectorAll('.is-focus, .is-dim'), function (node) {
+      node.classList.remove('is-focus', 'is-dim');
+    });
+    if (!focus || focus.kind === 'all') return;
+    if (focus.kind === 'row') {
+      state.rows.forEach(function (row) {
+        row.tr.classList.toggle('is-focus', row.index === focus.index);
+      });
+      return;
+    }
+    if (focus.kind === 'series') {
+      var series = lab.dataset.series[focus.index];
+      var id = series ? series.id : null;
+      Array.prototype.forEach.call(shell.querySelectorAll('[data-series]'), function (cell) {
+        cell.classList.toggle('is-dim', cell.getAttribute('data-series') !== id);
+      });
+    }
+  }
+
   function describe(lab) {
     return NC.desc.table(lab.dataset, NC.state.level);
   }
@@ -199,6 +226,7 @@
     mount: function (lab) { render(lab); },
     render: render,
     update: update,
+    highlight: highlight,
     describe: describe,
     table: function () { return null; }
   };

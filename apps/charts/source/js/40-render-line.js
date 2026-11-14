@@ -10,8 +10,9 @@
 
   function makeLineRenderer(variant) {
     function render(lab) {
-      var width = 720;
-      var height = 380;
+      var box = common.size(lab.plot);
+      var width = box.width;
+      var height = box.height;
       var series = lab.dataset.series[0];
       var values = series.values;
       var periods = lab.dataset.periods;
@@ -54,8 +55,8 @@
       var gradient = svg.el('linearGradient', {
         id: gradientId, x1: '0', y1: '0', x2: '0', y2: '1'
       }, defs);
-      svg.el('stop', { offset: '0%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.16' }, gradient);
-      svg.el('stop', { offset: '100%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.02' }, gradient);
+      svg.el('stop', { offset: '0%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.12' }, gradient);
+      svg.el('stop', { offset: '100%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.01' }, gradient);
 
       var hit = svg.rect(root, {
         x: plot.left, y: plot.top, width: plot.width, height: plot.height,
@@ -67,15 +68,11 @@
       });
       crosshair.setAttribute('opacity', '0');
 
-      var area = null;
+      var areaD = 'M ' + pathPoints[0][0] + ' ' + plot.bottom +
+        ' L ' + pathPoints.map(function (point) { return point[0] + ' ' + point[1]; }).join(' L ') +
+        ' L ' + pathPoints[pathPoints.length - 1][0] + ' ' + plot.bottom + ' Z';
+      var area = svg.path(root, { d: areaD, fill: 'url(#' + gradientId + ')', class: 'area-fill' });
       var edge = null;
-      if (variant === 'area') {
-        var areaD = 'M ' + pathPoints[0][0] + ' ' + plot.bottom +
-          ' L ' + pathPoints.map(function (point) { return point[0] + ' ' + point[1]; }).join(' L ') +
-          ' L ' + pathPoints[pathPoints.length - 1][0] + ' ' + plot.bottom + ' Z';
-        area = svg.path(root, { d: areaD, fill: 'url(#' + gradientId + ')', class: 'area-fill' });
-        edge = svg.path(root, { d: lineD, class: 'area-edge' });
-      }
 
       var line = svg.path(root, { d: lineD, class: 'line-path' });
       var hoverDot = svg.circle(root, { cx: 0, cy: 0, r: 4.5, class: 'hover-dot' });
@@ -95,7 +92,7 @@
       }
       labelIndices[last] = true;
       if (compact) {
-        if (maxIndex !== last) labelIndices[maxIndex] = true;
+        labelIndices[first] = true;
       } else {
         labelIndices[first] = true;
         labelIndices[minIndex] = true;
@@ -142,6 +139,10 @@
         hoverDot.setAttribute('cx', px);
         hoverDot.setAttribute('cy', py);
         hoverDot.setAttribute('opacity', '1');
+        handles.forEach(function (item, i) {
+          if (!item) return;
+          item.group.classList.toggle('is-visible', i === index);
+        });
         common.showTip(lab.plot, tipText(index), root, px, py);
       }
 
@@ -149,6 +150,9 @@
         if (lab.lineState) lab.lineState.activeIndex = null;
         crosshair.setAttribute('opacity', '0');
         hoverDot.setAttribute('opacity', '0');
+        handles.forEach(function (item) {
+          if (item) item.group.classList.remove('is-visible');
+        });
         common.hideTip(lab.plot);
       }
 
@@ -172,6 +176,7 @@
           now: value,
           radius: handleRadius,
           hitRadius: hitRadius,
+          stroke: 'var(--' + series.color + ')',
           label: series.name_en + ' in ' + periods[index].label_en,
           valueText: tipText(index)
         });
@@ -240,7 +245,7 @@
         showPoint: showPoint,
         hidePoint: hidePoint
       };
-      lab.motion = { line: line, dots: handles.map(function (handle) { return handle.dot; }), labels: labels };
+      lab.motion = { line: line, labels: labels };
     }
 
     function update(lab) {
@@ -283,6 +288,27 @@
       if (typeof state.activeIndex === 'number') state.showPoint(state.activeIndex);
     }
 
+    function highlight(lab, focus) {
+      var state = lab.lineState;
+      if (!state) return;
+      common.clearFocus(state.root);
+      common.clearDim(state.root);
+      if (!focus || focus.kind === 'all') return;
+      if (focus.kind === 'range') {
+        var from = Math.max(0, Math.min(state.periods.length - 1, focus.from));
+        var to = Math.max(from, Math.min(state.periods.length - 1, focus.to));
+        var x1 = state.x(from) - 10;
+        var x2 = state.x(to) + 10;
+        common.focusBand(state.root, Math.max(state.plot.left, x1), state.plot.top, Math.max(24, x2 - x1), state.plot.height);
+        common.focusRing(state.root, state.x(to), state.y(state.series.values[to]), 7);
+      } else if (focus.kind === 'point') {
+        var index = Math.max(0, Math.min(state.periods.length - 1, focus.index));
+        var px = state.x(index);
+        common.focusBand(state.root, Math.max(state.plot.left, px - 13), state.plot.top, 26, state.plot.height);
+        common.focusRing(state.root, px, state.y(state.series.values[index]), 8);
+      }
+    }
+
     function describe(lab) {
       return NC.desc.time(lab.dataset, lab.dataset.series[0], NC.state.level, { area: variant === 'area' });
     }
@@ -318,6 +344,7 @@
       },
       render: render,
       update: update,
+      highlight: highlight,
       describe: describe,
       table: tableSpec
     };

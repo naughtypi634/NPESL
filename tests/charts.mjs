@@ -67,6 +67,19 @@ async function drag(edge, selector, dx, dy) {
   })()`);
 }
 
+async function hoverMark(edge, selector) {
+  return edge.evaluate(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)});
+    if (!el) return { ok: false, reason: 'missing' };
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent('pointerover', {
+      bubbles: true, pointerId: 1, pointerType: 'mouse', isPrimary: true,
+      clientX: r.left + r.width / 2, clientY: r.top + r.height / 2
+    }));
+    return { ok: true };
+  })()`);
+}
+
 async function clickMark(edge, selector) {
   return edge.evaluate(`(() => {
     const el = document.querySelector(${JSON.stringify(selector)});
@@ -77,6 +90,8 @@ async function clickMark(edge, selector) {
     const base = { bubbles: true, pointerId: 1, pointerType: 'mouse', isPrimary: true };
     el.dispatchEvent(new PointerEvent('pointerdown', { ...base, clientX: x, clientY: y, buttons: 1 }));
     el.dispatchEvent(new PointerEvent('pointerup', { ...base, clientX: x, clientY: y, buttons: 0 }));
+    // A real click also fires click; synthetic pointer events do not.
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
     return { ok: true };
   })()`);
 }
@@ -132,8 +147,8 @@ try {
       description: document.querySelector('[data-type="line"] [data-desc-lines]').textContent.trim(),
       dataPanels: document.querySelectorAll('[data-data-panel]').length,
       cefr: (document.body.innerText.match(/\\b(A2|B1|B2|C1)\\b/g) || []).length,
-      typeStyle: getComputedStyle(document.querySelector('.type-switch-scroll')).borderTopWidth,
-      levelStyle: getComputedStyle(document.querySelector('#level-switch')).borderTopWidth,
+      typeStyle: getComputedStyle(document.querySelector('.deck')).borderTopWidth,
+      levelStyle: getComputedStyle(document.querySelector('#level-switch button[aria-pressed="true"]')).borderBottomWidth,
       lineVocab: document.querySelectorAll('#chart-line [data-vocab] .vocab-card').length,
       vocabBadges: document.querySelectorAll('#chart-line [data-vocab] .badge').length,
       linePatterns: document.querySelectorAll('#chart-line [data-patterns] li').length,
@@ -142,7 +157,17 @@ try {
       vocabOpen: document.querySelector('#chart-line [data-vocab-section]')?.tagName,
       errorGroups: document.querySelectorAll('.error-group').length,
       errorCards: document.querySelectorAll('.error-card').length,
-      actionButtons: document.querySelectorAll('#chart-bar .action-btn').length
+      actionButtons: document.querySelectorAll('#chart-bar [data-reset]').length,
+      sectionHeads: document.querySelectorAll('#chart-line .section-head').length,
+      figureTitle: document.querySelector('#chart-line .figure-title')?.textContent.trim() || '',
+      figureTitleZh: document.querySelector('#chart-line .figure-title-zh')?.textContent.trim() || '',
+      levelInReading: !!document.querySelector('#chart-line .rail #level-switch'),
+      handleRestOpacity: getComputedStyle(document.querySelector('#chart-line .handle .dot')).opacity,
+      steps: document.querySelectorAll('#chart-line [data-desc-lines] .sentence').length,
+      activeSteps: document.querySelectorAll('#chart-line [data-desc-lines] .sentence.is-active').length,
+      stepCount: document.querySelector('#chart-line [data-step-count]')?.textContent.trim() || '',
+      statValue: document.querySelector('#chart-line [data-stat] .stat-value')?.textContent.trim() || '',
+      deckGlyphs: document.querySelectorAll('#type-buttons .deck-glyph svg').length
     };
   })()`);
   check('six chart panels exist', structure.panels === 6, String(structure.panels));
@@ -157,8 +182,8 @@ try {
   check('description is not empty', structure.description.length > 20, structure.description.slice(0, 40));
   check('the separate data panel is gone', structure.dataPanels === 0, String(structure.dataPanels));
   check('no CEFR labels anywhere', structure.cefr === 0, String(structure.cefr));
-  check('type tabs are boxed controls', structure.typeStyle === '1px', structure.typeStyle);
-  check('level switch is a boxed toggle', structure.levelStyle === '1px', structure.levelStyle);
+  check('type deck is a ruled strip', structure.typeStyle === '1px', structure.typeStyle);
+  check('level switch marks the active level', structure.levelStyle === '2px', structure.levelStyle);
   check('line panel carries all vocabulary', structure.lineVocab > 20, String(structure.lineVocab));
   check('vocabulary has no level badges', structure.vocabBadges === 0, String(structure.vocabBadges));
   check('vocabulary is open, not collapsed', structure.vocabOpen === 'SECTION', structure.vocabOpen);
@@ -166,29 +191,80 @@ try {
   check('patterns have no level badges', structure.patternLevels === 0, String(structure.patternLevels));
   check('grammar is gone', structure.grammar === 0, String(structure.grammar));
   check('errors are grouped by category', structure.errorGroups >= 5 && structure.errorCards > 10, JSON.stringify({ groups: structure.errorGroups, cards: structure.errorCards }));
-  check('replay and reset are button-like controls', structure.actionButtons === 2, String(structure.actionButtons));
+  check('the chart type is not repeated as a page heading', structure.sectionHeads === 0, String(structure.sectionHeads));
+  check('the figure carries the data title', structure.figureTitle.length > 0 && structure.figureTitleZh.length > 0, JSON.stringify({ en: structure.figureTitle, zh: structure.figureTitleZh }));
+  check('the level switch lives with the description', structure.levelInReading === true);
+  check('chart handles stay out of the way at rest', structure.handleRestOpacity === '0', structure.handleRestOpacity);
+  check('only the restore action remains', structure.actionButtons === 1, String(structure.actionButtons));
+  check('the rail starts on the first step', structure.steps > 2 && structure.activeSteps === 1, JSON.stringify({ steps: structure.steps, active: structure.activeSteps }));
+  check('the step counter is visible', /^01 \/ \d\d$/.test(structure.stepCount), structure.stepCount);
+  check('the headline number is rendered', structure.statValue.length > 0, structure.statValue);
+  check('the type deck carries glyphs', structure.deckGlyphs === 6, String(structure.deckGlyphs));
+
+  const revealed = await edge.evaluate(`(() => {
+    const handle = document.querySelector('#chart-line .handle');
+    handle.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
+    return handle.classList.contains('is-visible');
+  })()`);
+  check('hovering a mark reveals its handle', revealed === true, JSON.stringify({ revealed }));
+
+  const stepState = await edge.evaluate(`(() => {
+    const rows = [...document.querySelectorAll('#chart-line [data-desc-lines] .sentence')];
+    rows[1].click();
+    return {
+      active: rows.findIndex((row) => row.classList.contains('is-active')),
+      count: document.querySelector('#chart-line [data-step-count]').textContent.trim(),
+      band: !!document.querySelector('#chart-line .focus-band'),
+      kind: rows[1].getAttribute('data-focus-kind')
+    };
+  })()`);
+  check('selecting a sentence advances the rail', stepState.active === 1 && /^02/.test(stepState.count), JSON.stringify(stepState));
+  check('the chart highlights the sentence region', stepState.band === true, JSON.stringify(stepState));
+  await edge.evaluate("document.querySelector('#chart-line [data-step-prev]').click()");
+  await sleep(80);
+  const stepBack = await edge.evaluate(`({
+    active: [...document.querySelectorAll('#chart-line [data-desc-lines] .sentence')].findIndex((row) => row.classList.contains('is-active')),
+    count: document.querySelector('#chart-line [data-step-count]').textContent.trim()
+  })`);
+  check('rail navigation steps backwards', stepBack.active === 0 && /^01/.test(stepBack.count), JSON.stringify(stepBack));
+
+  await edge.evaluate("document.querySelector('[data-reference]').click()");
+  await sleep(220);
+  const sheet = await edge.evaluate(`({
+    open: !document.querySelector('[data-sheet]').hidden,
+    patterns: document.querySelectorAll('[data-sheet-section="patterns"] .pattern-list li').length,
+    sections: document.querySelectorAll('[data-sheet-section]').length
+  })`);
+  check('the reference sheet opens with the chart patterns', sheet.open === true && sheet.patterns === 4 && sheet.sections === 3, JSON.stringify(sheet));
+  await edge.evaluate("document.querySelector('[data-sheet-tab=\"vocab\"]').click()");
+  await sleep(120);
+  const sheetVocab = await edge.evaluate(`({
+    visible: !document.querySelector('[data-sheet-section="vocab"]').hidden,
+    cards: document.querySelectorAll('[data-sheet-section="vocab"] .vocab-card').length
+  })`);
+  check('the sheet switches to vocabulary', sheetVocab.visible === true && sheetVocab.cards > 20, JSON.stringify(sheetVocab));
+  await edge.evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
+  await sleep(120);
+  check('the sheet closes with Escape', await edge.evaluate("document.querySelector('[data-sheet]').hidden") === true);
 
   const shell = await edge.evaluate(`(() => {
     const head = document.querySelector('.head-inner');
-    const page = document.querySelector('.page');
-    const grid = document.querySelector('#chart-line .panel-grid');
-    const figure = document.querySelector('#chart-line .panel-figure');
-    const reading = document.querySelector('#chart-line .panel-reading');
-    const card = document.querySelector('#chart-line .chart-card');
-    const modes = document.querySelector('#chart-bar [data-modes]');
+    const layout = document.querySelector('#chart-line .panel-layout');
+    const stage = document.querySelector('#chart-line .stage');
+    const rail = document.querySelector('#chart-line .rail');
     return {
       headMax: getComputedStyle(head).maxWidth,
-      pageMax: getComputedStyle(page).maxWidth,
-      gridDisplay: getComputedStyle(grid).display,
-      figureRect: figure.getBoundingClientRect().toJSON(),
-      readingRect: reading.getBoundingClientRect().toJSON(),
-      cardBorder: getComputedStyle(card).borderTopWidth,
-      cardBg: getComputedStyle(card).backgroundColor
+      layoutMax: getComputedStyle(layout).maxWidth,
+      layoutDisplay: getComputedStyle(layout).display,
+      stageRect: stage.getBoundingClientRect().toJSON(),
+      railRect: rail.getBoundingClientRect().toJSON(),
+      stageBorder: getComputedStyle(stage).borderTopWidth,
+      stageBg: getComputedStyle(stage).backgroundColor
     };
   })()`);
-  check('header and page widths align', shell.headMax === shell.pageMax, JSON.stringify({ head: shell.headMax, page: shell.pageMax }));
-  check('desktop uses a two-column lab grid', shell.gridDisplay === 'grid' && shell.readingRect.left >= shell.figureRect.right - 1, JSON.stringify({ grid: shell.gridDisplay, figure: shell.figureRect.right, reading: shell.readingRect.left }));
-  check('chart surface stays quiet', shell.cardBorder === '0px' && shell.cardBg === 'rgba(0, 0, 0, 0)', JSON.stringify({ border: shell.cardBorder, bg: shell.cardBg }));
+  check('header and studio widths align', shell.headMax === shell.layoutMax, JSON.stringify({ head: shell.headMax, layout: shell.layoutMax }));
+  check('desktop splits the stage and the reading rail', shell.layoutDisplay === 'grid' && shell.railRect.left >= shell.stageRect.right - 1, JSON.stringify({ display: shell.layoutDisplay, stage: shell.stageRect.right, rail: shell.railRect.left }));
+  check('the stage reads as its own card', shell.stageBorder === '1px' && shell.stageBg !== 'rgba(0, 0, 0, 0)', JSON.stringify({ border: shell.stageBorder, bg: shell.stageBg }));
 
   const tip = await edge.evaluate(`(() => {
     const handle = document.querySelector('#chart-line .handle[data-index="1"]');
@@ -218,26 +294,49 @@ try {
   await commitEditor(edge, 'line', 80);
   check('confirming the editor changes the value', await edge.evaluate('window.NPESLCharts.state.datasets.time.series[0].values[1]') === 80);
   check('the editor closes after confirming', await edge.evaluate("!document.querySelector('#chart-line .value-editor')") === true);
+  check('editing reveals the restore action', await edge.evaluate("!document.querySelector('#chart-line [data-reset]').hidden") === true);
+  await edge.evaluate("document.querySelector('#chart-line [data-reset]').click()");
+  await sleep(220);
+  const restored = await edge.evaluate(`({
+    value: window.NPESLCharts.state.datasets.time.series[0].values[1],
+    hidden: document.querySelector('#chart-line [data-reset]').hidden
+  })`);
+  check('restore brings back the original data', restored.value === 46 && restored.hidden === true, JSON.stringify(restored));
 
   await selectType(edge, 'bar');
+  check('the level switch follows the active panel', await edge.evaluate("!!document.querySelector('#chart-bar .rail #level-switch') && !document.querySelector('#chart-line #level-switch')"));
   const barStructure = await edge.evaluate(`(() => ({
     modes: document.querySelectorAll('#chart-bar [data-modes] button').length,
     bars: document.querySelectorAll('#chart-bar .bar-current').length,
     segments: document.querySelectorAll('#chart-bar .bar-segment').length,
     direction: window.NPESLCharts.state.labs.bar.barState.direction,
     layout: window.NPESLCharts.state.labs.bar.barState.layout,
-    segmentBorder: getComputedStyle(document.querySelector('#chart-bar .segment')).borderTopWidth,
+    segmentBorder: getComputedStyle(document.querySelector('#chart-bar .segment-btn[aria-pressed="true"]')).borderBottomWidth,
     segmentCount: document.querySelectorAll('#chart-bar .segment').length
   }))()`);
   check('bar offers four direction/layout combinations', barStructure.modes === 4, String(barStructure.modes));
   check('bar defaults to vertical grouped', barStructure.direction === 'vertical' && barStructure.layout === 'grouped', JSON.stringify(barStructure));
   check('grouped bar draws all product lines', barStructure.bars === 18 && barStructure.segments === 0, JSON.stringify(barStructure));
-  check('mode controls are boxed toggles', barStructure.segmentBorder === '1px' && barStructure.segmentCount === 2, JSON.stringify({ border: barStructure.segmentBorder, groups: barStructure.segmentCount }));
+  check('mode controls mark the active option with a rule', barStructure.segmentBorder === '2px' && barStructure.segmentCount === 2, JSON.stringify({ border: barStructure.segmentBorder, groups: barStructure.segmentCount }));
+
+  await hoverMark(edge, '#chart-bar .bar-current[data-series="coffee"][data-index="0"]');
+  await sleep(160);
+  const barLink = await edge.evaluate(`(() => {
+    const linked = [...document.querySelectorAll('#chart-bar .sentence.is-linked')];
+    return { count: linked.length, text: linked[0] ? linked[0].querySelector('.sentence-en').textContent : '' };
+  })()`);
+  check('pointing at a bar names the sentence that covers it', barLink.count === 1 && /Coffee/.test(barLink.text), JSON.stringify(barLink));
 
   const barBefore = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[0].values[0]');
   await clickMark(edge, '#chart-bar .bar-current[data-series="coffee"][data-index="0"]');
   await sleep(200);
   check('clicking a bar opens a number editor', await edge.evaluate("!!document.querySelector('#chart-bar .value-editor')") === true);
+  const barClicked = await edge.evaluate(`(() => {
+    const rows = [...document.querySelectorAll('#chart-bar .sentence')];
+    const active = rows.findIndex((row) => row.classList.contains('is-active'));
+    return { active, text: active >= 0 ? rows[active].querySelector('.sentence-en').textContent : '' };
+  })()`);
+  check('clicking a bar activates the sentence that names it', /Coffee/.test(barClicked.text), JSON.stringify(barClicked));
   await commitEditor(edge, 'bar', 350);
   const barAfter = await edge.evaluate('window.NPESLCharts.state.datasets.category.series[0].values[0]');
   check('bar editor changes the dataset', barAfter === 350, `${barBefore} -> ${barAfter}`);
@@ -336,6 +435,12 @@ try {
     sentences: document.querySelectorAll('#chart-process .sentence.is-linked').length
   })`);
   check('selecting a process stage links its sentence', linked.active === 1 && linked.sentences === 1, JSON.stringify(linked));
+  const detail = await edge.evaluate(`({
+    hidden: document.querySelector('#chart-process .process-detail').hidden,
+    en: document.querySelector('#chart-process .process-detail-en').textContent.trim(),
+    zh: document.querySelector('#chart-process .process-detail-zh').textContent.trim()
+  })`);
+  check('selecting a process stage shows its detail', detail.hidden === false && detail.en.length > 10 && detail.zh.length > 4, JSON.stringify(detail));
 
   await selectType(edge, 'mixed');
   const mixed = await edge.evaluate(`({
@@ -384,26 +489,31 @@ try {
   const mobile = await edge.evaluate(`({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
-    switchScroll: document.querySelector('.type-switch-scroll').scrollWidth,
-    switchClient: document.querySelector('.type-switch-scroll').clientWidth
+    switchScroll: document.querySelector('#type-buttons').scrollWidth,
+    switchClient: document.querySelector('#type-buttons').clientWidth
   })`);
   check('mobile has no horizontal page overflow', mobile.scrollWidth <= mobile.innerWidth + 1, JSON.stringify(mobile));
   check('type tabs stay scrollable', mobile.switchScroll >= mobile.switchClient);
 
   const mobileLayout = await edge.evaluate(`(() => {
-    const brand = document.querySelector('.brand').getBoundingClientRect();
-    const tabs = document.querySelector('.type-switch').getBoundingClientRect();
-    const figure = document.querySelector('#chart-bar .panel-figure').getBoundingClientRect();
-    const reading = document.querySelector('#chart-bar .panel-reading').getBoundingClientRect();
+    const deck = document.querySelector('.deck').getBoundingClientRect();
+    const stage = document.querySelector('#chart-bar .stage').getBoundingClientRect();
+    const rail = document.querySelector('#chart-bar .rail').getBoundingClientRect();
     return {
-      brandBottom: brand.bottom,
-      tabsTop: tabs.top,
-      figureBottom: figure.bottom,
-      readingTop: reading.top
+      deckPosition: getComputedStyle(document.querySelector('.deck')).position,
+      deckBottom: deck.bottom,
+      stageBottom: stage.bottom,
+      railTop: rail.top,
+      viewport: window.innerHeight
     };
   })()`);
-  check('type tabs drop below the brand on mobile', mobileLayout.tabsTop >= mobileLayout.brandBottom - 1, JSON.stringify(mobileLayout));
-  check('reading column stacks below the chart on mobile', mobileLayout.readingTop >= mobileLayout.figureBottom - 1, JSON.stringify(mobileLayout));
+  check('the type deck floats at the bottom', mobileLayout.deckPosition === 'fixed' && mobileLayout.deckBottom <= mobileLayout.viewport + 1 && mobileLayout.deckBottom > mobileLayout.viewport - 72, JSON.stringify(mobileLayout));
+  check('reading rail stacks below the chart on mobile', mobileLayout.railTop >= mobileLayout.stageBottom - 1, JSON.stringify(mobileLayout));
+  const mobileLabel = await edge.evaluate(`(() => {
+    const node = document.querySelector('#chart-bar .axis-label');
+    return node ? node.getBoundingClientRect().height : 0;
+  })()`);
+  check('chart labels stay legible on a phone', mobileLabel >= 6.5, String(mobileLabel));
 
   await edge.send('Emulation.setDeviceMetricsOverride', {
     width: 320, height: 720, deviceScaleFactor: 2, mobile: true
@@ -412,8 +522,8 @@ try {
   const narrow = await edge.evaluate(`({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
-    switchScroll: document.querySelector('.type-switch-scroll').scrollWidth,
-    switchClient: document.querySelector('.type-switch-scroll').clientWidth
+    switchScroll: document.querySelector('#type-buttons').scrollWidth,
+    switchClient: document.querySelector('#type-buttons').clientWidth
   })`);
   check('no horizontal overflow at 320px', narrow.scrollWidth <= narrow.innerWidth + 1, JSON.stringify(narrow));
   check('tabs remain scrollable at 320px', narrow.switchScroll >= narrow.switchClient, JSON.stringify(narrow));
@@ -423,16 +533,15 @@ try {
   });
   await sleep(250);
   const themeRadii = await edge.evaluate(`(() => {
-    const card = document.querySelector('#chart-line .chart-card');
     const out = {};
     ['editorial', 'brutal', 'glass'].forEach((theme) => {
       document.documentElement.setAttribute('data-theme', theme);
-      out[theme] = getComputedStyle(card).borderRadius;
+      out[theme] = getComputedStyle(document.documentElement).getPropertyValue('--radius-card').trim();
     });
     out.glassArt = getComputedStyle(document.body).getPropertyValue('--bg-art').trim();
     return out;
   })()`);
-  check('directional themes reach the chart card', themeRadii.editorial === '0px' && themeRadii.brutal === '14px' && themeRadii.glass === '20px', JSON.stringify(themeRadii));
+  check('directional themes still reach the token layer', themeRadii.editorial === '0px' && themeRadii.brutal === '14px' && themeRadii.glass === '20px', JSON.stringify(themeRadii));
   check('glass keeps its aurora background layer', themeRadii.glassArt.length > 10, themeRadii.glassArt.slice(0, 40));
 
   await edge.evaluate("document.documentElement.setAttribute('data-theme', 'bright')");

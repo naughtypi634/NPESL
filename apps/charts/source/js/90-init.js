@@ -12,6 +12,12 @@
     NC.state.datasets = NC.deepClone(data.labs.datasets);
     NC.state.initial = NC.deepClone(data.labs.datasets);
     NC.ui.build();
+    // A URL hash (#chart-line) makes the browser jump to the panel on load,
+    // which hides the header on phones. Every panel starts at the same place,
+    // so reset to the top of the page instead.
+    if (window.location.hash) {
+      try { window.scrollTo(0, 0); } catch (err) {}
+    }
     document.documentElement.setAttribute('data-charts-ready', 'true');
     NC.test = {
       mountAll: NC.ui.mountAll,

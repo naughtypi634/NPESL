@@ -229,12 +229,13 @@
       total += part.value;
       baselineTotal += part.baseline || 0;
     });
-    var items = parts.map(function (part) {
+    var items = parts.map(function (part, index) {
       var share = total > 0 ? part.value / total * 100 : 0;
       var baselineShare = baselineTotal > 0 && typeof part.baseline === 'number'
         ? part.baseline / baselineTotal * 100 : null;
       return {
         id: part.id,
+        index: index,
         name_en: part.name_en,
         name_zh: part.name_zh,
         value: part.value,

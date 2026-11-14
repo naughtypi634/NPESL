@@ -9,6 +9,20 @@
   common.margin = { top: 18, right: 26, bottom: 52, left: 66 };
   common.compactMargin = { top: 16, right: 18, bottom: 46, left: 56 };
 
+  // The chart uses the real pixel size of its host instead of a fixed viewBox,
+  // so it fills the studio stage at any viewport and text never scales away.
+  common.size = function (host, fallbackWidth, fallbackHeight) {
+    var rect = host && host.getBoundingClientRect ? host.getBoundingClientRect() : null;
+    var width = rect && rect.width ? Math.round(rect.width) : (fallbackWidth || common.width);
+    var height = rect && rect.height ? Math.round(rect.height) : (fallbackHeight || common.height);
+    var size = {
+      width: Math.max(320, width),
+      height: Math.max(220, height)
+    };
+    if (host) host.__chartSize = { width: size.width, height: size.height };
+    return size;
+  };
+
   common.plot = function (width, height, compact) {
     var m = compact ? common.compactMargin : common.margin;
     return {
@@ -23,25 +37,22 @@
 
   common.fit = function (root) {
     if (!root || !root.getBoundingClientRect) return false;
-    var rect = root.getBoundingClientRect();
-    var box = root.viewBox && root.viewBox.baseVal;
-    var viewWidth = box && box.width ? box.width : common.width;
-    var scale = rect.width > 0 ? rect.width / viewWidth : 1;
-    root.style.fontSize = (13 / (scale || 1)) + 'px';
-    var compact = rect.width > 0 && rect.width < 520;
+    var compact = false;
+    if (root.getBoundingClientRect) {
+      var rect = root.getBoundingClientRect();
+      compact = rect.width > 0 && rect.width < 520;
+    }
+    root.style.fontSize = compact ? '13.5px' : '15px';
     root.setAttribute('data-compact', compact ? 'true' : 'false');
     return compact;
   };
 
   common.screenPx = function (root, px) {
-    var rect = root && root.getBoundingClientRect ? root.getBoundingClientRect() : null;
-    var box = root && root.viewBox ? root.viewBox.baseVal : null;
-    if (!rect || !rect.width || !box || !box.width) return px;
-    return px / (rect.width / box.width);
+    return px;
   };
 
   common.tip = function (plotHost) {
-    if (plotHost.__tip) return plotHost.__tip;
+    if (plotHost.__tip && plotHost.__tip.parentNode === plotHost) return plotHost.__tip;
     var node = document.createElement('div');
     node.className = 'chart-tip';
     node.setAttribute('aria-hidden', 'true');
@@ -61,13 +72,83 @@
     var left = (rect.left - hostRect.left) + (x / box.width) * rect.width;
     var top = (rect.top - hostRect.top) + (y / box.height) * rect.height;
     node.dataset.visible = 'true';
-    node.style.left = Math.max(10, Math.min(hostRect.width - 10, left)) + 'px';
-    node.style.top = Math.max(26, top) + 'px';
+    // Keep the whole bubble inside the plot, and flip it below the mark when
+    // there is no room above.
+    var half = node.offsetWidth / 2;
+    var height = node.offsetHeight;
+    left = Math.max(half + 8, Math.min(hostRect.width - half - 8, left));
+    var below = top < height + 16;
+    node.style.left = left + 'px';
+    node.style.top = (below ? top + 14 : top) + 'px';
+    node.style.transform = below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)';
   };
 
   common.hideTip = function (plotHost) {
     if (!plotHost || !plotHost.__tip) return;
     plotHost.__tip.dataset.visible = 'false';
+  };
+
+  // Handles stay invisible until the mark they belong to is hovered. This
+  // keeps a dense chart reading as a chart rather than an editor, while the
+  // affordance still appears exactly where the pointer is.
+  common.linkHandle = function (mark, handle) {
+    if (!mark || !handle) return;
+    function show() { handle.group.classList.add('is-visible'); }
+    function hide() { handle.group.classList.remove('is-visible'); }
+    mark.addEventListener('pointerenter', show);
+    mark.addEventListener('pointerleave', hide);
+    handle.group.addEventListener('pointerenter', show);
+    handle.group.addEventListener('pointerleave', hide);
+  };
+
+  // ---- focus: the window on the chart that the active sentence describes ----
+
+  common.focusLayer = function (root) {
+    if (!root.__focusLayer) {
+      var layer = svg.group(root, { class: 'focus-layer' });
+      root.appendChild(layer);
+      root.__focusLayer = layer;
+    }
+    return root.__focusLayer;
+  };
+
+  common.clearFocus = function (root) {
+    if (!root || !root.__focusLayer) return;
+    while (root.__focusLayer.firstChild) root.__focusLayer.removeChild(root.__focusLayer.firstChild);
+  };
+
+  common.focusBand = function (root, x, y, width, height) {
+    var layer = common.focusLayer(root);
+    svg.rect(layer, {
+      x: x, y: y, width: Math.max(1, width), height: Math.max(1, height),
+      class: 'focus-band'
+    });
+    svg.rect(layer, {
+      x: x, y: y, width: Math.max(1, width), height: Math.max(1, height),
+      class: 'focus-edge'
+    });
+    return layer;
+  };
+
+  common.focusRing = function (root, x, y, radius) {
+    var layer = common.focusLayer(root);
+    svg.circle(layer, { cx: x, cy: y, r: radius, class: 'focus-ring' });
+    return layer;
+  };
+
+  common.clearDim = function (root) {
+    if (!root) return;
+    Array.prototype.forEach.call(root.querySelectorAll('.is-dim'), function (node) {
+      node.classList.remove('is-dim');
+    });
+  };
+
+  common.dimExcept = function (root, selector, keep) {
+    if (!root) return;
+    Array.prototype.forEach.call(root.querySelectorAll(selector), function (node) {
+      var on = keep ? keep(node) : false;
+      node.classList.toggle('is-dim', !on);
+    });
   };
 
   common.fitText = function (node, maxWidth) {
@@ -138,15 +219,17 @@
         });
       }
       var lastIndex = labels.length - 1;
-      var show = labels.length <= 8 || index === 0 || index === lastIndex ||
+      var show = index === 0 || index === lastIndex ||
         (index % every === 0 && lastIndex - index >= 2);
+      if (every === 1 && labels.length <= 8) show = true;
       if (!show) return;
       var anchor = index === 0 ? 'start' : index === lastIndex ? 'end' : 'middle';
-      svg.text(root, {
+      var labelNode = svg.text(root, {
         x: x, y: opts.bottom + 20,
         'text-anchor': anchor,
         class: 'axis-label'
       }, label);
+      if (opts.labelLang) labelNode.setAttribute('lang', opts.labelLang);
     });
   };
 

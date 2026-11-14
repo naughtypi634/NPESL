@@ -8,7 +8,8 @@
     if (!isFinite(value) || value <= 0) return 100;
     var step = Math.pow(10, Math.floor(Math.log10(value)));
     var scaled = value / step;
-    var nice = scaled <= 1.2 ? 1.2 : scaled <= 2 ? 2 : scaled <= 2.5 ? 2.5 : scaled <= 3 ? 3 : scaled <= 5 ? 5 : 10;
+    var nice = scaled <= 1.2 ? 1.2 : scaled <= 2 ? 2 : scaled <= 2.5 ? 2.5 : scaled <= 3 ? 3
+      : scaled <= 4 ? 4 : scaled <= 5 ? 5 : scaled <= 6 ? 6 : scaled <= 8 ? 8 : 10;
     return Math.ceil(nice * step);
   }
 
@@ -35,8 +36,9 @@
     var bars = dataset.bars;
     var line = dataset.line;
     var periods = dataset.periods;
-    var width = 720;
-    var height = 410;
+    var box = common.size(lab.plot);
+    var width = box.width;
+    var height = box.height;
     var root = svg.create(lab.plot, width, height, 'Combined chart: revenue as bars and margin as a line. Drag a bar or point to change a value.');
     lab.svg = root;
     var compact = common.fit(root);
@@ -121,8 +123,8 @@
       return (index === 0 ? 'M ' : 'L ') + point[0] + ' ' + point[1];
     }).join(' ');
     var linePath = svg.path(root, { d: lineD, class: 'mixed-line' });
-    var lineDots = points.map(function (point) {
-      return svg.circle(root, { cx: point[0], cy: point[1], r: 3.5, class: 'mixed-dot' });
+    var lineDots = points.map(function (point, index) {
+      return svg.circle(root, { cx: point[0], cy: point[1], r: 3.5, class: 'mixed-dot', 'data-index': index });
     });
 
     var handleLayer = svg.group(root, { class: 'handles' });
@@ -143,10 +145,12 @@
         now: value,
         radius: common.screenPx(root, 4),
         hitRadius: common.screenPx(root, 16),
+        stroke: 'var(--' + bars.color + ')',
         label: period.label_en + ' ' + bars.name_en,
         valueText: tipText(dataset, index),
         data: { series: 'bar', index: index }
       });
+      common.linkHandle(barRects[index], barHandle);
       barHandle.group.addEventListener('pointerenter', function () {
         common.showTip(lab.plot, tipText(dataset, index), root, band.center(index), yBar(bars.values[index]));
       });
@@ -159,10 +163,12 @@
         now: line.values[index],
         radius: common.screenPx(root, 4.5),
         hitRadius: common.screenPx(root, 18),
+        stroke: 'var(--' + line.color + ')',
         label: period.label_en + ' ' + line.name_en,
         valueText: tipText(dataset, index),
         data: { series: 'line', index: index }
       });
+      common.linkHandle(lineDots[index], lineHandle);
       lineHandle.group.addEventListener('pointerenter', function () {
         common.showTip(lab.plot, tipText(dataset, index), root, band.center(index), yLine(line.values[index]));
       });
@@ -307,6 +313,27 @@
     }
   }
 
+  function highlight(lab, focus) {
+    var state = lab.mixedState;
+    if (!state) return;
+    var root = state.root;
+    common.clearFocus(root);
+    common.clearDim(root);
+    if (!focus || focus.kind !== 'period') return;
+    var index = Math.max(0, Math.min(lab.dataset.periods.length - 1, focus.index));
+    var x1 = state.band.center(index) - state.band.width / 2;
+    var x2 = state.band.center(index) + state.band.width / 2;
+    common.focusBand(root, x1, state.plot.top, Math.max(18, x2 - x1), state.plot.height);
+    common.focusRing(root, state.band.center(index), state.yBar(lab.dataset.bars.values[index]), 7);
+    common.focusRing(root, state.band.center(index), state.yLine(lab.dataset.line.values[index]), 7);
+    common.dimExcept(root, '.bar-current', function (node) {
+      return Number(node.getAttribute('data-index')) === index;
+    });
+    common.dimExcept(root, '.mixed-dot', function (node) {
+      return Number(node.getAttribute('data-index')) === index;
+    });
+  }
+
   function describe(lab) {
     return NC.desc.mixed(lab.dataset, NC.state.level);
   }
@@ -344,6 +371,7 @@
     mount: function (lab) { render(lab); },
     render: render,
     update: update,
+    highlight: highlight,
     describe: describe,
     table: tableSpec
   };

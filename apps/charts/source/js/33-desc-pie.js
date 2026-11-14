@@ -48,7 +48,8 @@
       sentences.push(desc.sentence(
         'smallest',
         bottom.name_en + ' accounts for just ' + bottomShare + '.',
-        bottom.name_zh + '只占 ' + bottomShare + '。'
+        bottom.name_zh + '只占 ' + bottomShare + '。',
+        desc.focusPart(bottom.index)
       ));
       if (stats.consolidated) {
         sentences.push(desc.sentence(
@@ -69,7 +70,8 @@
         sentences.push(desc.sentence(
           'change',
           b1Change.name_en + ' ' + (b1Shrank ? 'lost ' : b1Change.deltaPP > 0 ? 'gained ' : 'lost ') + pp(b1Change.deltaPP) + ', from ' + pct(b1Change.baselineShare) + ' to ' + pct(b1Change.share) + '.',
-          b1Change.name_zh + (b1Shrank ? '份额下降 ' : b1Change.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(b1Change.deltaPP) + '，从 ' + pct(b1Change.baselineShare) + ' 变为 ' + pct(b1Change.share) + '。'
+          b1Change.name_zh + (b1Shrank ? '份额下降 ' : b1Change.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(b1Change.deltaPP) + '，从 ' + pct(b1Change.baselineShare) + ' 变为 ' + pct(b1Change.share) + '。',
+          desc.focusPart(b1Change.index)
         ));
       }
     } else if (level === 'B2') {
@@ -102,7 +104,8 @@
         sentences.push(desc.sentence(
           'distance',
           second.name_en + ' is a distant second, ' + gap + ' behind.',
-          second.name_zh + '远远排在第二，落后 ' + gapZh + '。'
+          second.name_zh + '远远排在第二，落后 ' + gapZh + '。',
+          desc.focusPart(second.index)
         ));
       }
       var mainChange = stats.changes.filter(function (item) { return item.id === top.id; })[0] || stats.changes[0];
@@ -111,7 +114,8 @@
         sentences.push(desc.sentence(
           'change',
           mainChange.name_en + ' ' + (leaderShrank ? 'shrank by ' : mainChange.deltaPP > 0 ? 'gained ' : 'lost ') + pp(mainChange.deltaPP) + ', from ' + pct(mainChange.baselineShare) + ' to ' + pct(mainChange.share) + '.',
-          mainChange.name_zh + (leaderShrank ? '份额缩水 ' : mainChange.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(mainChange.deltaPP) + '，从 ' + pct(mainChange.baselineShare) + ' 变为 ' + pct(mainChange.share) + '。'
+          mainChange.name_zh + (leaderShrank ? '份额缩水 ' : mainChange.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(mainChange.deltaPP) + '，从 ' + pct(mainChange.baselineShare) + ' 变为 ' + pct(mainChange.share) + '。',
+          desc.focusPart(mainChange.index)
         ));
       }
     } else {
@@ -153,14 +157,16 @@
         sentences.push(desc.sentence(
           'change',
           mover.name_en + ' ' + (moverShrank ? 'shrank by ' : mover.deltaPP > 0 ? 'gained ' : 'lost ') + pp(mover.deltaPP) + ' over the period.',
-          mover.name_zh + '在此期间' + (moverShrank ? '份额缩水 ' : mover.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(mover.deltaPP) + '。'
+          mover.name_zh + '在此期间' + (moverShrank ? '份额缩水 ' : mover.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(mover.deltaPP) + '。',
+          desc.focusPart(mover.index)
         ));
       }
       if (bottom.share <= 5) {
         sentences.push(desc.sentence(
           'tail',
           bottom.name_en + ' accounts for only ' + bottomShare + ', a small slice of the total.',
-          bottom.name_zh + '只占 ' + bottomShare + '，是总量中很小的一块。'
+          bottom.name_zh + '只占 ' + bottomShare + '，是总量中很小的一块。',
+          desc.focusPart(bottom.index)
         ));
       }
     }

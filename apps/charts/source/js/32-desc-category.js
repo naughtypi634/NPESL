@@ -61,7 +61,7 @@
     };
   }
 
-  function compositionSentence(dataset, level, mode) {
+  function buildCompositionSentence(dataset, level, mode) {
     var data = agenda(dataset);
     var top = data.topSeries;
     var second = data.secondSeries;
@@ -87,6 +87,13 @@
       return desc.sentence('structure', 'Coffee remains the core product line across the network, and the mix barely shifts from one region to the next.', '咖啡仍是整个网络的核心产品线，各地区之间的构成几乎没有变化。');
     }
     return desc.sentence('structure', 'Coffee remains the core product line, contributing ' + topShare + ' of group revenue, while bakery and retail add breadth rather than scale.', '咖啡仍是核心产品线，贡献集团收入的 ' + topShare + '；烘焙和零售更多是补充品类，而非规模来源。');
+  }
+
+  function compositionSentence(dataset, level, mode) {
+    var sentence = buildCompositionSentence(dataset, level, mode);
+    var data = agenda(dataset);
+    sentence.focus = desc.focusSeries(data.topSeries.index);
+    return sentence;
   }
 
   desc.bar = function (dataset, level, mode) {
@@ -121,7 +128,8 @@
       sentences.push(desc.sentence(
         'bottom',
         bottom.name_en + ' was the lowest, at ' + bottomValue + '.',
-        bottom.name_zh + '最低，为 ' + bottomValueZh + '。'
+        bottom.name_zh + '最低，为 ' + bottomValueZh + '。',
+        desc.focusCategory(bottom.index)
       ));
     } else if (level === 'B2') {
       sentences.push(desc.sentence(
@@ -132,7 +140,8 @@
       sentences.push(desc.sentence(
         'bottom',
         bottom.name_en + ' was the smallest market at ' + bottomValue + '.',
-        bottom.name_zh + '是最小的市场，为 ' + bottomValueZh + '。'
+        bottom.name_zh + '是最小的市场，为 ' + bottomValueZh + '。',
+        desc.focusCategory(bottom.index)
       ));
     } else {
       sentences.push(desc.sentence(
@@ -177,7 +186,8 @@
       sentences.push(desc.sentence(
         'overview',
         'The table shows revenue by region and product line. ' + top.name_en + ' has the most revenue.',
-        '表格显示各地区和各产品线的收入。' + top.name_zh + '收入最多。'
+        '表格显示各地区和各产品线的收入。' + top.name_zh + '收入最多。',
+        desc.focusRow(top.index)
       ));
       sentences.push(desc.sentence(
         'total',
@@ -188,23 +198,27 @@
       sentences.push(desc.sentence(
         'overview',
         'The table compares revenue across six regions and three product lines. ' + top.name_en + ' had the highest total at ' + valueText(dataset, top.value) + ', while ' + bottom.name_en + ' had the lowest at ' + valueText(dataset, bottom.value) + '.',
-        '表格比较了六个地区、三条产品线的收入。' + top.name_zh + '合计最高，为 ' + valueZh(dataset, top.value) + '；' + bottom.name_zh + '最低，为 ' + valueZh(dataset, bottom.value) + '。'
+        '表格比较了六个地区、三条产品线的收入。' + top.name_zh + '合计最高，为 ' + valueZh(dataset, top.value) + '；' + bottom.name_zh + '最低，为 ' + valueZh(dataset, bottom.value) + '。',
+        desc.focusRow(top.index)
       ));
       sentences.push(desc.sentence(
         'structure',
         data.topSeries.name_en + ' accounted for ' + pctText(data.topSeries.share) + ' of total revenue.',
-        data.topSeries.name_zh + '占总收入的 ' + pctText(data.topSeries.share) + '。'
+        data.topSeries.name_zh + '占总收入的 ' + pctText(data.topSeries.share) + '。',
+        desc.focusSeries(data.topSeries.index)
       ));
     } else if (level === 'B2') {
       sentences.push(desc.sentence(
         'overview',
         top.name_en + ' recorded the highest total at ' + valueText(dataset, top.value) + ', ' + valueText(dataset, data.gap) + ' ahead of ' + data.second.name_en + '.',
-        top.name_zh + '合计最高，为 ' + valueZh(dataset, top.value) + '，领先' + data.second.name_zh + ' ' + valueZh(dataset, data.gap) + '。'
+        top.name_zh + '合计最高，为 ' + valueZh(dataset, top.value) + '，领先' + data.second.name_zh + ' ' + valueZh(dataset, data.gap) + '。',
+        desc.focusRow(top.index)
       ));
       sentences.push(desc.sentence(
         'structure',
         'Coffee generated ' + pctText(data.topSeries.share) + ' of revenue, more than bakery and retail combined.',
-        '咖啡贡献了 ' + pctText(data.topSeries.share) + ' 的收入，超过烘焙和零售之和。'
+        '咖啡贡献了 ' + pctText(data.topSeries.share) + ' 的收入，超过烘焙和零售之和。',
+        desc.focusSeries(data.topSeries.index)
       ));
       sentences.push(desc.sentence(
         'total',
@@ -215,12 +229,14 @@
       sentences.push(desc.sentence(
         'overview',
         'The table points to a clear concentration of revenue in the east and south, which together account for ' + pctText(pct(top.value + data.second.value, data.total)) + ' of the total.',
-        '表格显示收入明显集中在华东和华南，两地合计占总收入的 ' + pctText(pct(top.value + data.second.value, data.total)) + '。'
+        '表格显示收入明显集中在华东和华南，两地合计占总收入的 ' + pctText(pct(top.value + data.second.value, data.total)) + '。',
+        desc.focusRow(top.index)
       ));
       sentences.push(desc.sentence(
         'structure',
         'The product mix is remarkably consistent: coffee contributes roughly ' + pctText(data.topSeries.share) + ' of revenue in every region.',
-        '产品结构相当一致：咖啡在每个地区都贡献约 ' + pctText(data.topSeries.share) + ' 的收入。'
+        '产品结构相当一致：咖啡在每个地区都贡献约 ' + pctText(data.topSeries.share) + ' 的收入。',
+        desc.focusSeries(data.topSeries.index)
       ));
       sentences.push(desc.sentence(
         'nuance',

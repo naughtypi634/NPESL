@@ -31,7 +31,8 @@
     if (!isFinite(value) || value <= 0) return 100;
     var step = Math.pow(10, Math.floor(Math.log10(value)));
     var scaled = value / step;
-    var nice = scaled <= 1.2 ? 1.2 : scaled <= 2 ? 2 : scaled <= 2.5 ? 2.5 : scaled <= 3 ? 3 : scaled <= 5 ? 5 : 10;
+    var nice = scaled <= 1.2 ? 1.2 : scaled <= 2 ? 2 : scaled <= 2.5 ? 2.5 : scaled <= 3 ? 3
+      : scaled <= 4 ? 4 : scaled <= 5 ? 5 : scaled <= 6 ? 6 : scaled <= 8 ? 8 : 10;
     return Math.ceil(nice * step);
   }
 
@@ -140,8 +141,9 @@
   function drawVertical(lab) {
     var dataset = lab.dataset;
     var state = lab.barState;
-    var width = 720;
-    var height = 400;
+    var box = common.size(lab.plot);
+    var width = box.width;
+    var height = box.height;
     var root = svg.create(lab.plot, width, height, 'Bar chart of revenue by region and product line. Drag a bar to change a value.');
     lab.svg = root;
     var compact = common.fit(root);
@@ -168,8 +170,12 @@
     });
     common.drawXAxis(root, {
       left: plot.left, right: plot.right, bottom: plot.bottom,
-      labels: dataset.categories.map(function (category) { return category.label_en; }),
-      x: function (index) { return band.center(index); }
+      labels: dataset.categories.map(function (category) {
+        return compact ? category.label_zh : category.label_en;
+      }),
+      x: function (index) { return band.center(index); },
+      labelEvery: 1,
+      labelLang: compact ? 'zh-CN' : 'en'
     });
 
     var seriesCount = dataset.series.length;
@@ -241,10 +247,12 @@
             now: value,
             radius: common.screenPx(root, 4),
             hitRadius: common.screenPx(root, 14),
+            stroke: 'var(--' + series.color + ')',
             label: category.label_en + ' ' + series.name_en,
             valueText: tipText(dataset, seriesIndex, categoryIndex),
             data: { series: seriesIndex, index: categoryIndex, category: category.id }
           });
+          common.linkHandle(rect, stackHandle);
           NC.drag.bind(stackHandle.group, {
             axis: 'y',
             min: 0,
@@ -332,10 +340,12 @@
             now: value,
             radius: common.screenPx(root, 4.5),
             hitRadius: common.screenPx(root, 15),
+            stroke: 'var(--' + series.color + ')',
             label: category.label_en + ' ' + series.name_en,
             valueText: tipText(dataset, seriesIndex, categoryIndex),
             data: { series: seriesIndex, index: categoryIndex, category: category.id }
           });
+          common.linkHandle(rect, handle);
           bindBar(handle.group, lab, seriesIndex, categoryIndex, handle, function () {
             showTip(seriesIndex, categoryIndex, x + barWidth / 2, y(series.values[categoryIndex]));
           });
@@ -482,8 +492,9 @@
   function drawHorizontal(lab) {
     var dataset = lab.dataset;
     var state = lab.barState;
-    var width = 720;
-    var height = 420;
+    var box = common.size(lab.plot);
+    var width = box.width;
+    var height = box.height;
     var root = svg.create(lab.plot, width, height, 'Horizontal bar chart ranking regions by revenue. Drag a bar to change a value.');
     lab.svg = root;
     var compact = common.fit(root);
@@ -539,7 +550,8 @@
         'text-anchor': 'end',
         'dominant-baseline': 'middle',
         class: 'axis-label category-label'
-      }, category.label_en);
+      }, compact ? category.label_zh : category.label_en);
+      name.setAttribute('lang', compact ? 'zh-CN' : 'en');
       common.fitText(name, plot.left - 22);
 
       if (layout === 'stacked') {
@@ -593,11 +605,13 @@
             now: value,
             radius: common.screenPx(root, 4),
             hitRadius: common.screenPx(root, compact ? 16 : 13),
+            stroke: 'var(--' + series.color + ')',
             orientation: 'horizontal',
             label: category.label_en + ' ' + series.name_en,
             valueText: tipText(dataset, seriesIndex, categoryIndex),
             data: { series: seriesIndex, index: categoryIndex, category: category.id }
           });
+          common.linkHandle(rect, stackHandle);
           NC.drag.bind(stackHandle.group, {
             axis: 'x',
             min: 0,
@@ -701,11 +715,13 @@
             now: value,
             radius: common.screenPx(root, 4),
             hitRadius: common.screenPx(root, compact ? 16 : 13),
+            stroke: 'var(--' + series.color + ')',
             orientation: 'horizontal',
             label: category.label_en + ' ' + series.name_en,
             valueText: tipText(dataset, seriesIndex, categoryIndex),
             data: { series: seriesIndex, index: categoryIndex, category: category.id }
           });
+          common.linkHandle(rect, handle);
           bindBar(handle.group, lab, seriesIndex, categoryIndex, handle, function () {
             showTip(seriesIndex, categoryIndex, x(series.values[categoryIndex]), by + barHeight / 2);
           });
@@ -856,6 +872,49 @@
     }
   }
 
+  function highlight(lab, focus) {
+    var state = lab.barState;
+    if (!state) return;
+    var root = state.root;
+    common.clearFocus(root);
+    common.clearDim(root);
+    if (!focus || focus.kind === 'all') return;
+
+    var markSelector = state.layout === 'stacked' ? '.bar-segment' : '.bar-current';
+
+    if (focus.kind === 'series') {
+      var series = lab.dataset.series[focus.index];
+      var seriesId = series ? series.id : null;
+      common.dimExcept(root, markSelector, function (node) {
+        return node.getAttribute('data-series') === seriesId;
+      });
+      return;
+    }
+
+    if (focus.kind === 'category' || focus.kind === 'range') {
+      var from = focus.kind === 'range' ? focus.from : focus.index;
+      var to = focus.kind === 'range' ? focus.to : focus.index;
+      var seriesIndex = focus.series;
+      var seriesFilter = seriesIndex != null && lab.dataset.series[seriesIndex]
+        ? lab.dataset.series[seriesIndex].id : null;
+      if (state.direction === 'horizontal') {
+        var y1 = state.band.center(from) - state.band.width / 2;
+        var y2 = state.band.center(to) + state.band.width / 2;
+        common.focusBand(root, state.plot.left, y1, state.plot.width, Math.max(16, y2 - y1));
+      } else {
+        var x1 = state.band.center(from) - state.band.width / 2;
+        var x2 = state.band.center(to) + state.band.width / 2;
+        common.focusBand(root, x1, state.plot.top, Math.max(16, x2 - x1), state.plot.height);
+      }
+      common.dimExcept(root, markSelector, function (node) {
+        var index = Number(node.getAttribute('data-index'));
+        if (index < from || index > to) return false;
+        if (seriesFilter && node.getAttribute('data-series') !== seriesFilter) return false;
+        return true;
+      });
+    }
+  }
+
   function describe(lab) {
     return NC.desc.bar(lab.dataset, NC.state.level, lab.mode);
   }
@@ -895,6 +954,7 @@
     mount: function (lab) { render(lab); },
     render: render,
     update: update,
+    highlight: highlight,
     describe: describe,
     table: tableSpec
   };

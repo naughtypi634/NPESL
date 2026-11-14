@@ -80,7 +80,7 @@
     };
   }
 
-  function segmentSentence(ctx, seg, level, variant) {
+  function buildSegmentSentence(ctx, seg, level, variant) {
     var from = ctx.value(seg.a);
     var to = ctx.value(seg.b);
     var fromZh = ctx.valueZh(seg.a);
@@ -194,6 +194,12 @@
     );
   }
 
+  function segmentSentence(ctx, seg, level, variant) {
+    var sentence = buildSegmentSentence(ctx, seg, level, variant);
+    sentence.focus = desc.focusRange(seg.fromIndex, seg.toIndex);
+    return sentence;
+  }
+
   desc.time = function (dataset, series, level, options) {
     var opts = options || {};
     var ctx = makeContext(dataset, series);
@@ -251,7 +257,7 @@
     if (stats.reversal) {
       var turnIndex = stats.direction === 'up' ? stats.maxIndex : stats.minIndex;
       if (turnIndex > 0 && turnIndex < stats.n - 1) {
-        sentences.push(desc.sentence('turning-point', 'The trend reversed after ' + ctx.period(turnIndex) + '.', '趋势在' + ctx.periodZh(turnIndex) + '之后发生反转。'));
+        sentences.push(desc.sentence('turning-point', 'The trend reversed after ' + ctx.period(turnIndex) + '.', '趋势在' + ctx.periodZh(turnIndex) + '之后发生反转。', desc.focusPoint(turnIndex)));
       }
     }
 
@@ -291,13 +297,15 @@
         sentences.push(desc.sentence(
           'peak',
           ctx.name + ' peaked at ' + ctx.value(stats.max) + ' in ' + ctx.period(stats.maxIndex) + '.',
-          ctx.zh + '在 ' + ctx.periodZh(stats.maxIndex) + '达到 ' + ctx.valueZh(stats.max) + ' 的峰值。'
+          ctx.zh + '在 ' + ctx.periodZh(stats.maxIndex) + '达到 ' + ctx.valueZh(stats.max) + ' 的峰值。',
+          desc.focusPoint(stats.maxIndex)
         ));
       } else if (stats.minIndex > 0 && stats.minIndex < stats.n - 1) {
         sentences.push(desc.sentence(
           'trough',
           ctx.name + ' reached its lowest point at ' + ctx.value(stats.min) + ' in ' + ctx.period(stats.minIndex) + '.',
-          ctx.zh + '在 ' + ctx.periodZh(stats.minIndex) + '跌到 ' + ctx.valueZh(stats.min) + ' 的低点。'
+          ctx.zh + '在 ' + ctx.periodZh(stats.minIndex) + '跌到 ' + ctx.valueZh(stats.min) + ' 的低点。',
+          desc.focusPoint(stats.minIndex)
         ));
       }
 
@@ -306,7 +314,8 @@
         sentences.push(desc.sentence(
           'plateau',
           ctx.name + ' leveled off at around ' + ctx.value(plateau.value) + ' between ' + ctx.period(plateau.fromIndex) + ' and ' + ctx.period(plateau.toIndex) + '.',
-          ctx.zh + '在 ' + ctx.periodZh(plateau.fromIndex) + '到 ' + ctx.periodZh(plateau.toIndex) + '之间稳定在 ' + ctx.valueZh(plateau.value) + ' 左右。'
+          ctx.zh + '在 ' + ctx.periodZh(plateau.fromIndex) + '到 ' + ctx.periodZh(plateau.toIndex) + '之间稳定在 ' + ctx.valueZh(plateau.value) + ' 左右。',
+          desc.focusRange(plateau.fromIndex, plateau.toIndex)
         ));
       }
     }
@@ -314,12 +323,12 @@
     if (level !== 'A2' && stats.direction !== 'flat' && isFinite(ratio) && ratio > 1.35) {
       if (stats.direction === 'up') {
         if (level === 'B1') {
-          sentences.push(desc.sentence('comparison', ctx.name + ' ended the period at ' + last + ', ' + pctAbs + ' higher than at the start.', ctx.zh + '期末为 ' + lastZh + '，比期初高 ' + pctAbs + '。'));
+          sentences.push(desc.sentence('comparison', ctx.name + ' ended the period at ' + last + ', ' + pctAbs + ' higher than at the start.', ctx.zh + '期末为 ' + lastZh + '，比期初高 ' + pctAbs + '。', desc.focusRange(0, stats.n - 1)));
         } else {
-          sentences.push(desc.sentence('comparison', ctx.name + ' in ' + pEnd + ' was ' + NC.fmt.ratio(ratio) + ' the ' + pStart + ' figure.', pEndZh + '的' + ctx.zh + '是 ' + pStartZh + '的 ' + NC.fmt.ratioValue(ratio) + ' 倍左右。'));
+          sentences.push(desc.sentence('comparison', ctx.name + ' in ' + pEnd + ' was ' + NC.fmt.ratio(ratio) + ' the ' + pStart + ' figure.', pEndZh + '的' + ctx.zh + '是 ' + pStartZh + '的 ' + NC.fmt.ratioValue(ratio) + ' 倍左右。', desc.focusRange(0, stats.n - 1)));
         }
       } else if (ratio < 0.74) {
-        sentences.push(desc.sentence('comparison', ctx.name + ' in ' + pEnd + ' was ' + pctAbs + ' lower than in ' + pStart + '.', ctx.zh + pEndZh + '的' + ctx.zh + '比' + pStartZh + '低 ' + pctAbs + '。'));
+        sentences.push(desc.sentence('comparison', ctx.name + ' in ' + pEnd + ' was ' + pctAbs + ' lower than in ' + pStart + '.', ctx.zh + pEndZh + '的' + ctx.zh + '比' + pStartZh + '低 ' + pctAbs + '。', desc.focusRange(0, stats.n - 1)));
       }
     }
 

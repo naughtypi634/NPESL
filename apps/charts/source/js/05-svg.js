@@ -46,7 +46,8 @@
     svg.clear(container);
     var node = svg.el('svg', {
       viewBox: '0 0 ' + width + ' ' + height,
-      role: 'img',
+      role: 'group',
+      lang: 'en',
       'aria-label': label || 'chart',
       class: 'chart-svg',
       preserveAspectRatio: 'xMidYMid meet'
@@ -97,6 +98,8 @@
     });
     var halo = svg.circle(g, { cx: x, cy: y, r: (o.radius || 7) + 4, class: 'halo' });
     var dot = svg.circle(g, { cx: x, cy: y, r: o.radius || 7, class: 'dot' });
+    // The dot belongs to its series: a grey bar must not wear a blue handle.
+    if (o.stroke) dot.style.stroke = o.stroke;
     g.setAttribute('data-x', x);
     g.setAttribute('data-y', y);
     return { group: g, hit: hit, halo: halo, dot: dot };

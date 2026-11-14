@@ -34,7 +34,7 @@
     return NC.fmt.clampText(text);
   };
 
-  desc.sentence = function (role, en, zh) {
+  desc.sentence = function (role, en, zh, focus) {
     var english = desc.clean(en);
     var chinese = desc.clean(zh);
     var issues = desc.check(english);
@@ -45,9 +45,24 @@
       role: role,
       en: english,
       zh: chinese,
-      issues: issues
+      issues: issues,
+      focus: focus || { kind: 'all' }
     };
   };
+
+  // Focus describes the window of the chart a sentence is about. The step
+  // rail uses it to draw the band and dim everything outside it.
+  desc.focusAll = function () { return { kind: 'all' }; };
+  desc.focusRange = function (from, to) { return { kind: 'range', from: from, to: to }; };
+  desc.focusPoint = function (index) { return { kind: 'point', index: index }; };
+  desc.focusCategory = function (index, seriesIndex) {
+    return { kind: 'category', index: index, series: seriesIndex };
+  };
+  desc.focusSeries = function (index) { return { kind: 'series', index: index }; };
+  desc.focusPart = function (index) { return { kind: 'part', index: index }; };
+  desc.focusPeriod = function (index) { return { kind: 'period', index: index }; };
+  desc.focusRow = function (index) { return { kind: 'row', index: index }; };
+  desc.focusSteps = function (steps) { return { kind: 'steps', steps: steps }; };
 
   desc.seed = function (parts) {
     return NC.hash(parts.join('|'));

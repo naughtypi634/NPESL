@@ -38,6 +38,8 @@
   NC.editValue = function (lab, opts) {
     if (!lab || !lab.plot || !opts) return;
     close(lab);
+    // The editor repeats the value the tooltip is showing; one of them is enough.
+    if (NC.renderCommon && NC.renderCommon.hideTip) NC.renderCommon.hideTip(lab.plot);
 
     var point = toPixels(opts.root, lab.plot, opts.x, opts.y);
     var width = lab.plot.getBoundingClientRect().width;

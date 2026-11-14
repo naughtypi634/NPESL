@@ -3,9 +3,18 @@
 
   var ui = NC.ui = {};
 
-  var REPLAY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v6h-6"/></svg>';
+  var RESET_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>';
 
-  // Timed one-shot classes (panel entrance, level-switch fade). One owner per
+  var GLYPHS = {
+    line: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13l7-6 7 3 9-7 7 2"/></svg>',
+    bar: '<svg viewBox="0 0 34 17" fill="currentColor" aria-hidden="true"><rect x="2" y="8" width="5" height="7"/><rect x="11" y="4" width="5" height="11"/><rect x="20" y="10" width="5" height="5"/><rect x="29" y="6" width="3" height="9"/></svg>',
+    pie: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="17" cy="8.5" r="6.5"/><path d="M17 8.5V2a6.5 6.5 0 0 1 6.5 6.5Z" fill="currentColor" stroke="none"/></svg>',
+    table: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><rect x="2" y="2.5" width="30" height="12"/><path d="M2 6.5h30M2 10.5h30M11 2.5v12M22 2.5v12"/></svg>',
+    process: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="5" cy="8.5" r="2.2"/><circle cx="17" cy="8.5" r="2.2"/><circle cx="29" cy="8.5" r="2.2"/><path d="M8.2 8.5h6.4M20.2 8.5h6.4"/></svg>',
+    mixed: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h4v8H2zM13 4h4v11h-4zM24 9h4v6h-4z" fill="currentColor" stroke="none"/><path d="M2 12l6-4 7 2 7-5 8 2" stroke-linecap="round"/></svg>'
+  };
+
+  // Timed one-shot classes (panel entrance, description fade). One owner per
   // node, so a rapid re-trigger cannot leave the class stuck or have an older
   // timer strip it from a newer animation.
   function pulse(node, cls, ms) {
@@ -22,8 +31,22 @@
 
   function sceneFor(type) {
     var dataset = NC.state.datasets && type.dataset ? NC.state.datasets[type.dataset] : null;
-    return dataset && dataset.scene_en ? dataset.scene_en : '';
+    return {
+      en: dataset && dataset.scene_en ? dataset.scene_en : '',
+      zh: dataset && dataset.scene_zh ? dataset.scene_zh : ''
+    };
   }
+
+  function hintAllowed() {
+    try { return !localStorage.getItem('npesl-charts-hint'); } catch (err) { return true; }
+  }
+
+  NC.dismissHint = function () {
+    try { localStorage.setItem('npesl-charts-hint', '1'); } catch (err) {}
+    Array.prototype.forEach.call(document.querySelectorAll('[data-hint]'), function (node) {
+      node.hidden = true;
+    });
+  };
 
   function sortedTypes() {
     return NC.state.data.types.sections.slice().sort(function (a, b) {
@@ -38,44 +61,63 @@
   }
 
   function panelHtml(type) {
-    var replay = ['line', 'bar', 'pie', 'mixed'].indexOf(type.renderer) === -1 ? '' :
-      '<button class="action-btn action-btn-icon" type="button" data-replay aria-label="重播动画" title="重播动画">' + REPLAY_ICON + '<span>重播</span></button>';
+    var scene = sceneFor(type);
+    var hints = {
+      line: '拖动数据点改数值，点击可输入',
+      bar: '拖动柱子改数值，点击可输入',
+      pie: '拖动分界点改占比，点击可输入',
+      mixed: '拖动柱子或折线点改数值，点击可输入'
+    };
+    var hintText = hints[type.renderer] || '';
     var reset = type.renderer === 'process' ? '' :
-      '<button class="action-btn" type="button" data-reset>重置</button>';
-    return '<header class="section-head">' +
-        '<h2>' + NC.escapeHtml(type.label_zh) + ' <span class="h2-en">' + NC.escapeHtml(type.label_en) + '</span></h2>' +
-      '</header>' +
-      '<div class="panel-grid">' +
-        '<div class="panel-figure">' +
-          '<figure class="chart-card">' +
-            '<header class="figure-head">' +
-              '<div class="figure-top">' +
-                '<span class="chart-scene">' + NC.escapeHtml(sceneFor(type)) + '</span>' +
-                '<span class="figure-actions">' +
-                  replay +
-                  reset +
-                '</span>' +
-              '</div>' +
-              '<div class="figure-modes" data-modes></div>' +
-            '</header>' +
-            '<div class="plot" data-plot></div>' +
-          '</figure>' +
-        '</div>' +
-        '<aside class="panel-reading">' +
+      '<button class="tool-btn tool-icon" type="button" data-reset aria-label="还原数据" title="还原数据" hidden>' + RESET_ICON + '</button>';
+    var hint = hintText && hintAllowed() ? '<p class="figure-hint" data-hint>' + hintText + '</p>' : '';
+    return '<div class="panel-layout">' +
+        '<section class="stage">' +
+          '<header class="stage-head">' +
+            '<div class="stage-title">' +
+              '<span class="stage-kicker">' + NC.escapeHtml(type.label_en) + '</span>' +
+              '<h2 class="figure-title">' + NC.escapeHtml(scene.en) + '</h2>' +
+              (scene.zh ? '<p class="figure-title-zh">' + NC.escapeHtml(scene.zh) + '</p>' : '') +
+            '</div>' +
+            '<div class="stage-stat" data-stat hidden></div>' +
+          '</header>' +
+          '<div class="stage-tools">' +
+            '<div class="stage-modes" data-modes></div>' +
+            '<span class="figure-actions">' + reset + '</span>' +
+          '</div>' +
+          '<div class="plot" data-plot></div>' +
+          '<footer class="stage-foot">' +
+            '<div class="legend-host" data-legend></div>' +
+            hint +
+          '</footer>' +
+        '</section>' +
+        '<aside class="rail">' +
+          '<div class="desc-head">' +
+            '<span class="desc-label">图表描述</span>' +
+            '<span data-level-host></span>' +
+          '</div>' +
           '<section class="desc" data-desc>' +
-            '<div class="desc-lines" data-desc-lines></div>' +
+            '<ol class="desc-lines" data-desc-lines></ol>' +
             '<p class="sr-only" data-live aria-live="polite"></p>' +
           '</section>' +
+          '<div class="rail-nav">' +
+            '<button class="rail-btn" type="button" data-step-prev aria-label="上一句">← 上一句</button>' +
+            '<span class="rail-count" data-step-count></span>' +
+            '<button class="rail-btn" type="button" data-step-next aria-label="下一句">下一句 →</button>' +
+          '</div>' +
         '</aside>' +
-      '</div>' +
-      '<section class="learning-block" data-patterns-section>' +
-        '<h3>常用句型</h3>' +
-        '<ul class="pattern-list" data-patterns></ul>' +
-      '</section>' +
-      '<section class="learning-block" data-vocab-section>' +
-        '<h3>词汇</h3>' +
-        '<div class="vocab-groups" data-vocab></div>' +
-      '</section>';
+        '<div class="panel-reference" hidden>' +
+          '<section class="learning-block" data-patterns-section>' +
+            '<h3>常用句型</h3>' +
+            '<ul class="pattern-list" data-patterns></ul>' +
+          '</section>' +
+          '<section class="learning-block" data-vocab-section>' +
+            '<h3>词汇</h3>' +
+            '<div class="vocab-groups" data-vocab></div>' +
+          '</section>' +
+        '</div>' +
+      '</div>';
   }
 
   function buildPanels() {
@@ -104,6 +146,7 @@
         '<span class="vocab-zh">' + NC.escapeHtml(entry.zh) + '</span>' +
         registerLabel(entry.register) +
       '</div>' +
+      (entry.pattern ? '<p class="vocab-pattern" lang="en">' + NC.escapeHtml(entry.pattern) + '</p>' : '') +
       '<p class="vocab-ex"><span lang="en">' + NC.escapeHtml(entry.example_en) + '</span></p>' +
       '<p class="vocab-ex-zh">' + NC.escapeHtml(entry.example_zh) + '</p>' +
       (entry.note_zh ? '<p class="vocab-note">' + NC.escapeHtml(entry.note_zh) + '</p>' : '') +
@@ -193,7 +236,10 @@
       button.setAttribute('aria-controls', 'chart-' + type.id);
       button.setAttribute('aria-selected', 'false');
       button.tabIndex = -1;
-      button.textContent = type.label_zh;
+      button.title = type.label_en;
+      button.innerHTML =
+        '<span class="deck-glyph">' + (GLYPHS[type.renderer] || GLYPHS.line) + '</span>' +
+        '<span class="deck-label">' + NC.escapeHtml(type.label_zh) + '</span>';
       button.addEventListener('click', function () {
         activate(type.id);
       });
@@ -224,14 +270,9 @@
     return hash;
   }
 
-  function headerOffset() {
-    var head = NC.byId('site-head');
-    return (head ? head.getBoundingClientRect().height : 0) + 16;
-  }
-
   function scrollToPanel(panel) {
     if (!panel) return;
-    var top = panel.getBoundingClientRect().top + window.scrollY - headerOffset();
+    var top = panel.getBoundingClientRect().top + window.scrollY;
     if (Math.abs(window.scrollY - top) > 8) {
       window.scrollTo({ top: top, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
     }
@@ -245,17 +286,12 @@
     var lab = NC.state.labs[id];
     var panel = NC.byId('chart-' + id);
 
-    // Re-clicking the active tab brings the chart back into view; it does not
-    // rebuild it or replay the entrance animation. A half-finished mount is
-    // retried.
     if (!first && id === NC.state.activeType) {
       if (lab && !lab.isMounted()) lab.mount();
-      if (panel && window.scrollY > 80) scrollToPanel(panel);
       return;
     }
 
     var wasScrolled = window.scrollY > 80;
-    var wasMounted = lab ? lab.isMounted() : false;
     NC.state.activeType = id;
     document.documentElement.setAttribute('data-charts-type', id);
     types.forEach(function (type) {
@@ -277,18 +313,25 @@
       scroller.scrollTo({ left: left, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
     }
 
+    // The level control belongs to the description it changes, so it travels
+    // with the visible panel.
+    var levelHost = panel && panel.querySelector('[data-level-host]');
+    if (levelHost && NC.state.levelControl && NC.state.levelControl.parentNode !== levelHost) {
+      levelHost.appendChild(NC.state.levelControl);
+    }
+
     if (lab) {
       lab.mount();
-      // A lab that was mounted before was hidden while the viewport may have
-      // changed; re-fit it. A fresh mount has already rendered and refreshed.
-      if (wasMounted && lab.renderer.render) {
+      if (lab.isMounted() && lab.renderer.render) {
         lab.renderer.render(lab);
         lab.refresh(false);
       }
     }
-    if (panel && !NC.state.reducedMotion) pulse(panel, 'is-entering', 800);
+    if (panel && !NC.state.reducedMotion) pulse(panel, 'is-entering', 420);
+    if (NC.syncDirty) NC.syncDirty();
     if (!first && wasScrolled && panel) scrollToPanel(panel);
     if (NC.motion && lab) NC.motion.play(lab);
+    if (NC.referenceIsOpen && NC.referenceIsOpen()) NC.closeReference();
     try {
       window.history.replaceState(null, '', '#chart-' + id);
     } catch (err) {}
@@ -313,20 +356,6 @@
   function setupHeader() {
     var head = NC.byId('site-head');
     if (!head) return;
-    var ticking = false;
-    function update() {
-      head.classList.toggle('is-scrolled', window.scrollY > 8);
-    }
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(function () {
-        ticking = false;
-        update();
-      });
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    update();
     function measure() {
       document.documentElement.style.setProperty('--header-h', head.getBoundingClientRect().height + 'px');
     }
@@ -338,41 +367,50 @@
     }
   }
 
-  function setupTypeOverflow() {
-    var nav = document.querySelector('.type-switch');
-    var scroller = NC.byId('type-buttons');
-    if (!nav || !scroller) return;
-    var prev = nav.querySelector('[data-scroll="-1"]');
-    var next = nav.querySelector('[data-scroll="1"]');
-    var hover = !window.matchMedia || window.matchMedia('(hover: hover)').matches;
-    function update() {
-      var max = scroller.scrollWidth - scroller.clientWidth;
-      var x = scroller.scrollLeft;
-      var start = x > 2;
-      var end = max > 2 && x < max - 2;
-      var mode = !start && !end ? 'none' : start && end ? 'both' : start ? 'start' : 'end';
-      nav.setAttribute('data-overflow', mode);
-      if (prev) prev.hidden = !(hover && start);
-      if (next) next.hidden = !(hover && end);
-    }
-    scroller.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-    if (prev) {
-      prev.addEventListener('click', function () {
-        scroller.scrollBy({ left: -180, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+  function setupResize() {
+    var timer = null;
+    function fit() {
+      if (document.querySelector('.handle.dragging, .handle[data-phase="pressed"], .value-editor')) return;
+      Object.keys(NC.state.labs).forEach(function (id) {
+        var lab = NC.state.labs[id];
+        if (!lab.isMounted() || !lab.renderer.render) return;
+        var rect = lab.plot.getBoundingClientRect();
+        var last = lab.plot.__chartSize;
+        if (last && Math.abs(rect.width - last.width) < 2 && Math.abs(rect.height - last.height) < 2) return;
+        lab.renderer.render(lab);
+        lab.refresh(false);
       });
     }
-    if (next) {
-      next.addEventListener('click', function () {
-        scroller.scrollBy({ left: 180, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
-      });
+    function schedule() {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(fit, 140);
     }
-    update();
+    window.addEventListener('resize', schedule);
+    if ('ResizeObserver' in window) {
+      var host = NC.byId('panels');
+      if (host) new ResizeObserver(schedule).observe(host);
+    }
   }
 
   function setupLevel() {
-    var buttons = Array.prototype.slice.call(document.querySelectorAll('#level-switch [data-level]'));
-    var switchEl = NC.byId('level-switch');
+    var control = document.createElement('div');
+    control.className = 'level-switch';
+    control.id = 'level-switch';
+    control.setAttribute('role', 'group');
+    control.setAttribute('aria-label', '难度');
+    var buttons = [
+      { level: 'B1', label: '基础' },
+      { level: 'C1', label: '进阶' }
+    ].map(function (item) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('data-level', item.level);
+      button.textContent = item.label;
+      control.appendChild(button);
+      return button;
+    });
+    NC.state.levelControl = control;
+
     try {
       var saved = localStorage.getItem('npesl-charts-level');
       if (saved && NC.LEVELS.indexOf(saved) !== -1) NC.state.level = saved;
@@ -383,7 +421,6 @@
       var changed = !applied || NC.state.level !== level;
       NC.state.level = level;
       document.documentElement.setAttribute('data-charts-level', level);
-      if (switchEl) switchEl.setAttribute('data-active', level);
       buttons.forEach(function (button) {
         button.setAttribute('aria-pressed', button.getAttribute('data-level') === level ? 'true' : 'false');
       });
@@ -394,6 +431,7 @@
         var lab = NC.state.labs[id];
         if (!lab.isMounted()) return;
         if (animate) pulse(lab.section.querySelector('[data-desc]'), 'is-level-switching', 240);
+        lab.activeStep = Math.min(lab.activeStep, 99);
         lab.refresh(false);
       });
     }
@@ -405,25 +443,119 @@
     apply(NC.state.level, false);
   }
 
-  function setupResize() {
-    var timer = null;
-    function fit() {
-      Object.keys(NC.state.labs).forEach(function (id) {
-        var lab = NC.state.labs[id];
-        if (!lab.isMounted() || !lab.svg || !NC.renderCommon || !NC.renderCommon.fit) return;
-        var compact = NC.renderCommon.fit(lab.svg);
-        if (lab.compact !== compact) {
-          lab.compact = compact;
-          lab.renderer.render(lab);
-          lab.refresh(false);
-          if (NC.motion) NC.motion.play(lab);
-        }
+  function setupReference() {
+    var sheet = document.querySelector('[data-sheet]');
+    var body = document.querySelector('[data-sheet-body]');
+    var openButton = document.querySelector('[data-reference]');
+    var closeButton = document.querySelector('[data-sheet] .sheet-close');
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-sheet-tab]'));
+    if (!sheet || !body || !openButton) return;
+
+    var FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    var BACKGROUND = ['.studio-head', '.studio', '.deck'];
+
+    // While the dialog is up the page behind it is not tabbable and not
+    // reachable by a screen reader.
+    function setBackgroundInert(on) {
+      BACKGROUND.forEach(function (selector) {
+        var node = document.querySelector(selector);
+        if (!node) return;
+        if (on) node.setAttribute('inert', '');
+        else node.removeAttribute('inert');
       });
     }
-    window.addEventListener('resize', function () {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(fit, 150);
+
+    function focusables() {
+      return Array.prototype.filter.call(sheet.querySelectorAll(FOCUSABLE), function (node) {
+        return node.offsetParent !== null || node === document.activeElement;
+      });
+    }
+
+    function trapTab(event) {
+      if (event.key !== 'Tab' || sheet.hidden) return;
+      var list = focusables();
+      if (!list.length) return;
+      var first = list[0];
+      var last = list[list.length - 1];
+      var inside = sheet.contains(document.activeElement);
+      if (event.shiftKey && (!inside || document.activeElement === first)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (!inside || document.activeElement === last)) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    function selectTab(name) {
+      tabs.forEach(function (tab) {
+        tab.setAttribute('aria-selected', tab.getAttribute('data-sheet-tab') === name ? 'true' : 'false');
+      });
+      Array.prototype.forEach.call(body.querySelectorAll('[data-sheet-section]'), function (section) {
+        section.hidden = section.getAttribute('data-sheet-section') !== name;
+      });
+    }
+
+    function open() {
+      var panel = NC.byId('chart-' + NC.state.activeType);
+      body.innerHTML = '';
+      function add(name, content) {
+        if (!content) return;
+        var section = document.createElement('div');
+        section.setAttribute('data-sheet-section', name);
+        section.appendChild(content);
+        body.appendChild(section);
+      }
+      if (panel) {
+        var patterns = panel.querySelector('[data-patterns-section]');
+        var vocab = panel.querySelector('[data-vocab-section]');
+        if (patterns) add('patterns', patterns.cloneNode(true));
+        if (vocab) add('vocab', vocab.cloneNode(true));
+      }
+      var errorsSource = NC.byId('errors-list');
+      if (errorsSource) {
+        var errors = document.createElement('div');
+        errors.className = 'library';
+        errors.innerHTML = errorsSource.innerHTML;
+        add('errors', errors);
+      }
+      selectTab('patterns');
+      sheet.hidden = false;
+      document.documentElement.setAttribute('data-sheet-open', 'true');
+      setBackgroundInert(true);
+      if (closeButton) {
+        try { closeButton.focus({ preventScroll: true }); } catch (err) { closeButton.focus(); }
+      }
+    }
+
+    function close() {
+      if (sheet.hidden) return;
+      sheet.hidden = true;
+      document.documentElement.removeAttribute('data-sheet-open');
+      setBackgroundInert(false);
+      try { openButton.focus({ preventScroll: true }); } catch (err) { openButton.focus(); }
+    }
+
+    NC.referenceIsOpen = function () { return !sheet.hidden; };
+    NC.closeReference = close;
+
+    openButton.addEventListener('click', function () {
+      if (sheet.hidden) open();
+      else close();
     });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-sheet-close]'), function (node) {
+      node.addEventListener('click', close);
+    });
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { selectTab(tab.getAttribute('data-sheet-tab')); });
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !sheet.hidden) {
+        event.preventDefault();
+        close();
+      }
+    });
+    document.addEventListener('keydown', trapTab);
   }
 
   function setupReducedMotion() {
@@ -449,6 +581,8 @@
     else if (query.addListener) query.addListener(function (event) { apply(event.matches); });
   }
 
+  ui.pulse = pulse;
+
   ui.build = function () {
     setupReducedMotion();
     buildPanels();
@@ -456,9 +590,9 @@
     renderAllLearning();
     renderErrors();
     setupHeader();
-    setupTypeOverflow();
     setupResize();
     setupLevel();
+    setupReference();
     setupHash();
     activate(initialTypeId());
   };

@@ -6,7 +6,7 @@
   function sentence(role, en, zh, steps) {
     var item = desc.sentence(role, en, zh);
     item.steps = steps || [];
-    item.focus = item.steps.slice();
+    item.focus = desc.focusSteps(item.steps);
     return item;
   }
 

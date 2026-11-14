@@ -74,7 +74,8 @@
         sentences.push(desc.sentence(
           'turning-point',
           'Both figures dipped in ' + periods[dip].label_en + ' before recovering.',
-          '两项数字都在' + periods[dip].label_zh + '出现回落，随后恢复。'
+          '两项数字都在' + periods[dip].label_zh + '出现回落，随后恢复。',
+          desc.focusPeriod(dip)
         ));
       }
       sentences.push(desc.sentence(
@@ -95,7 +96,8 @@
         sentences.push(desc.sentence(
           'turning-point',
           'Both series dipped in ' + periods[dip].label_en + ', when revenue fell to ' + value(bars, dip) + ' and margin slipped to ' + value(line, dip) + '.',
-          '两组数据都在' + periods[dip].label_zh + '回落，收入降到 ' + valueZh(bars, dip) + '，利润率降到 ' + valueZh(line, dip) + '。'
+          '两组数据都在' + periods[dip].label_zh + '回落，收入降到 ' + valueZh(bars, dip) + '，利润率降到 ' + valueZh(line, dip) + '。',
+          desc.focusPeriod(dip)
         ));
       }
       sentences.push(desc.sentence(
@@ -120,7 +122,8 @@
       sentences.push(desc.sentence(
         'turning-point',
         'The only clear break comes in ' + periods[dip].label_en + ', when revenue and margin both fell, before resuming their upward path.',
-        '唯一明显的转折出现在' + periods[dip].label_zh + '：收入和利润率同时下滑，随后又恢复上行。'
+        '唯一明显的转折出现在' + periods[dip].label_zh + '：收入和利润率同时下滑，随后又恢复上行。',
+        desc.focusPeriod(dip)
       ));
     }
     sentences.push(desc.sentence(

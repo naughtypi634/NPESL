@@ -598,11 +598,12 @@ html[data-theme="glass"] .npesl-theme-option:hover { background: var(--surface-s
 
 </style>
 <style>
-/* Business Charts — a quiet chart atlas. Theme tokens live in apps/site/theme.css. */
+/* Business Charts — a single-screen chart studio. Theme tokens live in apps/site/theme.css. */
 
 .charts-page {
-  --shell-max: 1180px;
-  --header-h: 64px;
+  --shell-max: 1400px;
+  --header-h: 58px;
+  --rail-w: 396px;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -613,10 +614,14 @@ html[data-theme="glass"] .npesl-theme-option:hover { background: var(--surface-s
   --space-7: 48px;
   --space-8: 72px;
 
-  --t-body: 1rem;
-  --t-small: 0.875rem;
-  --t-meta: 0.75rem;
-  --t-micro: 0.6875rem;
+  --t-1: 11px;
+  --t-2: 12px;
+  --t-3: 13px;
+  --t-4: 15px;
+  --t-5: 18px;
+  --t-6: 22px;
+
+  --font-mono: "SF Mono", "Cascadia Mono", "JetBrains Mono", "Roboto Mono", ui-monospace, monospace;
 
   --c-ink: var(--fg);
   --c-muted: var(--muted);
@@ -629,30 +634,103 @@ html[data-theme="glass"] .npesl-theme-option:hover { background: var(--surface-s
   --c-radius-card: var(--radius-card, 0px);
   --c-radius-control: var(--radius-control, 0px);
 
+  --card-bg: var(--surface);
+  --card-border: var(--rule);
+  --card-radius: var(--radius-card, 0px);
+  --card-shadow: none;
+  --mark-bg: var(--surface);
+
   --motion-fast: 150ms;
   --motion-base: 240ms;
   --ease-out: cubic-bezier(.16, 1, .3, 1);
 
-  --series-1: var(--blue);
-  --series-2: #6b6b70;
-  --series-3: #96969b;
-  --series-4: #b4b4b8;
-  --series-5: #d2d2d5;
+  /* Categorical series. Distinct hues, equal visual weight. */
+  --series-1: #0066cc;
+  --series-2: #0f766e;
+  --series-3: #b45309;
+  --series-4: #9f1239;
+  --series-5: #64748b;
 }
 
-@supports (color: color-mix(in srgb, red 50%, blue)) {
-  .charts-page {
-    --series-2: color-mix(in srgb, var(--fg) 72%, var(--bg));
-    --series-3: color-mix(in srgb, var(--fg) 54%, var(--bg));
-    --series-4: color-mix(in srgb, var(--fg) 40%, var(--bg));
-    --series-5: color-mix(in srgb, var(--fg) 30%, var(--bg));
+html[data-theme="dark"] .charts-page {
+  --series-1: #4da3ff;
+  --series-2: #3ecfb2;
+  --series-3: #e0a44e;
+  --series-4: #dd8fa8;
+  --series-5: #7f93a8;
+  --card-bg: #161618;
+  --card-border: #2c2c2e;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="auto"] .charts-page,
+  html:not([data-theme]) .charts-page {
+    --series-1: #4da3ff;
+    --series-2: #3ecfb2;
+    --series-3: #e0a44e;
+    --series-4: #dd8fa8;
+    --series-5: #7f93a8;
+    --card-bg: #161618;
+    --card-border: #2c2c2e;
   }
+}
+
+html[data-theme="sepia"] .charts-page {
+  --series-1: #7c4d21;
+  --series-2: #2f6f62;
+  --series-3: #b57a1f;
+  --series-4: #8a3b2e;
+  --series-5: #6b5a44;
+}
+
+html[data-theme="mono"] .charts-page {
+  --series-1: #111114;
+  --series-2: #4a4a50;
+  --series-3: #737379;
+  --series-4: #9a9aa0;
+  --series-5: #bcbcc1;
+}
+
+html[data-theme="editorial"] .charts-page {
+  --series-1: #b02a1a;
+  --series-2: #4a4740;
+  --series-3: #9a7b2f;
+  --series-4: #7d6a52;
+  --series-5: #a9a196;
+  --card-bg: #fbfaf6;
+}
+
+html[data-theme="brutal"] .charts-page {
+  --series-1: #b8381a;
+  --series-2: #1f6f5c;
+  --series-3: #d9a01a;
+  --series-4: #3b352b;
+  --series-5: #8a7f6c;
+  --card-bg: var(--surface);
+  --card-border: var(--fg);
+  --card-shadow: var(--shadow-card);
+}
+
+html[data-theme="glass"] .charts-page {
+  --series-1: #5cc8b6;
+  --series-2: #f0a984;
+  --series-3: #b7a9e3;
+  --series-4: #8fb3c7;
+  --series-5: #7d8f8d;
+  --card-bg: rgba(24, 34, 39, 0.66);
+  --card-border: rgba(238, 243, 244, 0.14);
+  --card-shadow: 0 24px 60px -40px rgba(0, 0, 0, 0.8);
+  --mark-bg: #131c20;
 }
 
 * { box-sizing: border-box; }
 
 body.charts-page {
   margin: 0;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background-color: var(--bg);
   background-image: var(--bg-art, none);
   background-attachment: fixed;
@@ -664,17 +742,9 @@ body.charts-page {
   text-rendering: optimizeLegibility;
 }
 
-html[data-theme="glass"] .site-head {
+html[data-theme="glass"] .studio-head {
   background-color: var(--bg);
   background-image: var(--bg-art, none);
-}
-
-.charts-page .npesl-back {
-  position: static;
-  margin: 0;
-  flex: none;
-  padding: 6px 12px;
-  font-size: 13px;
 }
 
 .sr-only {
@@ -696,37 +766,49 @@ html[data-theme="glass"] .site-head {
 
 .charts-page .plot [tabindex]:focus-visible { outline: none; }
 
-/* ---------------------------------------------------------------- shell */
+/* ---------------------------------------------------------------- head */
 
-.site-head {
-  position: sticky;
-  top: 0;
+.studio-head {
+  position: relative;
   z-index: 40;
+  flex: none;
+  border-bottom: 1px solid var(--rule);
   background-color: var(--bg);
   padding-top: env(safe-area-inset-top, 0px);
 }
 
 @supports (backdrop-filter: blur(12px)) {
-  .site-head {
+  .studio-head {
     background-color: color-mix(in srgb, var(--bg) 94%, transparent);
     backdrop-filter: blur(12px);
   }
 }
 
-.site-head.is-scrolled { border-bottom: 1px solid var(--rule); }
-
 .head-inner {
+  height: var(--header-h);
   max-width: var(--shell-max);
   margin: 0 auto;
-  padding: 8px max(var(--space-5), env(safe-area-inset-right, 0px)) 8px max(var(--space-5), env(safe-area-inset-left, 0px));
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  padding: 0 max(var(--space-5), env(safe-area-inset-right, 0px)) 0 max(var(--space-5), env(safe-area-inset-left, 0px));
+  display: flex;
   align-items: center;
   gap: var(--space-5);
-  transition: padding var(--motion-fast) ease;
 }
 
-.site-head.is-scrolled .head-inner { padding-top: 5px; padding-bottom: 5px; }
+.charts-page .npesl-back {
+  position: static;
+  margin: 0;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  color: var(--muted);
+  font-size: var(--t-3);
+  font-weight: 500;
+}
+
+.charts-page .npesl-back:hover { color: var(--fg); background: transparent; }
+.charts-page .npesl-back svg { width: 15px; height: 15px; }
 
 .brand {
   display: flex;
@@ -736,318 +818,232 @@ html[data-theme="glass"] .site-head {
 }
 
 .brand-en {
-  font-size: 15px;
+  font-size: var(--t-4);
   font-weight: 700;
   letter-spacing: -0.015em;
   white-space: nowrap;
 }
 
 .brand-zh {
-  font-size: 10.5px;
+  font-size: var(--t-1);
   color: var(--muted);
   white-space: nowrap;
 }
 
-/* tabs */
-
-.type-switch {
-  position: relative;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-}
-
-.type-switch-scroll {
-  min-width: 0;
-  flex: 0 1 auto;
-  width: max-content;
-  max-width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-pill, 999px);
-  background: var(--surface);
-  overflow-x: auto;
-  scrollbar-width: none;
-  scroll-snap-type: x proximity;
-  overscroll-behavior-x: contain;
-}
-
-.type-switch-scroll::-webkit-scrollbar { display: none; }
-
-.type-switch::before,
-.type-switch::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 22px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--motion-fast) ease;
-  z-index: 2;
-}
-
-.type-switch[data-overflow="start"]::before,
-.type-switch[data-overflow="both"]::before,
-.type-switch[data-overflow="end"]::after,
-.type-switch[data-overflow="both"]::after { opacity: 1; }
-
-.type-scroll {
-  appearance: none;
-  flex: none;
-  width: 24px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-pill, 999px);
-  background: var(--surface);
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.type-scroll[hidden] { display: none; }
-.type-scroll:hover { color: var(--fg); border-color: var(--c-rule-strong); }
-.type-scroll svg { width: 14px; height: 14px; }
-
-.type-tab {
-  appearance: none;
-  position: relative;
-  flex: none;
-  padding: 7px 12px;
-  border: 0;
-  border-radius: var(--radius-pill, 999px);
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.1;
-  white-space: nowrap;
-  cursor: pointer;
-  scroll-snap-align: start;
-  transition: color var(--motion-fast) ease, background-color var(--motion-fast) ease;
-}
-
-.type-tab:hover { color: var(--fg); background: var(--bg); }
-.type-tab[aria-selected="true"] {
-  color: var(--on-blue);
-  background: var(--blue);
-  font-weight: 600;
-}
-
-/* level */
-
-.level-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-pill, 999px);
-  background: var(--surface);
-}
-
-.level-switch button {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 12.5px;
-  line-height: 1;
-  padding: 7px 11px;
-  border-radius: var(--radius-pill, 999px);
-  cursor: pointer;
-  transition: color var(--motion-fast) ease, background-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
-}
-
-.level-switch button:hover { color: var(--fg); }
-
-.level-switch button[aria-pressed="true"] {
+.charts-page [data-reference] {
+  padding: 6px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
   color: var(--fg);
+  font-size: var(--t-2);
   font-weight: 600;
-  background: var(--bg);
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--fg) 12%, transparent);
+  background: var(--card-bg);
 }
 
-/* ---------------------------------------------------------------- page */
-
-.page {
-  max-width: var(--shell-max);
-  margin: 0 auto;
-  padding: 28px max(var(--space-5), env(safe-area-inset-right, 0px)) 96px max(var(--space-5), env(safe-area-inset-left, 0px));
+.charts-page [data-reference]:hover {
+  border-color: var(--c-rule-strong);
+  color: var(--fg);
 }
 
-.chart-panel { animation: none; }
-.chart-panel.is-entering { animation: panel-in 620ms var(--ease-out) both; }
+.head-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tool-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--t-2);
+  letter-spacing: 0.02em;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
+}
+
+.tool-btn:hover { color: var(--fg); border-bottom-color: var(--c-rule-strong); }
+.tool-btn[hidden] { display: none; }
+
+.tool-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-bottom: 0;
+}
+
+.tool-icon svg { width: 15px; height: 15px; }
+
+/* ---------------------------------------------------------------- studio */
+
+.studio {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+#panels {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.chart-panel { height: 100%; min-height: 0; }
+.chart-panel[hidden] { display: none; }
+
+.chart-panel.is-entering { animation: panel-in 420ms var(--ease-out) both; }
 
 @keyframes panel-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
 
-.section-head {
+.panel-layout {
+  height: 100%;
+  max-width: var(--shell-max);
+  margin: 0 auto;
+  padding: 22px max(var(--space-5), env(safe-area-inset-right, 0px)) 96px max(var(--space-5), env(safe-area-inset-left, 0px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--rail-w);
+  gap: 22px;
+  align-items: center;
+  min-height: 0;
+}
+
+.stage {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin: 14px 0 26px;
+  flex-direction: column;
+  height: 100%;
+  max-height: 680px;
+  min-height: 0;
+  padding: 20px 24px 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
 }
 
-.section-head h2 {
-  margin: 0;
-  font-size: clamp(1.8rem, 3vw, 2.1rem);
-  font-weight: 680;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
+@supports (backdrop-filter: blur(16px)) {
+  html[data-theme="glass"] .stage,
+  html[data-theme="glass"] .rail { backdrop-filter: blur(16px); }
 }
 
-.h2-en {
-  margin-left: 4px;
-  font-size: 0.48em;
-  font-weight: 450;
-  letter-spacing: 0.01em;
+.stage-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.stage-title { min-width: 0; }
+
+.stage-kicker {
+  display: block;
+  font-size: var(--t-2);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--muted);
 }
 
-.panel-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.62fr) minmax(270px, 0.88fr);
-  gap: clamp(32px, 5vw, 72px);
-  align-items: start;
+.figure-title {
+  margin: 7px 0 0;
+  font-size: clamp(24px, 2.3vw, 31px);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
 }
 
-.panel-figure { min-width: 0; }
-
-.chart-card {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  border-radius: var(--c-radius-card);
+.figure-title-zh {
+  margin: 6px 0 0;
+  font-size: var(--t-3);
+  line-height: 1.45;
+  color: var(--muted);
 }
 
-.figure-head {
+.stage-stat {
+  flex: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 10px;
+  align-items: flex-end;
+  text-align: right;
 }
 
-.figure-top {
+.stage-stat[hidden] { display: none; }
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: clamp(34px, 3.6vw, 46px);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stat-delta {
+  margin-top: 5px;
+  font-family: var(--font-mono);
+  font-size: var(--t-2);
+  font-weight: 500;
+  color: var(--blue);
+}
+
+.stage-tools {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 18px;
-  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
 }
 
-.chart-scene {
-  font-size: 11.5px;
-  line-height: 1.4;
-  letter-spacing: 0.02em;
-  color: var(--muted);
+.stage-modes {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
 }
 
 .figure-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex: none;
+  gap: 4px;
   margin-left: auto;
 }
 
-.figure-modes {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.figure-modes:empty { display: none; }
-
-.mode-group { display: inline-flex; align-items: center; gap: 8px; }
-
-.mode-label {
-  font-size: 11px;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-}
-
-.segment {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-pill, 999px);
-  background: var(--surface);
-}
-
-.segment-btn {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1;
-  padding: 6px 10px;
-  border-radius: var(--radius-pill, 999px);
-  cursor: pointer;
-  transition: color var(--motion-fast) ease, background-color var(--motion-fast) ease;
-}
-
-.segment-btn:hover { color: var(--fg); background: var(--bg); }
-
-.segment-btn[aria-pressed="true"] {
-  color: var(--on-blue);
-  background: var(--blue);
-  font-weight: 600;
-}
-
-.action-btn {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-pill, 999px);
-  background: var(--surface);
-  color: var(--muted);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-  transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease, background-color var(--motion-fast) ease;
-}
-
-.action-btn:hover {
-  color: var(--fg);
-  border-color: var(--c-rule-strong);
-  background: var(--bg);
-}
-
-.action-btn-icon svg { width: 14px; height: 14px; }
-
 .plot {
+  flex: 1;
+  min-height: 0;
   position: relative;
-  min-height: 120px;
-  margin-top: 4px;
+  margin-top: 6px;
+  padding-bottom: 4px;
 }
 
 .chart-svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   overflow: visible;
+  font-size: 15px;
 }
 
 .chart-empty {
@@ -1055,89 +1051,462 @@ html[data-theme="glass"] .site-head {
   padding: 48px 0;
   text-align: center;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--t-3);
 }
 
-/* legend */
-
-.legend-host {
-  display: flex;
-  justify-content: center;
-  margin-top: 4px;
-}
-
-.legend {
+.stage-foot {
+  flex: none;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  padding: 0;
-  font-size: 11.5px;
-  color: var(--muted);
-}
-
-.legend-item { display: inline-flex; align-items: center; gap: 6px; }
-.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-
-/* ---------------------------------------------------------------- reading */
-
-.panel-reading {
-  position: sticky;
-  top: calc(var(--header-h) + 28px);
-  min-width: 0;
-}
-
-.desc { min-height: 80px; }
-
-.sentence { transition: color var(--motion-fast) ease; }
-.sentence + .sentence { margin-top: 16px; }
-
-.sentence-en {
-  margin: 0;
-  font-size: 0.98rem;
-  line-height: 1.5;
-  letter-spacing: -0.008em;
-}
-
-.sentence.lead .sentence-en {
-  font-size: clamp(1.16rem, 1.6vw, 1.34rem);
-  line-height: 1.36;
-  font-weight: 620;
-  letter-spacing: -0.022em;
-}
-
-.sentence-zh {
-  margin: 5px 0 0;
-  font-size: 0.79rem;
-  line-height: 1.62;
-  color: var(--muted);
-}
-
-.sentence.is-linked .sentence-en,
-.sentence.is-linked .sentence-zh { color: var(--blue); }
-
-/* ---------------------------------------------------------------- patterns */
-
-.learning-block {
-  margin-top: 58px;
-  scroll-margin-top: calc(var(--header-h) + 16px);
-  padding-top: 22px;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 0 8px;
   border-top: 1px solid var(--rule);
 }
 
-.learning-block h3 {
+.figure-hint {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--t-1);
+  line-height: 1.4;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.figure-hint[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- controls */
+
+.level-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+.level-switch button {
+  appearance: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--t-2);
+  line-height: 1;
+  padding: 3px 2px;
+  cursor: pointer;
+  transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease;
+}
+
+.level-switch button:hover { color: var(--fg); }
+
+.level-switch button[aria-pressed="true"] {
+  color: var(--fg);
+  border-bottom-color: var(--blue);
   font-weight: 600;
-  letter-spacing: 0.08em;
+}
+
+.segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.segment-btn {
+  appearance: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--t-2);
+  line-height: 1;
+  padding: 4px 2px;
+  cursor: pointer;
+  transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease;
+}
+
+.segment-btn:hover { color: var(--fg); }
+
+.segment-btn[aria-pressed="true"] {
+  color: var(--fg);
+  border-bottom-color: var(--blue);
+  font-weight: 600;
+}
+
+.mode-group { display: inline-flex; align-items: center; gap: 10px; }
+
+.mode-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
+.level-switch button:focus-visible,
+.segment-btn:focus-visible,
+.tool-btn:focus-visible,
+.rail-btn:focus-visible,
+.type-tab:focus-visible,
+.sheet-tab:focus-visible,
+.sheet-close:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- rail */
+
+html[data-charts-type="table"] .stage,
+html[data-charts-type="process"] .stage { height: auto; }
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  max-height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 24px 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  scrollbar-width: thin;
+}
+
+.desc-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 0 12px;
+}
+
+.desc-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.desc {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  padding-right: 6px;
+}
+
+.desc.is-updating,
+.desc.is-level-switching { animation: desc-in 200ms ease-out; }
+
+@keyframes desc-in {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
+}
+
+.desc-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sentence {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--rule);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity var(--motion-base) ease;
+}
+
+.sentence:first-child { border-top: 0; }
+
+.sentence:hover { opacity: 0.82; }
+.sentence.is-active { opacity: 1; }
+
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  padding-top: 3px;
+}
+
+.sentence.is-active .step-num { color: var(--blue); }
+
+.step-body { min-width: 0; }
+
+.sentence-en {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+.sentence.is-active .sentence-en {
+  font-size: 18px;
+  font-weight: 620;
+  line-height: 1.38;
+  letter-spacing: -0.02em;
+}
+
+.sentence-zh {
+  display: none;
+  margin: 8px 0 0;
+  font-size: var(--t-2);
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.sentence.is-active .sentence-zh { display: block; }
+.sentence.is-linked .sentence-en,
+.sentence.is-linked .sentence-zh { color: var(--blue); }
+
+.rail-nav {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.rail-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--t-2);
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.rail-btn:hover { color: var(--fg); }
+.rail-btn:disabled { opacity: 0.35; cursor: default; }
+
+.rail-count {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- deck */
+
+.deck {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: calc(100vw - 24px);
+  padding: 5px;
+  background: color-mix(in srgb, var(--card-bg) 86%, transparent);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  box-shadow: 0 18px 44px -18px rgba(0, 0, 0, 0.3);
+}
+
+@supports (backdrop-filter: blur(16px)) {
+  .deck { backdrop-filter: blur(18px) saturate(1.3); }
+}
+
+.deck-scroll {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  max-width: calc(100vw - 34px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+}
+
+.deck-scroll::-webkit-scrollbar { display: none; }
+
+.type-tab {
+  appearance: none;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: color-mix(in srgb, var(--muted) 72%, var(--fg));
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: color var(--motion-fast) ease, background-color var(--motion-fast) ease;
+}
+
+.type-tab:hover {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 7%, transparent);
+}
+
+.type-tab[aria-selected="true"] {
+  color: var(--bg);
+  background: var(--fg);
+}
+
+.deck-glyph {
+  display: block;
+  width: 22px;
+  height: 11px;
+  flex: none;
+  color: currentColor;
+}
+
+.deck-glyph svg { display: block; width: 100%; height: 100%; }
+
+.deck-label {
+  font-size: var(--t-2);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- legend */
+
+.legend-host { min-width: 0; }
+
+.legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 0;
+  font-size: var(--t-3);
+  color: var(--fg);
+}
+
+.legend-item { display: inline-flex; align-items: center; gap: 7px; }
+.legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+/* ---------------------------------------------------------------- sheet */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+}
+
+.sheet[hidden] { display: none; }
+
+/* The theme toggle is injected by the shared site script and sits at z-index
+   9999, so it floats over the dialog. It is page chrome, not dialog chrome:
+   hide it while the reference sheet is open. */
+html[data-sheet-open] .npesl-theme-fab,
+html[data-sheet-open] .npesl-theme-menu { display: none; }
+
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.sheet-panel {
+  position: relative;
+  width: 100%;
+  max-height: 74dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-top: 2px solid var(--fg);
+  animation: sheet-up 280ms var(--ease-out) both;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px max(var(--space-5), env(safe-area-inset-right, 0px)) 0 max(var(--space-5), env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid var(--rule);
+}
+
+.sheet-tabs { display: flex; align-items: center; gap: 26px; }
+
+.sheet-tab {
+  appearance: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--t-3);
+  line-height: 1;
+  padding: 4px 0 12px;
+  cursor: pointer;
+}
+
+.sheet-tab[aria-selected="true"] {
+  color: var(--fg);
+  border-bottom-color: var(--blue);
+  font-weight: 600;
+}
+
+.sheet-close {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+  padding: 0 0 8px;
+  cursor: pointer;
+}
+
+.sheet-close:hover { color: var(--fg); }
+
+.sheet-body {
+  overflow: auto;
+  padding: 24px max(var(--space-5), env(safe-area-inset-right, 0px)) 44px max(var(--space-5), env(safe-area-inset-left, 0px));
+}
+
+.sheet-body .learning-block {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.sheet-body .learning-block + .learning-block { margin-top: 40px; }
+.sheet-body .learning-block h3 {
+  margin-bottom: 16px;
+  font-size: var(--t-1);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sheet-body .pattern-list { margin-top: 0; }
+.sheet-body .vocab-groups { margin-top: 0; }
+
+/* ---------------------------------------------------------------- patterns / vocab */
+
 .pattern-list {
   list-style: none;
-  margin: 20px 0 0;
+  margin: 0;
   padding: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1151,22 +1520,16 @@ html[data-theme="glass"] .site-head {
   min-width: 0;
 }
 
-.pattern-en {
-  font-size: 0.94rem;
-  line-height: 1.45;
-}
+.pattern-en { font-size: var(--t-4); line-height: 1.45; }
+.pattern-zh { font-size: var(--t-3); line-height: 1.55; color: var(--muted); }
 
-.pattern-zh {
-  font-size: 0.79rem;
-  line-height: 1.55;
-  color: var(--muted);
-}
-
-.vocab-groups { display: grid; gap: 30px; margin-top: 20px; }
+.vocab-groups { display: grid; gap: 34px; }
 
 .vocab-group h4 {
-  margin: 0 0 12px;
-  font-size: 11px;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--t-1);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1176,77 +1539,103 @@ html[data-theme="glass"] .site-head {
 .vocab-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-  gap: 20px 36px;
+  gap: 22px 36px;
 }
 
 .vocab-card { min-width: 0; }
 
-.vocab-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+.vocab-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 
-.vocab-en {
-  font-size: 0.94rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.vocab-zh { font-size: 0.79rem; color: var(--muted); }
+.vocab-en { font-size: var(--t-4); font-weight: 600; letter-spacing: -0.01em; }
+.vocab-zh { font-size: var(--t-3); color: var(--muted); }
 
 .vocab-register {
-  font-size: 10px;
+  font-size: var(--t-1);
   letter-spacing: 0.04em;
   color: var(--muted);
   white-space: nowrap;
 }
 
-.vocab-ex {
-  margin: 6px 0 0;
-  font-size: 0.82rem;
+.vocab-pattern {
+  margin: 3px 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
   line-height: 1.5;
-  color: var(--fg);
-}
-
-.vocab-ex-zh {
-  margin: 2px 0 0;
-  font-size: 0.76rem;
-  line-height: 1.55;
+  letter-spacing: 0.01em;
   color: var(--muted);
 }
 
-.vocab-note {
-  margin: 5px 0 0;
-  font-size: 0.74rem;
-  line-height: 1.55;
-  color: var(--muted);
-}
+.vocab-ex { margin: 6px 0 0; font-size: var(--t-3); line-height: 1.5; color: var(--fg); }
+.vocab-ex-zh { margin: 2px 0 0; font-size: var(--t-2); line-height: 1.55; color: var(--muted); }
+.vocab-note { margin: 6px 0 0; font-size: var(--t-2); line-height: 1.55; color: var(--muted); }
 
 .example {
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr);
   gap: 8px;
-  font-size: 0.82rem;
+  font-size: var(--t-3);
   line-height: 1.5;
 }
 
 .example p { margin: 0; }
-.example .zh { margin-top: 2px; font-size: 0.76rem; color: var(--muted); }
-.example .mark { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.example .zh { margin-top: 2px; font-size: var(--t-2); color: var(--muted); }
+.example .mark { color: var(--muted); font-size: var(--t-1); line-height: 1.6; }
 .example.wrong .mark { color: var(--danger); }
 .example.correct .mark { color: var(--blue); }
 .example.wrong p[lang="en"] { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
 
+/* ---------------------------------------------------------------- errors */
+
+.library { margin: 0; }
+
+.error-group + .error-group { margin-top: 38px; }
+
+.error-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.error-group-head h3 {
+  margin: 0;
+  font-size: var(--t-4);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.error-group-head span {
+  font-size: var(--t-1);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.errors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 48px;
+}
+
+.error-card { font-size: var(--t-3); line-height: 1.5; }
+.error-card .example { grid-template-columns: 14px minmax(0, 1fr); }
+
+.error-why {
+  margin: 7px 0 0;
+  font-size: var(--t-2);
+  line-height: 1.55;
+  color: var(--muted);
+}
+
 /* ---------------------------------------------------------------- tables */
 
-.data-table {
+.data-table,
+.chart-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+.data-table { font-size: var(--t-3); }
 
 .data-table th,
 .data-table td {
@@ -1257,7 +1646,7 @@ html[data-theme="glass"] .site-head {
 }
 
 .data-table thead th {
-  font-size: 10px;
+  font-size: var(--t-1);
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--muted);
@@ -1269,7 +1658,7 @@ html[data-theme="glass"] .site-head {
   width: 72px;
   padding: 2px 0;
   border: 0;
-  border-bottom: 1px solid transparent;
+  border-bottom: 1px dashed var(--rule);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -1278,22 +1667,16 @@ html[data-theme="glass"] .site-head {
 }
 
 .data-table input:hover,
-.data-table input:focus { border-bottom-color: var(--c-rule-strong); outline: none; }
+.data-table input:focus { border-bottom-color: var(--c-rule-strong); border-bottom-style: solid; outline: none; }
 
 .table-scroll-shell { position: relative; }
-
 .table-scroll { overflow-x: auto; }
 
-.chart-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-  font-variant-numeric: tabular-nums;
-}
+.chart-table { font-size: var(--t-4); }
 
 .chart-table th,
 .chart-table td {
-  padding: 13px 14px;
+  padding: 9px 14px;
   border-bottom: 1px solid var(--rule);
   text-align: left;
   white-space: nowrap;
@@ -1301,27 +1684,28 @@ html[data-theme="glass"] .site-head {
 
 .chart-table thead th {
   padding-top: 0;
-  font-size: 10.5px;
+  font-size: var(--t-1);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.chart-table thead .num-cell { text-align: right; }
-
-.chart-table tbody tr { transition: background-color var(--motion-fast) ease; }
+.chart-table tbody tr { transition: background-color var(--motion-fast) ease, opacity var(--motion-fast) ease; }
 .chart-table tbody tr:hover { background: var(--surface); }
+.chart-table tbody tr.is-focus { background: var(--blue-tint); }
+.chart-table tbody tr.is-dim,
+.chart-table .is-dim { opacity: 0.45; }
 
 .chart-table .row-head { font-weight: 500; }
 
 .row-en { display: block; }
-.row-zh { display: block; margin-top: 1px; font-size: 10.5px; color: var(--muted); }
+.row-zh { display: block; margin-top: 1px; font-size: var(--t-1); color: var(--muted); }
 
 .th-unit {
   display: block;
   margin-top: 2px;
-  font-size: 9px;
+  font-size: var(--t-1);
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
@@ -1329,14 +1713,13 @@ html[data-theme="glass"] .site-head {
 }
 
 .chart-table .num-cell { text-align: right; }
-
-.chart-table .edit-cell { padding-top: 9px; padding-bottom: 9px; }
+.chart-table .edit-cell { padding-top: 6px; padding-bottom: 6px; }
 
 .chart-table .edit-cell input {
   width: 74px;
   padding: 3px 0;
   border: 0;
-  border-bottom: 1px solid transparent;
+  border-bottom: 1px dashed var(--rule);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -1345,11 +1728,11 @@ html[data-theme="glass"] .site-head {
 }
 
 .chart-table .edit-cell input:hover,
-.chart-table .edit-cell input:focus { border-bottom-color: var(--c-rule-strong); outline: none; }
+.chart-table .edit-cell input:focus { border-bottom-color: var(--c-rule-strong); border-bottom-style: solid; outline: none; }
 
 .chart-table tfoot th {
-  padding-top: 13px;
-  padding-bottom: 13px;
+  padding-top: 11px;
+  padding-bottom: 11px;
   border-top: 1px solid var(--c-rule-strong);
   border-bottom: 0;
   font-weight: 600;
@@ -1358,7 +1741,7 @@ html[data-theme="glass"] .site-head {
 .table-scroll-cue {
   display: none;
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: var(--t-1);
   color: var(--muted);
 }
 
@@ -1366,11 +1749,22 @@ html[data-theme="glass"] .site-head {
 
 /* ---------------------------------------------------------------- process */
 
-.process-flow {
+.process-layout {
+  height: 100%;
+  min-height: 0;
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  padding: 4px 0 12px;
+}
+
+.process-flow {
+  flex: none;
+  display: flex;
+  flex-direction: row;
   align-items: stretch;
-  gap: 0;
-  padding: 8px 0 4px;
+  gap: 4px;
 }
 
 .process-step {
@@ -1380,39 +1774,33 @@ html[data-theme="glass"] .site-head {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
-  padding: 16px 12px 18px;
-  border: 0;
+  gap: 7px;
+  padding: 15px 14px 13px;
+  border: 1px solid var(--rule);
   border-radius: var(--c-radius-control);
   background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background-color var(--motion-fast) ease;
+  transition: border-color var(--motion-fast) ease, background-color var(--motion-fast) ease;
 }
 
-.process-step:hover { background: var(--surface); }
-.process-step.is-active { background: var(--c-accent-tint); }
-
-.process-icon {
-  display: block;
-  width: 26px;
-  height: 26px;
-  margin-bottom: 8px;
-  color: var(--blue);
+.process-step:hover {
+  border-color: var(--c-rule-strong);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
 }
 
+.process-step.is-active {
+  border-color: var(--blue);
+  background: var(--c-accent-tint);
+}
+
+.process-icon { display: block; width: 24px; height: 24px; flex: none; margin-bottom: 2px; color: var(--blue); }
 .process-icon svg { width: 100%; height: 100%; }
 
-.process-title {
-  font-size: 0.84rem;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-
-.process-zh { font-size: 0.7rem; color: var(--muted); }
+.process-title { font-size: var(--t-2); font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; }
+.process-zh { font-size: var(--t-1); color: var(--muted); }
 
 .process-arrow {
   flex: 0 0 16px;
@@ -1422,7 +1810,57 @@ html[data-theme="glass"] .site-head {
   color: var(--c-rule-strong);
 }
 
-.process-arrow svg { width: 14px; height: 14px; }
+.process-arrow svg { width: 13px; height: 13px; }
+
+.process-detail-card {
+  flex: none;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-areas:
+    "icon title"
+    "icon caption"
+    "icon en"
+    "icon zh";
+  column-gap: 20px;
+  align-content: center;
+  padding: 22px 26px;
+  border: 1px solid var(--rule);
+  border-radius: var(--c-radius-control);
+  background: color-mix(in srgb, var(--fg) 3.5%, transparent);
+}
+
+.process-detail-icon {
+  grid-area: icon;
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin-top: 5px;
+  color: var(--blue);
+}
+
+.process-detail-icon svg { width: 100%; height: 100%; }
+
+.process-detail-title {
+  grid-area: title;
+  margin: 0;
+  font-size: clamp(21px, 2.1vw, 27px);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.process-detail-caption { grid-area: caption; margin: 4px 0 0; font-size: var(--t-2); color: var(--muted); }
+.process-detail-en { grid-area: en; margin: 12px 0 0; font-size: var(--t-4); line-height: 1.5; }
+.process-detail-zh { grid-area: zh; margin: 4px 0 0; font-size: var(--t-3); line-height: 1.6; color: var(--muted); }
+.process-detail-empty { grid-area: 1 / 1 / -1 / -1; font-size: var(--t-3); color: var(--muted); }
+
+.process-detail-card.is-empty .process-detail-icon,
+.process-detail-card.is-empty .process-detail-title,
+.process-detail-card.is-empty .process-detail-caption,
+.process-detail-card.is-empty .process-detail-en,
+.process-detail-card.is-empty .process-detail-zh { display: none; }
+
+.process-detail-card:not(.is-empty) .process-detail-empty { display: none; }
 
 /* ---------------------------------------------------------------- svg marks */
 
@@ -1432,27 +1870,15 @@ html[data-theme="glass"] .site-head {
 .grid-line { stroke: var(--rule); stroke-width: 1; }
 .tick-line { stroke: var(--c-rule-strong); stroke-width: 1; }
 
-.axis-label { fill: var(--muted); font-size: 10.5px; }
-.axis-title { fill: var(--muted); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; }
-.category-label { fill: var(--fg); font-size: 11px; }
+.axis-label { fill: var(--muted); font-size: 0.81em; }
+.axis-title { fill: var(--muted); font-size: 0.73em; letter-spacing: 0.08em; text-transform: uppercase; }
+.category-label { fill: var(--fg); font-size: 0.85em; }
 
-.value-label {
-  fill: var(--fg);
-  font-size: 10.5px;
-  font-weight: 600;
-}
-
+.value-label { fill: var(--fg); font-size: 0.81em; font-weight: 600; }
 .value-label.inside { fill: var(--bg); }
 .value-label.ghost { fill: var(--muted); font-weight: 400; }
 
-.line-path {
-  fill: none;
-  stroke: var(--series-1);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
+.line-path,
 .mixed-line {
   fill: none;
   stroke: var(--series-1);
@@ -1461,73 +1887,72 @@ html[data-theme="glass"] .site-head {
   stroke-linejoin: round;
 }
 
-.mixed-dot {
-  fill: var(--bg);
-  stroke: var(--series-1);
-  stroke-width: 2;
-}
+.mixed-dot { fill: var(--mark-bg); stroke: var(--series-1); stroke-width: 2; }
 
 .axis-label-right { fill: var(--series-1); }
 .line-value-label { fill: var(--series-1); }
 
-.area-fill { stroke: none; }
+.area-fill { stroke: none; pointer-events: none; }
 .area-edge { fill: none; stroke: var(--series-1); stroke-width: 2.2; }
 
-.hover-dot {
-  fill: var(--series-1);
-  stroke: var(--bg);
-  stroke-width: 2;
-}
+.hover-dot { fill: var(--series-1); stroke: var(--mark-bg); stroke-width: 2; }
 
-.crosshair {
-  stroke: var(--c-rule-strong);
-  stroke-width: 1;
-  stroke-dasharray: 3 4;
-}
+.crosshair { stroke: var(--c-rule-strong); stroke-width: 1; stroke-dasharray: 3 4; }
 
 .plot-hit { cursor: crosshair; }
 
+/* focus band: a translucent window on the region a sentence describes */
+.focus-layer { pointer-events: none; }
+.focus-band { fill: var(--blue-tint); opacity: 0.55; }
+.focus-edge { stroke: var(--blue); stroke-width: 1.5; stroke-dasharray: 4 4; fill: none; opacity: 0.7; }
+.focus-ring { fill: none; stroke: var(--blue); stroke-width: 2; }
+
 .handle { cursor: ns-resize; touch-action: none; }
+.handle[aria-orientation="horizontal"] { cursor: ew-resize; }
 .handle .hit { fill: transparent; }
+
 .handle .dot {
-  fill: var(--bg);
+  fill: var(--mark-bg);
   stroke: var(--series-1);
   stroke-width: 2;
-  opacity: 1;
+  opacity: 0;
   transition: opacity var(--motion-fast) ease;
 }
+
 .handle .halo {
   fill: var(--blue-tint);
   opacity: 0;
   transition: opacity var(--motion-fast) ease;
 }
+
 .handle:hover .dot,
 .handle:focus .dot,
-.handle.dragging .dot { opacity: 1; }
+.handle:focus-visible .dot,
+.handle.dragging .dot,
+.handle.is-visible .dot { opacity: 1; }
+
+.handle:focus-visible .dot { stroke-width: 3; }
+.handle:focus-visible .halo { opacity: 0.85; }
 .handle:hover .halo,
 .handle:focus .halo,
-.handle.dragging .halo { opacity: 0.55; }
+.handle.dragging .halo,
+.handle.is-visible .halo { opacity: 0.55; }
 
-.bar-current { transition: opacity var(--motion-fast) ease; cursor: pointer; }
+.bar-current,
 .bar-segment { transition: opacity var(--motion-fast) ease; cursor: pointer; }
-.bar-current:hover, .bar-segment:hover { opacity: 0.82; }
+.bar-current:hover,
+.bar-segment:hover { opacity: 0.82; }
 
-.plot[data-emphasis="current"] .bar-current { opacity: 0.9; }
-.plot[data-emphasis="current"] .bar-ghost { opacity: 0.45; }
+.bar-current.is-dim,
+.bar-segment.is-dim,
+.mixed-dot.is-dim,
+.pie-slice.is-dim { opacity: 0.25; }
 
-.bar-ghost {
-  fill: transparent;
-  stroke: var(--series-2);
-  stroke-width: 1.4;
-}
-
-.bar-ghost-rule {
-  fill: var(--series-2);
-  opacity: 0.5;
-}
+.bar-ghost { fill: transparent; stroke: var(--series-2); stroke-width: 1.4; }
+.bar-ghost-rule { fill: var(--series-2); opacity: 0.5; }
 
 .pie-slice {
-  stroke: var(--bg);
+  stroke: var(--mark-bg);
   stroke-width: 2;
   cursor: pointer;
   transition: opacity var(--motion-fast) ease;
@@ -1536,27 +1961,20 @@ html[data-theme="glass"] .site-head {
 .pie-slice.is-active { opacity: 0.86; }
 
 .pie-leader { fill: none; stroke: var(--rule); stroke-width: 1; }
+.pie-label { fill: var(--fg); font-size: 0.81em; }
 
-.pie-label { fill: var(--fg); font-size: 10.5px; }
-
-.pie-handle .dot { opacity: 0.7; }
-
-.pie-empty-ring {
-  fill: none;
-  stroke: var(--rule);
-  stroke-width: 22;
-}
+.pie-empty-ring { fill: none; stroke: var(--rule); stroke-width: 22; }
 
 .chart-tip {
   position: absolute;
   z-index: 5;
   transform: translate(-50%, -100%);
-  max-width: 260px;
-  padding: 6px 9px;
-  border-radius: 6px;
+  max-width: 280px;
+  padding: 7px 10px;
+  border-radius: 4px;
   background: var(--fg);
   color: var(--bg);
-  font-size: 11.5px;
+  font-size: var(--t-2);
   line-height: 1.35;
   white-space: normal;
   pointer-events: none;
@@ -1574,6 +1992,8 @@ html[data-theme="glass"] .site-head {
   text-decoration-thickness: 1px;
 }
 
+/* ---------------------------------------------------------------- value editor */
+
 .value-editor {
   position: absolute;
   z-index: 8;
@@ -1587,17 +2007,8 @@ html[data-theme="glass"] .site-head {
   box-shadow: 0 12px 32px -16px color-mix(in srgb, var(--fg) 32%, transparent);
 }
 
-.value-editor-label {
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
-
-.value-editor-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.value-editor-label { font-size: var(--t-1); letter-spacing: 0.04em; color: var(--muted); }
+.value-editor-row { display: flex; align-items: center; gap: 6px; }
 
 .value-editor-input {
   width: 82px;
@@ -1607,13 +2018,12 @@ html[data-theme="glass"] .site-head {
   background: var(--surface);
   color: var(--fg);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--t-3);
   font-variant-numeric: tabular-nums;
 }
 
 .value-editor-input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
-
-.value-editor-unit { font-size: 12px; color: var(--muted); }
+.value-editor-unit { font-size: var(--t-2); color: var(--muted); }
 
 .value-editor-ok {
   appearance: none;
@@ -1624,7 +2034,7 @@ html[data-theme="glass"] .site-head {
   background: var(--blue);
   color: var(--on-blue);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--t-2);
   font-weight: 600;
   cursor: pointer;
 }
@@ -1636,166 +2046,149 @@ html[data-theme="glass"] .site-head {
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--t-2);
   cursor: pointer;
 }
 
 .value-editor-cancel:hover { color: var(--fg); }
 
-/* ---------------------------------------------------------------- errors */
-
-.library {
-  margin-top: 88px;
-  scroll-margin-top: calc(var(--header-h) + 16px);
-  padding-top: 28px;
-  border-top: 1px solid var(--rule);
-}
-
-.library-head { margin: 0 0 24px; }
-
-.library-head h2 {
-  margin: 0;
-  font-size: clamp(1.3rem, 2vw, 1.5rem);
-  font-weight: 650;
-  letter-spacing: -0.025em;
-}
-
-.error-group + .error-group { margin-top: 38px; }
-
-.error-group-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.error-group-head h3 {
-  margin: 0;
-  font-size: 0.98rem;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-}
-
-.error-group-head span {
-  font-size: 10.5px;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-}
-
-.errors-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px 48px;
-}
-
-.error-card { font-size: 0.84rem; line-height: 1.5; }
-
-.error-card .example { grid-template-columns: 14px minmax(0, 1fr); }
-
-.error-why {
-  margin: 7px 0 0;
-  font-size: 0.76rem;
-  line-height: 1.55;
-  color: var(--muted);
-}
-
 /* ---------------------------------------------------------------- responsive */
 
-@media (max-width: 960px) {
-  .panel-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 36px;
-  }
-
-  .panel-reading {
-    position: static;
-    max-width: 680px;
-  }
-
-  .sentence.lead .sentence-en { font-size: 1.16rem; }
+@media (max-width: 1150px) {
+  .charts-page { --rail-w: 340px; }
+  .figure-title { font-size: 26px; }
 }
 
-@media (max-width: 760px) {
-  .head-inner {
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-      "back brand level"
-      "tabs tabs tabs";
-    gap: 2px 12px;
-    padding-top: 8px;
-    padding-bottom: 4px;
+@media (max-width: 980px) {
+  body.charts-page {
+    height: auto;
+    min-height: 100dvh;
+    overflow: auto;
   }
 
-  .head-inner > .npesl-back { grid-area: back; }
-  .head-inner > .brand { grid-area: brand; }
-  .head-inner > .level-switch { grid-area: level; }
-  .head-inner > .type-switch {
-    grid-area: tabs;
-    margin: 0 calc(-1 * var(--space-5));
-    padding: 0 var(--space-5);
+  .studio { overflow: visible; }
+  #panels { height: auto; }
+
+  /* Leave the bottom-right corner to the theme switch. */
+  .deck {
+    left: max(12px, env(safe-area-inset-left, 0px));
+    transform: none;
+    max-width: calc(100vw - 76px);
+  }
+  .deck-scroll { max-width: calc(100vw - 86px); gap: 1px; }
+
+  .chart-panel { height: auto; }
+
+  .panel-layout {
+    display: block;
+    gap: 0;
+    height: auto;
+    padding: 14px max(var(--space-4), env(safe-area-inset-right, 0px)) calc(102px + env(safe-area-inset-bottom, 0px)) max(var(--space-4), env(safe-area-inset-left, 0px));
   }
 
-  .type-switch-scroll { gap: 1px; }
-  .type-scroll { display: none; }
-  .type-tab { padding: 7px 9px; font-size: 12px; }
+  .stage { height: auto; min-height: 0; padding: 16px 16px 8px; }
 
-  .page { padding-top: 18px; padding-bottom: 72px; }
+  .stage-head { gap: 16px; }
 
-  .section-head { margin: 6px 0 20px; }
-  .section-head h2 { font-size: 1.65rem; }
+  .figure-title { font-size: 24px; }
 
-  .figure-head { gap: 8px; }
-  .figure-modes { width: 100%; gap: 12px; }
-  .figure-actions { margin-left: auto; }
+  .stat-value { font-size: 34px; }
 
-  .learning-block { margin-top: 44px; }
-  .pattern-list { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .plot { flex: none; height: clamp(260px, 42vh, 360px); }
 
-  .vocab-list { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  /* The process and the table are DOM layouts, not fixed-ratio SVGs: let
+     them take the height they need instead of overflowing into the rail. */
+  #chart-process .plot,
+  #chart-table .plot { height: auto; min-height: 0; }
+
+  .rail {
+    align-self: stretch;
+    max-height: none;
+    overflow: visible;
+    margin-top: 14px;
+    padding: 4px 18px 8px;
+  }
+
+  .desc { overflow: visible; }
+  .desc-lines { padding-bottom: 4px; }
+
+  .sentence.is-active .sentence-en { font-size: 17px; }
+
+  .head-inner { padding: 0 max(var(--space-4), env(safe-area-inset-right, 0px)) 0 max(var(--space-4), env(safe-area-inset-left, 0px)); gap: 14px; }
+
+  .brand-zh { display: none; }
+
+  .pattern-list { grid-template-columns: minmax(0, 1fr); }
+  .vocab-list { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .errors-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
 
-  .process-flow { flex-direction: column; }
+  .process-layout { height: auto; gap: 14px; padding: 6px 0 0; }
+  .process-flow { flex-direction: column; gap: 4px; }
   .process-step {
     flex: 0 0 auto;
     flex-direction: row;
     align-items: center;
     gap: 12px;
-    padding: 10px 8px;
+    padding: 10px 12px;
   }
-  .process-icon {
-    flex: none;
-    width: 22px;
-    height: 22px;
-    margin-bottom: 0;
-  }
-  .process-arrow {
-    flex: 0 0 16px;
-    width: 16px;
-    height: 16px;
-    margin-left: 11px;
-  }
-  /* Rotate the glyph, not the box: a transformed flex item leaves its layout
-     box, so the arrow drifts out of the vertical stack. */
+  .process-icon { width: 20px; height: 20px; margin: 0; }
+  .process-arrow { flex: 0 0 14px; height: 14px; }
   .process-arrow svg { transform: rotate(90deg); }
+  .process-detail-card {
+    grid-template-columns: 34px minmax(0, 1fr);
+    column-gap: 14px;
+    padding: 16px;
+  }
+  .process-detail-icon { width: 28px; height: 28px; margin-top: 2px; }
+  .process-detail-title { font-size: 21px; }
+  .process-detail-en { margin-top: 8px; }
 
-  .chart-table { font-size: 0.84rem; }
+  .chart-table { font-size: var(--t-3); }
   .chart-table th,
   .chart-table td { padding: 11px 10px; }
   .chart-table .edit-cell input { width: 62px; }
+
+  .sheet-panel { max-height: 86dvh; }
+  .sheet-head { padding-left: max(var(--space-4), env(safe-area-inset-left, 0px)); padding-right: max(var(--space-4), env(safe-area-inset-right, 0px)); }
+  .sheet-body { padding-left: max(var(--space-4), env(safe-area-inset-left, 0px)); padding-right: max(var(--space-4), env(safe-area-inset-right, 0px)); }
 }
 
-@media (max-width: 430px) {
-  .brand-zh { display: none; }
-  .level-switch button { padding: 8px 7px; }
-  .section-head h2 { font-size: 1.5rem; }
-  .h2-en { display: block; margin: 2px 0 0; font-size: 0.46em; }
-  .figure-modes { gap: 10px; }
-  .mode-group { gap: 4px; }
-  .segment-btn { padding: 5px 6px; }
+@media (max-width: 520px) {
+  .figure-title { font-size: 22px; }
+  .stage-kicker { font-size: 11px; }
+  .stat-value { font-size: 30px; }
+  .stat-label { margin-top: 5px; }
+  .stage-tools { margin-top: 10px; }
+  .stage-modes { gap: 14px; }
+  .mode-label { display: none; }
+  .figure-hint { white-space: normal; }
+  .stage-foot { align-items: flex-start; }
+  .rail-count { font-size: 10px; }
+  .sentence.is-active .sentence-en { font-size: 16px; }
+
+  .type-tab {
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 7px 6px;
+  }
+  .deck-glyph { width: 20px; height: 10px; }
+  .deck-label { font-size: 10px; }
+}
+
+/* Touch targets: the mode toggles and the sentence rail are text-sized on
+   desktop, which puts them under a comfortable thumb. Grow the hit area on
+   coarse pointers without changing how they look. */
+@media (pointer: coarse) {
+  .segment-btn { padding: 9px 6px; }
+  .level-switch button { padding: 9px 6px; }
+  .rail-btn { padding: 10px 4px; }
+  .charts-page .npesl-back { padding: 8px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chart-panel.is-entering { animation: none; }
+  .chart-panel.is-entering,
+  .sheet-panel { animation: none; }
   .sentence,
   .bar-current,
   .bar-segment,
@@ -1807,7 +2200,7 @@ html[data-theme="glass"] .site-head {
 </style>
 </head>
 <body class="charts-page">
-<header class="site-head" id="site-head">
+<header class="studio-head" id="site-head">
   <div class="head-inner">
     <a class="npesl-back" href="../" aria-label="返回 NPESL">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
@@ -1817,32 +2210,36 @@ html[data-theme="glass"] .site-head {
       <span class="brand-en">Business Charts</span>
       <span class="brand-zh">商务图表英语</span>
     </div>
-    <nav class="type-switch" aria-label="图表类型">
-      <button class="type-scroll" type="button" data-scroll="-1" aria-label="向前浏览图表类型" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-      </button>
-      <div class="type-switch-scroll" id="type-buttons" role="tablist"></div>
-      <button class="type-scroll" type="button" data-scroll="1" aria-label="向后浏览图表类型" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
-    </nav>
-    <div class="level-switch" id="level-switch" role="group" aria-label="难度">
-      <button type="button" data-level="B1">基础</button>
-      <button type="button" data-level="C1">进阶</button>
+    <div class="head-tools">
+      <button class="tool-btn" type="button" data-reference>参考</button>
     </div>
   </div>
 </header>
 
-<main class="page">
+<main class="studio">
   <div id="panels"></div>
-
-  <section id="errors" class="library">
-    <header class="library-head">
-      <h2>常见错误</h2>
-    </header>
-    <div id="errors-list"></div>
-  </section>
 </main>
+
+<nav class="deck type-switch" aria-label="图表类型">
+  <div class="deck-scroll" id="type-buttons" role="tablist"></div>
+</nav>
+
+<div class="sheet" data-sheet hidden>
+  <div class="sheet-backdrop" data-sheet-close></div>
+  <section class="sheet-panel" role="dialog" aria-modal="true" aria-label="参考">
+    <header class="sheet-head">
+      <div class="sheet-tabs" role="tablist" aria-label="参考内容">
+        <button class="sheet-tab" type="button" role="tab" data-sheet-tab="patterns" aria-selected="true">句型</button>
+        <button class="sheet-tab" type="button" role="tab" data-sheet-tab="vocab" aria-selected="false">词汇</button>
+        <button class="sheet-tab" type="button" role="tab" data-sheet-tab="errors" aria-selected="false">错误</button>
+      </div>
+      <button class="sheet-close" type="button" data-sheet-close aria-label="关闭参考">×</button>
+    </header>
+    <div class="sheet-body" data-sheet-body></div>
+  </section>
+</div>
+
+<div class="sr-only" id="errors-list" aria-hidden="true"></div>
 
 <script id="npesl-charts-data" type="application/json">{"types":{"version":2,"levels":["A2","B1","B2","C1"],"sections":[{"id":"line","order":1,"label_en":"Line graph","label_zh":"折线图","renderer":"line","dataset":"time","vocab_groups":["up","down","flat","magnitude","speed","peak","comparison","approx"],"definition_zh":"用线连接连续时间点，重点看方向、速度和拐点。","best_for_zh":"展示一段时间里的连续变化，或比较两条线谁涨得更快。","watch_out_zh":"时间间隔要等距；折线不适合比较没有顺序的类别。","ielts_tip_zh":"Overview 先给总趋势，再挑两三个关键转折，不要逐点念数字。","focus":[{"en":"Overall trend","zh":"总趋势"},{"en":"Peak","zh":"峰值"},{"en":"Turning point","zh":"拐点"},{"en":"Pace of change","zh":"变化速度"}],"patterns":[{"en":"Revenue went up from 42 to 92.","zh":"收入从 42 上升到 92。","level":"A2"},{"en":"Revenue rose steadily from 42 to 92 over the period.","zh":"收入在此期间从 42 稳步上升到 92。","level":"B1"},{"en":"The sharpest increase came in Q4 2026, when revenue jumped from 71 to 92.","zh":"涨幅最大的是 2026 年第四季度，收入从 71 跃升到 92。","level":"B2"},{"en":"Although revenue more than doubled, growth was uneven.","zh":"虽然收入翻了一倍多，但增长并不均匀。","level":"C1"}]},{"id":"bar","order":2,"label_en":"Bar chart","label_zh":"柱状图","renderer":"bar","dataset":"category","vocab_groups":["up","down","comparison","magnitude","share","approx"],"definition_zh":"用柱子的长度比较类别，可竖向、横向，也可分组或堆叠。","best_for_zh":"类别之间比大小；分组看并列关系，堆叠看构成。","watch_out_zh":"类别太多会拥挤；纵轴不从零开始会把差距夸大。","ielts_tip_zh":"先报最高和最低，再报差距；堆叠图要补一句构成。","focus":[{"en":"Highest / lowest","zh":"最高 / 最低"},{"en":"Gap","zh":"差距"},{"en":"Composition","zh":"构成"},{"en":"Rank change","zh":"名次变化"}],"patterns":[{"en":"East China had the highest revenue.","zh":"华东收入最高。","level":"A2"},{"en":"East China led with RMB 520,000, followed by South China at RMB 430,000.","zh":"华东以 52 万元领先，华南以 43 万元紧随其后。","level":"B1"},{"en":"Coffee made up about 60% of revenue in every region.","zh":"咖啡在每个地区的收入中都占约 60%。","level":"B2"},{"en":"Northeast was the only market below RMB 200,000, with coffee still making up 60% of its revenue.","zh":"东北是唯一低于 20 万元的市场，咖啡仍占其收入的 60%。","level":"C1"}]},{"id":"pie","order":3,"label_en":"Pie chart","label_zh":"饼图","renderer":"pie","dataset":"shares","vocab_groups":["share","comparison","approx","idioms"],"definition_zh":"把总量切成扇区，每个扇区代表一个部分占整体的比例。","best_for_zh":"份额和构成；类别少、差异明显时最直观。","watch_out_zh":"扇区太多或大小接近时很难比较；饼图看不出时间变化。","ielts_tip_zh":"报最大和最小份额、前两名的差距；有基线时用百分点说涨跌。","focus":[{"en":"Dominance","zh":"独大"},{"en":"Share","zh":"份额"},{"en":"Gap","zh":"差距"},{"en":"Percentage points","zh":"百分点"}],"patterns":[{"en":"Mobile is the biggest slice.","zh":"手机应用是最大的一块。","level":"A2"},{"en":"Mobile accounts for the largest share, at 52%.","zh":"手机应用占比最大，为 52%。","level":"B1"},{"en":"Mobile dominates the market, with more than half of the total.","zh":"手机应用在市场中占据主导，份额超过一半。","level":"B2"},{"en":"Mobile extended its lead, gaining six percentage points as the smaller channels lost ground.","zh":"手机应用扩大了领先优势，在较小渠道失去份额的同时上升了 6 个百分点。","level":"C1"}]},{"id":"table","order":4,"label_en":"Table","label_zh":"表格","renderer":"table","dataset":"category","vocab_groups":["comparison","approx","share","magnitude","peak"],"definition_zh":"用行列放精确数值，不用图形编码。","best_for_zh":"多个指标、精确数字、行列之间的比较。","watch_out_zh":"不要逐格念数字；先看行列合计和最大最小，再挑有信息量的对比。","ielts_tip_zh":"选三四个最有信息量的单元格，用比较句连起来。","focus":[{"en":"Row and column totals","zh":"行列总计"},{"en":"Extremes","zh":"极值"},{"en":"Comparison","zh":"比较"},{"en":"Share of total","zh":"占总量的比例"}],"patterns":[{"en":"East China had the most revenue.","zh":"华东收入最多。","level":"A2"},{"en":"East China generated the largest share of revenue, at RMB 520,000.","zh":"华东贡献的收入份额最大，为 52 万元。","level":"B1"},{"en":"Central China narrowly edged out Southwest, with totals of RMB 310,000 and RMB 290,000.","zh":"华中略高于西南，合计分别为 31 万元和 29 万元。","level":"B2"},{"en":"The table shows a clear concentration of revenue in the east and south.","zh":"表格显示收入明显集中在华东和华南。","level":"C1"}]},{"id":"process","order":5,"label_en":"Process diagram","label_zh":"流程图","renderer":"process","dataset":"process","vocab_groups":["sequence","comparison","approx"],"definition_zh":"用箭头把步骤串起来，说明一件事怎样完成。","best_for_zh":"介绍制作、配送、审批等有固定顺序的过程。","watch_out_zh":"不要漏掉步骤，也不要打乱顺序；步骤之间的衔接词要清楚。","ielts_tip_zh":"先给总体结构（开头、主体、结尾），主体用被动语态和顺序词推进。","focus":[{"en":"Sequence","zh":"顺序"},{"en":"Passive voice","zh":"被动语态"},{"en":"Stage","zh":"阶段"},{"en":"Hand-off","zh":"交接"}],"patterns":[{"en":"First, the customer places the order in the app.","zh":"首先，顾客在应用里下单。","level":"A2"},{"en":"Next, the order is confirmed by the restaurant.","zh":"接着，餐厅确认订单。","level":"B1"},{"en":"Once the food is ready, it is picked up by a nearby courier.","zh":"餐做好后，由附近的骑手取走。","level":"B2"},{"en":"The order is then handed to the customer, who rates the courier in the app.","zh":"随后订单交给顾客，顾客在应用里给骑手评分。","level":"C1"}]},{"id":"mixed","order":6,"label_en":"Mixed charts","label_zh":"组合图","renderer":"mixed","dataset":"mixed","vocab_groups":["mixed","up","down","comparison","share","approx"],"definition_zh":"两张图或两种标记放在一起，分别承担不同的信息。","best_for_zh":"同时展示规模和效率、总量和结构等两组相关数据。","watch_out_zh":"要分清哪条线对应哪个轴；两组数据要建立联系，不要各说各的。","ielts_tip_zh":"先分别概述两组数据，再用 while、although 或 in tandem 说明它们的关系。","focus":[{"en":"Two axes","zh":"双轴"},{"en":"Relationship","zh":"两组数据的关系"},{"en":"Scale","zh":"规模"},{"en":"Efficiency","zh":"效率"}],"patterns":[{"en":"Revenue rose while margin stayed flat.","zh":"收入上升，利润率持平。","level":"A2"},{"en":"Revenue grew from 42 to 92, and margin rose from 8.2% to 12.6%.","zh":"收入从 42 增长到 92，利润率从 8.2% 上升到 12.6%。","level":"B1"},{"en":"The bars show revenue, while the line tracks margin on a separate scale.","zh":"柱形表示收入，折线在另一套刻度上表示利润率。","level":"B2"},{"en":"Revenue and margin moved in tandem for most of the period, although margin dipped when revenue fell in late 2025.","zh":"大部分时间里收入和利润率同步变化，不过 2025 年底收入下降时利润率也出现回落。","level":"C1"}]}]},"labs":{"version":2,"constraints":{"pie_min_share":3,"pie_sum":100,"drag_hit_px":24,"touch_hit_px":44},"datasets":{"time":{"scene_en":"Nova Delivery · quarterly revenue","scene_zh":"Nova Delivery · 季度收入","unit":"RMB million","unit_zh":"百万元","periods":[{"id":"q1-2025","label_en":"Q1 2025","label_zh":"2025 年第一季度"},{"id":"q2-2025","label_en":"Q2 2025","label_zh":"2025 年第二季度"},{"id":"q3-2025","label_en":"Q3 2025","label_zh":"2025 年第三季度"},{"id":"q4-2025","label_en":"Q4 2025","label_zh":"2025 年第四季度"},{"id":"q1-2026","label_en":"Q1 2026","label_zh":"2026 年第一季度"},{"id":"q2-2026","label_en":"Q2 2026","label_zh":"2026 年第二季度"},{"id":"q3-2026","label_en":"Q3 2026","label_zh":"2026 年第三季度"},{"id":"q4-2026","label_en":"Q4 2026","label_zh":"2026 年第四季度"}],"series":[{"id":"revenue","name_en":"Revenue","name_zh":"收入","unit":"RMB million","unit_zh":"百万元","values":[42,46,55,52,61,68,71,92],"min":0,"max":100,"step":1,"decimals":0,"color":"series-1","mark":"line"}]},"category":{"scene_en":"Peak Coffee · revenue by region and product line","scene_zh":"Peak Coffee · 各地区与产品线收入","unit":"RMB thousand","unit_zh":"千元","categories":[{"id":"east","label_en":"East China","label_zh":"华东"},{"id":"south","label_en":"South China","label_zh":"华南"},{"id":"north","label_en":"North China","label_zh":"华北"},{"id":"southwest","label_en":"Southwest","label_zh":"西南"},{"id":"central","label_en":"Central China","label_zh":"华中"},{"id":"northeast","label_en":"Northeast","label_zh":"东北"}],"series":[{"id":"coffee","name_en":"Coffee","name_zh":"咖啡","values":[312,258,216,174,186,108],"color":"series-1","mark":"bar"},{"id":"bakery","name_en":"Bakery","name_zh":"烘焙","values":[126,108,90,72,78,45],"color":"series-2","mark":"bar"},{"id":"retail","name_en":"Retail","name_zh":"零售","values":[82,64,54,44,46,27],"color":"series-3","mark":"bar"}],"min":0,"max":600,"step":5,"decimals":0},"shares":{"scene_en":"Harbor Cloud · market share by channel","scene_zh":"Harbor Cloud · 各渠道市场份额","unit":"%","unit_zh":"%","parts":[{"id":"mobile","name_en":"Mobile app","name_zh":"手机应用","value":52,"baseline":46,"color":"series-1"},{"id":"mini","name_en":"Mini program","name_zh":"小程序","value":22,"baseline":24,"color":"series-2"},{"id":"web","name_en":"Website","name_zh":"网站","value":14,"baseline":16,"color":"series-3"},{"id":"offline","name_en":"Offline store","name_zh":"线下门店","value":8,"baseline":9,"color":"series-4"},{"id":"other","name_en":"Other","name_zh":"其他","value":4,"baseline":5,"color":"series-5"}]},"process":{"scene_en":"From order to doorstep","scene_zh":"从下单到送达","steps":[{"id":"order","title_en":"Place the order","title_zh":"下单","detail_en":"The customer places the order in the app and pays online.","detail_zh":"顾客在应用里下单并在线支付。","passive_en":"The order is placed in the app and paid online.","passive_zh":"订单在应用里提交并在线支付。","icon":"phone"},{"id":"confirm","title_en":"Confirm the order","title_zh":"商家接单","detail_en":"The restaurant confirms the order and starts cooking.","detail_zh":"餐厅确认订单并开始制作。","passive_en":"The order is confirmed by the restaurant, which starts cooking.","passive_zh":"订单由餐厅确认，随后开始制作。","icon":"chef"},{"id":"assign","title_en":"Assign a courier","title_zh":"骑手接单","detail_en":"The platform assigns the order to a nearby courier.","detail_zh":"平台把订单分配给附近的骑手。","passive_en":"The order is assigned to a nearby courier.","passive_zh":"订单被分配给附近的骑手。","icon":"scooter"},{"id":"pickup","title_en":"Pick up the food","title_zh":"取餐","detail_en":"The courier picks up the food from the restaurant.","detail_zh":"骑手到餐厅取餐。","passive_en":"The food is picked up from the restaurant.","passive_zh":"餐品从餐厅被取走。","icon":"bag"},{"id":"deliver","title_en":"Ride to the address","title_zh":"配送","detail_en":"The courier rides to the customer's building.","detail_zh":"骑手骑车前往顾客所在楼栋。","passive_en":"The food is carried to the customer's building.","passive_zh":"餐品被送到顾客所在楼栋。","icon":"route"},{"id":"handoff","title_en":"Complete the delivery","title_zh":"送达","detail_en":"The customer receives the order and rates the courier.","detail_zh":"顾客收到订单并给骑手评分。","passive_en":"The order is handed to the customer, who rates the courier.","passive_zh":"订单交给顾客，顾客随后给骑手评分。","icon":"check"}]},"mixed":{"scene_en":"Nova Delivery · revenue and margin","scene_zh":"Nova Delivery · 收入与利润率","periods":[{"id":"q1-2025","label_en":"Q1 2025","label_zh":"2025 年第一季度"},{"id":"q2-2025","label_en":"Q2 2025","label_zh":"2025 年第二季度"},{"id":"q3-2025","label_en":"Q3 2025","label_zh":"2025 年第三季度"},{"id":"q4-2025","label_en":"Q4 2025","label_zh":"2025 年第四季度"},{"id":"q1-2026","label_en":"Q1 2026","label_zh":"2026 年第一季度"},{"id":"q2-2026","label_en":"Q2 2026","label_zh":"2026 年第二季度"},{"id":"q3-2026","label_en":"Q3 2026","label_zh":"2026 年第三季度"},{"id":"q4-2026","label_en":"Q4 2026","label_zh":"2026 年第四季度"}],"bars":{"id":"revenue","name_en":"Revenue","name_zh":"收入","unit":"RMB million","unit_zh":"百万元","values":[42,46,55,52,61,68,71,92],"min":0,"max":100,"step":1,"decimals":0,"color":"series-2","axis":"left"},"line":{"id":"margin","name_en":"Margin","name_zh":"利润率","unit":"%","unit_zh":"%","values":[8.2,8.8,9.6,8.9,10.4,11.1,11.5,12.6],"min":6,"max":14,"step":0.1,"decimals":1,"color":"series-1","axis":"right"}}}},"vocab":{"version":1,"groups":[{"id":"up","title_en":"Going up","title_zh":"上升"},{"id":"down","title_en":"Going down","title_zh":"下降"},{"id":"flat","title_en":"Staying flat","title_zh":"平稳"},{"id":"magnitude","title_en":"How big","title_zh":"幅度"},{"id":"speed","title_en":"How fast","title_zh":"速度与波动"},{"id":"peak","title_en":"Peaks and turns","title_zh":"峰谷与反转"},{"id":"comparison","title_en":"Comparing","title_zh":"比较与排名"},{"id":"share","title_en":"Shares and markets","title_zh":"占比与市场"},{"id":"approx","title_en":"Approximating","title_zh":"近似与单位"},{"id":"idioms","title_en":"Business idioms","title_zh":"商务习语"},{"id":"sequence","title_en":"Sequencing a process","title_zh":"流程顺序"},{"id":"mixed","title_en":"Combining two datasets","title_zh":"两组数据"}],"entries":[{"id":"rise","group":"up","en":"rise","zh":"上升","level":"B1","register":"neutral","pattern":"rise + by / to","example_en":"Revenue rose by 18% after the new delivery fee launched.","example_zh":"新的配送费上线后，收入上升了 18%。","note_zh":"中性词；by 接变化量，to 接终点。"},{"id":"increase","group":"up","en":"increase","zh":"增加","level":"A2","register":"neutral","pattern":"increase + by / to","example_en":"Orders increased from 1,200 to 2,100 during the promotion.","example_zh":"促销期间订单从 1,200 增加到 2,100。","note_zh":"最通用的上升动词，正式和口语都能用。"},{"id":"grow","group":"up","en":"grow","zh":"增长","level":"A2","register":"neutral","pattern":"grow + by / from … to …","example_en":"The coffee chain grew from 80 stores to 120 in two years.","example_zh":"这家咖啡连锁两年内从 80 家门店增长到 120 家。","note_zh":"强调规模变大，常和 revenue、sales、users 搭配。"},{"id":"climb","group":"up","en":"climb","zh":"攀升","level":"B1","register":"neutral","pattern":"climb + to","example_en":"App downloads climbed to 3.4 million in the fourth quarter.","example_zh":"应用下载量在第四季度攀升到 340 万。","note_zh":"常暗示一步一步往上走，比 rise 更有画面。"},{"id":"go-up","group":"up","en":"go up","zh":"上升","level":"A2","register":"spoken","pattern":"go up + by / to","example_en":"Delivery costs went up again in March.","example_zh":"配送成本在三月又上升了。","note_zh":"口语常用；正式报告里可以换成 rise 或 increase。"},{"id":"edge-up","group":"up","en":"edge up","zh":"微升","level":"B2","register":"neutral","pattern":"edge up + to","example_en":"Average order value edged up to RMB 68 in June.","example_zh":"六月平均客单价微升到 68 元。","note_zh":"幅度很小，通常不到几个百分点。"},{"id":"creep-up","group":"up","en":"creep up","zh":"缓慢攀升","level":"C1","register":"neutral","pattern":"creep up + to","example_en":"Warehouse rents crept up through the year, quietly eating into margins.","example_zh":"仓库租金全年缓慢攀升，悄悄侵蚀利润率。","note_zh":"常带负面意味，适合描述成本慢慢变高。"},{"id":"surge","group":"up","en":"surge","zh":"激增","level":"B2","register":"neutral","pattern":"surge + to / by","example_en":"Orders surged to 8,000 on Singles' Day.","example_zh":"双十一当天订单激增到 8,000 单。","note_zh":"幅度大、速度快；不要用于 3% 的小变化。"},{"id":"jump","group":"up","en":"jump","zh":"跃升","level":"B1","register":"neutral","pattern":"jump + from … to …","example_en":"Sign-ups jumped from 400 to 900 after the referral campaign.","example_zh":"推荐活动后，注册数从 400 跃升到 900。","note_zh":"突然且明显的变化，比 rise 更有冲击力。"},{"id":"soar","group":"up","en":"soar","zh":"猛涨","level":"B2","register":"neutral","pattern":"soar + to / by","example_en":"Battery prices soared during the supply shortage.","example_zh":"供应短缺期间电池价格猛涨。","note_zh":"常和价格、成本、需求搭配，语气强。"},{"id":"skyrocket","group":"up","en":"skyrocket","zh":"暴涨","level":"C1","register":"informal","pattern":"skyrocket + to","example_en":"Demand for same-day delivery skyrocketed during the holiday rush.","example_zh":"节日高峰期间，当日达需求暴涨。","note_zh":"口语和新闻里常见；正式报告慎用。"},{"id":"rebound","group":"up","en":"rebound","zh":"反弹","level":"B2","register":"neutral","pattern":"rebound + from … to …","example_en":"Bookings rebounded from 5,000 to 7,200 in the next quarter.","example_zh":"预订量在下一季度从 5,000 反弹到 7,200。","note_zh":"先跌后涨时用，强调恢复。"},{"id":"fall","group":"down","en":"fall","zh":"下降","level":"A2","register":"neutral","pattern":"fall + by / to","example_en":"Average delivery time fell by six minutes after the route update.","example_zh":"路线更新后，平均配送时间下降了六分钟。","note_zh":"中性词；by 接变化量，to 接终点。"},{"id":"decrease","group":"down","en":"decrease","zh":"减少","level":"A2","register":"neutral","pattern":"decrease + by / to","example_en":"Customer complaints decreased slightly in the second half.","example_zh":"下半年客户投诉略有减少。","note_zh":"正式、中性；和 increase 相对。"},{"id":"decline","group":"down","en":"decline","zh":"下滑","level":"B1","register":"formal","pattern":"decline + by / to","example_en":"Revenue declined year on year in the northeast market.","example_zh":"东北市场的收入同比下滑。","note_zh":"比 fall 正式，适合报告和新闻。"},{"id":"drop","group":"down","en":"drop","zh":"下跌","level":"B1","register":"neutral","pattern":"drop + by / to","example_en":"Orders dropped in the week after the discount ended.","example_zh":"折扣结束后的那一周，订单下跌。","note_zh":"口语和书面都常用，语气比 decline 直接。"},{"id":"go-down","group":"down","en":"go down","zh":"下降","level":"A2","register":"spoken","pattern":"go down + by / to","example_en":"Sales went down after the holiday promotion ended.","example_zh":"节日促销结束后，销售额下降了。","note_zh":"口语常用；正式写作可换成 fall 或 decline。"},{"id":"dip","group":"down","en":"dip","zh":"小幅下降","level":"B1","register":"neutral","pattern":"dip + to","example_en":"Margins dipped to 11% in the first quarter.","example_zh":"第一季度利润率小幅下降到 11%。","note_zh":"通常指短暂、小幅的下降。"},{"id":"edge-down","group":"down","en":"edge down","zh":"微降","level":"B2","register":"neutral","pattern":"edge down + to","example_en":"The cancellation rate edged down to 2.1% in September.","example_zh":"九月取消率微降到 2.1%。","note_zh":"幅度很小，和 edge up 相对。"},{"id":"slip","group":"down","en":"slip","zh":"下滑","level":"B2","register":"neutral","pattern":"slip + to / below","example_en":"Market share slipped to 18% after the rival's price cut.","example_zh":"竞争对手降价后，市场份额下滑到 18%。","note_zh":"常指小幅失去优势，语气比 plunge 轻。"},{"id":"plunge","group":"down","en":"plunge","zh":"暴跌","level":"B2","register":"neutral","pattern":"plunge + to / by","example_en":"Bookings plunged during the two-week system outage.","example_zh":"系统宕机的两周里，预订量暴跌。","note_zh":"幅度大、速度快，常和 into 或 by 搭配。"},{"id":"tumble","group":"down","en":"tumble","zh":"大幅下跌","level":"B2","register":"neutral","pattern":"tumble + to / by","example_en":"The company's shares tumbled 18% after the profit warning.","example_zh":"盈利预警发布后，公司股价大幅下跌 18%。","note_zh":"常用于股价、估值和市场信心。"},{"id":"plummet","group":"down","en":"plummet","zh":"骤降","level":"C1","register":"neutral","pattern":"plummet + to / by","example_en":"Daily active users plummeted after the app crashed.","example_zh":"应用崩溃后，日活跃用户骤降。","note_zh":"强调直线下跌，语气很强。"},{"id":"contract","group":"down","en":"contract","zh":"收缩","level":"C1","register":"formal","pattern":"contract + by","example_en":"The tablet market contracted by 4% last year.","example_zh":"平板市场去年收缩了 4%。","note_zh":"经济学用语，通常指整体市场规模变小。"},{"id":"stay-the-same","group":"flat","en":"stay the same","zh":"保持不变","level":"A2","register":"spoken","pattern":"stay the same + at","example_en":"The delivery fee stayed the same at RMB 6.","example_zh":"配送费保持在 6 元不变。","note_zh":"最基础的平稳表达。"},{"id":"remain-stable","group":"flat","en":"remain stable","zh":"保持稳定","level":"B1","register":"formal","pattern":"remain stable + at","example_en":"Customer satisfaction remained stable at around 87%.","example_zh":"客户满意度稳定在 87% 左右。","note_zh":"正式报告常用；不要写 remain stably。"},{"id":"hold-steady","group":"flat","en":"hold steady","zh":"保持平稳","level":"B1","register":"neutral","pattern":"hold steady + at","example_en":"Weekly orders held steady at 12,000 through the summer.","example_zh":"整个夏天，每周订单稳定在 12,000 单。","note_zh":"强调在一段时间内没有明显变化。"},{"id":"level-off","group":"flat","en":"level off","zh":"趋平","level":"B1","register":"neutral","pattern":"level off + at","example_en":"Sales leveled off at around RMB 2 million in the fourth quarter.","example_zh":"第四季度销售额在 200 万元左右趋平。","note_zh":"先涨或先跌，然后稳定下来。"},{"id":"plateau","group":"flat","en":"plateau","zh":"进入平台期","level":"B2","register":"neutral","pattern":"plateau + at","example_en":"App usage plateaued at 45 minutes a day.","example_zh":"应用使用时长在每天 45 分钟进入平台期。","note_zh":"名词和动词同形；常暗示增长停止。"},{"id":"flatten-out","group":"flat","en":"flatten out","zh":"走平","level":"B2","register":"neutral","pattern":"flatten out + at","example_en":"The growth curve flattened out after the launch rush.","example_zh":"发布热潮过后，增长曲线走平。","note_zh":"口语和报告都能用，强调曲线变平。"},{"id":"stagnate","group":"flat","en":"stagnate","zh":"停滞","level":"C1","register":"formal","pattern":"stagnate + at","example_en":"Revenue stagnated at RMB 3 million for three quarters.","example_zh":"收入连续三个季度停滞在 300 万元。","note_zh":"带负面评价，表示该涨却没涨。"},{"id":"slightly","group":"magnitude","en":"slightly","zh":"略微","level":"B1","register":"neutral","pattern":"verb + slightly","example_en":"Conversion rose slightly from 3.1% to 3.3%.","example_zh":"转化率从 3.1% 略微上升到 3.3%。","note_zh":"幅度最小的副词之一；形容词是 slight。"},{"id":"steadily","group":"magnitude","en":"steadily","zh":"稳步地","level":"B1","register":"neutral","pattern":"verb + steadily","example_en":"Revenue grew steadily through the first half.","example_zh":"上半年收入稳步增长。","note_zh":"强调持续、均匀，不强调快。"},{"id":"gradually","group":"magnitude","en":"gradually","zh":"逐渐地","level":"B1","register":"neutral","pattern":"verb + gradually","example_en":"Delivery times gradually fell as the new routes took effect.","example_zh":"新路线生效后，配送时间逐渐下降。","note_zh":"强调过程慢，和 suddenly 相对。"},{"id":"sharply","group":"magnitude","en":"sharply","zh":"大幅地","level":"B1","register":"neutral","pattern":"verb + sharply","example_en":"Costs rose sharply after the fuel price increase.","example_zh":"油价上涨后，成本大幅上升。","note_zh":"强调幅度大、速度快；形容词是 sharp。"},{"id":"dramatically","group":"magnitude","en":"dramatically","zh":"剧烈地","level":"B2","register":"neutral","pattern":"verb + dramatically","example_en":"Demand for live commerce grew dramatically in 2026.","example_zh":"2026 年直播电商需求剧烈增长。","note_zh":"比 sharply 更强，常带戏剧性。"},{"id":"significantly","group":"magnitude","en":"significantly","zh":"显著地","level":"B2","register":"formal","pattern":"verb + significantly","example_en":"Customer retention improved significantly after the loyalty program.","example_zh":"会员计划上线后，客户留存显著改善。","note_zh":"正式报告常用；形容词是 significant。"},{"id":"substantially","group":"magnitude","en":"substantially","zh":"大幅度地","level":"B2","register":"formal","pattern":"verb + substantially","example_en":"Warehouse capacity expanded substantially in the second half.","example_zh":"下半年仓库容量大幅扩张。","note_zh":"正式，强调数量或程度大。"},{"id":"marginally","group":"magnitude","en":"marginally","zh":"轻微地","level":"B2","register":"formal","pattern":"verb + marginally","example_en":"The app's rating improved marginally to 4.6.","example_zh":"应用评分轻微提升到 4.6。","note_zh":"非常小、几乎可忽略的变化。"},{"id":"modestly","group":"magnitude","en":"modestly","zh":"温和地","level":"B2","register":"formal","pattern":"verb + modestly","example_en":"Ad spend rose modestly, in line with the sales plan.","example_zh":"广告投入温和上升，与销售计划一致。","note_zh":"幅度不大但可见，比 slightly 稍强。"},{"id":"drastically","group":"magnitude","en":"drastically","zh":"急剧地","level":"C1","register":"neutral","pattern":"verb + drastically","example_en":"The company drastically cut its delivery subsidies.","example_zh":"公司急剧削减了配送补贴。","note_zh":"常修饰 cut、reduce、change，语气很强。"},{"id":"rapidly","group":"speed","en":"rapidly","zh":"迅速地","level":"B2","register":"neutral","pattern":"verb + rapidly","example_en":"Same-day delivery expanded rapidly across tier-2 cities.","example_zh":"当日达在二线城市迅速扩张。","note_zh":"强调速度快；形容词是 rapid。"},{"id":"suddenly","group":"speed","en":"suddenly","zh":"突然","level":"B1","register":"neutral","pattern":"verb + suddenly","example_en":"Traffic suddenly dropped when the app crashed.","example_zh":"应用崩溃时，流量突然下降。","note_zh":"强调没有预兆；形容词是 sudden。"},{"id":"abruptly","group":"speed","en":"abruptly","zh":"骤然","level":"B2","register":"formal","pattern":"verb + abruptly","example_en":"The promotion ended abruptly, and orders fell the next day.","example_zh":"促销骤然结束，第二天订单就下降了。","note_zh":"比 suddenly 更正式，常带负面意味。"},{"id":"accelerate","group":"speed","en":"accelerate","zh":"加速","level":"B2","register":"neutral","pattern":"growth accelerated","example_en":"Growth accelerated in the third quarter after the new pricing plan.","example_zh":"新定价方案推出后，增长在第三季度加速。","note_zh":"强调速度变快，不是数值变大。"},{"id":"decelerate","group":"speed","en":"decelerate","zh":"减速","level":"B2","register":"formal","pattern":"growth decelerated","example_en":"Revenue kept rising, but growth decelerated in the second half.","example_zh":"收入仍在上升，但下半年增速放缓。","note_zh":"常和 growth、momentum 搭配。"},{"id":"volatile","group":"speed","en":"volatile","zh":"波动剧烈","level":"B2","register":"formal","pattern":"be volatile / a volatile market","example_en":"Demand was volatile around the holiday season.","example_zh":"节日前后需求波动剧烈。","note_zh":"形容上下大幅变化，不是单向趋势。"},{"id":"fluctuate","group":"speed","en":"fluctuate","zh":"波动","level":"B2","register":"formal","pattern":"fluctuate between … and …","example_en":"Order volume fluctuated between 8,000 and 12,000 a week.","example_zh":"每周订单量在 8,000 到 12,000 之间波动。","note_zh":"不要写 fluctuated up and down，意思重复。"},{"id":"peak","group":"peak","en":"peak","zh":"达到峰值","level":"B1","register":"neutral","pattern":"peak at / peak in","example_en":"Orders peaked at 15,000 on the first day of the sale.","example_zh":"大促第一天订单达到 15,000 的峰值。","note_zh":"peak at 接数值，peak in 接时间。"},{"id":"reach-a-peak-of","group":"peak","en":"reach a peak of","zh":"达到……的峰值","level":"B1","register":"neutral","pattern":"reach a peak of + number","example_en":"Revenue reached a peak of RMB 92 million in the fourth quarter.","example_zh":"收入在第四季度达到 9,200 万元的峰值。","note_zh":"比 peak at 更完整，适合正式描述。"},{"id":"hit-a-high-of","group":"peak","en":"hit a high of","zh":"创下……的新高","level":"B2","register":"neutral","pattern":"hit a high of + number","example_en":"The app hit a high of 4.9 million daily users in August.","example_zh":"这款应用在八月创下 490 万日活的新高。","note_zh":"强调创纪录，常和 high 搭配。"},{"id":"trough","group":"peak","en":"trough","zh":"低谷","level":"C1","register":"formal","pattern":"reach a trough of","example_en":"Sales reached a trough of RMB 1.8 million in February.","example_zh":"销售额在二月跌到 180 万元的低谷。","note_zh":"技术性较强；口语里常说 low point。"},{"id":"reach-a-low-of","group":"peak","en":"reach a low of","zh":"跌到……的低点","level":"B2","register":"neutral","pattern":"reach a low of + number","example_en":"Cancellations reached a low of 1.8% in November.","example_zh":"取消率在十一月降到 1.8% 的低点。","note_zh":"和 reach a peak of 相对。"},{"id":"bottom-out","group":"peak","en":"bottom out","zh":"触底","level":"B2","register":"neutral","pattern":"bottom out + at","example_en":"Churn bottomed out at 1.6% before improving in spring.","example_zh":"流失率在 1.6% 触底，随后在春天改善。","note_zh":"强调跌到最低后不再跌，常暗示要反弹。"},{"id":"turning-point","group":"peak","en":"turning point","zh":"拐点","level":"B2","register":"neutral","pattern":"mark a turning point","example_en":"The third quarter marked a turning point for the business.","example_zh":"第三季度成为业务的拐点。","note_zh":"方向发生变化的时刻，不一定是最高或最低点。"},{"id":"reverse-course","group":"peak","en":"reverse course","zh":"转向","level":"C1","register":"formal","pattern":"reverse course","example_en":"After two quarters of decline, sales reversed course in June.","example_zh":"连续两个季度下滑后，销售额在六月转向。","note_zh":"强调方向反转，常和 after 搭配。"},{"id":"the-highest","group":"comparison","en":"the highest","zh":"最高的","level":"A2","register":"neutral","pattern":"the highest + noun","example_en":"East China had the highest revenue at RMB 520,000.","example_zh":"华东收入最高，为 52 万元。","note_zh":"最高级前面通常加 the。"},{"id":"the-lowest","group":"comparison","en":"the lowest","zh":"最低的","level":"A2","register":"neutral","pattern":"the lowest + noun","example_en":"Northeast had the lowest revenue at RMB 180,000.","example_zh":"东北收入最低，为 18 万元。","note_zh":"和 the highest 成对使用。"},{"id":"higher-than","group":"comparison","en":"higher than","zh":"高于","level":"A2","register":"neutral","pattern":"A is higher than B","example_en":"Revenue in the east was 90,000 higher than in the south.","example_zh":"华东收入比华南高 9 万元。","note_zh":"比较级后接 than，不接 to。"},{"id":"compared-with","group":"comparison","en":"compared with","zh":"与……相比","level":"B1","register":"neutral","pattern":"X, compared with Y","example_en":"Gross margin fell to 38%, compared with 44% a year earlier.","example_zh":"毛利率降到 38%，而一年前是 44%。","note_zh":"比 compared to 更常用，尤其在有具体数字时。"},{"id":"whereas","group":"comparison","en":"whereas","zh":"而","level":"B1","register":"formal","pattern":"clause + whereas + clause","example_en":"Revenue grew in the east, whereas it stagnated in the northeast.","example_zh":"华东收入增长，而东北停滞。","note_zh":"连接两个完整从句，前后形成对比。"},{"id":"while","group":"comparison","en":"while","zh":"而 / 同时","level":"B1","register":"neutral","pattern":"clause + while + clause","example_en":"Orders rose, while the average order value fell.","example_zh":"订单上升，而平均客单价下降。","note_zh":"比 whereas 口语化，也可表示同时发生。"},{"id":"respectively","group":"comparison","en":"respectively","zh":"分别","level":"B2","register":"formal","pattern":"A and B + respectively","example_en":"East and South China recorded RMB 520,000 and RMB 430,000 respectively.","example_zh":"华东和华南分别录得 52 万元和 43 万元。","note_zh":"数值顺序必须和前面提到的对象一致。"},{"id":"twice-as-high-as","group":"comparison","en":"twice as high as","zh":"是……的两倍","level":"B2","register":"neutral","pattern":"A is twice as high as B","example_en":"East China's revenue was almost twice as high as Northeast's.","example_zh":"华东收入几乎是东北的两倍。","note_zh":"不要写 twice higher than。"},{"id":"a-gap-of","group":"comparison","en":"a gap of","zh":"相差","level":"B2","register":"neutral","pattern":"a gap of + number","example_en":"There was a gap of RMB 90,000 between the top two markets.","example_zh":"前两个市场之间相差 9 万元。","note_zh":"gap 可接具体数值或 percentage points。"},{"id":"overtake","group":"comparison","en":"overtake","zh":"超过","level":"B2","register":"neutral","pattern":"A overtook B","example_en":"Central China overtook Southwest to take fourth place.","example_zh":"华中超过西南，升至第四。","note_zh":"强调名次变化，不只是数值更高。"},{"id":"the-second-largest","group":"comparison","en":"the second-largest","zh":"第二大的","level":"B1","register":"neutral","pattern":"the second-largest + noun","example_en":"South China was the second-largest market, at RMB 430,000.","example_zh":"华南是第二大市场，为 43 万元。","note_zh":"second-largest 中间有连字符。"},{"id":"broadly-in-line-with","group":"comparison","en":"broadly in line with","zh":"与……大致一致","level":"C1","register":"formal","pattern":"be broadly in line with","example_en":"Ad spend was broadly in line with the annual plan.","example_zh":"广告投入与年度计划大致一致。","note_zh":"正式表达，表示差异不大。"},{"id":"account-for","group":"share","en":"account for","zh":"占（比例）","level":"B1","register":"neutral","pattern":"X accounts for N% of Y","example_en":"Mobile accounts for 52% of total revenue.","example_zh":"手机应用占总收入的 52%。","note_zh":"最常用的占比动词；不要和解释义的 account for 混淆。"},{"id":"make-up","group":"share","en":"make up","zh":"构成","level":"B1","register":"neutral","pattern":"X makes up N% of Y","example_en":"Private-label goods make up 18% of sales.","example_zh":"自有品牌商品占销售额的 18%。","note_zh":"和 account for 接近，更强调组成。"},{"id":"represent","group":"share","en":"represent","zh":"占 / 代表","level":"B2","register":"formal","pattern":"X represents N% of Y","example_en":"The east represents a quarter of total revenue.","example_zh":"华东占总收入四分之一。","note_zh":"正式，适合报告。"},{"id":"dominate","group":"share","en":"dominate","zh":"占据主导","level":"B2","register":"neutral","pattern":"X dominates the market","example_en":"The mobile app dominates the market with a 52% share.","example_zh":"手机应用以 52% 的份额主导市场。","note_zh":"通常指份额明显领先，至少接近一半。"},{"id":"the-lions-share","group":"share","en":"the lion's share","zh":"最大的一份","level":"C1","register":"neutral","pattern":"take / account for the lion's share","example_en":"The mobile app takes the lion's share of revenue.","example_zh":"手机应用拿走了收入中最大的一份。","note_zh":"当代商务写作仍常用；不要用于只领先一点点的情形。"},{"id":"neck-and-neck","group":"share","en":"neck and neck","zh":"并驾齐驱","level":"B2","register":"neutral","pattern":"be neck and neck","example_en":"The two apps are neck and neck, at 31% and 30%.","example_zh":"两款应用并驾齐驱，份额分别为 31% 和 30%。","note_zh":"差距通常只有一两个百分点。"},{"id":"a-distant-second","group":"share","en":"a distant second","zh":"远远落后的第二名","level":"B2","register":"neutral","pattern":"be a distant second","example_en":"The website is a distant second, with less than half the leader's share.","example_zh":"网站远远排在第二，份额不到领先者的一半。","note_zh":"差距明显时用，比 the second-largest 更有评价色彩。"},{"id":"gain-ground","group":"share","en":"gain ground","zh":"抢占份额","level":"B2","register":"neutral","pattern":"gain ground on / in","example_en":"Mini programs gained ground in lower-tier cities.","example_zh":"小程序在下沉市场抢占份额。","note_zh":"强调相对份额上升，常和 on 搭配。"},{"id":"lose-ground","group":"share","en":"lose ground","zh":"失去份额","level":"B2","register":"neutral","pattern":"lose ground to","example_en":"Offline stores lost ground to same-day delivery.","example_zh":"线下门店的份额被当日达抢走。","note_zh":"和 gain ground 相对。"},{"id":"percentage-points","group":"share","en":"percentage points","zh":"百分点","level":"B2","register":"formal","pattern":"rise / fall + N percentage points","example_en":"Its share rose 6 percentage points, from 46% to 52%.","example_zh":"它的份额上升 6 个百分点，从 46% 到 52%。","note_zh":"份额从 46% 到 52% 是 6 个百分点，不是 6%。"},{"id":"fragmented-market","group":"share","en":"a fragmented market","zh":"分散的市场","level":"C1","register":"formal","pattern":"a fragmented market","example_en":"The market remains fragmented, with no player above 12%.","example_zh":"市场仍然分散，没有玩家超过 12%。","note_zh":"份额分散、没有明显领先者。"},{"id":"consolidated-market","group":"share","en":"a consolidated market","zh":"集中的市场","level":"C1","register":"formal","pattern":"a consolidated market","example_en":"The top three players control most of the market, leaving a consolidated field.","example_zh":"前三名控制大部分市场，格局高度集中。","note_zh":"少数玩家占据大部分份额。"},{"id":"about","group":"approx","en":"about","zh":"大约","level":"A2","register":"neutral","pattern":"about + number","example_en":"About 60% of orders come from the app.","example_zh":"大约 60% 的订单来自应用。","note_zh":"最常用的近似词。"},{"id":"roughly","group":"approx","en":"roughly","zh":"大致","level":"B1","register":"neutral","pattern":"roughly + number","example_en":"Revenue was roughly RMB 42 million in the first quarter.","example_zh":"第一季度收入大致为 4,200 万元。","note_zh":"比 about 稍正式，强调估算。"},{"id":"approximately","group":"approx","en":"approximately","zh":"大约","level":"B1","register":"formal","pattern":"approximately + number","example_en":"Approximately 1,500 customers joined the loyalty program.","example_zh":"大约 1,500 名客户加入了会员计划。","note_zh":"正式写作常用。"},{"id":"just-under","group":"approx","en":"just under","zh":"略低于","level":"B1","register":"neutral","pattern":"just under + number","example_en":"Just under half of the orders came from the mini program.","example_zh":"略低于一半的订单来自小程序。","note_zh":"比 almost 更精确地表示差一点。"},{"id":"just-over","group":"approx","en":"just over","zh":"略高于","level":"B1","register":"neutral","pattern":"just over + number","example_en":"Just over 30% of users opened the app every day.","example_zh":"略高于 30% 的用户每天打开应用。","note_zh":"和 just under 相对。"},{"id":"nearly","group":"approx","en":"nearly","zh":"接近","level":"A2","register":"neutral","pattern":"nearly + number","example_en":"Nearly 40% of revenue came from the east.","example_zh":"接近 40% 的收入来自华东。","note_zh":"后面接数字，不写 near 40% 表示近似。"},{"id":"around","group":"approx","en":"around","zh":"在……左右","level":"A2","register":"neutral","pattern":"around + number","example_en":"Average delivery time stayed around 28 minutes.","example_zh":"平均配送时间保持在 28 分钟左右。","note_zh":"口语里很常用。"},{"id":"per-capita","group":"approx","en":"per capita","zh":"人均","level":"C1","register":"formal","pattern":"per capita + noun","example_en":"Spending per capita rose to RMB 320 a month.","example_zh":"人均月支出上升到 320 元。","note_zh":"正式统计用语，注意 per capita 位置。"},{"id":"headwinds","group":"idioms","en":"headwinds","zh":"逆风 / 不利因素","level":"C1","register":"business","pattern":"face / weigh on + headwinds","example_en":"Regulatory headwinds weighed on margins in the second half.","example_zh":"监管逆风在下半年拖累了利润率。","note_zh":"当代财报和新闻常用，指阻碍增长的因素。"},{"id":"tailwinds","group":"idioms","en":"tailwinds","zh":"顺风 / 有利因素","level":"C1","register":"business","pattern":"benefit from + tailwinds","example_en":"The EV maker benefited from policy tailwinds in smaller cities.","example_zh":"这家新能源车企受益于小城市的政策顺风。","note_zh":"和 headwinds 相对。"},{"id":"gain-traction","group":"idioms","en":"gain traction","zh":"开始获得认可","level":"B2","register":"business","pattern":"gain traction with / in","example_en":"The subscription tier is gaining traction in tier-2 cities.","example_zh":"订阅档在二线城市开始获得认可。","note_zh":"新产品或新策略开始被市场接受。"},{"id":"move-the-needle","group":"idioms","en":"move the needle","zh":"带来明显改变","level":"C1","register":"business","pattern":"barely / really move the needle","example_en":"The discount lifted orders but barely moved the needle on margin.","example_zh":"折扣提升了订单，但对利润率几乎没有带来明显改变。","note_zh":"常和 barely、hardly 连用。"},{"id":"double-down","group":"idioms","en":"double down","zh":"加倍投入","level":"C1","register":"business","pattern":"double down on","example_en":"The company is doubling down on live commerce.","example_zh":"公司正在加倍投入直播电商。","note_zh":"在已有方向上投入更多资源。"},{"id":"turn-the-corner","group":"idioms","en":"turn the corner","zh":"开始好转","level":"C1","register":"business","pattern":"turn the corner","example_en":"After three loss-making quarters, the unit has turned the corner.","example_zh":"连续三个季度亏损后，这个业务单元开始好转。","note_zh":"强调从困难期走出来。"},{"id":"a-tale-of-two-halves","group":"idioms","en":"a tale of two halves","zh":"前后两重天","level":"C1","register":"journalism","pattern":"be a tale of two halves","example_en":"2026 was a tale of two halves: a record spring and a flat fall.","example_zh":"2026 年如同两重天：春天创纪录，秋天却停滞。","note_zh":"新闻和财报电话会常用。"},{"id":"hockey-stick-growth","group":"idioms","en":"hockey-stick growth","zh":"曲棍球杆式增长","level":"C1","register":"business","pattern":"hockey-stick growth","example_en":"The pitch promised hockey-stick growth, but the data showed a plateau.","example_zh":"路演承诺曲棍球杆式增长，但数据显示的是平台期。","note_zh":"前期平缓、后期突然陡升的曲线。"},{"id":"a-bump-in-the-road","group":"idioms","en":"a bump in the road","zh":"小挫折","level":"B2","register":"business","pattern":"be a bump in the road","example_en":"The recall is a bump in the road, not a structural decline.","example_zh":"这次召回只是小挫折，不是结构性下滑。","note_zh":"临时问题，不影响长期趋势。"},{"id":"the-bottom-line","group":"idioms","en":"the bottom line","zh":"净利润 / 最终结论","level":"B2","register":"business","pattern":"the bottom line","example_en":"The bottom line improved by 300 basis points.","example_zh":"净利润率提升了 300 个基点。","note_zh":"财务语境指净利润；日常语境指最终结论。"},{"id":"first","group":"sequence","en":"first","zh":"首先","level":"A2","register":"neutral","pattern":"First, + clause","example_en":"First, the customer places the order in the app.","example_zh":"首先，顾客在应用里下单。","note_zh":"顺序词放在句首，后面加逗号。"},{"id":"next","group":"sequence","en":"next","zh":"接着","level":"A2","register":"neutral","pattern":"Next, + clause","example_en":"Next, the restaurant confirms the order and starts cooking.","example_zh":"接着，餐厅确认订单并开始制作。","note_zh":"表示紧接的下一步。"},{"id":"after-that","group":"sequence","en":"after that","zh":"在那之后","level":"A2","register":"neutral","pattern":"After that, + clause","example_en":"After that, a courier picks up the food from the restaurant.","example_zh":"之后，骑手到餐厅取餐。","note_zh":"用来连接两个已经提过的步骤。"},{"id":"once","group":"sequence","en":"once","zh":"一旦……就……","level":"B1","register":"neutral","pattern":"Once + clause, + clause","example_en":"Once the order is confirmed, the restaurant starts cooking.","example_zh":"订单一经确认，餐厅就开始制作。","note_zh":"比 when 更强调前一步完成。"},{"id":"finally","group":"sequence","en":"finally","zh":"最后","level":"A2","register":"neutral","pattern":"Finally, + clause","example_en":"Finally, the courier hands the order to the customer.","example_zh":"最后，骑手把订单交给顾客。","note_zh":"收尾步骤用，不要和 at last 混淆。"},{"id":"be-placed","group":"sequence","en":"be placed","zh":"被提交／下单","level":"B1","register":"formal","pattern":"be placed in / with","example_en":"The order is placed in the app and paid online.","example_zh":"订单在应用里提交并在线支付。","note_zh":"流程图的被动语态常用一般现在时。"},{"id":"be-confirmed","group":"sequence","en":"be confirmed","zh":"被确认","level":"B1","register":"formal","pattern":"be confirmed by","example_en":"The order is confirmed by the restaurant within a minute.","example_zh":"订单一分钟内由餐厅确认。","note_zh":"动作发出者用 by 引出。"},{"id":"be-assigned","group":"sequence","en":"be assigned to","zh":"被分配给","level":"B2","register":"formal","pattern":"be assigned to + person / place","example_en":"The delivery is assigned to the nearest available courier.","example_zh":"这单被分配给最近的可用骑手。","note_zh":"assign 后面接 to，不接 for。"},{"id":"be-handed","group":"sequence","en":"be handed to","zh":"被交给","level":"B2","register":"formal","pattern":"be handed to + person","example_en":"The food is handed to the customer at the building entrance.","example_zh":"餐品在楼栋入口交给顾客。","note_zh":"hand over 也可以，但后面不直接接人。"},{"id":"in-turn","group":"sequence","en":"in turn","zh":"依次","level":"C1","register":"formal","pattern":"clause + in turn","example_en":"Each order is checked, packed, and handed over in turn.","example_zh":"每个订单依次经过检查、打包和交付。","note_zh":"强调按顺序一个接一个。"},{"id":"in-tandem","group":"mixed","en":"in tandem","zh":"同步地","level":"B2","register":"neutral","pattern":"move / grow in tandem","example_en":"Revenue and margin grew in tandem through the second half.","example_zh":"下半年收入和利润率同步增长。","note_zh":"两组数据同向变化时用。"},{"id":"outpace","group":"mixed","en":"outpace","zh":"超过……的速度","level":"B2","register":"neutral","pattern":"A outpaces B","example_en":"Revenue growth outpaced the increase in operating costs.","example_zh":"收入增长超过了运营成本的增长。","note_zh":"强调一方速度更快。"},{"id":"widen","group":"mixed","en":"widen","zh":"扩大","level":"B2","register":"neutral","pattern":"gap / margin widens","example_en":"The margin widened from 8.9% to 12.6% over the year.","example_zh":"利润率在这一年里从 8.9% 扩大到 12.6%。","note_zh":"可形容差距、利润率、缺口。"},{"id":"narrow","group":"mixed","en":"narrow","zh":"缩小","level":"B2","register":"neutral","pattern":"gap / margin narrows","example_en":"The gap between revenue and cost narrowed in the final quarter.","example_zh":"最后一个季度，收入和成本之间的差距缩小了。","note_zh":"和 widen 相对。"},{"id":"decouple","group":"mixed","en":"decouple","zh":"脱钩","level":"C1","register":"formal","pattern":"A decouples from B","example_en":"Revenue kept rising while costs decoupled from sales.","example_zh":"收入继续上升，成本却与销售额脱钩。","note_zh":"高级表达，指原本同步的变量分开。"},{"id":"on-the-back-of","group":"mixed","en":"on the back of","zh":"借助……","level":"C1","register":"neutral","pattern":"on the back of + noun","example_en":"Margin improved on the back of lower delivery costs.","example_zh":"借助配送成本下降，利润率有所改善。","note_zh":"表示某结果由前一因素推动。"}]},"errors":{"version":1,"errors":[{"id":"rose-of","level":"B1","family":"trend","wrong_en":"Revenue rose of 18% in the fourth quarter.","right_en":"Revenue rose by 18% in the fourth quarter.","why_zh":"变化量用 by；of 只在 a rise of 18% 这种名词结构里用。","category":"trend"},{"id":"increased-to-vs-by","level":"B1","family":"trend","wrong_en":"Orders increased to 20% after the campaign.","right_en":"Orders increased by 20% after the campaign.","why_zh":"to 接终点数值；如果 20% 是涨幅，要用 by。","category":"trend"},{"id":"twice-higher","level":"B2","family":"comparison","wrong_en":"Sales are twice higher than last year.","right_en":"Sales are twice as high as last year.","why_zh":"倍数用 as … as，不用 higher than。","category":"comparison"},{"id":"amount-of-users","level":"B1","family":"quantity","wrong_en":"The amount of users rose to 3 million.","right_en":"The number of users rose to 3 million.","why_zh":"users 可数，用 number of；amount of 接不可数名词。","category":"countability"},{"id":"less-users","level":"B1","family":"quantity","wrong_en":"Less customers opened the app this month.","right_en":"Fewer customers opened the app this month.","why_zh":"customers 可数，用 fewer；less 接不可数名词。","category":"countability"},{"id":"most-highest","level":"A2","family":"comparison","wrong_en":"East China had the most highest revenue.","right_en":"East China had the highest revenue.","why_zh":"highest 已经是最高级，不能再加 most。","category":"comparison"},{"id":"reach-to","level":"B1","family":"trend","wrong_en":"Revenue reached to RMB 92 million in the fourth quarter.","right_en":"Revenue reached RMB 92 million in the fourth quarter.","why_zh":"reach 后面直接接数值，不加 to。","category":"trend"},{"id":"occupy-share","level":"B2","family":"share","wrong_en":"Mobile occupies 52% of the market.","right_en":"Mobile accounts for 52% of the market.","why_zh":"occupy 指占据空间；份额用 account for、make up 或 represent。","category":"share"},{"id":"share-percent","level":"B2","family":"share","wrong_en":"Its share rose 6% to 52%.","right_en":"Its share rose 6 percentage points to 52%.","why_zh":"两个百分比相减，结果是百分点，不是百分比。","category":"share"},{"id":"remain-stably","level":"B2","family":"flat","wrong_en":"Customer satisfaction remained stably at 87%.","right_en":"Customer satisfaction remained stable at 87%.","why_zh":"remain 后面接形容词 stable，不接副词 stably。","category":"trend"},{"id":"fluctuated-up-and-down","level":"B2","family":"speed","wrong_en":"Order volume fluctuated up and down all year.","right_en":"Order volume fluctuated all year.","why_zh":"fluctuate 本身已经包含上下变化，up and down 重复。","category":"trend"},{"id":"dangling-compared","level":"C1","family":"comparison","wrong_en":"Compared with last year, sales increased this year.","right_en":"Sales increased this year, compared with last year.","why_zh":"Compared with 的逻辑主语要和主句主语一致，否则读者不知道谁和谁比。","category":"comparison"},{"id":"process-participle","level":"B1","wrong_en":"First, the order is place in the app.","right_en":"First, the order is placed in the app.","why_zh":"被动语态用过去分词 placed，不是原形 place。","category":"process"},{"id":"mixed-while-same","level":"B2","wrong_en":"Revenue rose, while margin rose as well.","right_en":"Revenue and margin rose in tandem.","why_zh":"while 用来对比相反或不同的趋势；同向变化用 in tandem 或 and。","category":"linking"}],"categories":[{"id":"trend","title_zh":"趋势动词与介词","title_en":"Trend verbs and prepositions"},{"id":"comparison","title_zh":"比较与最高级","title_en":"Comparison and superlatives"},{"id":"countability","title_zh":"数量与可数性","title_en":"Amount and countability"},{"id":"share","title_zh":"比例与百分点","title_en":"Shares and percentage points"},{"id":"process","title_zh":"流程与被动","title_en":"Process and passive voice"},{"id":"linking","title_zh":"连接与对比","title_en":"Linking and contrast"}]}}</script>
 <script>
@@ -2084,7 +2481,8 @@ html[data-theme="glass"] .site-head {
     svg.clear(container);
     var node = svg.el('svg', {
       viewBox: '0 0 ' + width + ' ' + height,
-      role: 'img',
+      role: 'group',
+      lang: 'en',
       'aria-label': label || 'chart',
       class: 'chart-svg',
       preserveAspectRatio: 'xMidYMid meet'
@@ -2135,6 +2533,8 @@ html[data-theme="glass"] .site-head {
     });
     var halo = svg.circle(g, { cx: x, cy: y, r: (o.radius || 7) + 4, class: 'halo' });
     var dot = svg.circle(g, { cx: x, cy: y, r: o.radius || 7, class: 'dot' });
+    // The dot belongs to its series: a grey bar must not wear a blue handle.
+    if (o.stroke) dot.style.stroke = o.stroke;
     g.setAttribute('data-x', x);
     g.setAttribute('data-y', y);
     return { group: g, hit: hit, halo: halo, dot: dot };
@@ -2848,6 +3248,8 @@ html[data-theme="glass"] .site-head {
   NC.editValue = function (lab, opts) {
     if (!lab || !lab.plot || !opts) return;
     close(lab);
+    // The editor repeats the value the tooltip is showing; one of them is enough.
+    if (NC.renderCommon && NC.renderCommon.hideTip) NC.renderCommon.hideTip(lab.plot);
 
     var point = toPixels(opts.root, lab.plot, opts.x, opts.y);
     var width = lab.plot.getBoundingClientRect().width;
@@ -3246,12 +3648,13 @@ html[data-theme="glass"] .site-head {
       total += part.value;
       baselineTotal += part.baseline || 0;
     });
-    var items = parts.map(function (part) {
+    var items = parts.map(function (part, index) {
       var share = total > 0 ? part.value / total * 100 : 0;
       var baselineShare = baselineTotal > 0 && typeof part.baseline === 'number'
         ? part.baseline / baselineTotal * 100 : null;
       return {
         id: part.id,
+        index: index,
         name_en: part.name_en,
         name_zh: part.name_zh,
         value: part.value,
@@ -3336,7 +3739,7 @@ html[data-theme="glass"] .site-head {
     return NC.fmt.clampText(text);
   };
 
-  desc.sentence = function (role, en, zh) {
+  desc.sentence = function (role, en, zh, focus) {
     var english = desc.clean(en);
     var chinese = desc.clean(zh);
     var issues = desc.check(english);
@@ -3347,9 +3750,24 @@ html[data-theme="glass"] .site-head {
       role: role,
       en: english,
       zh: chinese,
-      issues: issues
+      issues: issues,
+      focus: focus || { kind: 'all' }
     };
   };
+
+  // Focus describes the window of the chart a sentence is about. The step
+  // rail uses it to draw the band and dim everything outside it.
+  desc.focusAll = function () { return { kind: 'all' }; };
+  desc.focusRange = function (from, to) { return { kind: 'range', from: from, to: to }; };
+  desc.focusPoint = function (index) { return { kind: 'point', index: index }; };
+  desc.focusCategory = function (index, seriesIndex) {
+    return { kind: 'category', index: index, series: seriesIndex };
+  };
+  desc.focusSeries = function (index) { return { kind: 'series', index: index }; };
+  desc.focusPart = function (index) { return { kind: 'part', index: index }; };
+  desc.focusPeriod = function (index) { return { kind: 'period', index: index }; };
+  desc.focusRow = function (index) { return { kind: 'row', index: index }; };
+  desc.focusSteps = function (steps) { return { kind: 'steps', steps: steps }; };
 
   desc.seed = function (parts) {
     return NC.hash(parts.join('|'));
@@ -3486,7 +3904,7 @@ html[data-theme="glass"] .site-head {
     };
   }
 
-  function segmentSentence(ctx, seg, level, variant) {
+  function buildSegmentSentence(ctx, seg, level, variant) {
     var from = ctx.value(seg.a);
     var to = ctx.value(seg.b);
     var fromZh = ctx.valueZh(seg.a);
@@ -3600,6 +4018,12 @@ html[data-theme="glass"] .site-head {
     );
   }
 
+  function segmentSentence(ctx, seg, level, variant) {
+    var sentence = buildSegmentSentence(ctx, seg, level, variant);
+    sentence.focus = desc.focusRange(seg.fromIndex, seg.toIndex);
+    return sentence;
+  }
+
   desc.time = function (dataset, series, level, options) {
     var opts = options || {};
     var ctx = makeContext(dataset, series);
@@ -3657,7 +4081,7 @@ html[data-theme="glass"] .site-head {
     if (stats.reversal) {
       var turnIndex = stats.direction === 'up' ? stats.maxIndex : stats.minIndex;
       if (turnIndex > 0 && turnIndex < stats.n - 1) {
-        sentences.push(desc.sentence('turning-point', 'The trend reversed after ' + ctx.period(turnIndex) + '.', '趋势在' + ctx.periodZh(turnIndex) + '之后发生反转。'));
+        sentences.push(desc.sentence('turning-point', 'The trend reversed after ' + ctx.period(turnIndex) + '.', '趋势在' + ctx.periodZh(turnIndex) + '之后发生反转。', desc.focusPoint(turnIndex)));
       }
     }
 
@@ -3697,13 +4121,15 @@ html[data-theme="glass"] .site-head {
         sentences.push(desc.sentence(
           'peak',
           ctx.name + ' peaked at ' + ctx.value(stats.max) + ' in ' + ctx.period(stats.maxIndex) + '.',
-          ctx.zh + '在 ' + ctx.periodZh(stats.maxIndex) + '达到 ' + ctx.valueZh(stats.max) + ' 的峰值。'
+          ctx.zh + '在 ' + ctx.periodZh(stats.maxIndex) + '达到 ' + ctx.valueZh(stats.max) + ' 的峰值。',
+          desc.focusPoint(stats.maxIndex)
         ));
       } else if (stats.minIndex > 0 && stats.minIndex < stats.n - 1) {
         sentences.push(desc.sentence(
           'trough',
           ctx.name + ' reached its lowest point at ' + ctx.value(stats.min) + ' in ' + ctx.period(stats.minIndex) + '.',
-          ctx.zh + '在 ' + ctx.periodZh(stats.minIndex) + '跌到 ' + ctx.valueZh(stats.min) + ' 的低点。'
+          ctx.zh + '在 ' + ctx.periodZh(stats.minIndex) + '跌到 ' + ctx.valueZh(stats.min) + ' 的低点。',
+          desc.focusPoint(stats.minIndex)
         ));
       }
 
@@ -3712,7 +4138,8 @@ html[data-theme="glass"] .site-head {
         sentences.push(desc.sentence(
           'plateau',
           ctx.name + ' leveled off at around ' + ctx.value(plateau.value) + ' between ' + ctx.period(plateau.fromIndex) + ' and ' + ctx.period(plateau.toIndex) + '.',
-          ctx.zh + '在 ' + ctx.periodZh(plateau.fromIndex) + '到 ' + ctx.periodZh(plateau.toIndex) + '之间稳定在 ' + ctx.valueZh(plateau.value) + ' 左右。'
+          ctx.zh + '在 ' + ctx.periodZh(plateau.fromIndex) + '到 ' + ctx.periodZh(plateau.toIndex) + '之间稳定在 ' + ctx.valueZh(plateau.value) + ' 左右。',
+          desc.focusRange(plateau.fromIndex, plateau.toIndex)
         ));
       }
     }
@@ -3720,12 +4147,12 @@ html[data-theme="glass"] .site-head {
     if (level !== 'A2' && stats.direction !== 'flat' && isFinite(ratio) && ratio > 1.35) {
       if (stats.direction === 'up') {
         if (level === 'B1') {
-          sentences.push(desc.sentence('comparison', ctx.name + ' ended the period at ' + last + ', ' + pctAbs + ' higher than at the start.', ctx.zh + '期末为 ' + lastZh + '，比期初高 ' + pctAbs + '。'));
+          sentences.push(desc.sentence('comparison', ctx.name + ' ended the period at ' + last + ', ' + pctAbs + ' higher than at the start.', ctx.zh + '期末为 ' + lastZh + '，比期初高 ' + pctAbs + '。', desc.focusRange(0, stats.n - 1)));
         } else {
-          sentences.push(desc.sentence('comparison', ctx.name + ' in ' + pEnd + ' was ' + NC.fmt.ratio(ratio) + ' the ' + pStart + ' figure.', pEndZh + '的' + ctx.zh + '是 ' + pStartZh + '的 ' + NC.fmt.ratioValue(ratio) + ' 倍左右。'));
+          sentences.push(desc.sentence('comparison', ctx.name + ' in ' + pEnd + ' was ' + NC.fmt.ratio(ratio) + ' the ' + pStart + ' figure.', pEndZh + '的' + ctx.zh + '是 ' + pStartZh + '的 ' + NC.fmt.ratioValue(ratio) + ' 倍左右。', desc.focusRange(0, stats.n - 1)));
         }
       } else if (ratio < 0.74) {
-        sentences.push(desc.sentence('comparison', ctx.name + ' in ' + pEnd + ' was ' + pctAbs + ' lower than in ' + pStart + '.', ctx.zh + pEndZh + '的' + ctx.zh + '比' + pStartZh + '低 ' + pctAbs + '。'));
+        sentences.push(desc.sentence('comparison', ctx.name + ' in ' + pEnd + ' was ' + pctAbs + ' lower than in ' + pStart + '.', ctx.zh + pEndZh + '的' + ctx.zh + '比' + pStartZh + '低 ' + pctAbs + '。', desc.focusRange(0, stats.n - 1)));
       }
     }
 
@@ -3827,7 +4254,7 @@ html[data-theme="glass"] .site-head {
     };
   }
 
-  function compositionSentence(dataset, level, mode) {
+  function buildCompositionSentence(dataset, level, mode) {
     var data = agenda(dataset);
     var top = data.topSeries;
     var second = data.secondSeries;
@@ -3853,6 +4280,13 @@ html[data-theme="glass"] .site-head {
       return desc.sentence('structure', 'Coffee remains the core product line across the network, and the mix barely shifts from one region to the next.', '咖啡仍是整个网络的核心产品线，各地区之间的构成几乎没有变化。');
     }
     return desc.sentence('structure', 'Coffee remains the core product line, contributing ' + topShare + ' of group revenue, while bakery and retail add breadth rather than scale.', '咖啡仍是核心产品线，贡献集团收入的 ' + topShare + '；烘焙和零售更多是补充品类，而非规模来源。');
+  }
+
+  function compositionSentence(dataset, level, mode) {
+    var sentence = buildCompositionSentence(dataset, level, mode);
+    var data = agenda(dataset);
+    sentence.focus = desc.focusSeries(data.topSeries.index);
+    return sentence;
   }
 
   desc.bar = function (dataset, level, mode) {
@@ -3887,7 +4321,8 @@ html[data-theme="glass"] .site-head {
       sentences.push(desc.sentence(
         'bottom',
         bottom.name_en + ' was the lowest, at ' + bottomValue + '.',
-        bottom.name_zh + '最低，为 ' + bottomValueZh + '。'
+        bottom.name_zh + '最低，为 ' + bottomValueZh + '。',
+        desc.focusCategory(bottom.index)
       ));
     } else if (level === 'B2') {
       sentences.push(desc.sentence(
@@ -3898,7 +4333,8 @@ html[data-theme="glass"] .site-head {
       sentences.push(desc.sentence(
         'bottom',
         bottom.name_en + ' was the smallest market at ' + bottomValue + '.',
-        bottom.name_zh + '是最小的市场，为 ' + bottomValueZh + '。'
+        bottom.name_zh + '是最小的市场，为 ' + bottomValueZh + '。',
+        desc.focusCategory(bottom.index)
       ));
     } else {
       sentences.push(desc.sentence(
@@ -3943,7 +4379,8 @@ html[data-theme="glass"] .site-head {
       sentences.push(desc.sentence(
         'overview',
         'The table shows revenue by region and product line. ' + top.name_en + ' has the most revenue.',
-        '表格显示各地区和各产品线的收入。' + top.name_zh + '收入最多。'
+        '表格显示各地区和各产品线的收入。' + top.name_zh + '收入最多。',
+        desc.focusRow(top.index)
       ));
       sentences.push(desc.sentence(
         'total',
@@ -3954,23 +4391,27 @@ html[data-theme="glass"] .site-head {
       sentences.push(desc.sentence(
         'overview',
         'The table compares revenue across six regions and three product lines. ' + top.name_en + ' had the highest total at ' + valueText(dataset, top.value) + ', while ' + bottom.name_en + ' had the lowest at ' + valueText(dataset, bottom.value) + '.',
-        '表格比较了六个地区、三条产品线的收入。' + top.name_zh + '合计最高，为 ' + valueZh(dataset, top.value) + '；' + bottom.name_zh + '最低，为 ' + valueZh(dataset, bottom.value) + '。'
+        '表格比较了六个地区、三条产品线的收入。' + top.name_zh + '合计最高，为 ' + valueZh(dataset, top.value) + '；' + bottom.name_zh + '最低，为 ' + valueZh(dataset, bottom.value) + '。',
+        desc.focusRow(top.index)
       ));
       sentences.push(desc.sentence(
         'structure',
         data.topSeries.name_en + ' accounted for ' + pctText(data.topSeries.share) + ' of total revenue.',
-        data.topSeries.name_zh + '占总收入的 ' + pctText(data.topSeries.share) + '。'
+        data.topSeries.name_zh + '占总收入的 ' + pctText(data.topSeries.share) + '。',
+        desc.focusSeries(data.topSeries.index)
       ));
     } else if (level === 'B2') {
       sentences.push(desc.sentence(
         'overview',
         top.name_en + ' recorded the highest total at ' + valueText(dataset, top.value) + ', ' + valueText(dataset, data.gap) + ' ahead of ' + data.second.name_en + '.',
-        top.name_zh + '合计最高，为 ' + valueZh(dataset, top.value) + '，领先' + data.second.name_zh + ' ' + valueZh(dataset, data.gap) + '。'
+        top.name_zh + '合计最高，为 ' + valueZh(dataset, top.value) + '，领先' + data.second.name_zh + ' ' + valueZh(dataset, data.gap) + '。',
+        desc.focusRow(top.index)
       ));
       sentences.push(desc.sentence(
         'structure',
         'Coffee generated ' + pctText(data.topSeries.share) + ' of revenue, more than bakery and retail combined.',
-        '咖啡贡献了 ' + pctText(data.topSeries.share) + ' 的收入，超过烘焙和零售之和。'
+        '咖啡贡献了 ' + pctText(data.topSeries.share) + ' 的收入，超过烘焙和零售之和。',
+        desc.focusSeries(data.topSeries.index)
       ));
       sentences.push(desc.sentence(
         'total',
@@ -3981,12 +4422,14 @@ html[data-theme="glass"] .site-head {
       sentences.push(desc.sentence(
         'overview',
         'The table points to a clear concentration of revenue in the east and south, which together account for ' + pctText(pct(top.value + data.second.value, data.total)) + ' of the total.',
-        '表格显示收入明显集中在华东和华南，两地合计占总收入的 ' + pctText(pct(top.value + data.second.value, data.total)) + '。'
+        '表格显示收入明显集中在华东和华南，两地合计占总收入的 ' + pctText(pct(top.value + data.second.value, data.total)) + '。',
+        desc.focusRow(top.index)
       ));
       sentences.push(desc.sentence(
         'structure',
         'The product mix is remarkably consistent: coffee contributes roughly ' + pctText(data.topSeries.share) + ' of revenue in every region.',
-        '产品结构相当一致：咖啡在每个地区都贡献约 ' + pctText(data.topSeries.share) + ' 的收入。'
+        '产品结构相当一致：咖啡在每个地区都贡献约 ' + pctText(data.topSeries.share) + ' 的收入。',
+        desc.focusSeries(data.topSeries.index)
       ));
       sentences.push(desc.sentence(
         'nuance',
@@ -4056,7 +4499,8 @@ html[data-theme="glass"] .site-head {
       sentences.push(desc.sentence(
         'smallest',
         bottom.name_en + ' accounts for just ' + bottomShare + '.',
-        bottom.name_zh + '只占 ' + bottomShare + '。'
+        bottom.name_zh + '只占 ' + bottomShare + '。',
+        desc.focusPart(bottom.index)
       ));
       if (stats.consolidated) {
         sentences.push(desc.sentence(
@@ -4077,7 +4521,8 @@ html[data-theme="glass"] .site-head {
         sentences.push(desc.sentence(
           'change',
           b1Change.name_en + ' ' + (b1Shrank ? 'lost ' : b1Change.deltaPP > 0 ? 'gained ' : 'lost ') + pp(b1Change.deltaPP) + ', from ' + pct(b1Change.baselineShare) + ' to ' + pct(b1Change.share) + '.',
-          b1Change.name_zh + (b1Shrank ? '份额下降 ' : b1Change.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(b1Change.deltaPP) + '，从 ' + pct(b1Change.baselineShare) + ' 变为 ' + pct(b1Change.share) + '。'
+          b1Change.name_zh + (b1Shrank ? '份额下降 ' : b1Change.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(b1Change.deltaPP) + '，从 ' + pct(b1Change.baselineShare) + ' 变为 ' + pct(b1Change.share) + '。',
+          desc.focusPart(b1Change.index)
         ));
       }
     } else if (level === 'B2') {
@@ -4110,7 +4555,8 @@ html[data-theme="glass"] .site-head {
         sentences.push(desc.sentence(
           'distance',
           second.name_en + ' is a distant second, ' + gap + ' behind.',
-          second.name_zh + '远远排在第二，落后 ' + gapZh + '。'
+          second.name_zh + '远远排在第二，落后 ' + gapZh + '。',
+          desc.focusPart(second.index)
         ));
       }
       var mainChange = stats.changes.filter(function (item) { return item.id === top.id; })[0] || stats.changes[0];
@@ -4119,7 +4565,8 @@ html[data-theme="glass"] .site-head {
         sentences.push(desc.sentence(
           'change',
           mainChange.name_en + ' ' + (leaderShrank ? 'shrank by ' : mainChange.deltaPP > 0 ? 'gained ' : 'lost ') + pp(mainChange.deltaPP) + ', from ' + pct(mainChange.baselineShare) + ' to ' + pct(mainChange.share) + '.',
-          mainChange.name_zh + (leaderShrank ? '份额缩水 ' : mainChange.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(mainChange.deltaPP) + '，从 ' + pct(mainChange.baselineShare) + ' 变为 ' + pct(mainChange.share) + '。'
+          mainChange.name_zh + (leaderShrank ? '份额缩水 ' : mainChange.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(mainChange.deltaPP) + '，从 ' + pct(mainChange.baselineShare) + ' 变为 ' + pct(mainChange.share) + '。',
+          desc.focusPart(mainChange.index)
         ));
       }
     } else {
@@ -4161,14 +4608,16 @@ html[data-theme="glass"] .site-head {
         sentences.push(desc.sentence(
           'change',
           mover.name_en + ' ' + (moverShrank ? 'shrank by ' : mover.deltaPP > 0 ? 'gained ' : 'lost ') + pp(mover.deltaPP) + ' over the period.',
-          mover.name_zh + '在此期间' + (moverShrank ? '份额缩水 ' : mover.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(mover.deltaPP) + '。'
+          mover.name_zh + '在此期间' + (moverShrank ? '份额缩水 ' : mover.deltaPP > 0 ? '上升 ' : '下降 ') + ppZh(mover.deltaPP) + '。',
+          desc.focusPart(mover.index)
         ));
       }
       if (bottom.share <= 5) {
         sentences.push(desc.sentence(
           'tail',
           bottom.name_en + ' accounts for only ' + bottomShare + ', a small slice of the total.',
-          bottom.name_zh + '只占 ' + bottomShare + '，是总量中很小的一块。'
+          bottom.name_zh + '只占 ' + bottomShare + '，是总量中很小的一块。',
+          desc.focusPart(bottom.index)
         ));
       }
     }
@@ -4186,7 +4635,7 @@ html[data-theme="glass"] .site-head {
   function sentence(role, en, zh, steps) {
     var item = desc.sentence(role, en, zh);
     item.steps = steps || [];
-    item.focus = item.steps.slice();
+    item.focus = desc.focusSteps(item.steps);
     return item;
   }
 
@@ -4344,7 +4793,8 @@ html[data-theme="glass"] .site-head {
         sentences.push(desc.sentence(
           'turning-point',
           'Both figures dipped in ' + periods[dip].label_en + ' before recovering.',
-          '两项数字都在' + periods[dip].label_zh + '出现回落，随后恢复。'
+          '两项数字都在' + periods[dip].label_zh + '出现回落，随后恢复。',
+          desc.focusPeriod(dip)
         ));
       }
       sentences.push(desc.sentence(
@@ -4365,7 +4815,8 @@ html[data-theme="glass"] .site-head {
         sentences.push(desc.sentence(
           'turning-point',
           'Both series dipped in ' + periods[dip].label_en + ', when revenue fell to ' + value(bars, dip) + ' and margin slipped to ' + value(line, dip) + '.',
-          '两组数据都在' + periods[dip].label_zh + '回落，收入降到 ' + valueZh(bars, dip) + '，利润率降到 ' + valueZh(line, dip) + '。'
+          '两组数据都在' + periods[dip].label_zh + '回落，收入降到 ' + valueZh(bars, dip) + '，利润率降到 ' + valueZh(line, dip) + '。',
+          desc.focusPeriod(dip)
         ));
       }
       sentences.push(desc.sentence(
@@ -4390,7 +4841,8 @@ html[data-theme="glass"] .site-head {
       sentences.push(desc.sentence(
         'turning-point',
         'The only clear break comes in ' + periods[dip].label_en + ', when revenue and margin both fell, before resuming their upward path.',
-        '唯一明显的转折出现在' + periods[dip].label_zh + '：收入和利润率同时下滑，随后又恢复上行。'
+        '唯一明显的转折出现在' + periods[dip].label_zh + '：收入和利润率同时下滑，随后又恢复上行。',
+        desc.focusPeriod(dip)
       ));
     }
     sentences.push(desc.sentence(
@@ -4419,6 +4871,20 @@ html[data-theme="glass"] .site-head {
   common.margin = { top: 18, right: 26, bottom: 52, left: 66 };
   common.compactMargin = { top: 16, right: 18, bottom: 46, left: 56 };
 
+  // The chart uses the real pixel size of its host instead of a fixed viewBox,
+  // so it fills the studio stage at any viewport and text never scales away.
+  common.size = function (host, fallbackWidth, fallbackHeight) {
+    var rect = host && host.getBoundingClientRect ? host.getBoundingClientRect() : null;
+    var width = rect && rect.width ? Math.round(rect.width) : (fallbackWidth || common.width);
+    var height = rect && rect.height ? Math.round(rect.height) : (fallbackHeight || common.height);
+    var size = {
+      width: Math.max(320, width),
+      height: Math.max(220, height)
+    };
+    if (host) host.__chartSize = { width: size.width, height: size.height };
+    return size;
+  };
+
   common.plot = function (width, height, compact) {
     var m = compact ? common.compactMargin : common.margin;
     return {
@@ -4433,25 +4899,22 @@ html[data-theme="glass"] .site-head {
 
   common.fit = function (root) {
     if (!root || !root.getBoundingClientRect) return false;
-    var rect = root.getBoundingClientRect();
-    var box = root.viewBox && root.viewBox.baseVal;
-    var viewWidth = box && box.width ? box.width : common.width;
-    var scale = rect.width > 0 ? rect.width / viewWidth : 1;
-    root.style.fontSize = (13 / (scale || 1)) + 'px';
-    var compact = rect.width > 0 && rect.width < 520;
+    var compact = false;
+    if (root.getBoundingClientRect) {
+      var rect = root.getBoundingClientRect();
+      compact = rect.width > 0 && rect.width < 520;
+    }
+    root.style.fontSize = compact ? '13.5px' : '15px';
     root.setAttribute('data-compact', compact ? 'true' : 'false');
     return compact;
   };
 
   common.screenPx = function (root, px) {
-    var rect = root && root.getBoundingClientRect ? root.getBoundingClientRect() : null;
-    var box = root && root.viewBox ? root.viewBox.baseVal : null;
-    if (!rect || !rect.width || !box || !box.width) return px;
-    return px / (rect.width / box.width);
+    return px;
   };
 
   common.tip = function (plotHost) {
-    if (plotHost.__tip) return plotHost.__tip;
+    if (plotHost.__tip && plotHost.__tip.parentNode === plotHost) return plotHost.__tip;
     var node = document.createElement('div');
     node.className = 'chart-tip';
     node.setAttribute('aria-hidden', 'true');
@@ -4471,13 +4934,83 @@ html[data-theme="glass"] .site-head {
     var left = (rect.left - hostRect.left) + (x / box.width) * rect.width;
     var top = (rect.top - hostRect.top) + (y / box.height) * rect.height;
     node.dataset.visible = 'true';
-    node.style.left = Math.max(10, Math.min(hostRect.width - 10, left)) + 'px';
-    node.style.top = Math.max(26, top) + 'px';
+    // Keep the whole bubble inside the plot, and flip it below the mark when
+    // there is no room above.
+    var half = node.offsetWidth / 2;
+    var height = node.offsetHeight;
+    left = Math.max(half + 8, Math.min(hostRect.width - half - 8, left));
+    var below = top < height + 16;
+    node.style.left = left + 'px';
+    node.style.top = (below ? top + 14 : top) + 'px';
+    node.style.transform = below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)';
   };
 
   common.hideTip = function (plotHost) {
     if (!plotHost || !plotHost.__tip) return;
     plotHost.__tip.dataset.visible = 'false';
+  };
+
+  // Handles stay invisible until the mark they belong to is hovered. This
+  // keeps a dense chart reading as a chart rather than an editor, while the
+  // affordance still appears exactly where the pointer is.
+  common.linkHandle = function (mark, handle) {
+    if (!mark || !handle) return;
+    function show() { handle.group.classList.add('is-visible'); }
+    function hide() { handle.group.classList.remove('is-visible'); }
+    mark.addEventListener('pointerenter', show);
+    mark.addEventListener('pointerleave', hide);
+    handle.group.addEventListener('pointerenter', show);
+    handle.group.addEventListener('pointerleave', hide);
+  };
+
+  // ---- focus: the window on the chart that the active sentence describes ----
+
+  common.focusLayer = function (root) {
+    if (!root.__focusLayer) {
+      var layer = svg.group(root, { class: 'focus-layer' });
+      root.appendChild(layer);
+      root.__focusLayer = layer;
+    }
+    return root.__focusLayer;
+  };
+
+  common.clearFocus = function (root) {
+    if (!root || !root.__focusLayer) return;
+    while (root.__focusLayer.firstChild) root.__focusLayer.removeChild(root.__focusLayer.firstChild);
+  };
+
+  common.focusBand = function (root, x, y, width, height) {
+    var layer = common.focusLayer(root);
+    svg.rect(layer, {
+      x: x, y: y, width: Math.max(1, width), height: Math.max(1, height),
+      class: 'focus-band'
+    });
+    svg.rect(layer, {
+      x: x, y: y, width: Math.max(1, width), height: Math.max(1, height),
+      class: 'focus-edge'
+    });
+    return layer;
+  };
+
+  common.focusRing = function (root, x, y, radius) {
+    var layer = common.focusLayer(root);
+    svg.circle(layer, { cx: x, cy: y, r: radius, class: 'focus-ring' });
+    return layer;
+  };
+
+  common.clearDim = function (root) {
+    if (!root) return;
+    Array.prototype.forEach.call(root.querySelectorAll('.is-dim'), function (node) {
+      node.classList.remove('is-dim');
+    });
+  };
+
+  common.dimExcept = function (root, selector, keep) {
+    if (!root) return;
+    Array.prototype.forEach.call(root.querySelectorAll(selector), function (node) {
+      var on = keep ? keep(node) : false;
+      node.classList.toggle('is-dim', !on);
+    });
   };
 
   common.fitText = function (node, maxWidth) {
@@ -4548,15 +5081,17 @@ html[data-theme="glass"] .site-head {
         });
       }
       var lastIndex = labels.length - 1;
-      var show = labels.length <= 8 || index === 0 || index === lastIndex ||
+      var show = index === 0 || index === lastIndex ||
         (index % every === 0 && lastIndex - index >= 2);
+      if (every === 1 && labels.length <= 8) show = true;
       if (!show) return;
       var anchor = index === 0 ? 'start' : index === lastIndex ? 'end' : 'middle';
-      svg.text(root, {
+      var labelNode = svg.text(root, {
         x: x, y: opts.bottom + 20,
         'text-anchor': anchor,
         class: 'axis-label'
       }, label);
+      if (opts.labelLang) labelNode.setAttribute('lang', opts.labelLang);
     });
   };
 
@@ -4637,8 +5172,9 @@ html[data-theme="glass"] .site-head {
 
   function makeLineRenderer(variant) {
     function render(lab) {
-      var width = 720;
-      var height = 380;
+      var box = common.size(lab.plot);
+      var width = box.width;
+      var height = box.height;
       var series = lab.dataset.series[0];
       var values = series.values;
       var periods = lab.dataset.periods;
@@ -4681,8 +5217,8 @@ html[data-theme="glass"] .site-head {
       var gradient = svg.el('linearGradient', {
         id: gradientId, x1: '0', y1: '0', x2: '0', y2: '1'
       }, defs);
-      svg.el('stop', { offset: '0%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.16' }, gradient);
-      svg.el('stop', { offset: '100%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.02' }, gradient);
+      svg.el('stop', { offset: '0%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.12' }, gradient);
+      svg.el('stop', { offset: '100%', 'stop-color': 'var(--series-1)', 'stop-opacity': '0.01' }, gradient);
 
       var hit = svg.rect(root, {
         x: plot.left, y: plot.top, width: plot.width, height: plot.height,
@@ -4694,15 +5230,11 @@ html[data-theme="glass"] .site-head {
       });
       crosshair.setAttribute('opacity', '0');
 
-      var area = null;
+      var areaD = 'M ' + pathPoints[0][0] + ' ' + plot.bottom +
+        ' L ' + pathPoints.map(function (point) { return point[0] + ' ' + point[1]; }).join(' L ') +
+        ' L ' + pathPoints[pathPoints.length - 1][0] + ' ' + plot.bottom + ' Z';
+      var area = svg.path(root, { d: areaD, fill: 'url(#' + gradientId + ')', class: 'area-fill' });
       var edge = null;
-      if (variant === 'area') {
-        var areaD = 'M ' + pathPoints[0][0] + ' ' + plot.bottom +
-          ' L ' + pathPoints.map(function (point) { return point[0] + ' ' + point[1]; }).join(' L ') +
-          ' L ' + pathPoints[pathPoints.length - 1][0] + ' ' + plot.bottom + ' Z';
-        area = svg.path(root, { d: areaD, fill: 'url(#' + gradientId + ')', class: 'area-fill' });
-        edge = svg.path(root, { d: lineD, class: 'area-edge' });
-      }
 
       var line = svg.path(root, { d: lineD, class: 'line-path' });
       var hoverDot = svg.circle(root, { cx: 0, cy: 0, r: 4.5, class: 'hover-dot' });
@@ -4722,7 +5254,7 @@ html[data-theme="glass"] .site-head {
       }
       labelIndices[last] = true;
       if (compact) {
-        if (maxIndex !== last) labelIndices[maxIndex] = true;
+        labelIndices[first] = true;
       } else {
         labelIndices[first] = true;
         labelIndices[minIndex] = true;
@@ -4769,6 +5301,10 @@ html[data-theme="glass"] .site-head {
         hoverDot.setAttribute('cx', px);
         hoverDot.setAttribute('cy', py);
         hoverDot.setAttribute('opacity', '1');
+        handles.forEach(function (item, i) {
+          if (!item) return;
+          item.group.classList.toggle('is-visible', i === index);
+        });
         common.showTip(lab.plot, tipText(index), root, px, py);
       }
 
@@ -4776,6 +5312,9 @@ html[data-theme="glass"] .site-head {
         if (lab.lineState) lab.lineState.activeIndex = null;
         crosshair.setAttribute('opacity', '0');
         hoverDot.setAttribute('opacity', '0');
+        handles.forEach(function (item) {
+          if (item) item.group.classList.remove('is-visible');
+        });
         common.hideTip(lab.plot);
       }
 
@@ -4799,6 +5338,7 @@ html[data-theme="glass"] .site-head {
           now: value,
           radius: handleRadius,
           hitRadius: hitRadius,
+          stroke: 'var(--' + series.color + ')',
           label: series.name_en + ' in ' + periods[index].label_en,
           valueText: tipText(index)
         });
@@ -4867,7 +5407,7 @@ html[data-theme="glass"] .site-head {
         showPoint: showPoint,
         hidePoint: hidePoint
       };
-      lab.motion = { line: line, dots: handles.map(function (handle) { return handle.dot; }), labels: labels };
+      lab.motion = { line: line, labels: labels };
     }
 
     function update(lab) {
@@ -4910,6 +5450,27 @@ html[data-theme="glass"] .site-head {
       if (typeof state.activeIndex === 'number') state.showPoint(state.activeIndex);
     }
 
+    function highlight(lab, focus) {
+      var state = lab.lineState;
+      if (!state) return;
+      common.clearFocus(state.root);
+      common.clearDim(state.root);
+      if (!focus || focus.kind === 'all') return;
+      if (focus.kind === 'range') {
+        var from = Math.max(0, Math.min(state.periods.length - 1, focus.from));
+        var to = Math.max(from, Math.min(state.periods.length - 1, focus.to));
+        var x1 = state.x(from) - 10;
+        var x2 = state.x(to) + 10;
+        common.focusBand(state.root, Math.max(state.plot.left, x1), state.plot.top, Math.max(24, x2 - x1), state.plot.height);
+        common.focusRing(state.root, state.x(to), state.y(state.series.values[to]), 7);
+      } else if (focus.kind === 'point') {
+        var index = Math.max(0, Math.min(state.periods.length - 1, focus.index));
+        var px = state.x(index);
+        common.focusBand(state.root, Math.max(state.plot.left, px - 13), state.plot.top, 26, state.plot.height);
+        common.focusRing(state.root, px, state.y(state.series.values[index]), 8);
+      }
+    }
+
     function describe(lab) {
       return NC.desc.time(lab.dataset, lab.dataset.series[0], NC.state.level, { area: variant === 'area' });
     }
@@ -4945,6 +5506,7 @@ html[data-theme="glass"] .site-head {
       },
       render: render,
       update: update,
+      highlight: highlight,
       describe: describe,
       table: tableSpec
     };
@@ -4988,7 +5550,8 @@ html[data-theme="glass"] .site-head {
     if (!isFinite(value) || value <= 0) return 100;
     var step = Math.pow(10, Math.floor(Math.log10(value)));
     var scaled = value / step;
-    var nice = scaled <= 1.2 ? 1.2 : scaled <= 2 ? 2 : scaled <= 2.5 ? 2.5 : scaled <= 3 ? 3 : scaled <= 5 ? 5 : 10;
+    var nice = scaled <= 1.2 ? 1.2 : scaled <= 2 ? 2 : scaled <= 2.5 ? 2.5 : scaled <= 3 ? 3
+      : scaled <= 4 ? 4 : scaled <= 5 ? 5 : scaled <= 6 ? 6 : scaled <= 8 ? 8 : 10;
     return Math.ceil(nice * step);
   }
 
@@ -5097,8 +5660,9 @@ html[data-theme="glass"] .site-head {
   function drawVertical(lab) {
     var dataset = lab.dataset;
     var state = lab.barState;
-    var width = 720;
-    var height = 400;
+    var box = common.size(lab.plot);
+    var width = box.width;
+    var height = box.height;
     var root = svg.create(lab.plot, width, height, 'Bar chart of revenue by region and product line. Drag a bar to change a value.');
     lab.svg = root;
     var compact = common.fit(root);
@@ -5125,8 +5689,12 @@ html[data-theme="glass"] .site-head {
     });
     common.drawXAxis(root, {
       left: plot.left, right: plot.right, bottom: plot.bottom,
-      labels: dataset.categories.map(function (category) { return category.label_en; }),
-      x: function (index) { return band.center(index); }
+      labels: dataset.categories.map(function (category) {
+        return compact ? category.label_zh : category.label_en;
+      }),
+      x: function (index) { return band.center(index); },
+      labelEvery: 1,
+      labelLang: compact ? 'zh-CN' : 'en'
     });
 
     var seriesCount = dataset.series.length;
@@ -5198,10 +5766,12 @@ html[data-theme="glass"] .site-head {
             now: value,
             radius: common.screenPx(root, 4),
             hitRadius: common.screenPx(root, 14),
+            stroke: 'var(--' + series.color + ')',
             label: category.label_en + ' ' + series.name_en,
             valueText: tipText(dataset, seriesIndex, categoryIndex),
             data: { series: seriesIndex, index: categoryIndex, category: category.id }
           });
+          common.linkHandle(rect, stackHandle);
           NC.drag.bind(stackHandle.group, {
             axis: 'y',
             min: 0,
@@ -5289,10 +5859,12 @@ html[data-theme="glass"] .site-head {
             now: value,
             radius: common.screenPx(root, 4.5),
             hitRadius: common.screenPx(root, 15),
+            stroke: 'var(--' + series.color + ')',
             label: category.label_en + ' ' + series.name_en,
             valueText: tipText(dataset, seriesIndex, categoryIndex),
             data: { series: seriesIndex, index: categoryIndex, category: category.id }
           });
+          common.linkHandle(rect, handle);
           bindBar(handle.group, lab, seriesIndex, categoryIndex, handle, function () {
             showTip(seriesIndex, categoryIndex, x + barWidth / 2, y(series.values[categoryIndex]));
           });
@@ -5439,8 +6011,9 @@ html[data-theme="glass"] .site-head {
   function drawHorizontal(lab) {
     var dataset = lab.dataset;
     var state = lab.barState;
-    var width = 720;
-    var height = 420;
+    var box = common.size(lab.plot);
+    var width = box.width;
+    var height = box.height;
     var root = svg.create(lab.plot, width, height, 'Horizontal bar chart ranking regions by revenue. Drag a bar to change a value.');
     lab.svg = root;
     var compact = common.fit(root);
@@ -5496,7 +6069,8 @@ html[data-theme="glass"] .site-head {
         'text-anchor': 'end',
         'dominant-baseline': 'middle',
         class: 'axis-label category-label'
-      }, category.label_en);
+      }, compact ? category.label_zh : category.label_en);
+      name.setAttribute('lang', compact ? 'zh-CN' : 'en');
       common.fitText(name, plot.left - 22);
 
       if (layout === 'stacked') {
@@ -5550,11 +6124,13 @@ html[data-theme="glass"] .site-head {
             now: value,
             radius: common.screenPx(root, 4),
             hitRadius: common.screenPx(root, compact ? 16 : 13),
+            stroke: 'var(--' + series.color + ')',
             orientation: 'horizontal',
             label: category.label_en + ' ' + series.name_en,
             valueText: tipText(dataset, seriesIndex, categoryIndex),
             data: { series: seriesIndex, index: categoryIndex, category: category.id }
           });
+          common.linkHandle(rect, stackHandle);
           NC.drag.bind(stackHandle.group, {
             axis: 'x',
             min: 0,
@@ -5658,11 +6234,13 @@ html[data-theme="glass"] .site-head {
             now: value,
             radius: common.screenPx(root, 4),
             hitRadius: common.screenPx(root, compact ? 16 : 13),
+            stroke: 'var(--' + series.color + ')',
             orientation: 'horizontal',
             label: category.label_en + ' ' + series.name_en,
             valueText: tipText(dataset, seriesIndex, categoryIndex),
             data: { series: seriesIndex, index: categoryIndex, category: category.id }
           });
+          common.linkHandle(rect, handle);
           bindBar(handle.group, lab, seriesIndex, categoryIndex, handle, function () {
             showTip(seriesIndex, categoryIndex, x(series.values[categoryIndex]), by + barHeight / 2);
           });
@@ -5813,6 +6391,49 @@ html[data-theme="glass"] .site-head {
     }
   }
 
+  function highlight(lab, focus) {
+    var state = lab.barState;
+    if (!state) return;
+    var root = state.root;
+    common.clearFocus(root);
+    common.clearDim(root);
+    if (!focus || focus.kind === 'all') return;
+
+    var markSelector = state.layout === 'stacked' ? '.bar-segment' : '.bar-current';
+
+    if (focus.kind === 'series') {
+      var series = lab.dataset.series[focus.index];
+      var seriesId = series ? series.id : null;
+      common.dimExcept(root, markSelector, function (node) {
+        return node.getAttribute('data-series') === seriesId;
+      });
+      return;
+    }
+
+    if (focus.kind === 'category' || focus.kind === 'range') {
+      var from = focus.kind === 'range' ? focus.from : focus.index;
+      var to = focus.kind === 'range' ? focus.to : focus.index;
+      var seriesIndex = focus.series;
+      var seriesFilter = seriesIndex != null && lab.dataset.series[seriesIndex]
+        ? lab.dataset.series[seriesIndex].id : null;
+      if (state.direction === 'horizontal') {
+        var y1 = state.band.center(from) - state.band.width / 2;
+        var y2 = state.band.center(to) + state.band.width / 2;
+        common.focusBand(root, state.plot.left, y1, state.plot.width, Math.max(16, y2 - y1));
+      } else {
+        var x1 = state.band.center(from) - state.band.width / 2;
+        var x2 = state.band.center(to) + state.band.width / 2;
+        common.focusBand(root, x1, state.plot.top, Math.max(16, x2 - x1), state.plot.height);
+      }
+      common.dimExcept(root, markSelector, function (node) {
+        var index = Number(node.getAttribute('data-index'));
+        if (index < from || index > to) return false;
+        if (seriesFilter && node.getAttribute('data-series') !== seriesFilter) return false;
+        return true;
+      });
+    }
+  }
+
   function describe(lab) {
     return NC.desc.bar(lab.dataset, NC.state.level, lab.mode);
   }
@@ -5852,6 +6473,7 @@ html[data-theme="glass"] .site-head {
     mount: function (lab) { render(lab); },
     render: render,
     update: update,
+    highlight: highlight,
     describe: describe,
     table: tableSpec
   };
@@ -5936,15 +6558,18 @@ html[data-theme="glass"] .site-head {
     var values = dataset.parts.map(function (part) { return part.value; });
     var sum = total(values);
     var perc = shares(values, sum);
-    var width = 720;
-    var height = 360;
+    var box = common.size(lab.plot);
+    var width = box.width;
+    var height = box.height;
     var root = svg.create(lab.plot, width, height, 'Pie chart of market share by channel. Drag a boundary to change the split.');
     lab.svg = root;
     var compact = common.fit(root);
     lab.compact = compact;
-    var cx = 360;
-    var cy = compact ? 168 : 176;
-    var radius = compact ? 110 : 132;
+    var cx = width / 2;
+    var cy = height * 0.47;
+    var radius = Math.min(width * 0.2, height * 0.36, 220);
+    var half = width / 2;
+    var labelGap = Math.min(48, Math.max(16, half - radius - (compact ? 96 : 112) - 8));
     var start = -Math.PI / 2;
     var cumulative = start;
 
@@ -5974,13 +6599,14 @@ html[data-theme="glass"] .site-head {
         d: NC.scale.arc(cx, cy, radius, cumulative, end),
         fill: 'var(--' + part.color + ')',
         class: 'pie-slice',
-        'data-id': part.id
+        'data-id': part.id,
+        'data-index': index
       });
       var mid = cumulative + angle / 2;
       var side = Math.cos(mid) >= 0 ? 1 : -1;
       var p0 = NC.scale.polar(cx, cy, radius + 6, mid);
-      var p1 = { x: cx + side * (radius + 34), y: cy + Math.sin(mid) * (radius + 34) };
-      var p2 = { x: cx + side * (radius + 48), y: p1.y };
+      var p1 = { x: cx + side * (radius + labelGap * 0.55), y: cy + Math.sin(mid) * (radius + labelGap * 0.55) };
+      var p2 = { x: cx + side * (radius + labelGap), y: p1.y };
       var leader = svg.path(leaderLayer, {
         d: 'M ' + p0.x + ' ' + p0.y + ' L ' + p1.x + ' ' + p1.y + ' L ' + p2.x + ' ' + p2.y,
         class: 'pie-leader'
@@ -6037,12 +6663,41 @@ html[data-theme="glass"] .site-head {
         now: perc[index],
         radius: common.screenPx(root, 5),
         hitRadius: common.screenPx(root, compact ? 22 : 18),
+        stroke: 'var(--' + part.color + ')',
         label: 'Boundary between ' + part.name_en + ' and ' + dataset.parts[nextIndex].name_en,
         valueText: part.name_en + ' ' + NC.fmt.number(perc[index], 0) + '%, ' + dataset.parts[nextIndex].name_en + ' ' + NC.fmt.number(perc[nextIndex], 0) + '%'
       });
       handle.group.classList.add('pie-handle');
       handle.group.setAttribute('data-index', index);
       handles.push({ index: index, handle: handle });
+    });
+
+    // A slice is also a mark you can edit: hover reveals its two boundaries,
+    // click opens the share editor.
+    dataset.parts.forEach(function (part, index) {
+      var previous = (index - 1 + dataset.parts.length) % dataset.parts.length;
+      common.linkHandle(slices[index], handles[index].handle);
+      common.linkHandle(slices[index], handles[previous].handle);
+      NC.bindValueClick(slices[index], lab, function () {
+        var share = lab.pieState ? lab.pieState.perc[index] : perc[index];
+        var mid = start;
+        for (var i = 0; i < index; i += 1) mid += perc[i] / 100 * Math.PI * 2;
+        mid += (perc[index] / 100 * Math.PI * 2) / 2;
+        var point = NC.scale.polar(cx, cy, radius * 0.7, mid);
+        return {
+          root: root,
+          x: point.x,
+          y: point.y,
+          value: share,
+          min: 3,
+          max: 97,
+          step: 1,
+          label: part.name_en,
+          unit: '%',
+          set: function (value) { setShare(dataset, index, value); },
+          onCommit: function () { lab.changed(true); }
+        };
+      });
     });
 
     function partTip(index) {
@@ -6077,6 +6732,7 @@ html[data-theme="glass"] .site-head {
 
     lab.pieState = {
       cx: cx, cy: cy, radius: radius, start: start, height: height,
+      labelGap: labelGap,
       slices: slices, labels: labels, leaders: leaders, handles: handles,
       parts: dataset.parts, root: root, perc: perc,
       tipIndex: null, layoutLabels: layoutLabels, showTip: showTip
@@ -6233,23 +6889,6 @@ html[data-theme="glass"] .site-head {
         showTip(index);
       });
       slices[index].addEventListener('pointerleave', hideTip);
-      slices[index].addEventListener('pointerdown', function (event) {
-        if (event.button != null && event.button !== 0) return;
-        var angle = pointAngle(event);
-        var best = 0;
-        var bestDistance = Infinity;
-        for (var i = 0; i < dataset.parts.length; i += 1) {
-          var boundary = start;
-          for (var j = 0; j <= i; j += 1) boundary += perc[j] / 100 * Math.PI * 2;
-          var diff = Math.abs(angle - boundary);
-          diff = Math.min(diff, Math.PI * 2 - diff);
-          if (diff < bestDistance) {
-            bestDistance = diff;
-            best = i;
-          }
-        }
-        if (handles[best]) handles[best].begin(event);
-      });
     });
 
     lab.motion = { slices: slices, labels: labels.map(function (item) { return item.node; }), leaders: leaders, handles: handles.map(function (item) { return item.handle; }) };
@@ -6278,8 +6917,8 @@ html[data-theme="glass"] .site-head {
       var mid = cumulative + angle / 2;
       var side = Math.cos(mid) >= 0 ? 1 : -1;
       var p0 = NC.scale.polar(state.cx, state.cy, state.radius + 6, mid);
-      var p1 = { x: state.cx + side * (state.radius + 34), y: state.cy + Math.sin(mid) * (state.radius + 34) };
-      var p2 = { x: state.cx + side * (state.radius + 48), y: p1.y };
+      var p1 = { x: state.cx + side * (state.radius + state.labelGap * 0.55), y: state.cy + Math.sin(mid) * (state.radius + state.labelGap * 0.55) };
+      var p2 = { x: state.cx + side * (state.radius + state.labelGap), y: p1.y };
       var label = state.labels[index];
       label.side = side;
       label.y = p2.y;
@@ -6321,6 +6960,29 @@ html[data-theme="glass"] .site-head {
     if (typeof state.tipIndex === 'number') state.showTip(state.tipIndex);
   }
 
+  function highlight(lab, focus) {
+    var state = lab.pieState;
+    if (!state || state.empty) return;
+    var root = state.root;
+    common.clearFocus(root);
+    common.clearDim(root);
+    if (!focus || focus.kind !== 'part') return;
+    var part = lab.dataset.parts[focus.index];
+    if (!part) return;
+    common.dimExcept(root, '.pie-slice', function (node) {
+      return node.getAttribute('data-id') === part.id;
+    });
+    var from = state.start;
+    for (var i = 0; i < focus.index; i += 1) from += state.perc[i] / 100 * Math.PI * 2;
+    var to = from + state.perc[focus.index] / 100 * Math.PI * 2;
+    var layer = common.focusLayer(root);
+    var arc = svg.path(layer, {
+      d: NC.scale.arc(state.cx, state.cy, state.radius + 3, from, to),
+      class: 'focus-ring'
+    });
+    arc.setAttribute('fill', 'none');
+  }
+
   function describe(lab) {
     return NC.desc.pie(lab.dataset, NC.state.level);
   }
@@ -6356,6 +7018,7 @@ html[data-theme="glass"] .site-head {
     mount: function (lab) { render(lab); },
     render: render,
     update: update,
+    highlight: highlight,
     describe: describe,
     table: tableSpec
   };
@@ -6407,6 +7070,20 @@ html[data-theme="glass"] .site-head {
     if (lab.processState) {
       lab.processState.activeStep = active || null;
       if (lab.processState.wrap) lab.processState.wrap.setAttribute('data-active-step', active);
+      var detail = lab.processState.detail;
+      if (detail) {
+        var step = stepId ? lab.dataset.steps.filter(function (item) { return item.id === stepId; })[0] : null;
+        detail.classList.toggle('is-empty', !step);
+        detail.hidden = false;
+        if (step) {
+          var passive = lab.mode && lab.mode.voice === 'passive';
+          detail.querySelector('.process-detail-icon').innerHTML = icon(step.icon);
+          detail.querySelector('.process-detail-title').textContent = step.title_en;
+          detail.querySelector('.process-detail-caption').textContent = step.title_zh;
+          detail.querySelector('.process-detail-en').textContent = passive ? step.passive_en : step.detail_en;
+          detail.querySelector('.process-detail-zh').textContent = passive ? step.passive_zh : step.detail_zh;
+        }
+      }
     }
     var stepNodes = lab.plot.querySelectorAll('.process-step');
     Array.prototype.forEach.call(stepNodes, function (node) {
@@ -6429,6 +7106,7 @@ html[data-theme="glass"] .site-head {
 
     var dataset = lab.dataset;
     var previousStep = lab.processState ? lab.processState.activeStep : null;
+    if (!previousStep && dataset.steps.length) previousStep = dataset.steps[0].id;
     var wrap = document.createElement('div');
     wrap.className = 'process-flow';
     wrap.setAttribute('role', 'group');
@@ -6453,16 +7131,37 @@ html[data-theme="glass"] .site-head {
         '<span class="process-title" lang="en">' + NC.escapeHtml(step.title_en) + '</span>' +
         '<span class="process-zh">' + NC.escapeHtml(step.title_zh) + '</span>';
       node.addEventListener('click', function () {
-        var active = lab.processState && lab.processState.activeStep === step.id;
-        highlight(lab, active ? '' : step.id);
+        if (NC.dismissHint) NC.dismissHint();
+        highlight(lab, step.id);
       });
       wrap.appendChild(node);
     });
 
-    lab.plot.appendChild(wrap);
-    lab.processState = { wrap: wrap, activeStep: previousStep || null };
+    var detail = document.createElement('div');
+    detail.className = 'process-detail process-detail-card is-empty';
+    detail.setAttribute('aria-live', 'polite');
+    detail.innerHTML =
+      '<span class="process-detail-empty">点击左侧步骤查看说明</span>' +
+      '<span class="process-detail-icon" aria-hidden="true"></span>' +
+      '<p class="process-detail-title" lang="en"></p>' +
+      '<p class="process-detail-caption"></p>' +
+      '<p class="process-detail-en" lang="en"></p>' +
+      '<p class="process-detail-zh"></p>';
+
+    var layout = document.createElement('div');
+    layout.className = 'process-layout';
+    layout.appendChild(wrap);
+    layout.appendChild(detail);
+    lab.plot.appendChild(layout);
+    lab.processState = { wrap: wrap, detail: detail, activeStep: previousStep || null };
     highlight(lab, previousStep);
     lab.motion = null;
+  }
+
+  function focusHighlight(lab, focus) {
+    if (focus && focus.kind === 'steps' && focus.steps && focus.steps.length) {
+      highlight(lab, focus.steps[0]);
+    }
   }
 
   function describe(lab) {
@@ -6473,6 +7172,7 @@ html[data-theme="glass"] .site-head {
     mount: function (lab) { render(lab); },
     render: render,
     update: function () {},
+    highlight: focusHighlight,
     sync: function (lab) {
       if (!lab.processState) return;
       highlight(lab, lab.processState.activeStep);
@@ -6537,9 +7237,11 @@ html[data-theme="glass"] .site-head {
     var headRow = document.createElement('tr');
     headRow.appendChild(headerCell('Region'));
     dataset.series.forEach(function (series) {
-      headRow.appendChild(headerCell(series.name_en, dataset.unit, true));
+      var th = headerCell(series.name_en, '', true);
+      th.setAttribute('data-series', series.id);
+      headRow.appendChild(th);
     });
-    headRow.appendChild(headerCell('Total', dataset.unit, true));
+    headRow.appendChild(headerCell('Total', '', true));
     headRow.appendChild(headerCell('Share', '', true));
     thead.appendChild(headRow);
     table.appendChild(thead);
@@ -6548,6 +7250,7 @@ html[data-theme="glass"] .site-head {
     var rows = [];
     dataset.categories.forEach(function (category, categoryIndex) {
       var tr = document.createElement('tr');
+      tr.setAttribute('data-index', categoryIndex);
 
       var nameCell = document.createElement('th');
       nameCell.scope = 'row';
@@ -6559,6 +7262,7 @@ html[data-theme="glass"] .site-head {
       dataset.series.forEach(function (series, seriesIndex) {
         var td = document.createElement('td');
         td.className = 'num-cell edit-cell';
+        td.setAttribute('data-series', series.id);
         var input = document.createElement('input');
         input.type = 'number';
         input.inputMode = 'decimal';
@@ -6591,7 +7295,7 @@ html[data-theme="glass"] .site-head {
       tr.appendChild(shareCell);
 
       tbody.appendChild(tr);
-      rows.push({ inputs: inputs, total: totalCell, share: shareCell, index: categoryIndex });
+      rows.push({ tr: tr, inputs: inputs, total: totalCell, share: shareCell, index: categoryIndex });
     });
     table.appendChild(tbody);
 
@@ -6676,6 +7380,29 @@ html[data-theme="glass"] .site-head {
     updateCue(lab);
   }
 
+  function highlight(lab, focus) {
+    var state = lab.tableState;
+    if (!state) return;
+    var shell = state.shell;
+    Array.prototype.forEach.call(shell.querySelectorAll('.is-focus, .is-dim'), function (node) {
+      node.classList.remove('is-focus', 'is-dim');
+    });
+    if (!focus || focus.kind === 'all') return;
+    if (focus.kind === 'row') {
+      state.rows.forEach(function (row) {
+        row.tr.classList.toggle('is-focus', row.index === focus.index);
+      });
+      return;
+    }
+    if (focus.kind === 'series') {
+      var series = lab.dataset.series[focus.index];
+      var id = series ? series.id : null;
+      Array.prototype.forEach.call(shell.querySelectorAll('[data-series]'), function (cell) {
+        cell.classList.toggle('is-dim', cell.getAttribute('data-series') !== id);
+      });
+    }
+  }
+
   function describe(lab) {
     return NC.desc.table(lab.dataset, NC.state.level);
   }
@@ -6684,6 +7411,7 @@ html[data-theme="glass"] .site-head {
     mount: function (lab) { render(lab); },
     render: render,
     update: update,
+    highlight: highlight,
     describe: describe,
     table: function () { return null; }
   };
@@ -6700,7 +7428,8 @@ html[data-theme="glass"] .site-head {
     if (!isFinite(value) || value <= 0) return 100;
     var step = Math.pow(10, Math.floor(Math.log10(value)));
     var scaled = value / step;
-    var nice = scaled <= 1.2 ? 1.2 : scaled <= 2 ? 2 : scaled <= 2.5 ? 2.5 : scaled <= 3 ? 3 : scaled <= 5 ? 5 : 10;
+    var nice = scaled <= 1.2 ? 1.2 : scaled <= 2 ? 2 : scaled <= 2.5 ? 2.5 : scaled <= 3 ? 3
+      : scaled <= 4 ? 4 : scaled <= 5 ? 5 : scaled <= 6 ? 6 : scaled <= 8 ? 8 : 10;
     return Math.ceil(nice * step);
   }
 
@@ -6727,8 +7456,9 @@ html[data-theme="glass"] .site-head {
     var bars = dataset.bars;
     var line = dataset.line;
     var periods = dataset.periods;
-    var width = 720;
-    var height = 410;
+    var box = common.size(lab.plot);
+    var width = box.width;
+    var height = box.height;
     var root = svg.create(lab.plot, width, height, 'Combined chart: revenue as bars and margin as a line. Drag a bar or point to change a value.');
     lab.svg = root;
     var compact = common.fit(root);
@@ -6813,8 +7543,8 @@ html[data-theme="glass"] .site-head {
       return (index === 0 ? 'M ' : 'L ') + point[0] + ' ' + point[1];
     }).join(' ');
     var linePath = svg.path(root, { d: lineD, class: 'mixed-line' });
-    var lineDots = points.map(function (point) {
-      return svg.circle(root, { cx: point[0], cy: point[1], r: 3.5, class: 'mixed-dot' });
+    var lineDots = points.map(function (point, index) {
+      return svg.circle(root, { cx: point[0], cy: point[1], r: 3.5, class: 'mixed-dot', 'data-index': index });
     });
 
     var handleLayer = svg.group(root, { class: 'handles' });
@@ -6835,10 +7565,12 @@ html[data-theme="glass"] .site-head {
         now: value,
         radius: common.screenPx(root, 4),
         hitRadius: common.screenPx(root, 16),
+        stroke: 'var(--' + bars.color + ')',
         label: period.label_en + ' ' + bars.name_en,
         valueText: tipText(dataset, index),
         data: { series: 'bar', index: index }
       });
+      common.linkHandle(barRects[index], barHandle);
       barHandle.group.addEventListener('pointerenter', function () {
         common.showTip(lab.plot, tipText(dataset, index), root, band.center(index), yBar(bars.values[index]));
       });
@@ -6851,10 +7583,12 @@ html[data-theme="glass"] .site-head {
         now: line.values[index],
         radius: common.screenPx(root, 4.5),
         hitRadius: common.screenPx(root, 18),
+        stroke: 'var(--' + line.color + ')',
         label: period.label_en + ' ' + line.name_en,
         valueText: tipText(dataset, index),
         data: { series: 'line', index: index }
       });
+      common.linkHandle(lineDots[index], lineHandle);
       lineHandle.group.addEventListener('pointerenter', function () {
         common.showTip(lab.plot, tipText(dataset, index), root, band.center(index), yLine(line.values[index]));
       });
@@ -6999,6 +7733,27 @@ html[data-theme="glass"] .site-head {
     }
   }
 
+  function highlight(lab, focus) {
+    var state = lab.mixedState;
+    if (!state) return;
+    var root = state.root;
+    common.clearFocus(root);
+    common.clearDim(root);
+    if (!focus || focus.kind !== 'period') return;
+    var index = Math.max(0, Math.min(lab.dataset.periods.length - 1, focus.index));
+    var x1 = state.band.center(index) - state.band.width / 2;
+    var x2 = state.band.center(index) + state.band.width / 2;
+    common.focusBand(root, x1, state.plot.top, Math.max(18, x2 - x1), state.plot.height);
+    common.focusRing(root, state.band.center(index), state.yBar(lab.dataset.bars.values[index]), 7);
+    common.focusRing(root, state.band.center(index), state.yLine(lab.dataset.line.values[index]), 7);
+    common.dimExcept(root, '.bar-current', function (node) {
+      return Number(node.getAttribute('data-index')) === index;
+    });
+    common.dimExcept(root, '.mixed-dot', function (node) {
+      return Number(node.getAttribute('data-index')) === index;
+    });
+  }
+
   function describe(lab) {
     return NC.desc.mixed(lab.dataset, NC.state.level);
   }
@@ -7036,6 +7791,7 @@ html[data-theme="glass"] .site-head {
     mount: function (lab) { render(lab); },
     render: render,
     update: update,
+    highlight: highlight,
     describe: describe,
     table: tableSpec
   };
@@ -7054,8 +7810,13 @@ html[data-theme="glass"] .site-head {
     this.descLines = section.querySelector('[data-desc-lines]');
     this.liveNode = section.querySelector('[data-live]');
     this.modesHost = section.querySelector('[data-modes]');
+    this.statHost = section.querySelector('[data-stat]');
+    this.countNode = section.querySelector('[data-step-count]');
+    this.prevButton = section.querySelector('[data-step-prev]');
+    this.nextButton = section.querySelector('[data-step-next]');
     this.renderer = NC.renderers[type.renderer];
     this.mountState = 'unmounted';
+    this.activeStep = 0;
     section.setAttribute('data-mount-state', this.mountState);
     this.controlsBound = false;
     this.compact = false;
@@ -7067,6 +7828,15 @@ html[data-theme="glass"] .site-head {
     NC.on(this.key, function (payload) {
       self.onExternalChange(payload);
     });
+    if (this.descLines) {
+      this.descLines.addEventListener('click', function (event) {
+        var row = event.target.closest ? event.target.closest('.sentence') : null;
+        if (!row || !self.descLines.contains(row)) return;
+        self.setStep(Number(row.getAttribute('data-index')), { scroll: true });
+      });
+    }
+    this.markKey = '';
+    this.bindMarkLink();
   }
 
   // Lifecycle: unmounted -> mounting -> mounted. A failed mount returns to
@@ -7104,13 +7874,11 @@ html[data-theme="glass"] .site-head {
         NC.resetKey(self.key);
       });
     }
-    var replay = this.section.querySelector('[data-replay]');
-    if (replay) {
-      replay.addEventListener('click', function () {
-        if (self.renderer.render) self.renderer.render(self);
-        self.refresh(false);
-        if (NC.motion) NC.motion.play(self);
-      });
+    if (this.prevButton) {
+      this.prevButton.addEventListener('click', function () { self.step(-1); });
+    }
+    if (this.nextButton) {
+      this.nextButton.addEventListener('click', function () { self.step(1); });
     }
   };
 
@@ -7136,9 +7904,11 @@ html[data-theme="glass"] .site-head {
     }
     this.result = result;
     this.setDescription(result, commit);
+    this.renderStat();
     // Optional renderer hook for decorations that depend on both the chart
     // and the freshly written description (process step linking).
     if (this.renderer.sync) this.renderer.sync(this);
+    this.applyStep({ scroll: false });
   };
 
   Lab.prototype.setDescription = function (result, commit) {
@@ -7154,28 +7924,250 @@ html[data-theme="glass"] .site-head {
     sentences.forEach(function (sentence, index) {
       var block = host.children[index];
       if (!block) {
-        block = document.createElement('div');
+        block = document.createElement('li');
+        block.className = 'sentence';
+        block.setAttribute('data-index', String(index));
+        var num = document.createElement('span');
+        num.className = 'step-num';
+        var body = document.createElement('div');
+        body.className = 'step-body';
         var en = document.createElement('p');
         en.className = 'sentence-en';
         en.lang = 'en';
         var zh = document.createElement('p');
         zh.className = 'sentence-zh';
         zh.lang = 'zh';
-        block.appendChild(en);
-        block.appendChild(zh);
+        body.appendChild(en);
+        body.appendChild(zh);
+        block.appendChild(num);
+        block.appendChild(body);
         host.appendChild(block);
       }
-      block.className = 'sentence' + (lead && index === 0 ? ' lead' : '');
+      block.setAttribute('data-index', String(index));
       block.setAttribute('data-role', sentence.role);
-      if (sentence.focus && sentence.focus.length) {
-        block.setAttribute('data-focus', sentence.focus.join(' '));
+      if (sentence.focus && sentence.focus.kind) {
+        block.setAttribute('data-focus-kind', sentence.focus.kind);
+      } else {
+        block.removeAttribute('data-focus-kind');
+      }
+      if (sentence.focus && sentence.focus.kind === 'steps' && sentence.focus.steps && sentence.focus.steps.length) {
+        block.setAttribute('data-focus', sentence.focus.steps.join(' '));
       } else {
         block.removeAttribute('data-focus');
       }
+      block.querySelector('.step-num').textContent = String(index + 1).padStart(2, '0');
       var enNode = block.querySelector('.sentence-en');
       var zhNode = block.querySelector('.sentence-zh');
       if (enNode.textContent !== sentence.en) enNode.textContent = sentence.en;
       if (zhNode.textContent !== sentence.zh) zhNode.textContent = sentence.zh;
+    });
+  };
+
+  Lab.prototype.renderStat = function () {
+    if (!this.statHost) return;
+    var head = NC.headline(this);
+    if (!head) {
+      this.statHost.hidden = true;
+      this.statHost.innerHTML = '';
+      return;
+    }
+    this.statHost.hidden = false;
+    this.statHost.innerHTML =
+      '<span class="stat-value">' + NC.escapeHtml(head.value) + '</span>' +
+      '<span class="stat-label">' + NC.escapeHtml(head.label) + '</span>' +
+      (head.delta ? '<span class="stat-delta">' + NC.escapeHtml(head.delta) + '</span>' : '');
+  };
+
+  Lab.prototype.applyStep = function (opts) {
+    var options = opts || {};
+    var rows = this.descLines ? this.descLines.children : [];
+    if (!rows.length) {
+      if (this.countNode) this.countNode.textContent = '';
+      if (this.prevButton) this.prevButton.disabled = true;
+      if (this.nextButton) this.nextButton.disabled = true;
+      if (this.renderer.highlight) this.renderer.highlight(this, { kind: 'all' });
+      return;
+    }
+    var index = Math.max(0, Math.min(this.activeStep, rows.length - 1));
+    this.activeStep = index;
+    for (var i = 0; i < rows.length; i += 1) {
+      var row = rows[i];
+      row.classList.toggle('is-active', i === index);
+      if (i === index) row.setAttribute('aria-current', 'true');
+      else row.removeAttribute('aria-current');
+    }
+    if (this.countNode) {
+      this.countNode.textContent = String(index + 1).padStart(2, '0') + ' / ' + String(rows.length).padStart(2, '0');
+    }
+    if (this.prevButton) this.prevButton.disabled = index === 0;
+    if (this.nextButton) this.nextButton.disabled = index === rows.length - 1;
+    var sentence = this.result && this.result.live[index];
+    if (this.renderer.highlight) {
+      this.renderer.highlight(this, sentence ? sentence.focus : { kind: 'all' });
+    }
+    if (options.scroll && rows[index] && rows[index].scrollIntoView) {
+      try {
+        rows[index].scrollIntoView({ block: 'nearest', behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+      } catch (err) {
+        rows[index].scrollIntoView(false);
+      }
+    }
+  };
+
+  Lab.prototype.setStep = function (index, opts) {
+    this.activeStep = index;
+    this.applyStep(opts);
+  };
+
+  Lab.prototype.step = function (delta) {
+    this.setStep(this.activeStep + delta, { scroll: true });
+  };
+
+  // ---- chart -> sentence -------------------------------------------------
+  // Sentence -> chart runs through renderer.highlight(focus): the active
+  // sentence dims everything outside its focus window. This is the other
+  // direction: pointing at a mark names the sentence that talks about it,
+  // and clicking the mark makes that sentence the active one. One state, so
+  // the two sides can never disagree.
+
+  function focusScore(focus, mark) {
+    if (!focus || focus.kind === 'all') return 0;
+    var kind = focus.kind;
+    if (mark.kind === 'category') {
+      if (kind === 'category') {
+        if (focus.index !== mark.index) return 0;
+        return focus.series == null || focus.series < 0 || focus.series === mark.series ? 4 : 3;
+      }
+      if (kind === 'row') return focus.index === mark.index ? 4 : 0;
+      if (kind === 'series') return mark.series >= 0 && focus.index === mark.series ? 2 : 0;
+      if (kind === 'range') return mark.index >= focus.from && mark.index <= focus.to ? 1 : 0;
+      return 0;
+    }
+    if (mark.kind === 'point') {
+      if (kind === 'point') return focus.index === mark.index ? 4 : 0;
+      if (kind === 'range') return mark.index >= focus.from && mark.index <= focus.to ? 2 : 0;
+      return 0;
+    }
+    if (mark.kind === 'part') {
+      if (kind === 'part') return focus.index === mark.index ? 4 : 0;
+      return 0;
+    }
+    if (mark.kind === 'row') {
+      if (kind === 'row') return focus.index === mark.index ? 4 : 0;
+      if (kind === 'category') return focus.index === mark.index ? 3 : 0;
+      return 0;
+    }
+    if (mark.kind === 'period') {
+      if (kind === 'period') return focus.index === mark.index ? 4 : 0;
+      if (kind === 'point') return focus.index === mark.index ? 3 : 0;
+      if (kind === 'range') return mark.index >= focus.from && mark.index <= focus.to ? 2 : 0;
+      return 0;
+    }
+    return 0;
+  }
+
+  Lab.prototype.markDescriptor = function (node) {
+    if (!node || !node.closest || !this.plot) return null;
+    var renderer = this.type.renderer;
+    if (renderer === 'process') return null;
+    var holder = node.closest('[data-index]');
+    if (!holder || !this.plot.contains(holder)) return null;
+    var index = Number(holder.getAttribute('data-index'));
+    if (!isFinite(index)) return null;
+    if (renderer === 'line') return { kind: 'point', index: index };
+    if (renderer === 'pie') return { kind: 'part', index: index };
+    if (renderer === 'table') return { kind: 'row', index: index };
+    if (renderer === 'mixed') return { kind: 'period', index: index };
+    if (renderer === 'bar') {
+      var id = holder.getAttribute('data-series');
+      var series = -1;
+      (this.dataset.series || []).forEach(function (item, itemIndex) {
+        if (item.id === id) series = itemIndex;
+      });
+      return { kind: 'category', index: index, series: series };
+    }
+    return null;
+  };
+
+  // The mark's own English label, used as a last-resort match when no
+  // sentence carries an explicit focus on it.
+  Lab.prototype.markLabel = function (mark) {
+    var set = this.dataset;
+    if (mark.kind === 'part') {
+      return set.parts && set.parts[mark.index] ? set.parts[mark.index].name_en : '';
+    }
+    if (mark.kind === 'row' || mark.kind === 'category') {
+      return set.categories && set.categories[mark.index] ? set.categories[mark.index].label_en : '';
+    }
+    return set.periods && set.periods[mark.index] ? set.periods[mark.index].label_en : '';
+  };
+
+  // Returns the index of the sentence that answers to the mark, -1 when no
+  // sentence covers it. Passing null clears the mark.
+  Lab.prototype.markLink = function (mark) {
+    var rows = this.descLines ? this.descLines.children : [];
+    var sentences = (this.result && this.result.live) || [];
+    var best = -1;
+    if (mark && rows.length && sentences.length) {
+      var bestScore = 0;
+      for (var i = 0; i < sentences.length && i < rows.length; i += 1) {
+        var score = focusScore(sentences[i].focus, mark);
+        if (score > bestScore) {
+          bestScore = score;
+          best = i;
+        }
+      }
+      // No sentence claims this mark: fall back to the one that names it.
+      var label = this.markLabel(mark);
+      if (best < 0 && label && label.length >= 3) {
+        var re = new RegExp('\\b' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+        for (var k = 0; k < sentences.length && k < rows.length; k += 1) {
+          if (re.test(sentences[k].en)) {
+            best = k;
+            break;
+          }
+        }
+      }
+    }
+    for (var j = 0; j < rows.length; j += 1) {
+      rows[j].classList.toggle('is-linked', j === best);
+    }
+    return best;
+  };
+
+  Lab.prototype.bindMarkLink = function () {
+    var self = this;
+    var plot = this.plot;
+    if (!plot || plot.__markLinkBound) return;
+    plot.__markLinkBound = true;
+    function keyOf(mark) {
+      if (!mark) return '';
+      return mark.kind + ':' + mark.index + ':' + (mark.series == null ? '' : mark.series);
+    }
+    function over(event) {
+      var mark = self.markDescriptor(event.target);
+      var key = keyOf(mark);
+      if (key === self.markKey) return;
+      self.markKey = key;
+      self.markLink(mark);
+    }
+    function clear() {
+      if (self.markKey === '') return;
+      self.markKey = '';
+      self.markLink(null);
+    }
+    plot.addEventListener('pointerover', over);
+    plot.addEventListener('focusin', over);
+    plot.addEventListener('pointerleave', clear);
+    plot.addEventListener('focusout', function (event) {
+      if (event.relatedTarget && plot.contains(event.relatedTarget)) return;
+      clear();
+    });
+    plot.addEventListener('click', function (event) {
+      var mark = self.markDescriptor(event.target);
+      if (!mark) return;
+      var index = self.markLink(mark);
+      if (index >= 0 && index !== self.activeStep) self.setStep(index);
     });
   };
 
@@ -7184,6 +8176,9 @@ html[data-theme="glass"] .site-head {
     this.refresh(commit);
     if (commit) {
       NC.emit(this.key, { source: this.type.id });
+      if (NC.dismissHint) NC.dismissHint();
+      if (NC.ui && NC.ui.pulse) NC.ui.pulse(this.section.querySelector('[data-desc]'), 'is-updating', 220);
+      if (NC.syncDirty) NC.syncDirty();
     }
   };
 
@@ -7197,6 +8192,18 @@ html[data-theme="glass"] .site-head {
 
   NC.Lab = Lab;
 
+  // The restore button only exists while a dataset differs from its original,
+  // so it never reads as a permanent, mysterious control.
+  NC.syncDirty = function () {
+    Object.keys(NC.state.labs).forEach(function (id) {
+      var lab = NC.state.labs[id];
+      var button = lab.section.querySelector('[data-reset]');
+      if (!button) return;
+      var dirty = JSON.stringify(NC.state.datasets[lab.key]) !== JSON.stringify(NC.state.initial[lab.key]);
+      button.hidden = !dirty;
+    });
+  };
+
   NC.resetKey = function (key) {
     NC.state.datasets[key] = NC.deepClone(NC.state.initial[key]);
     Object.keys(NC.state.labs).forEach(function (id) {
@@ -7207,6 +8214,56 @@ html[data-theme="glass"] .site-head {
       lab.renderer.render(lab);
       lab.refresh(true);
     });
+    if (NC.syncDirty) NC.syncDirty();
+  };
+
+  // The one number worth putting at the top of the stage.
+  NC.headline = function (lab) {
+    var d = lab.dataset;
+    var renderer = lab.type.renderer;
+    if (renderer === 'line' || renderer === 'area') {
+      var series = d.series[0];
+      var stats = NC.stats.trend(series.values);
+      var pct = stats.pct == null ? null : stats.pct;
+      return {
+        value: NC.fmt.number(stats.last, series.decimals || 0),
+        label: (series.name_zh || series.name_en) + ' · ' + series.unit,
+        delta: pct == null ? '' : (pct >= 0 ? '+' : '−') + NC.fmt.number(Math.abs(pct), Math.abs(pct) < 10 ? 1 : 0) + '%'
+      };
+    }
+    if (renderer === 'bar' || renderer === 'table') {
+      var totals = d.categories.map(function (category, index) {
+        return d.series.reduce(function (sum, item) { return sum + item.values[index]; }, 0);
+      });
+      var total = totals.reduce(function (sum, value) { return sum + value; }, 0);
+      var topIndex = 0;
+      totals.forEach(function (value, index) { if (value > totals[topIndex]) topIndex = index; });
+      return {
+        value: NC.fmt.number(totals[topIndex], 0),
+        label: d.categories[topIndex].label_zh + ' · ' + d.unit,
+        delta: total > 0 ? '占总收入 ' + NC.fmt.number(totals[topIndex] / total * 100, 1) + '%' : ''
+      };
+    }
+    if (renderer === 'pie') {
+      var shares = NC.stats.shares(d.parts);
+      return {
+        value: NC.fmt.number(shares.top.share, 0) + '%',
+        label: shares.top.name_zh,
+        delta: '领先 ' + NC.fmt.number(shares.gap, 1) + ' pp'
+      };
+    }
+    if (renderer === 'mixed') {
+      var last = d.periods.length - 1;
+      return {
+        value: NC.fmt.number(d.bars.values[last], d.bars.decimals || 0),
+        label: (d.bars.name_zh || d.bars.name_en) + ' · ' + d.bars.unit,
+        delta: (d.line.name_zh || d.line.name_en) + ' ' + NC.fmt.number(d.line.values[last], d.line.decimals || 0) + '%'
+      };
+    }
+    if (renderer === 'process') {
+      return { value: String(d.steps.length), label: '流程步骤', delta: '' };
+    }
+    return null;
   };
 })(window.NPESLCharts);
 
@@ -7216,9 +8273,18 @@ html[data-theme="glass"] .site-head {
 
   var ui = NC.ui = {};
 
-  var REPLAY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v6h-6"/></svg>';
+  var RESET_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>';
 
-  // Timed one-shot classes (panel entrance, level-switch fade). One owner per
+  var GLYPHS = {
+    line: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13l7-6 7 3 9-7 7 2"/></svg>',
+    bar: '<svg viewBox="0 0 34 17" fill="currentColor" aria-hidden="true"><rect x="2" y="8" width="5" height="7"/><rect x="11" y="4" width="5" height="11"/><rect x="20" y="10" width="5" height="5"/><rect x="29" y="6" width="3" height="9"/></svg>',
+    pie: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="17" cy="8.5" r="6.5"/><path d="M17 8.5V2a6.5 6.5 0 0 1 6.5 6.5Z" fill="currentColor" stroke="none"/></svg>',
+    table: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><rect x="2" y="2.5" width="30" height="12"/><path d="M2 6.5h30M2 10.5h30M11 2.5v12M22 2.5v12"/></svg>',
+    process: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="5" cy="8.5" r="2.2"/><circle cx="17" cy="8.5" r="2.2"/><circle cx="29" cy="8.5" r="2.2"/><path d="M8.2 8.5h6.4M20.2 8.5h6.4"/></svg>',
+    mixed: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h4v8H2zM13 4h4v11h-4zM24 9h4v6h-4z" fill="currentColor" stroke="none"/><path d="M2 12l6-4 7 2 7-5 8 2" stroke-linecap="round"/></svg>'
+  };
+
+  // Timed one-shot classes (panel entrance, description fade). One owner per
   // node, so a rapid re-trigger cannot leave the class stuck or have an older
   // timer strip it from a newer animation.
   function pulse(node, cls, ms) {
@@ -7235,8 +8301,22 @@ html[data-theme="glass"] .site-head {
 
   function sceneFor(type) {
     var dataset = NC.state.datasets && type.dataset ? NC.state.datasets[type.dataset] : null;
-    return dataset && dataset.scene_en ? dataset.scene_en : '';
+    return {
+      en: dataset && dataset.scene_en ? dataset.scene_en : '',
+      zh: dataset && dataset.scene_zh ? dataset.scene_zh : ''
+    };
   }
+
+  function hintAllowed() {
+    try { return !localStorage.getItem('npesl-charts-hint'); } catch (err) { return true; }
+  }
+
+  NC.dismissHint = function () {
+    try { localStorage.setItem('npesl-charts-hint', '1'); } catch (err) {}
+    Array.prototype.forEach.call(document.querySelectorAll('[data-hint]'), function (node) {
+      node.hidden = true;
+    });
+  };
 
   function sortedTypes() {
     return NC.state.data.types.sections.slice().sort(function (a, b) {
@@ -7251,44 +8331,63 @@ html[data-theme="glass"] .site-head {
   }
 
   function panelHtml(type) {
-    var replay = ['line', 'bar', 'pie', 'mixed'].indexOf(type.renderer) === -1 ? '' :
-      '<button class="action-btn action-btn-icon" type="button" data-replay aria-label="重播动画" title="重播动画">' + REPLAY_ICON + '<span>重播</span></button>';
+    var scene = sceneFor(type);
+    var hints = {
+      line: '拖动数据点改数值，点击可输入',
+      bar: '拖动柱子改数值，点击可输入',
+      pie: '拖动分界点改占比，点击可输入',
+      mixed: '拖动柱子或折线点改数值，点击可输入'
+    };
+    var hintText = hints[type.renderer] || '';
     var reset = type.renderer === 'process' ? '' :
-      '<button class="action-btn" type="button" data-reset>重置</button>';
-    return '<header class="section-head">' +
-        '<h2>' + NC.escapeHtml(type.label_zh) + ' <span class="h2-en">' + NC.escapeHtml(type.label_en) + '</span></h2>' +
-      '</header>' +
-      '<div class="panel-grid">' +
-        '<div class="panel-figure">' +
-          '<figure class="chart-card">' +
-            '<header class="figure-head">' +
-              '<div class="figure-top">' +
-                '<span class="chart-scene">' + NC.escapeHtml(sceneFor(type)) + '</span>' +
-                '<span class="figure-actions">' +
-                  replay +
-                  reset +
-                '</span>' +
-              '</div>' +
-              '<div class="figure-modes" data-modes></div>' +
-            '</header>' +
-            '<div class="plot" data-plot></div>' +
-          '</figure>' +
-        '</div>' +
-        '<aside class="panel-reading">' +
+      '<button class="tool-btn tool-icon" type="button" data-reset aria-label="还原数据" title="还原数据" hidden>' + RESET_ICON + '</button>';
+    var hint = hintText && hintAllowed() ? '<p class="figure-hint" data-hint>' + hintText + '</p>' : '';
+    return '<div class="panel-layout">' +
+        '<section class="stage">' +
+          '<header class="stage-head">' +
+            '<div class="stage-title">' +
+              '<span class="stage-kicker">' + NC.escapeHtml(type.label_en) + '</span>' +
+              '<h2 class="figure-title">' + NC.escapeHtml(scene.en) + '</h2>' +
+              (scene.zh ? '<p class="figure-title-zh">' + NC.escapeHtml(scene.zh) + '</p>' : '') +
+            '</div>' +
+            '<div class="stage-stat" data-stat hidden></div>' +
+          '</header>' +
+          '<div class="stage-tools">' +
+            '<div class="stage-modes" data-modes></div>' +
+            '<span class="figure-actions">' + reset + '</span>' +
+          '</div>' +
+          '<div class="plot" data-plot></div>' +
+          '<footer class="stage-foot">' +
+            '<div class="legend-host" data-legend></div>' +
+            hint +
+          '</footer>' +
+        '</section>' +
+        '<aside class="rail">' +
+          '<div class="desc-head">' +
+            '<span class="desc-label">图表描述</span>' +
+            '<span data-level-host></span>' +
+          '</div>' +
           '<section class="desc" data-desc>' +
-            '<div class="desc-lines" data-desc-lines></div>' +
+            '<ol class="desc-lines" data-desc-lines></ol>' +
             '<p class="sr-only" data-live aria-live="polite"></p>' +
           '</section>' +
+          '<div class="rail-nav">' +
+            '<button class="rail-btn" type="button" data-step-prev aria-label="上一句">← 上一句</button>' +
+            '<span class="rail-count" data-step-count></span>' +
+            '<button class="rail-btn" type="button" data-step-next aria-label="下一句">下一句 →</button>' +
+          '</div>' +
         '</aside>' +
-      '</div>' +
-      '<section class="learning-block" data-patterns-section>' +
-        '<h3>常用句型</h3>' +
-        '<ul class="pattern-list" data-patterns></ul>' +
-      '</section>' +
-      '<section class="learning-block" data-vocab-section>' +
-        '<h3>词汇</h3>' +
-        '<div class="vocab-groups" data-vocab></div>' +
-      '</section>';
+        '<div class="panel-reference" hidden>' +
+          '<section class="learning-block" data-patterns-section>' +
+            '<h3>常用句型</h3>' +
+            '<ul class="pattern-list" data-patterns></ul>' +
+          '</section>' +
+          '<section class="learning-block" data-vocab-section>' +
+            '<h3>词汇</h3>' +
+            '<div class="vocab-groups" data-vocab></div>' +
+          '</section>' +
+        '</div>' +
+      '</div>';
   }
 
   function buildPanels() {
@@ -7317,6 +8416,7 @@ html[data-theme="glass"] .site-head {
         '<span class="vocab-zh">' + NC.escapeHtml(entry.zh) + '</span>' +
         registerLabel(entry.register) +
       '</div>' +
+      (entry.pattern ? '<p class="vocab-pattern" lang="en">' + NC.escapeHtml(entry.pattern) + '</p>' : '') +
       '<p class="vocab-ex"><span lang="en">' + NC.escapeHtml(entry.example_en) + '</span></p>' +
       '<p class="vocab-ex-zh">' + NC.escapeHtml(entry.example_zh) + '</p>' +
       (entry.note_zh ? '<p class="vocab-note">' + NC.escapeHtml(entry.note_zh) + '</p>' : '') +
@@ -7406,7 +8506,10 @@ html[data-theme="glass"] .site-head {
       button.setAttribute('aria-controls', 'chart-' + type.id);
       button.setAttribute('aria-selected', 'false');
       button.tabIndex = -1;
-      button.textContent = type.label_zh;
+      button.title = type.label_en;
+      button.innerHTML =
+        '<span class="deck-glyph">' + (GLYPHS[type.renderer] || GLYPHS.line) + '</span>' +
+        '<span class="deck-label">' + NC.escapeHtml(type.label_zh) + '</span>';
       button.addEventListener('click', function () {
         activate(type.id);
       });
@@ -7437,14 +8540,9 @@ html[data-theme="glass"] .site-head {
     return hash;
   }
 
-  function headerOffset() {
-    var head = NC.byId('site-head');
-    return (head ? head.getBoundingClientRect().height : 0) + 16;
-  }
-
   function scrollToPanel(panel) {
     if (!panel) return;
-    var top = panel.getBoundingClientRect().top + window.scrollY - headerOffset();
+    var top = panel.getBoundingClientRect().top + window.scrollY;
     if (Math.abs(window.scrollY - top) > 8) {
       window.scrollTo({ top: top, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
     }
@@ -7458,17 +8556,12 @@ html[data-theme="glass"] .site-head {
     var lab = NC.state.labs[id];
     var panel = NC.byId('chart-' + id);
 
-    // Re-clicking the active tab brings the chart back into view; it does not
-    // rebuild it or replay the entrance animation. A half-finished mount is
-    // retried.
     if (!first && id === NC.state.activeType) {
       if (lab && !lab.isMounted()) lab.mount();
-      if (panel && window.scrollY > 80) scrollToPanel(panel);
       return;
     }
 
     var wasScrolled = window.scrollY > 80;
-    var wasMounted = lab ? lab.isMounted() : false;
     NC.state.activeType = id;
     document.documentElement.setAttribute('data-charts-type', id);
     types.forEach(function (type) {
@@ -7490,18 +8583,25 @@ html[data-theme="glass"] .site-head {
       scroller.scrollTo({ left: left, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
     }
 
+    // The level control belongs to the description it changes, so it travels
+    // with the visible panel.
+    var levelHost = panel && panel.querySelector('[data-level-host]');
+    if (levelHost && NC.state.levelControl && NC.state.levelControl.parentNode !== levelHost) {
+      levelHost.appendChild(NC.state.levelControl);
+    }
+
     if (lab) {
       lab.mount();
-      // A lab that was mounted before was hidden while the viewport may have
-      // changed; re-fit it. A fresh mount has already rendered and refreshed.
-      if (wasMounted && lab.renderer.render) {
+      if (lab.isMounted() && lab.renderer.render) {
         lab.renderer.render(lab);
         lab.refresh(false);
       }
     }
-    if (panel && !NC.state.reducedMotion) pulse(panel, 'is-entering', 800);
+    if (panel && !NC.state.reducedMotion) pulse(panel, 'is-entering', 420);
+    if (NC.syncDirty) NC.syncDirty();
     if (!first && wasScrolled && panel) scrollToPanel(panel);
     if (NC.motion && lab) NC.motion.play(lab);
+    if (NC.referenceIsOpen && NC.referenceIsOpen()) NC.closeReference();
     try {
       window.history.replaceState(null, '', '#chart-' + id);
     } catch (err) {}
@@ -7526,20 +8626,6 @@ html[data-theme="glass"] .site-head {
   function setupHeader() {
     var head = NC.byId('site-head');
     if (!head) return;
-    var ticking = false;
-    function update() {
-      head.classList.toggle('is-scrolled', window.scrollY > 8);
-    }
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(function () {
-        ticking = false;
-        update();
-      });
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    update();
     function measure() {
       document.documentElement.style.setProperty('--header-h', head.getBoundingClientRect().height + 'px');
     }
@@ -7551,41 +8637,50 @@ html[data-theme="glass"] .site-head {
     }
   }
 
-  function setupTypeOverflow() {
-    var nav = document.querySelector('.type-switch');
-    var scroller = NC.byId('type-buttons');
-    if (!nav || !scroller) return;
-    var prev = nav.querySelector('[data-scroll="-1"]');
-    var next = nav.querySelector('[data-scroll="1"]');
-    var hover = !window.matchMedia || window.matchMedia('(hover: hover)').matches;
-    function update() {
-      var max = scroller.scrollWidth - scroller.clientWidth;
-      var x = scroller.scrollLeft;
-      var start = x > 2;
-      var end = max > 2 && x < max - 2;
-      var mode = !start && !end ? 'none' : start && end ? 'both' : start ? 'start' : 'end';
-      nav.setAttribute('data-overflow', mode);
-      if (prev) prev.hidden = !(hover && start);
-      if (next) next.hidden = !(hover && end);
-    }
-    scroller.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-    if (prev) {
-      prev.addEventListener('click', function () {
-        scroller.scrollBy({ left: -180, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
+  function setupResize() {
+    var timer = null;
+    function fit() {
+      if (document.querySelector('.handle.dragging, .handle[data-phase="pressed"], .value-editor')) return;
+      Object.keys(NC.state.labs).forEach(function (id) {
+        var lab = NC.state.labs[id];
+        if (!lab.isMounted() || !lab.renderer.render) return;
+        var rect = lab.plot.getBoundingClientRect();
+        var last = lab.plot.__chartSize;
+        if (last && Math.abs(rect.width - last.width) < 2 && Math.abs(rect.height - last.height) < 2) return;
+        lab.renderer.render(lab);
+        lab.refresh(false);
       });
     }
-    if (next) {
-      next.addEventListener('click', function () {
-        scroller.scrollBy({ left: 180, behavior: NC.state.reducedMotion ? 'auto' : 'smooth' });
-      });
+    function schedule() {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(fit, 140);
     }
-    update();
+    window.addEventListener('resize', schedule);
+    if ('ResizeObserver' in window) {
+      var host = NC.byId('panels');
+      if (host) new ResizeObserver(schedule).observe(host);
+    }
   }
 
   function setupLevel() {
-    var buttons = Array.prototype.slice.call(document.querySelectorAll('#level-switch [data-level]'));
-    var switchEl = NC.byId('level-switch');
+    var control = document.createElement('div');
+    control.className = 'level-switch';
+    control.id = 'level-switch';
+    control.setAttribute('role', 'group');
+    control.setAttribute('aria-label', '难度');
+    var buttons = [
+      { level: 'B1', label: '基础' },
+      { level: 'C1', label: '进阶' }
+    ].map(function (item) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('data-level', item.level);
+      button.textContent = item.label;
+      control.appendChild(button);
+      return button;
+    });
+    NC.state.levelControl = control;
+
     try {
       var saved = localStorage.getItem('npesl-charts-level');
       if (saved && NC.LEVELS.indexOf(saved) !== -1) NC.state.level = saved;
@@ -7596,7 +8691,6 @@ html[data-theme="glass"] .site-head {
       var changed = !applied || NC.state.level !== level;
       NC.state.level = level;
       document.documentElement.setAttribute('data-charts-level', level);
-      if (switchEl) switchEl.setAttribute('data-active', level);
       buttons.forEach(function (button) {
         button.setAttribute('aria-pressed', button.getAttribute('data-level') === level ? 'true' : 'false');
       });
@@ -7607,6 +8701,7 @@ html[data-theme="glass"] .site-head {
         var lab = NC.state.labs[id];
         if (!lab.isMounted()) return;
         if (animate) pulse(lab.section.querySelector('[data-desc]'), 'is-level-switching', 240);
+        lab.activeStep = Math.min(lab.activeStep, 99);
         lab.refresh(false);
       });
     }
@@ -7618,25 +8713,119 @@ html[data-theme="glass"] .site-head {
     apply(NC.state.level, false);
   }
 
-  function setupResize() {
-    var timer = null;
-    function fit() {
-      Object.keys(NC.state.labs).forEach(function (id) {
-        var lab = NC.state.labs[id];
-        if (!lab.isMounted() || !lab.svg || !NC.renderCommon || !NC.renderCommon.fit) return;
-        var compact = NC.renderCommon.fit(lab.svg);
-        if (lab.compact !== compact) {
-          lab.compact = compact;
-          lab.renderer.render(lab);
-          lab.refresh(false);
-          if (NC.motion) NC.motion.play(lab);
-        }
+  function setupReference() {
+    var sheet = document.querySelector('[data-sheet]');
+    var body = document.querySelector('[data-sheet-body]');
+    var openButton = document.querySelector('[data-reference]');
+    var closeButton = document.querySelector('[data-sheet] .sheet-close');
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-sheet-tab]'));
+    if (!sheet || !body || !openButton) return;
+
+    var FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    var BACKGROUND = ['.studio-head', '.studio', '.deck'];
+
+    // While the dialog is up the page behind it is not tabbable and not
+    // reachable by a screen reader.
+    function setBackgroundInert(on) {
+      BACKGROUND.forEach(function (selector) {
+        var node = document.querySelector(selector);
+        if (!node) return;
+        if (on) node.setAttribute('inert', '');
+        else node.removeAttribute('inert');
       });
     }
-    window.addEventListener('resize', function () {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(fit, 150);
+
+    function focusables() {
+      return Array.prototype.filter.call(sheet.querySelectorAll(FOCUSABLE), function (node) {
+        return node.offsetParent !== null || node === document.activeElement;
+      });
+    }
+
+    function trapTab(event) {
+      if (event.key !== 'Tab' || sheet.hidden) return;
+      var list = focusables();
+      if (!list.length) return;
+      var first = list[0];
+      var last = list[list.length - 1];
+      var inside = sheet.contains(document.activeElement);
+      if (event.shiftKey && (!inside || document.activeElement === first)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (!inside || document.activeElement === last)) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    function selectTab(name) {
+      tabs.forEach(function (tab) {
+        tab.setAttribute('aria-selected', tab.getAttribute('data-sheet-tab') === name ? 'true' : 'false');
+      });
+      Array.prototype.forEach.call(body.querySelectorAll('[data-sheet-section]'), function (section) {
+        section.hidden = section.getAttribute('data-sheet-section') !== name;
+      });
+    }
+
+    function open() {
+      var panel = NC.byId('chart-' + NC.state.activeType);
+      body.innerHTML = '';
+      function add(name, content) {
+        if (!content) return;
+        var section = document.createElement('div');
+        section.setAttribute('data-sheet-section', name);
+        section.appendChild(content);
+        body.appendChild(section);
+      }
+      if (panel) {
+        var patterns = panel.querySelector('[data-patterns-section]');
+        var vocab = panel.querySelector('[data-vocab-section]');
+        if (patterns) add('patterns', patterns.cloneNode(true));
+        if (vocab) add('vocab', vocab.cloneNode(true));
+      }
+      var errorsSource = NC.byId('errors-list');
+      if (errorsSource) {
+        var errors = document.createElement('div');
+        errors.className = 'library';
+        errors.innerHTML = errorsSource.innerHTML;
+        add('errors', errors);
+      }
+      selectTab('patterns');
+      sheet.hidden = false;
+      document.documentElement.setAttribute('data-sheet-open', 'true');
+      setBackgroundInert(true);
+      if (closeButton) {
+        try { closeButton.focus({ preventScroll: true }); } catch (err) { closeButton.focus(); }
+      }
+    }
+
+    function close() {
+      if (sheet.hidden) return;
+      sheet.hidden = true;
+      document.documentElement.removeAttribute('data-sheet-open');
+      setBackgroundInert(false);
+      try { openButton.focus({ preventScroll: true }); } catch (err) { openButton.focus(); }
+    }
+
+    NC.referenceIsOpen = function () { return !sheet.hidden; };
+    NC.closeReference = close;
+
+    openButton.addEventListener('click', function () {
+      if (sheet.hidden) open();
+      else close();
     });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-sheet-close]'), function (node) {
+      node.addEventListener('click', close);
+    });
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { selectTab(tab.getAttribute('data-sheet-tab')); });
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !sheet.hidden) {
+        event.preventDefault();
+        close();
+      }
+    });
+    document.addEventListener('keydown', trapTab);
   }
 
   function setupReducedMotion() {
@@ -7662,6 +8851,8 @@ html[data-theme="glass"] .site-head {
     else if (query.addListener) query.addListener(function (event) { apply(event.matches); });
   }
 
+  ui.pulse = pulse;
+
   ui.build = function () {
     setupReducedMotion();
     buildPanels();
@@ -7669,9 +8860,9 @@ html[data-theme="glass"] .site-head {
     renderAllLearning();
     renderErrors();
     setupHeader();
-    setupTypeOverflow();
     setupResize();
     setupLevel();
+    setupReference();
     setupHash();
     activate(initialTypeId());
   };
@@ -7698,6 +8889,12 @@ html[data-theme="glass"] .site-head {
     NC.state.datasets = NC.deepClone(data.labs.datasets);
     NC.state.initial = NC.deepClone(data.labs.datasets);
     NC.ui.build();
+    // A URL hash (#chart-line) makes the browser jump to the panel on load,
+    // which hides the header on phones. Every panel starts at the same place,
+    // so reset to the top of the page instead.
+    if (window.location.hash) {
+      try { window.scrollTo(0, 0); } catch (err) {}
+    }
     document.documentElement.setAttribute('data-charts-ready', 'true');
     NC.test = {
       mountAll: NC.ui.mountAll,

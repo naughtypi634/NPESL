@@ -43,6 +43,20 @@
     if (lab.processState) {
       lab.processState.activeStep = active || null;
       if (lab.processState.wrap) lab.processState.wrap.setAttribute('data-active-step', active);
+      var detail = lab.processState.detail;
+      if (detail) {
+        var step = stepId ? lab.dataset.steps.filter(function (item) { return item.id === stepId; })[0] : null;
+        detail.classList.toggle('is-empty', !step);
+        detail.hidden = false;
+        if (step) {
+          var passive = lab.mode && lab.mode.voice === 'passive';
+          detail.querySelector('.process-detail-icon').innerHTML = icon(step.icon);
+          detail.querySelector('.process-detail-title').textContent = step.title_en;
+          detail.querySelector('.process-detail-caption').textContent = step.title_zh;
+          detail.querySelector('.process-detail-en').textContent = passive ? step.passive_en : step.detail_en;
+          detail.querySelector('.process-detail-zh').textContent = passive ? step.passive_zh : step.detail_zh;
+        }
+      }
     }
     var stepNodes = lab.plot.querySelectorAll('.process-step');
     Array.prototype.forEach.call(stepNodes, function (node) {
@@ -65,6 +79,7 @@
 
     var dataset = lab.dataset;
     var previousStep = lab.processState ? lab.processState.activeStep : null;
+    if (!previousStep && dataset.steps.length) previousStep = dataset.steps[0].id;
     var wrap = document.createElement('div');
     wrap.className = 'process-flow';
     wrap.setAttribute('role', 'group');
@@ -89,16 +104,37 @@
         '<span class="process-title" lang="en">' + NC.escapeHtml(step.title_en) + '</span>' +
         '<span class="process-zh">' + NC.escapeHtml(step.title_zh) + '</span>';
       node.addEventListener('click', function () {
-        var active = lab.processState && lab.processState.activeStep === step.id;
-        highlight(lab, active ? '' : step.id);
+        if (NC.dismissHint) NC.dismissHint();
+        highlight(lab, step.id);
       });
       wrap.appendChild(node);
     });
 
-    lab.plot.appendChild(wrap);
-    lab.processState = { wrap: wrap, activeStep: previousStep || null };
+    var detail = document.createElement('div');
+    detail.className = 'process-detail process-detail-card is-empty';
+    detail.setAttribute('aria-live', 'polite');
+    detail.innerHTML =
+      '<span class="process-detail-empty">点击左侧步骤查看说明</span>' +
+      '<span class="process-detail-icon" aria-hidden="true"></span>' +
+      '<p class="process-detail-title" lang="en"></p>' +
+      '<p class="process-detail-caption"></p>' +
+      '<p class="process-detail-en" lang="en"></p>' +
+      '<p class="process-detail-zh"></p>';
+
+    var layout = document.createElement('div');
+    layout.className = 'process-layout';
+    layout.appendChild(wrap);
+    layout.appendChild(detail);
+    lab.plot.appendChild(layout);
+    lab.processState = { wrap: wrap, detail: detail, activeStep: previousStep || null };
     highlight(lab, previousStep);
     lab.motion = null;
+  }
+
+  function focusHighlight(lab, focus) {
+    if (focus && focus.kind === 'steps' && focus.steps && focus.steps.length) {
+      highlight(lab, focus.steps[0]);
+    }
   }
 
   function describe(lab) {
@@ -109,6 +145,7 @@
     mount: function (lab) { render(lab); },
     render: render,
     update: function () {},
+    highlight: focusHighlight,
     sync: function (lab) {
       if (!lab.processState) return;
       highlight(lab, lab.processState.activeStep);
