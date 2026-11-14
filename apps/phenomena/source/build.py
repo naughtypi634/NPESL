@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """Build the common pronunciation phenomena (常见发音现象 AmE) course pages.
 
-Each dialogue line gets one clip per voice. Lessons whose `tts` is "kokoro"
-are synthesized locally from phonemes: plain text is phonemized with espeak,
-and every marked target is replaced by the lesson's IPA before synthesis, so
-the weak form in the transcript is what the clip actually says. Clips are
-content-addressed, so re-running only synthesizes what is new.
+Each dialogue line gets one clip per voice. Lessons whose `tts` is "qwen" are
+synthesized locally from the spoken respellings (yer, wanna, gotta), because
+Qwen has no phoneme input; "kokoro" instead injects the lesson's IPA into a
+phoneme string for exact weak forms. Clips are content-addressed, so re-running
+only synthesizes what is new.
 """
 
 import argparse
@@ -48,6 +48,18 @@ KOKORO_PYTHON = pathlib.Path(os.environ.get(
     BASE.parents[1] / "build" / "tts-local" / "venv" / "Scripts" / "python.exe"))
 KOKORO_WORKER = BASE.parents[1] / "apps" / "collocation" / "source" / "kokoro_worker.py"
 
+# Qwen3-TTS 只在 tts-lab 的 ROCm venv 里；没有音素入口，只能喂拼写。
+QWEN_PYTHON = pathlib.Path(os.environ.get(
+    "QWEN_PYTHON", r"F:\AIProject\tts-lab\.venv\Scripts\python.exe"))
+QWEN_WORKER = BASE.parents[1] / "apps" / "collocation" / "source" / "qwen_worker.py"
+
+BACKEND = ""  # --tts 覆盖 content 里的 tts 字段，用于试听另一种音源
+RISKY_SPELLINGS = {"usta", "didncha", "cancha", "doncha", "c'mon"}
+SIDECARS = {
+    "kokoro": (KOKORO_PYTHON, KOKORO_WORKER),
+    "qwen": (QWEN_PYTHON, QWEN_WORKER),
+}
+
 
 def mark_parts(part):
     match = MARK_RE.fullmatch(part)
@@ -58,6 +70,24 @@ def mark_parts(part):
 
 def plain(text):
     return "".join(re.findall(r"[a-z0-9']+", text.lower().replace("’", "'")))
+
+
+def backend_for(lesson):
+    return BACKEND or lesson.get("tts") or "edge"
+
+
+def respelled_text(display):
+    """The spoken side of every mark, as plain text (for backends without IPA).
+
+    Qwen 会把少数生造拼写读成别的词（'er → all these、tea 'r → tea your、
+    usta → ask to、c'mon → Shimon），这些位置退回原词，宁可少一个弱读也不出错。
+    """
+    def pick(match):
+        written, spoken = match.group(1), (match.group(2) or match.group(1)).strip()
+        if spoken.startswith("'") or spoken.lower() in RISKY_SPELLINGS:
+            return written
+        return spoken
+    return MARK_RE.sub(pick, display)
 
 
 def written_text(display):
@@ -155,15 +185,25 @@ def kokoro_clips(lesson, display):
     return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
 
 
+def qwen_clips(lesson, display):
+    """Qwen has no phoneme input: feed the respelled spoken forms instead."""
+    text = " ".join(respelled_text(display).split())
+    key = "qwen:" + text
+    return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
+
+
 def line_clips(lesson, line):
-    if lesson.get("tts") == "azure":
+    backend = backend_for(lesson)
+    if backend == "azure":
         body = annotated_body(lesson, line["display"])
         variant = body_variant(body)
         return {
             f"clip-{voice}": clip_rel(body, voice, RATE, variant) for voice in VOICES
         }
-    if lesson.get("tts") == "kokoro":
+    if backend == "kokoro":
         return kokoro_clips(lesson, line["display"])
+    if backend == "qwen":
+        return qwen_clips(lesson, line["display"])
     text = spoken_text(line)
     return {f"clip-{voice}": clip_rel(text, voice, RATE) for voice in VOICES}
 
@@ -171,8 +211,7 @@ def line_clips(lesson, line):
 def lesson_jobs(lesson):
     """(relative path, payload, voice, rate, backend) for every clip."""
     jobs = []
-    azure = lesson.get("tts") == "azure"
-    kokoro = lesson.get("tts") == "kokoro"
+    backend = backend_for(lesson)
 
     def add_text(text, voice, rate):
         rel = clip_rel(text, voice, rate)
@@ -190,12 +229,20 @@ def lesson_jobs(lesson):
         if rel:
             jobs.append((rel, segments, voice, RATE, "kokoro"))
 
+    def add_qwen(display, voice):
+        text = " ".join(respelled_text(display).split())
+        rel = clip_rel("qwen:" + text, voice, RATE)
+        if rel:
+            jobs.append((rel, text, voice, RATE, "qwen"))
+
     for line in lesson["lines"]:
         for voice in VOICES:
-            if azure:
+            if backend == "azure":
                 add_body(annotated_body(lesson, line["display"]), voice)
-            elif kokoro:
+            elif backend == "kokoro":
                 add_kokoro(line["display"], voice)
+            elif backend == "qwen":
+                add_qwen(line["display"], voice)
             else:
                 add_text(spoken_text(line), voice, RATE)
     for target in lesson.get("targets", []):
@@ -203,12 +250,16 @@ def lesson_jobs(lesson):
         text = (demo.get("say") or "").strip() or demo.get("text")
         if not text:
             continue
-        if azure:
+        display = demo.get("display") or text
+        if backend == "azure":
             for voice in VOICES:
-                add_body(annotated_body(lesson, demo.get("display") or text), voice)
-        elif kokoro:
+                add_body(annotated_body(lesson, display), voice)
+        elif backend == "kokoro":
             for voice in VOICES:
-                add_kokoro(demo.get("display") or text, voice)
+                add_kokoro(display, voice)
+        elif backend == "qwen":
+            for voice in VOICES:
+                add_qwen(display, voice)
         else:
             for voice in VOICES:
                 add_text(text, voice, RATE)
@@ -251,18 +302,24 @@ async def synthesize(text, voice, rate, semaphore):
         raise last
 
 
-def run_kokoro(jobs):
+def run_sidecar(backend, jobs):
     """整批交给 sidecar venv 一次合成，模型只加载一次。"""
+    python, worker = SIDECARS[backend]
     manifest = (BASE.parents[1] / "build" / "tts-local"
-                / "jobs-phenomena-kokoro.json")
+                / f"jobs-phenomena-{backend}.json")
     manifest.parent.mkdir(parents=True, exist_ok=True)
-    payload = [
-        {"out": str(AUDIO_DIR / rel), "segments": segments, "voice": voice}
-        for rel, segments, voice, rate, backend in jobs
-    ]
+    if backend == "kokoro":
+        payload = [
+            {"out": str(AUDIO_DIR / rel), "segments": value, "voice": voice}
+            for rel, value, voice, rate, _ in jobs
+        ]
+    else:
+        payload = [
+            {"out": str(AUDIO_DIR / rel), "text": value, "voice": voice}
+            for rel, value, voice, rate, _ in jobs
+        ]
     manifest.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    subprocess.run(
-        [str(KOKORO_PYTHON), str(KOKORO_WORKER), str(manifest)], check=False)
+    subprocess.run([str(python), str(worker), str(manifest)], check=False)
     return [rel for rel, *_ in jobs if not (AUDIO_DIR / rel).exists()]
 
 
@@ -281,11 +338,12 @@ async def ensure_clips(lessons, voices):
     if not missing:
         return []
     failed = []
-    kokoro_jobs = [job for job in missing if job[4] == "kokoro"]
-    other = [job for job in missing if job[4] != "kokoro"]
-    if kokoro_jobs:
-        print(f"audio: kokoro {len(kokoro_jobs)} clips")
-        failed.extend(run_kokoro(kokoro_jobs))
+    for backend in ("kokoro", "qwen"):
+        group = [job for job in missing if job[4] == backend]
+        if group:
+            print(f"audio: {backend} {len(group)} clips")
+            failed.extend(run_sidecar(backend, group))
+    other = [job for job in missing if job[4] not in SIDECARS]
     if not other:
         print("audio: done" if not failed else f"audio: {len(failed)} failed")
         return failed
@@ -406,12 +464,16 @@ def build_sprites(plan: ClipPlan) -> tuple[ClipCursor, dict]:
 
 def text_clips(lesson, text):
     """clip attrs for one plain string, honouring the lesson's TTS backend."""
-    if lesson.get("tts") == "azure":
+    backend = backend_for(lesson)
+    if backend == "azure":
         body = xml_escape(text)
         variant = body_variant(body)
         return {f"clip-{voice}": clip_rel(body, voice, RATE, variant) for voice in VOICES}
-    if lesson.get("tts") == "kokoro":
+    if backend == "kokoro":
         key = segment_key([{"text": text}])
+        return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
+    if backend == "qwen":
+        key = "qwen:" + " ".join(text.split())
         return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
     return {f"clip-{voice}": clip_rel(text, voice, RATE) for voice in VOICES}
 
@@ -429,14 +491,18 @@ def build_targets(lesson, audio):
         demo = target.get("demo") or {}
         text = (demo.get("say") or "").strip() or demo.get("text")
         if text:
-            if lesson.get("tts") == "azure":
-                body = annotated_body(lesson, demo.get("display") or text)
+            backend = backend_for(lesson)
+            display = demo.get("display") or text
+            if backend == "azure":
+                body = annotated_body(lesson, display)
                 variant = body_variant(body)
                 clips = {
                     f"clip-{voice}": clip_rel(body, voice, RATE, variant) for voice in VOICES
                 }
-            elif lesson.get("tts") == "kokoro":
-                clips = kokoro_clips(lesson, demo.get("display") or text)
+            elif backend == "kokoro":
+                clips = kokoro_clips(lesson, display)
+            elif backend == "qwen":
+                clips = qwen_clips(lesson, display)
             else:
                 clips = text_clips(lesson, text)
             parts.append(
@@ -659,7 +725,11 @@ async def main():
     parser.add_argument("--skip-audio", action="store_true")
     parser.add_argument("--index-only", action="store_true")
     parser.add_argument("--voices", default="f,m", help="要合成的音色：f,m")
+    parser.add_argument("--tts", choices=["azure", "edge", "kokoro", "qwen"],
+                        default="", help="覆盖 content 的 tts 字段，试听另一音源")
     args = parser.parse_args()
+    global BACKEND
+    BACKEND = args.tts
 
     # 全量构建时先清掉旧的 sprite，避免改过的章节留下无人引用的文件。
     if not args.only and not args.index_only:

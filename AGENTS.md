@@ -48,7 +48,7 @@ build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
 - **Conversation 正文的逐词时间**和 mp3 用同一次 Edge TTS 请求生成，存在 mp3 旁的 `.json` sidecar（WordBoundary）。删母版时连 sidecar 一起删；只删 mp3 也能工作，构建会重新合成并补上。sprite 文件名带音频 sha1，重合成后旧的长缓存不会和新页面错配。
 - **旅行英语（已删除，待重做）**：旧的页面、内容、音频母版和构建脚本（`apps/travel/`、`content/travel/`、`tools/build_travel.py`、`tools/validate_travel.py`）已全部删除。新方案定稿前不要按旧架构补代码；音频后续可用 Edge TTS 免费生成。不显示计数、进度、已学标记。
 - **Azure 语音**：Phonics 和 IPA 用 Azure F0（凭证 `~/.azure-speech/key.txt`，每月 50 万字符）。Phonics 用 Speech SDK 的 word boundary 保留分块时间轴；IPA 默认全量 300 词 × 男女两版（Ava/Andrew，REST），PDF 录音只用于核对顺序，`--tts edge` 可回退旧混合方案。Azure 输出同样是 24kHz/48kbps MP3，sprite 拼接不用改。
-- **Phenomena 语音**：2026-11-15 起改用本地 Kokoro（女 `af_heart`/男 `am_michael`），不再是 Azure。构建把每个 `[written|spoken|ipa]` 的 IPA（`r` 统一写成 `ɹ`）直接注入音素串，弱读和吞音是被强制出来的，不靠模型自觉；模型与 worker 在 `build/tts-local/` 和 `apps/collocation/source/kokoro_worker.py`。改读音改 content 里的 IPA，再跑 `apps/phenomena/source/build.py`。
+- **Phenomena 语音**：2026-11-15 起用本地 Qwen3-TTS（女 `vivian` / 男 `aiden`，ROCm 环境在 `F:\AIProject\tts-lab`），不再是 Azure。Qwen 没有音素入口，构建把 `[written|spoken|ipa]` 里的 spoken 拼写直接喂进去；`'er`、`usta`、`c'mon`、`didncha` 这类会被读错的退回原词（宁可少一个弱读也不读错词），所以弱读是近似的、不是强制的。要逐音素精确读法用 Kokoro 的 phoneme 注入（`--tts kokoro`，音质已被否）。改读音改 content 里的 spoken，再跑 `apps/phenomena/source/build.py`；`--tts` 可临时覆盖音源试听。
 - **部署是对外发布**：用户已授权「每轮改完、自检通过后直接部署主站」（2026-10-31），不需要再逐次确认；音频站仅在音频有变化时一并部署。除此之外仍不要主动部署。
 - Cloudflare Pages 单次部署上限 20,000 个文件，所以音频站和主站分开；不要图省事把 `build/cloudflare-audio` 合进主站。
 - **改构建脚本必须证明产物没变**：先 `audit_build.py --label before`，改完重建再 `--diff before now`，0 差异才算通过。出现差异要能逐个文件解释，解释不了就回滚。快照在 `build/audit/`，别在比对前跑 `clean_build.py --all`（会连快照一起删）。
