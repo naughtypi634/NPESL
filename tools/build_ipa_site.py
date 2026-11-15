@@ -726,11 +726,14 @@ TEMPLATE = """<!doctype html>
 (function () {
   /* 页面的隐式状态都收进转移表：只允许表里列出的转移，非法事件返回
      false，界面不会停在半路。运行时快照见 window.__ipa.snapshot()。 */
-  function createMachine(name, initial, table) {
+  /* 转移表 table[state][event] 是目标状态名，或守卫 (payload, ctx) => 目标 | null。
+     ctx 是本状态机自己的上下文（当前词、代次、定时器句柄），不再散落在闭包变量里。 */
+  function createMachine(name, initial, table, ctx) {
     var state = initial;
     var listeners = [];
-    return {
+    var machine = {
       name: name,
+      ctx: ctx || {},
       get state() { return state; },
       can: function (event) {
         return !!(table[state] && table[state][event]);
@@ -738,7 +741,7 @@ TEMPLATE = """<!doctype html>
       send: function (event, payload) {
         var row = table[state];
         var next = row && row[event];
-        var target = typeof next === 'function' ? next(payload) : next;
+        var target = typeof next === 'function' ? next(payload, machine.ctx) : next;
         if (target == null) return false;   // 当前状态不允许，或被守卫拦下
         state = target;
         for (var i = 0; i < listeners.length; i++) {
@@ -748,11 +751,11 @@ TEMPLATE = """<!doctype html>
       },
       on: function (fn) { listeners.push(fn); }
     };
+    return machine;
   }
 
   var player = new Audio();
   player.preload = 'none';
-  var active = null, audioToken = 0, audioRaf = 0, audioStopAt = 0;
   var SOURCES = {}, SOURCE_KEYS = [], loadedSrc = null;
   var VOICES_KEY = 'npesl-ipa-voices';
   var saved = {};
@@ -764,24 +767,28 @@ TEMPLATE = """<!doctype html>
   }
 
   /* 播放：idle → loading（取 sprite）→ seeking（跳到本词）→ playing。
-     任意非 idle 状态都能被 stop / fail 打断；换词直接走 load。 */
+     seek 落不到可播位置（数据还没到、站点不支持 Range）时进入 buffering，
+     数据到了再回 seeking。任意非 idle 状态都能被 stop / fail 打断；换词直接走 load。
+     ctx.gen 是代次号：每次 load / 停止都递增，在途回调拿旧代次就作废。 */
   var audio = createMachine('audio', 'idle', {
-    idle:    { load: 'loading' },
-    loading: { load: 'loading', seek: 'seeking', stop: 'idle', fail: 'idle' },
-    seeking: { load: 'loading', play: 'playing', stop: 'idle', fail: 'idle' },
-    playing: { load: 'loading', finish: 'idle', stop: 'idle', fail: 'idle' }
-  });
+    idle:      { load: 'loading' },
+    loading:   { load: 'loading', wait: 'buffering', seek: 'seeking', stop: 'idle', fail: 'idle' },
+    buffering: { load: 'loading', wait: 'buffering', seek: 'seeking', stop: 'idle', fail: 'idle' },
+    seeking:   { load: 'loading', wait: 'buffering', seek: 'seeking', play: 'playing', stop: 'idle', fail: 'idle' },
+    playing:   { load: 'loading', finish: 'idle', stop: 'idle', fail: 'idle' }
+  }, { btn: null, gen: 0, raf: 0, stopAt: 0 });
 
   function audioAlive(token) {
-    return token === audioToken && audio.state !== 'idle';
+    return token === audio.ctx.gen && audio.state !== 'idle';
   }
 
   function audioClear() {
-    if (audioRaf) { cancelAnimationFrame(audioRaf); audioRaf = 0; }
-    if (active) {
-      active.classList.remove('playing');
-      delete active.dataset.state;
-      active = null;
+    var c = audio.ctx;
+    if (c.raf) { cancelAnimationFrame(c.raf); c.raf = 0; }
+    if (c.btn) {
+      c.btn.classList.remove('playing');
+      delete c.btn.dataset.state;
+      c.btn = null;
     }
   }
 
@@ -841,27 +848,29 @@ TEMPLATE = """<!doctype html>
   /* rAF 在后台标签页会被节流，timeupdate 兜底，保证停在单词末尾，
      而不是一路播到整条 sprite 的终点。 */
   function startCueWatch(token, stopAt) {
-    if (audioRaf) cancelAnimationFrame(audioRaf);
+    var c = audio.ctx;
+    if (c.raf) cancelAnimationFrame(c.raf);
     var tick = function () {
-      if (!audioAlive(token) || audio.state !== 'playing') { audioRaf = 0; return; }
+      if (!audioAlive(token) || audio.state !== 'playing') { c.raf = 0; return; }
       if (player.currentTime >= stopAt - 0.008) { audio.send('finish'); return; }
-      audioRaf = requestAnimationFrame(tick);
+      c.raf = requestAnimationFrame(tick);
     };
-    audioRaf = requestAnimationFrame(tick);
+    c.raf = requestAnimationFrame(tick);
   }
 
   audio.on(function (state, event, payload) {
     document.body.setAttribute('data-audio', state);
+    var c = audio.ctx;
 
     if (event === 'load') {
-      audioToken += 1;
+      c.gen += 1;
       audioClear();
       try { player.pause(); } catch (e) {}
-      active = payload.btn;
-      active.classList.add('playing');
-      active.dataset.state = 'loading';
-      audioStopAt = payload.end;
-      var token = audioToken;
+      c.btn = payload.btn;
+      c.btn.classList.add('playing');
+      c.btn.dataset.state = 'loading';
+      c.stopAt = payload.end;
+      var token = c.gen;
       sourceFor(payload.source).then(function (src) {
         if (!audioAlive(token)) return;
         if (!src) { audio.send('fail'); return; }
@@ -873,17 +882,21 @@ TEMPLATE = """<!doctype html>
       });
       return;
     }
+    if (event === 'wait') {
+      if (c.btn) c.btn.dataset.state = 'loading';
+      return;
+    }
     if (event === 'seek') {
-      if (active) active.dataset.state = 'seeking';
+      if (c.btn) c.btn.dataset.state = 'seeking';
       return;
     }
     if (event === 'play') {
-      if (active) active.dataset.state = 'playing';
-      startCueWatch(audioToken, payload.stopAt);
+      if (c.btn) c.btn.dataset.state = 'playing';
+      startCueWatch(c.gen, payload.stopAt);
       return;
     }
     /* stop / fail / finish：停声、清高亮、作废所有在途回调。 */
-    audioToken += 1;
+    c.gen += 1;
     audioClear();
     try { player.pause(); } catch (e) {}
   });
@@ -896,8 +909,9 @@ TEMPLATE = """<!doctype html>
     // 成可跳的再试，别把用户丢在错误的位置上。
     var waitForData = function (attempt) {
       if (!audioAlive(token)) return;
-      if (seekableEnd() >= startAt - 0.01) { seek(); return; }
+      if (seekableEnd() >= startAt - 0.01) { audio.send('seek'); seek(); return; }
       if (attempt > 40) { fail(); return; }
+      audio.send('wait');
       setTimeout(function () { waitForData(attempt + 1); }, 250);
     };
 
@@ -967,7 +981,7 @@ TEMPLATE = """<!doctype html>
     var source = card.getAttribute('data-sprite-' + voice);
     if (!source || !isFinite(start) || !isFinite(end)) return;
     // 同一个词再点一次 = 停；其他词 = 换词，loading 中也一样。
-    if (active === button && audio.state !== 'idle') {
+    if (audio.ctx.btn === button && audio.state !== 'idle') {
       audio.send('stop');
       return;
     }
@@ -1020,7 +1034,7 @@ TEMPLATE = """<!doctype html>
     });
 
   player.addEventListener('timeupdate', function () {
-    if (audio.state === 'playing' && player.currentTime >= audioStopAt - 0.008) {
+    if (audio.state === 'playing' && player.currentTime >= audio.ctx.stopAt - 0.008) {
       audio.send('finish');
     }
   });
@@ -1114,7 +1128,8 @@ TEMPLATE = """<!doctype html>
   /* 给测试和无头代理一个稳定读口：不用从 DOM 倒推当前状态。 */
   window.__ipa = Object.freeze({
     snapshot: function () {
-      var card = active ? active.closest('.card') : null;
+      var btn = audio.ctx.btn;
+      var card = btn ? btn.closest('.card') : null;
       var voices = {};
       for (var sound in voiceMachines) {
         if (Object.prototype.hasOwnProperty.call(voiceMachines, sound)) {
@@ -1124,7 +1139,7 @@ TEMPLATE = """<!doctype html>
       return {
         audio: {
           state: audio.state,
-          word: active ? active.textContent.replace(/\\s+/g, ' ').trim() : null,
+          word: btn ? btn.textContent.replace(/\\s+/g, ' ').trim() : null,
           sound: card ? card.getAttribute('data-sound') : null,
           voice: card ? cardVoice(card) : null,
           time: player.currentTime
