@@ -362,7 +362,8 @@ def main() -> int:
         finish_group(PageGroup(
             vv_out, "index.html", lambda _: "visual-vocabulary/", site_back))
         for sub in ("home", "clothing", "packing", "body-parts",
-                    "cosmetics", "cosmetics-qwen21", "my-home"):
+                    "cosmetics", "cosmetics-qwen21", "my-home",
+                    "fit", "supermarket"):
             finish_group(PageGroup(
                 vv_out / sub, "*.html",
                 lambda name, sub=sub: f"visual-vocabulary/{sub}/{name}",
