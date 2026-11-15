@@ -40,7 +40,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import (AUDIO_OUT, AUDIO_URL, CONVERSATION_APP, DRILL_APP,
                    IPA_APP, PHENOMENA_APP, PHONICS_APP, COLLOCATION_APP,
-                   SITE_APP, SITE_OUT, SITE_URL)
+                   SITE_APP, SITE_OUT, SITE_URL, VISUAL_VOCAB_APP)
 from themes import theme_boot
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -51,6 +51,7 @@ PHENOMENA = PHENOMENA_APP
 COLLOCATION = COLLOCATION_APP
 DRILL = DRILL_APP
 CONVERSATION = CONVERSATION_APP
+VISUAL_VOCAB = VISUAL_VOCAB_APP
 OUT = SITE_OUT
 
 ICON = f"{SITE_URL}/npesl-icon.png"
@@ -74,6 +75,9 @@ HEADERS = """/phonics/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /conversation/eslse/audio/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/visual-vocabulary/*/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /npesl-icon.png
@@ -345,6 +349,30 @@ def main() -> int:
     else:
         print("警告：conversation/eslse 不存在，"
               "ESLSE 未包含；先运行 build_site.py")
+
+    # Visual Vocabulary：Home / Clothing / Packing List 三个卡片页
+    if VISUAL_VOCAB.exists():
+        def vv_ignore(directory, names):
+            return set(shutil.ignore_patterns(
+                "source", "__pycache__", "*.py", "*.md", "*.pdf", "vocab")(directory, names))
+
+        vv_out = OUT / "visual-vocabulary"
+        shutil.copytree(VISUAL_VOCAB, vv_out, ignore=vv_ignore)
+        finish_group(PageGroup(
+            vv_out, "index.html", lambda _: "visual-vocabulary/", site_back))
+        for sub in ("home", "clothing", "packing"):
+            finish_group(PageGroup(
+                vv_out / sub, "*.html",
+                lambda name, sub=sub: f"visual-vocabulary/{sub}/{name}",
+                BackLink("/visual-vocabulary/", "Visual Vocabulary"),
+                frozenset({"index.html"})))
+            finish_group(PageGroup(
+                vv_out / sub, "index.html",
+                lambda _, sub=sub: f"visual-vocabulary/{sub}/",
+                BackLink("/visual-vocabulary/", "Visual Vocabulary")))
+        print("  Visual Vocabulary：已包含")
+    else:
+        print("警告：Visual Vocabulary 目录不存在，未包含")
 
     (OUT / "_headers").write_text(HEADERS, encoding="utf-8")
     (OUT / "_redirects").write_text(REDIRECTS, encoding="utf-8")

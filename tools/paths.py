@@ -42,6 +42,7 @@ DRILL_APP = APPS / "drill"
 PHENOMENA_APP = APPS / "phenomena"
 COLLOCATION_APP = APPS / "collocation"
 CONVERSATION_APP = APPS / "conversation"
+VISUAL_VOCAB_APP = APPS / "visual-vocabulary"
 CHARTS_APP = APPS / "charts"
 
 PHONICS_AUDIO = PHONICS_APP / "audio"
