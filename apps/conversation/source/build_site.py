@@ -977,7 +977,7 @@ STORY_CSS = """
   --pron-change:#c93400;
   --pron-sg:#6e6e73;
 }
-/* auto 才跟随系统；editorial / brutal / glass 都是亮色主题，系统深色时
+/* auto 才跟随系统；bright / glass 都是亮色主题，系统深色时
    也不能把发音标注换成深色版。 */
 @media (prefers-color-scheme: dark) {
   html:not([data-theme]),
@@ -1017,7 +1017,7 @@ html[data-theme="dark"] {
 }
 .sec-head > .zh-toggle { flex:none; }
 /* 篇末翻页：左下上一篇、右下下一篇。颜色、圆角、阴影全部走主题 token，
-   editorial 是直角、brutal 是硬阴影、glass 是玻璃圆角，不用单独写。 */
+   glass 是玻璃圆角，不用单独写。 */
 .pager {
   display:flex; align-items:stretch; justify-content:space-between;
   gap:14px; margin:40px 0 0;

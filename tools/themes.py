@@ -9,22 +9,17 @@ id 列表在首屏前写好 data-theme，否则新主题会被当成未知值退
 from __future__ import annotations
 
 # auto 跟随系统；其余是固定主题，顺序就是菜单顺序。
-# editorial / brutal / glass 是整套视觉方向（字体、形状、阴影一起换），
-# 其余几个只换配色。
-THEME_IDS = ("auto", "editorial", "brutal", "glass", "mono", "bright", "sepia", "dark")
+# glass 是整套视觉方向（字体、形状、阴影一起换），其余只换配色。
+THEME_IDS = ("auto", "bright", "glass", "dark")
 THEME_IDS_JS = "[" + ",".join(f"'{theme}'" for theme in THEME_IDS) + "]"
 
-# 三个方向要用的字体。只声明、不预载：浏览器只为当前主题真正引用的字族
+# Glass 用的字体。只声明、不预载：浏览器只为当前主题真正引用的字族
 # 下载文件，切到别的主题不受影响。
 FONT_LINK = (
     '<link rel="preconnect" href="https://fonts.googleapis.com">'
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
     '<link rel="stylesheet" href="https://fonts.googleapis.com/css2'
-    "?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700"
-    "&family=Noto+Serif+SC:wght@400;600;700"
-    "&family=Bricolage+Grotesque:opsz,wght@12..96,400"
-    ";12..96,500;12..96,700;12..96,800"
-    "&family=Plus+Jakarta+Sans:wght@400;500;600;800"
+    "?family=Plus+Jakarta+Sans:wght@400;500;600;800"
     "&family=Noto+Sans+SC:wght@400;500;600"
     '&display=swap">'
 )

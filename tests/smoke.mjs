@@ -605,15 +605,15 @@ const cases = [
     },
   },
   {
-    name: 'drill-editorial', path: '/drill/',
+    name: 'drill-browse-opaque', path: '/drill/',
     async run() {
-      // 浏览浮层必须是不透底的纸色，否则编辑网格主题下底下的题目会透上来。
-      await evaluate("localStorage.setItem('npesl-theme','editorial')");
+      // 浏览浮层必须是不透底的实色，否则 Bright 下底下的题目会透上来。
+      await evaluate("localStorage.setItem('npesl-theme','bright')");
       await send('Page.reload');
       const ready = await waitFor(
-        "document.readyState === 'complete' && document.documentElement.dataset.theme === 'editorial'"
+        "document.readyState === 'complete' && document.documentElement.dataset.theme === 'bright'"
         + " && !!document.querySelector('#browse')", 8000);
-      if (!ready) return { ok: false, detail: '编辑网格主题没生效' };
+      if (!ready) return { ok: false, detail: 'Bright 主题没生效' };
       await evaluate("document.querySelector('#browse').click()");
       const opaque = await waitFor(`(() => {
         const s = getComputedStyle(document.querySelector('.browserSheet'));
@@ -1187,10 +1187,10 @@ const cases = [
     },
   },
   {
-    name: 'collocation-editorial-opposite', path: '/collocation/',
+    name: 'collocation-glass-opposite', path: '/collocation/',
     async run() {
-      // editorial 是直角主题，反义按钮不能还是胶囊。
-      await evaluate(`document.documentElement.setAttribute('data-theme', 'editorial')`);
+      // Glass 是圆角主题，反义按钮要跟着圆角走，不能变成直角。
+      await evaluate(`document.documentElement.setAttribute('data-theme', 'glass')`);
       const pick = await evaluate(`(() => {
         const D = window.COLLOCATION_INDEX;
         for (let i = 0; i < D.entries.length; i++) {
@@ -1208,7 +1208,7 @@ const cases = [
         return { radius: cs.borderRadius, font: cs.fontFamily };
       })()`);
       await evaluate(`document.documentElement.removeAttribute('data-theme')`);
-      return { ok: !!r && r.radius === '0px', detail: JSON.stringify(r) };
+      return { ok: !!r && r.radius !== '0px', detail: JSON.stringify(r) };
     },
   },
   {
