@@ -350,17 +350,19 @@ def main() -> int:
         print("警告：conversation/eslse 不存在，"
               "ESLSE 未包含；先运行 build_site.py")
 
-    # Visual Vocabulary：Home / Clothing / Packing List 三个卡片页
+    # Visual Vocabulary：Home / Clothing / Packing List / Body Parts / Cosmetics
+    # 五个卡片页；旧版 Cosmetics 与黑白 My Home 仍复制上线，只是不列入口。
     if VISUAL_VOCAB.exists():
         def vv_ignore(directory, names):
             return set(shutil.ignore_patterns(
-                "source", "__pycache__", "*.py", "*.md", "*.pdf", "vocab")(directory, names))
+                "source", "__pycache__", "*.py", "*.md", "*.pdf")(directory, names))
 
         vv_out = OUT / "visual-vocabulary"
         shutil.copytree(VISUAL_VOCAB, vv_out, ignore=vv_ignore)
         finish_group(PageGroup(
             vv_out, "index.html", lambda _: "visual-vocabulary/", site_back))
-        for sub in ("home", "clothing", "packing"):
+        for sub in ("home", "clothing", "packing", "body-parts",
+                    "cosmetics", "cosmetics-qwen21", "my-home"):
             finish_group(PageGroup(
                 vv_out / sub, "*.html",
                 lambda name, sub=sub: f"visual-vocabulary/{sub}/{name}",
