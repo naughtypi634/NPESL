@@ -48,10 +48,11 @@ KOKORO_PYTHON = pathlib.Path(os.environ.get(
     BASE.parents[1] / "build" / "tts-local" / "venv" / "Scripts" / "python.exe"))
 KOKORO_WORKER = BASE.parents[1] / "apps" / "collocation" / "source" / "kokoro_worker.py"
 
-# Qwen3-TTS 只在 tts-lab 的 ROCm venv 里；没有音素入口，只能喂拼写。
+# Qwen3-TTS Base 用 conversation 的同一套克隆音色；没有音素入口，只能喂拼写。
 QWEN_PYTHON = pathlib.Path(os.environ.get(
     "QWEN_PYTHON", r"F:\AIProject\tts-lab\.venv\Scripts\python.exe"))
-QWEN_WORKER = BASE.parents[1] / "apps" / "collocation" / "source" / "qwen_worker.py"
+QWEN_WORKER = ROOT / "qwen_clone_worker.py"
+QWEN_VOICES = {"f": "h2", "m": "c"}
 
 BACKEND = ""  # --tts 覆盖 content 里的 tts 字段，用于试听另一种音源
 RISKY_SPELLINGS = {"usta", "didncha", "cancha", "doncha", "c'mon"}
@@ -188,7 +189,7 @@ def kokoro_clips(lesson, display):
 def qwen_clips(lesson, display):
     """Qwen has no phoneme input: feed the respelled spoken forms instead."""
     text = " ".join(respelled_text(display).split())
-    key = "qwen:" + text
+    key = "qwen-clone:" + text
     return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
 
 
@@ -231,7 +232,7 @@ def lesson_jobs(lesson):
 
     def add_qwen(display, voice):
         text = " ".join(respelled_text(display).split())
-        rel = clip_rel("qwen:" + text, voice, RATE)
+        rel = clip_rel("qwen-clone:" + text, voice, RATE)
         if rel:
             jobs.append((rel, text, voice, RATE, "qwen"))
 
@@ -315,7 +316,8 @@ def run_sidecar(backend, jobs):
         ]
     else:
         payload = [
-            {"out": str(AUDIO_DIR / rel), "text": value, "voice": voice}
+            {"out": str(AUDIO_DIR / rel), "text": value,
+             "voice": QWEN_VOICES[voice]}
             for rel, value, voice, rate, _ in jobs
         ]
     manifest.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
@@ -473,7 +475,7 @@ def text_clips(lesson, text):
         key = segment_key([{"text": text}])
         return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
     if backend == "qwen":
-        key = "qwen:" + " ".join(text.split())
+        key = "qwen-clone:" + " ".join(text.split())
         return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
     return {f"clip-{voice}": clip_rel(text, voice, RATE) for voice in VOICES}
 
