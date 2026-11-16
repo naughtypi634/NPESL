@@ -117,6 +117,8 @@ class PageGroup:
     url: Callable[[str], str]
     back: BackLink
     skip: frozenset[str] = frozenset()
+    # Visual Vocabulary 固定白底、不提供主题切换，整组不注入 theme.css / theme.js。
+    theme: bool = True
 
 
 def write_page(path: Path, text: str) -> None:
@@ -201,13 +203,15 @@ def finish_group(group: PageGroup) -> None:
     """Apply head → theme → back, in that order, to every page in a group.
 
     The order is load-bearing: inject_head and inject_theme both anchor on
-    </title>, so swapping them changes the bytes of every page.
+    </title>, so swapping them changes the bytes of every page.  Groups with
+    ``theme=False`` keep their own fixed palette and get no theme switch.
     """
     for page in sorted(group.base.glob(group.pattern)):
         if page.name in group.skip:
             continue
         inject_head(page, group.url(page.name))
-        inject_theme(page)
+        if group.theme:
+            inject_theme(page)
         if group.back.replace:
             replace_back(page, group.back.href, group.back.label)
         else:
@@ -360,7 +364,8 @@ def main() -> int:
         vv_out = OUT / "visual-vocabulary"
         shutil.copytree(VISUAL_VOCAB, vv_out, ignore=vv_ignore)
         finish_group(PageGroup(
-            vv_out, "index.html", lambda _: "visual-vocabulary/", site_back))
+            vv_out, "index.html", lambda _: "visual-vocabulary/", site_back,
+            theme=False))
         for sub in ("home", "clothing", "packing", "body-parts",
                     "cosmetics", "cosmetics-qwen21", "my-home",
                     "fit", "supermarket"):
@@ -368,11 +373,12 @@ def main() -> int:
                 vv_out / sub, "*.html",
                 lambda name, sub=sub: f"visual-vocabulary/{sub}/{name}",
                 BackLink("/visual-vocabulary/", "Visual Vocabulary"),
-                frozenset({"index.html"})))
+                frozenset({"index.html"}), theme=False))
             finish_group(PageGroup(
                 vv_out / sub, "index.html",
                 lambda _, sub=sub: f"visual-vocabulary/{sub}/",
-                BackLink("/visual-vocabulary/", "Visual Vocabulary")))
+                BackLink("/visual-vocabulary/", "Visual Vocabulary"),
+                theme=False))
         print("  Visual Vocabulary：已包含")
     else:
         print("警告：Visual Vocabulary 目录不存在，未包含")
