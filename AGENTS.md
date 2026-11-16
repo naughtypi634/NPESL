@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站。六个线上应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters Beginner / Intermediate / ESLSE、常见发音现象 30 章、短语搭配 41 个主题。商务图表英语位于 `apps/charts/` 与 `content/charts/`，仍在仓库内开发，暂不部署；旅行英语已整体删除，新方案定稿前不补代码。
+成人英语练习网站。六个线上应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters Beginner / Intermediate / ESLSE、常见发音现象 30 章、短语搭配 41 个主题。旅行英语已整体删除，新方案定稿前不补代码。
 
 **本库是独立项目。** 2026-10-28 从 ESLStudio 复制出来，作为岔路点独立演进；不读、不写、不依赖 ESLStudio 或任何其他仓库。内容与代码都在本库内。
 
@@ -9,8 +9,8 @@
 结构：**`content/` 内容源 · `apps/` 网页应用 · `miniprogram/` 微信小程序 · `tools/` 脚本 · `build/` 暂存产物**。
 
 ```
-content/      phonetics/ conversation/ drill/ collocation/ charts/   写内容只看这里
-apps/         site/ phonics/ ipa/ drill/ phenomena/ collocation/ conversation/ charts/
+content/      phonetics/ conversation/ drill/ collocation/   写内容只看这里
+apps/         site/ phonics/ ipa/ drill/ phenomena/ collocation/ conversation/ visual-vocabulary/
 miniprogram/  微信小程序（原生），与 apps/ 平级；内容和音频都由 tools/ 从 content/ 生成
 tools/        paths.py 与构建脚本
 build/        cloudflare-site/ cloudflare-audio/ …（gitignore）

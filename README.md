@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站。六个线上应用共用一个入口；商务图表英语仍在仓库内开发，暂未装入主站：
+成人英语练习网站。六个线上应用共用一个入口：
 
 | 应用 | 线上 | 源 |
 |---|---|---|
@@ -10,8 +10,6 @@
 | Conversation Starters Beginner / Intermediate / ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `apps/conversation/` |
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
 | 短语搭配 Collocations（41 个主题 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
-
-商务图表英语位于 `apps/charts/` 与 `content/charts/`，可由 `build_all.py` 单独或全量构建，但当前不部署到线上入口。
 
 ## 目录
 
@@ -23,14 +21,12 @@
 | `content/conversation/` | Conversation Starters 分级 `content.py`、逐段中文翻译、发音标注 |
 | `content/drill/` | Question Drill 题库：`raw/` `reviewed/` `final/` 批次、`questions.json`、翻译与修订表 |
 | `content/collocation/` | 短语搭配：`themes.json` + 41 个主题词条 JSON（内容源） |
-| `content/charts/` | 商务图表英语内容源（尚未上线） |
 | `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Bright / Dark / Sepia / Auto） |
 | `apps/phonics/` | 48 课网页、`source/`（内容与构建器）、`audio/` |
 | `apps/ipa/` | 音标表网页（`index.html` + `audio/`），40 个音标 × 10 个单词 |
 | `apps/drill/` | 中译英练习网页（`index.html` + `audio/f,m/`）与独立单文件 HTML |
 | `apps/phenomena/` | 30 章发音现象课，逐词音素标注 + 男女声 |
 | `apps/collocation/` | 短语搭配章节页（`source/` 构建器 + `audio/`），每章一条 sprite |
-| `apps/charts/` | 商务图表英语页面与构建器（尚未部署） |
 | `apps/conversation/` | Conversation Starters 页面与 `audio/`（`source/` 构建器，内容源在 `content/conversation/`） |
 | `miniprogram/` | 微信小程序（原生）；数据与音频由 `tools/miniprogram/` 从已构建页面生成 |
 | `tools/` | 构建、校验脚本；`tools/README.md` 是脚本索引，`tools/paths.py` 是路径的唯一来源 |
@@ -51,7 +47,7 @@ python -m venv .venv
 
 ## 构建
 
-日常只需要一条命令（按依赖顺序构建六个线上应用、商务图表英语本地页面，并装配主站暂存目录）：
+日常只需要一条命令（按依赖顺序构建六个线上应用并装配主站暂存目录）：
 
 ```powershell
 .venv\Scripts\python.exe -I tools\build_all.py

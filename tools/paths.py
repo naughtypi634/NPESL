@@ -3,7 +3,7 @@
 
     NPESL/
       content/   内容源（Markdown、题库与词条 JSON）
-      apps/      七个应用目录（六个线上应用 + 商务图表）
+      apps/      网页应用目录
       miniprogram/ 微信小程序（与 apps/ 平级）
       tools/     构建、部署、校验脚本
       build/     暂存产物（gitignore）
@@ -32,7 +32,6 @@ PHONETICS_PDF = CONTENT / "phonetics" / "Pronunciation音标表.pdf"
 CONVERSATION_CONTENT = CONTENT / "conversation"
 DRILL_CONTENT = CONTENT / "drill"
 COLLOCATION_CONTENT = CONTENT / "collocation"
-CHARTS_CONTENT = CONTENT / "charts"
 
 # ---- 应用 ----
 SITE_APP = APPS / "site"
@@ -43,7 +42,6 @@ PHENOMENA_APP = APPS / "phenomena"
 COLLOCATION_APP = APPS / "collocation"
 CONVERSATION_APP = APPS / "conversation"
 VISUAL_VOCAB_APP = APPS / "visual-vocabulary"
-CHARTS_APP = APPS / "charts"
 
 PHONICS_AUDIO = PHONICS_APP / "audio"
 PHONICS_SOURCE_AUDIO = PHONICS_APP / "source" / "audio"
