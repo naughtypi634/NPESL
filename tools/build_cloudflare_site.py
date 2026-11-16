@@ -95,6 +95,8 @@ REDIRECTS = """/phrasal/*  /collocation/:splat  301
 /conversation/audio/Ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
 /conversation/audio/ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
 /conversation/eslse/audio/*  https://npesl-audio.pages.dev/audio/:splat  301
+/visual-vocabulary/fit/*  /visual-vocabulary/clothing/  301
+/visual-vocabulary/fit  /visual-vocabulary/clothing/  301
 """
 
 THEME_HEAD = theme_boot("/theme.css")
@@ -368,7 +370,7 @@ def main() -> int:
             theme=False))
         for sub in ("home", "clothing", "packing", "body-parts",
                     "cosmetics", "cosmetics-qwen21", "my-home",
-                    "fit", "supermarket"):
+                    "supermarket"):
             finish_group(PageGroup(
                 vv_out / sub, "*.html",
                 lambda name, sub=sub: f"visual-vocabulary/{sub}/{name}",
