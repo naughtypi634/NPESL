@@ -31,6 +31,7 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅作者合成时使用，不
 ## 门禁基线
 
 - `tools/verify.py` 已于 2026-11-18 给 `check_bre` 加 `--strict`；`check_bre.py` 只扫 Markdown，HTML/JSON 内容靠各 app validator。
+- 2026-11-18：用 Claude Code 2.1.318 做无工具单轮测试，根 `CLAUDE.md` 的 `@AGENTS.md` 导入生效（模型能引用 `AGENTS.md` 首段）；新会话仍建议用 `/context all` 复核。
 - 2026-11-18：`check_bre.py --strict apps content` → FIX 0，REVIEW 3（`chips`×2、`surgery`×1，均为词义提示，人工判断）。
 - `tests/smoke.mjs` 覆盖七个线上应用；data-viz 用例在暂存没有该目录时自动跳过。
 - 本轮改动只涉及指令文件与 `verify.py`；完整 `verify.py` 冒烟待视觉层并行构建结束后跑一次，结果补在这里。
