@@ -44,7 +44,7 @@ def main() -> int:
     checks.append(("音频引用", ["-I", "tools/check_assets.py", args.site,
                                 "--audio", args.audio], None))
     checks.append(("英式英语检查", ["-I", "tools/check_bre.py",
-                                    "apps", "content"], None))
+                                    "--strict", "apps", "content"], None))
     if not args.skip_smoke:
         checks.append(("无头浏览器冒烟", ["tests/smoke.mjs"], "node"))
 
