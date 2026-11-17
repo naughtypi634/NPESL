@@ -105,7 +105,7 @@ MANNER = {
 }
 
 HINTS = {
-    "/ŋ/": "像使劲拧瓶盖时发出的声音",
+    "/ŋ/": "像使劲拧瓶盖",
 }
 
 # 成对辅音的提示放在整对上面，两张卡片的单词行才能对齐。
@@ -363,15 +363,18 @@ def build_card(
             f'aria-label="{html.escape(plain, quote=True)}">'
             f"{render_word(marked)}</button>"
         )
-    hint = HINTS.get(sound)
-    hint_html = f'<p class="hint">{html.escape(hint)}</p>' if hint else ""
     sound_attr = html.escape(sound, quote=True)
+    hint_inline = (
+        f'    <span class="ipa-hint">{html.escape(HINTS[sound])}</span>\n'
+        if sound in HINTS else ""
+    )
     return (
         f'<section class="card" data-sound="{sound_attr}" '
         f'data-sprite-f="{html.escape(sprites["f"], quote=True)}" '
         f'data-sprite-m="{html.escape(sprites["m"], quote=True)}">\n'
         f'  <div class="card-head">\n'
         f'    <span class="ipa">{html.escape(sound)}</span>\n'
+        f'{hint_inline}'
         f'    <div class="voice" role="group" '
         f'aria-label="{sound_attr} 的朗读声音">\n'
         f'      <span class="voice-ico" aria-hidden="true" '
@@ -385,11 +388,19 @@ def build_card(
         f'aria-pressed="false">男声</button>\n'
         f'    </div>\n'
         f'  </div>\n'
-        f'  {hint_html}\n'
         f'  <div class="words">\n    '
         + "\n    ".join(buttons)
         + "\n  </div>\n</section>"
     )
+
+
+def grid_html(
+    sounds: list[str],
+    by_sound: dict[str, list[str]],
+    pairs: dict[str, dict[str, str]],
+) -> str:
+    cards = "\n".join(build_card(s, by_sound[s], pairs) for s in sounds)
+    return f'<div class="grid">\n{cards}\n  </div>'
 
 
 def section_html(
@@ -445,15 +456,11 @@ def build_page(
     sections = [
         section_html(
             "monophthongs", "单元音",
-            '<div class="grid">\n'
-            + "\n".join(build_card(s, by_sound[s], pairs) for s in MONOPHTHONGS)
-            + "\n  </div>",
+            grid_html(MONOPHTHONGS, by_sound, pairs),
         ),
         section_html(
             "diphthongs", "双元音",
-            '<div class="grid">\n'
-            + "\n".join(build_card(s, by_sound[s], pairs) for s in DIPHTHONGS)
-            + "\n  </div>",
+            grid_html(DIPHTHONGS, by_sound, pairs),
         ),
     ]
 
@@ -471,9 +478,7 @@ def build_page(
     sections.append(
         section_html(
             "other", "其他辅音",
-            '<div class="grid">\n'
-            + "\n".join(build_card(s, by_sound[s], pairs) for s in OTHER_CONSONANTS)
-            + "\n  </div>",
+            grid_html(OTHER_CONSONANTS, by_sound, pairs),
             "英语里没有对应的清浊配对。",
         )
     )
@@ -641,9 +646,7 @@ TEMPLATE = """<!doctype html>
     padding-bottom:13px; border-bottom:1px solid var(--rule); }
   .ipa { font-family:var(--font-ipa); font-size:2rem; font-weight:600;
     line-height:1.1; letter-spacing:-0.02em; }
-  .hint { margin:12px 0 0; padding:10px 12px; border-radius:12px;
-    background:var(--surface); color:var(--muted); font-size:14px;
-    line-height:1.5; }
+  .ipa-hint { font-size:14px; color:var(--muted); line-height:1.4; }
   .words { display:grid; grid-template-columns:1fr 1fr; gap:0 18px;
     margin-top:9px; }
   .word { appearance:none; border:0; background:transparent; color:inherit;
@@ -660,7 +663,7 @@ TEMPLATE = """<!doctype html>
   @media (max-width:1239px) {
     .toolbar { position:sticky; top:env(safe-area-inset-top,0px);
       z-index:40; flex-wrap:wrap; margin:24px -4px 0; padding:10px 4px;
-      background:var(--bg); border-bottom:1px solid var(--rule); }
+      background:var(--bg); }
     .tabs { flex:1 1 100%; width:100%; min-width:0; max-width:100%;
       flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none;
       padding-bottom:1px; }
