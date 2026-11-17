@@ -607,13 +607,13 @@ const cases = [
   {
     name: 'drill-browse-opaque', path: '/drill/',
     async run() {
-      // 浏览浮层必须是不透底的实色，否则 Bright 下底下的题目会透上来。
-      await evaluate("localStorage.setItem('npesl-theme','bright')");
+      // 浏览浮层必须是不透底的实色，否则浅色主题下底下的题目会透上来。
+      await evaluate("localStorage.setItem('npesl-theme','light')");
       await send('Page.reload');
       const ready = await waitFor(
-        "document.readyState === 'complete' && document.documentElement.dataset.theme === 'bright'"
+        "document.readyState === 'complete' && document.documentElement.dataset.theme === 'light'"
         + " && !!document.querySelector('#browse')", 8000);
-      if (!ready) return { ok: false, detail: 'Bright 主题没生效' };
+      if (!ready) return { ok: false, detail: 'Light 主题没生效' };
       await evaluate("document.querySelector('#browse').click()");
       const opaque = await waitFor(`(() => {
         const s = getComputedStyle(document.querySelector('.browserSheet'));
@@ -622,7 +622,7 @@ const cases = [
       })()`);
       const searchBg = await evaluate(
         "getComputedStyle(document.querySelector('.searchField')).backgroundColor");
-      await evaluate("localStorage.setItem('npesl-theme','auto')");
+      await evaluate("localStorage.setItem('npesl-theme','light')");
       await send('Page.reload');
       return {
         ok: opaque,

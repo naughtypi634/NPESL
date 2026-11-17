@@ -1,10 +1,9 @@
 (function () {
   var KEY = 'npesl-theme';
   var THEMES = [
-    { id: 'auto', label: 'Auto' },
-    { id: 'bright', label: 'Bright' },
-    { id: 'glass', label: 'Glass' },
-    { id: 'dark', label: 'Dark' }
+    { id: 'light', label: 'Light' },
+    { id: 'dark', label: 'Dark' },
+    { id: 'glass', label: 'Glass' }
   ];
   var VALID = THEMES.map(function (theme) { return theme.id; });
 
@@ -13,9 +12,9 @@
       var value = localStorage.getItem(KEY);
       if (value && VALID.indexOf(value) !== -1) return value;
     } catch (err) {
-      // localStorage 不可用时跟随系统。
+      // localStorage 不可用时用浅色。
     }
-    return 'auto';
+    return 'light';
   }
 
   function current() {
