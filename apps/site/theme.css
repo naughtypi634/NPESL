@@ -358,13 +358,93 @@ html[data-theme] .searchField {
     0 0 0 1px var(--pane-edge);
 }
 
+/* 徽章是圆角小玻璃，不要露直角。 */
+html[data-theme] .badge {
+  border-radius: 999px;
+}
+
+/* 滑杆本体透明，只留原生轨道，避免一块白色直角底。 */
+html[data-theme] input[type="range"] {
+  background-color: transparent;
+  border-radius: 999px;
+}
+
 /* 分段控件的槽是刻出来的一道凹槽：上唇有影子，下唇有光。 */
 html[data-theme] :is(.seg, .voice, .voice-seg, .speed) {
   border-width: 0;
+  border-radius: 999px;
   background-color: var(--well-fill);
   box-shadow:
     inset 0 1px 2px var(--well-shade),
     inset 0 -1px 0 var(--well-rim);
+}
+
+/* 男女声切换全站统一为 Conversation Starters 的分段控件：药丸形的槽，
+ * 3px 内边距，30px 高的药丸按钮；选中的那块由下面的“选中”规则给墨色。
+ * 各页自己的 .seg 只保留布局位置，尺寸和材质都在这里，不要再分叉。
+ */
+html[data-theme] .seg {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: auto;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background-color: var(--well-fill);
+  box-shadow:
+    inset 0 1px 2px var(--well-shade),
+    inset 0 -1px 0 var(--well-rim);
+  overflow: visible;
+  vertical-align: middle;
+}
+
+html[data-theme] .seg .voice-ico {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 0 2px 0 10px;
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+html[data-theme] .seg .voice-ico svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+html[data-theme] .seg button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+html[data-theme] .seg button + button {
+  border-left: 0;
+}
+
+html[data-theme] .seg button:not([aria-pressed="true"]):hover {
+  color: var(--fg);
+}
+
+html[data-theme] .seg button:focus-visible {
+  outline: 2px solid var(--focus-line);
+  outline-offset: 2px;
 }
 
 /* ---- 选中：一块实心玻璃 ----------------------------------------------
@@ -521,6 +601,39 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 }
 
 .npesl-theme-option[aria-checked="true"] .npesl-theme-check { opacity: 1; }
+
+/* ---- 交互：全站平滑滚动，按钮按下回弹 --------------------------------
+ *
+ * 按下时快速缩到 96%，松开走一条轻微过冲的曲线回到原位，读起来像弹簧。
+ * 只需要“缓动”的地方（底色、文字、阴影）仍用 0.18s ease，不跟着弹。
+ * 尊重系统的减少动态偏好：开了 reduce 就完全不缩放、不滚动动画。
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme] body :is(button, [role="button"], .card[href], .row, .prow,
+      .tabs a, .chips a, .card, .dv-tile, .dv-wall-link, .dv-step,
+      .dv-views a, .dv-topic-item, .npesl-back):not(:disabled) {
+    transition:
+      transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1),
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  html[data-theme] body :is(button, [role="button"], .card[href], .row, .prow,
+      .tabs a, .chips a, .card, .dv-tile, .npesl-back):not(:disabled):active {
+    transform: scale(0.96);
+    transition-duration: 0.1s;
+  }
+
+  /* 句子里可以点的词和整句不是“按钮”，按下去只变色，不缩放；
+     否则一行文字会跟着抖。 */
+  html[data-theme] body :is(button, [role="button"]):is(
+      .s, .vocab-s, .chunk, .word, .title-s, .line):not(:disabled):active {
+    transform: none;
+  }
+}
 
 @media print {
   .npesl-theme { display: none !important; }

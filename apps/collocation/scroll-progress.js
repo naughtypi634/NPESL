@@ -120,7 +120,7 @@
       if (chipHost && particleChips) chipHost.appendChild(particleChips);
       if (chipHost && themeChips) chipHost.appendChild(themeChips);
       var topbar = document.querySelector('.topbar');
-      var voice = topbar && topbar.querySelector('.voice-seg');
+      var voice = topbar && topbar.querySelector('.seg');
       if (voice) {
         var right = document.createElement('div');
         right.className = 'sp-right';

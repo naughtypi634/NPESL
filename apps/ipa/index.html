@@ -45,18 +45,7 @@
 
   .toolbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap;
     margin:28px 0 0; }
-  .voice { display:inline-flex; align-items:center; flex:none; height:30px;
-    margin-left:auto; padding:2px; border-radius:999px;
-    background:var(--surface); }
-  .voice button { appearance:none; display:inline-flex; align-items:center;
-    justify-content:center; height:26px; padding:0 10px; border:0;
-    border-radius:999px; background:transparent; color:var(--muted);
-    font:inherit; font-size:12px; font-weight:500; letter-spacing:0.02em;
-    cursor:pointer; transition:background-color .18s ease, color .18s ease; }
-  .voice button:hover { color:var(--fg); }
-  .voice button[aria-pressed="true"] { background:var(--bg); color:var(--fg);
-    box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .voice button:focus-visible { outline:2px solid var(--blue); outline-offset:1px; }
+  .voice { margin-left:auto; }
 
   .tabs { display:flex; flex-wrap:wrap; gap:8px; }
   .tabs a { display:inline-flex; align-items:center; justify-content:center;
@@ -515,13 +504,93 @@ html[data-theme] .searchField {
     0 0 0 1px var(--pane-edge);
 }
 
+/* 徽章是圆角小玻璃，不要露直角。 */
+html[data-theme] .badge {
+  border-radius: 999px;
+}
+
+/* 滑杆本体透明，只留原生轨道，避免一块白色直角底。 */
+html[data-theme] input[type="range"] {
+  background-color: transparent;
+  border-radius: 999px;
+}
+
 /* 分段控件的槽是刻出来的一道凹槽：上唇有影子，下唇有光。 */
 html[data-theme] :is(.seg, .voice, .voice-seg, .speed) {
   border-width: 0;
+  border-radius: 999px;
   background-color: var(--well-fill);
   box-shadow:
     inset 0 1px 2px var(--well-shade),
     inset 0 -1px 0 var(--well-rim);
+}
+
+/* 男女声切换全站统一为 Conversation Starters 的分段控件：药丸形的槽，
+ * 3px 内边距，30px 高的药丸按钮；选中的那块由下面的“选中”规则给墨色。
+ * 各页自己的 .seg 只保留布局位置，尺寸和材质都在这里，不要再分叉。
+ */
+html[data-theme] .seg {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: auto;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background-color: var(--well-fill);
+  box-shadow:
+    inset 0 1px 2px var(--well-shade),
+    inset 0 -1px 0 var(--well-rim);
+  overflow: visible;
+  vertical-align: middle;
+}
+
+html[data-theme] .seg .voice-ico {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 0 2px 0 10px;
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+html[data-theme] .seg .voice-ico svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+html[data-theme] .seg button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+html[data-theme] .seg button + button {
+  border-left: 0;
+}
+
+html[data-theme] .seg button:not([aria-pressed="true"]):hover {
+  color: var(--fg);
+}
+
+html[data-theme] .seg button:focus-visible {
+  outline: 2px solid var(--focus-line);
+  outline-offset: 2px;
 }
 
 /* ---- 选中：一块实心玻璃 ----------------------------------------------
@@ -679,6 +748,39 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 
 .npesl-theme-option[aria-checked="true"] .npesl-theme-check { opacity: 1; }
 
+/* ---- 交互：全站平滑滚动，按钮按下回弹 --------------------------------
+ *
+ * 按下时快速缩到 96%，松开走一条轻微过冲的曲线回到原位，读起来像弹簧。
+ * 只需要“缓动”的地方（底色、文字、阴影）仍用 0.18s ease，不跟着弹。
+ * 尊重系统的减少动态偏好：开了 reduce 就完全不缩放、不滚动动画。
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme] body :is(button, [role="button"], .card[href], .row, .prow,
+      .tabs a, .chips a, .card, .dv-tile, .dv-wall-link, .dv-step,
+      .dv-views a, .dv-topic-item, .npesl-back):not(:disabled) {
+    transition:
+      transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1),
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  html[data-theme] body :is(button, [role="button"], .card[href], .row, .prow,
+      .tabs a, .chips a, .card, .dv-tile, .npesl-back):not(:disabled):active {
+    transform: scale(0.96);
+    transition-duration: 0.1s;
+  }
+
+  /* 句子里可以点的词和整句不是“按钮”，按下去只变色，不缩放；
+     否则一行文字会跟着抖。 */
+  html[data-theme] body :is(button, [role="button"]):is(
+      .s, .vocab-s, .chunk, .word, .title-s, .line):not(:disabled):active {
+    transform: none;
+  }
+}
+
 @media print {
   .npesl-theme { display: none !important; }
 }
@@ -729,8 +831,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/i/" data-sprite-f="audio/sprites/0a48f8e728ba-f.mp3" data-sprite-m="audio/sprites/7f8f2b38cc07-m.mp3">
   <div class="card-head">
     <span class="ipa">/i/</span>
-    <div class="voice" role="group" aria-label="/i/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/i/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -751,8 +853,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ɪ/" data-sprite-f="audio/sprites/c69d19308849-f.mp3" data-sprite-m="audio/sprites/87ca2ab820fc-m.mp3">
   <div class="card-head">
     <span class="ipa">/ɪ/</span>
-    <div class="voice" role="group" aria-label="/ɪ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ɪ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -773,8 +875,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ɛ/" data-sprite-f="audio/sprites/dc98ee683a63-f.mp3" data-sprite-m="audio/sprites/9c8aa603ce78-m.mp3">
   <div class="card-head">
     <span class="ipa">/ɛ/</span>
-    <div class="voice" role="group" aria-label="/ɛ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ɛ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -795,8 +897,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/æ/" data-sprite-f="audio/sprites/b405d3098f67-f.mp3" data-sprite-m="audio/sprites/767b095534e7-m.mp3">
   <div class="card-head">
     <span class="ipa">/æ/</span>
-    <div class="voice" role="group" aria-label="/æ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/æ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -817,8 +919,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ɑ/" data-sprite-f="audio/sprites/ba9cf4ced4a6-f.mp3" data-sprite-m="audio/sprites/3f6f4f505f1d-m.mp3">
   <div class="card-head">
     <span class="ipa">/ɑ/</span>
-    <div class="voice" role="group" aria-label="/ɑ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ɑ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -839,8 +941,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ʌ/" data-sprite-f="audio/sprites/35909c43d488-f.mp3" data-sprite-m="audio/sprites/5810d89cfa59-m.mp3">
   <div class="card-head">
     <span class="ipa">/ʌ/</span>
-    <div class="voice" role="group" aria-label="/ʌ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ʌ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -861,8 +963,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ɔ/" data-sprite-f="audio/sprites/28d13572e63d-f.mp3" data-sprite-m="audio/sprites/52492102c899-m.mp3">
   <div class="card-head">
     <span class="ipa">/ɔ/</span>
-    <div class="voice" role="group" aria-label="/ɔ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ɔ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -883,8 +985,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ʊ/" data-sprite-f="audio/sprites/08a698f20bf6-f.mp3" data-sprite-m="audio/sprites/e569eefa1026-m.mp3">
   <div class="card-head">
     <span class="ipa">/ʊ/</span>
-    <div class="voice" role="group" aria-label="/ʊ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ʊ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -905,8 +1007,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/u/" data-sprite-f="audio/sprites/b7f446b75c13-f.mp3" data-sprite-m="audio/sprites/8879ab9a0ecb-m.mp3">
   <div class="card-head">
     <span class="ipa">/u/</span>
-    <div class="voice" role="group" aria-label="/u/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/u/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -927,8 +1029,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ɜr/" data-sprite-f="audio/sprites/46f4c08c83d2-f.mp3" data-sprite-m="audio/sprites/6c47a91a0a54-m.mp3">
   <div class="card-head">
     <span class="ipa">/ɜr/</span>
-    <div class="voice" role="group" aria-label="/ɜr/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ɜr/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -949,8 +1051,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ər/" data-sprite-f="audio/sprites/9eb476ef5d33-f.mp3" data-sprite-m="audio/sprites/3b656d5572ee-m.mp3">
   <div class="card-head">
     <span class="ipa">/ər/</span>
-    <div class="voice" role="group" aria-label="/ər/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ər/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -979,8 +1081,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/eɪ/" data-sprite-f="audio/sprites/960168053483-f.mp3" data-sprite-m="audio/sprites/641caed09862-m.mp3">
   <div class="card-head">
     <span class="ipa">/eɪ/</span>
-    <div class="voice" role="group" aria-label="/eɪ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/eɪ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1001,8 +1103,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/oʊ/" data-sprite-f="audio/sprites/2c3dd46a75ba-f.mp3" data-sprite-m="audio/sprites/6260a178c515-m.mp3">
   <div class="card-head">
     <span class="ipa">/oʊ/</span>
-    <div class="voice" role="group" aria-label="/oʊ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/oʊ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1023,8 +1125,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/aɪ/" data-sprite-f="audio/sprites/54ca4bba2f4b-f.mp3" data-sprite-m="audio/sprites/410b4a088da8-m.mp3">
   <div class="card-head">
     <span class="ipa">/aɪ/</span>
-    <div class="voice" role="group" aria-label="/aɪ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/aɪ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1045,8 +1147,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/aʊ/" data-sprite-f="audio/sprites/42319e9c9beb-f.mp3" data-sprite-m="audio/sprites/df87230ac440-m.mp3">
   <div class="card-head">
     <span class="ipa">/aʊ/</span>
-    <div class="voice" role="group" aria-label="/aʊ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/aʊ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1067,8 +1169,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ɔɪ/" data-sprite-f="audio/sprites/67229f9b68e8-f.mp3" data-sprite-m="audio/sprites/fdb09b0383ce-m.mp3">
   <div class="card-head">
     <span class="ipa">/ɔɪ/</span>
-    <div class="voice" role="group" aria-label="/ɔɪ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ɔɪ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1104,8 +1206,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/p/" data-sprite-f="audio/sprites/f0adf43ee39f-f.mp3" data-sprite-m="audio/sprites/f19e12f22ee7-m.mp3">
   <div class="card-head">
     <span class="ipa">/p/</span>
-    <div class="voice" role="group" aria-label="/p/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/p/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1126,8 +1228,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/b/" data-sprite-f="audio/sprites/f2bdabcf7902-f.mp3" data-sprite-m="audio/sprites/05b907bd8cd9-m.mp3">
   <div class="card-head">
     <span class="ipa">/b/</span>
-    <div class="voice" role="group" aria-label="/b/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/b/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1157,8 +1259,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/t/" data-sprite-f="audio/sprites/46c909abc223-f.mp3" data-sprite-m="audio/sprites/caf4d67c779e-m.mp3">
   <div class="card-head">
     <span class="ipa">/t/</span>
-    <div class="voice" role="group" aria-label="/t/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/t/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1179,8 +1281,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/d/" data-sprite-f="audio/sprites/8385e887a023-f.mp3" data-sprite-m="audio/sprites/88bdcf93ab7d-m.mp3">
   <div class="card-head">
     <span class="ipa">/d/</span>
-    <div class="voice" role="group" aria-label="/d/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/d/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1210,8 +1312,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/k/" data-sprite-f="audio/sprites/48493c06ec2e-f.mp3" data-sprite-m="audio/sprites/7570119d39d8-m.mp3">
   <div class="card-head">
     <span class="ipa">/k/</span>
-    <div class="voice" role="group" aria-label="/k/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/k/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1232,8 +1334,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/g/" data-sprite-f="audio/sprites/0daa7dfc758f-f.mp3" data-sprite-m="audio/sprites/a936395757ca-m.mp3">
   <div class="card-head">
     <span class="ipa">/g/</span>
-    <div class="voice" role="group" aria-label="/g/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/g/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1263,8 +1365,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/f/" data-sprite-f="audio/sprites/310779de9f26-f.mp3" data-sprite-m="audio/sprites/cf13c74eae2e-m.mp3">
   <div class="card-head">
     <span class="ipa">/f/</span>
-    <div class="voice" role="group" aria-label="/f/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/f/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1285,8 +1387,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/v/" data-sprite-f="audio/sprites/8cd484305a7e-f.mp3" data-sprite-m="audio/sprites/d9c4f47f6bec-m.mp3">
   <div class="card-head">
     <span class="ipa">/v/</span>
-    <div class="voice" role="group" aria-label="/v/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/v/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1316,8 +1418,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/θ/" data-sprite-f="audio/sprites/d6835b2c2ec8-f.mp3" data-sprite-m="audio/sprites/b62063791902-m.mp3">
   <div class="card-head">
     <span class="ipa">/θ/</span>
-    <div class="voice" role="group" aria-label="/θ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/θ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1338,8 +1440,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ð/" data-sprite-f="audio/sprites/bb76f5c28d96-f.mp3" data-sprite-m="audio/sprites/dd066d0ef28a-m.mp3">
   <div class="card-head">
     <span class="ipa">/ð/</span>
-    <div class="voice" role="group" aria-label="/ð/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ð/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1369,8 +1471,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/s/" data-sprite-f="audio/sprites/80701dcf7160-f.mp3" data-sprite-m="audio/sprites/0e47bfa0d38a-m.mp3">
   <div class="card-head">
     <span class="ipa">/s/</span>
-    <div class="voice" role="group" aria-label="/s/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/s/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1391,8 +1493,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/z/" data-sprite-f="audio/sprites/202bccfea75e-f.mp3" data-sprite-m="audio/sprites/063e469e0b51-m.mp3">
   <div class="card-head">
     <span class="ipa">/z/</span>
-    <div class="voice" role="group" aria-label="/z/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/z/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1422,8 +1524,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ʃ/" data-sprite-f="audio/sprites/40a9a8d08152-f.mp3" data-sprite-m="audio/sprites/2059f47c8a3d-m.mp3">
   <div class="card-head">
     <span class="ipa">/ʃ/</span>
-    <div class="voice" role="group" aria-label="/ʃ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ʃ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1444,8 +1546,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/ʒ/" data-sprite-f="audio/sprites/4aa7eb989bc6-f.mp3" data-sprite-m="audio/sprites/2d0c79393e90-m.mp3">
   <div class="card-head">
     <span class="ipa">/ʒ/</span>
-    <div class="voice" role="group" aria-label="/ʒ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ʒ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1475,8 +1577,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/tʃ/" data-sprite-f="audio/sprites/bf73932b794d-f.mp3" data-sprite-m="audio/sprites/46f585e3cca9-m.mp3">
   <div class="card-head">
     <span class="ipa">/tʃ/</span>
-    <div class="voice" role="group" aria-label="/tʃ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/tʃ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1497,8 +1599,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/dʒ/" data-sprite-f="audio/sprites/2f2dd764ab18-f.mp3" data-sprite-m="audio/sprites/17b0d7ed106b-m.mp3">
   <div class="card-head">
     <span class="ipa">/dʒ/</span>
-    <div class="voice" role="group" aria-label="/dʒ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/dʒ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1529,8 +1631,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/h/" data-sprite-f="audio/sprites/1c4dd7956039-f.mp3" data-sprite-m="audio/sprites/a176d5703774-m.mp3">
   <div class="card-head">
     <span class="ipa">/h/</span>
-    <div class="voice" role="group" aria-label="/h/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/h/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1551,8 +1653,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/m/" data-sprite-f="audio/sprites/14234e99f852-f.mp3" data-sprite-m="audio/sprites/18c6b208dbd1-m.mp3">
   <div class="card-head">
     <span class="ipa">/m/</span>
-    <div class="voice" role="group" aria-label="/m/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/m/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1573,8 +1675,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/n/" data-sprite-f="audio/sprites/dd00edd1f33e-f.mp3" data-sprite-m="audio/sprites/844360f4c603-m.mp3">
   <div class="card-head">
     <span class="ipa">/n/</span>
-    <div class="voice" role="group" aria-label="/n/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/n/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1596,8 +1698,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
   <div class="card-head">
     <span class="ipa">/ŋ/</span>
     <span class="ipa-hint">像使劲拧瓶盖</span>
-    <div class="voice" role="group" aria-label="/ŋ/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/ŋ/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1618,8 +1720,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/l/" data-sprite-f="audio/sprites/689cf0b2247d-f.mp3" data-sprite-m="audio/sprites/2b6c8106da27-m.mp3">
   <div class="card-head">
     <span class="ipa">/l/</span>
-    <div class="voice" role="group" aria-label="/l/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/l/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1640,8 +1742,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/r/" data-sprite-f="audio/sprites/60dd7a10deae-f.mp3" data-sprite-m="audio/sprites/caa451355de8-m.mp3">
   <div class="card-head">
     <span class="ipa">/r/</span>
-    <div class="voice" role="group" aria-label="/r/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/r/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1662,8 +1764,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/w/" data-sprite-f="audio/sprites/37db4e7152a7-f.mp3" data-sprite-m="audio/sprites/60c0ee165e6f-m.mp3">
   <div class="card-head">
     <span class="ipa">/w/</span>
-    <div class="voice" role="group" aria-label="/w/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/w/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -1684,8 +1786,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 <section class="card" data-sound="/j/" data-sprite-f="audio/sprites/3b20431ae82b-f.mp3" data-sprite-m="audio/sprites/ef9dd552677e-m.mp3">
   <div class="card-head">
     <span class="ipa">/j/</span>
-    <div class="voice" role="group" aria-label="/j/ 的朗读声音">
-      <span class="voice-ico" aria-hidden="true" style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
+    <div class="voice seg" role="group" aria-label="/j/ 的朗读声音">
+      <span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>
       <button type="button" data-voice="f" aria-pressed="true">女声</button>
       <button type="button" data-voice="m" aria-pressed="false">男声</button>
     </div>
@@ -2302,6 +2404,41 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
     document.addEventListener('DOMContentLoaded', build);
   } else {
     build();
+  }
+
+  // 站内锚点平滑滚动。只接管真正有对应元素的锚点：数据图表的 #/topic/view、
+  // 对话的 #a1 级别切换、单文件拼读的 #/01 都由各应用自己处理，不在这里拦。
+  // 程序化的 window.scrollTo 也不受影响，各应用定位和测试仍然即时。
+  var reduceMotion = window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion) {
+    document.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0
+          || event.metaKey || event.ctrlKey || event.shiftKey
+          || event.altKey) return;
+      var node = event.target;
+      var link = node && node.closest ? node.closest('a[href^="#"]') : null;
+      if (!link || link.hasAttribute('download') || link.target) return;
+      if (link.hasAttribute('data-level') || link.hasAttribute('data-lesson')) return;
+      var href = link.getAttribute('href') || '';
+      if (href.length < 2 || href.indexOf('#/') === 0) return;
+      var id = href.slice(1);
+      try {
+        id = decodeURIComponent(id);
+      } catch (err) {
+        return;
+      }
+      var target = document.getElementById(id)
+        || document.getElementsByName(id)[0];
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      try {
+        history.pushState(null, '', href);
+      } catch (err) {
+        // 不能改地址也不影响滚动。
+      }
+    });
   }
 })();
 

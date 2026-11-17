@@ -153,4 +153,39 @@
   } else {
     build();
   }
+
+  // 站内锚点平滑滚动。只接管真正有对应元素的锚点：数据图表的 #/topic/view、
+  // 对话的 #a1 级别切换、单文件拼读的 #/01 都由各应用自己处理，不在这里拦。
+  // 程序化的 window.scrollTo 也不受影响，各应用定位和测试仍然即时。
+  var reduceMotion = window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion) {
+    document.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0
+          || event.metaKey || event.ctrlKey || event.shiftKey
+          || event.altKey) return;
+      var node = event.target;
+      var link = node && node.closest ? node.closest('a[href^="#"]') : null;
+      if (!link || link.hasAttribute('download') || link.target) return;
+      if (link.hasAttribute('data-level') || link.hasAttribute('data-lesson')) return;
+      var href = link.getAttribute('href') || '';
+      if (href.length < 2 || href.indexOf('#/') === 0) return;
+      var id = href.slice(1);
+      try {
+        id = decodeURIComponent(id);
+      } catch (err) {
+        return;
+      }
+      var target = document.getElementById(id)
+        || document.getElementsByName(id)[0];
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      try {
+        history.pushState(null, '', href);
+      } catch (err) {
+        // 不能改地址也不影响滚动。
+      }
+    });
+  }
 })();

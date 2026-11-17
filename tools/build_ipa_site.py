@@ -375,11 +375,10 @@ def build_card(
         f'  <div class="card-head">\n'
         f'    <span class="ipa">{html.escape(sound)}</span>\n'
         f'{hint_inline}'
-        f'    <div class="voice" role="group" '
+        f'    <div class="voice seg" role="group" '
         f'aria-label="{sound_attr} 的朗读声音">\n'
-        f'      <span class="voice-ico" aria-hidden="true" '
-        f'style="display:inline-flex;align-items:center;padding-left:8px;opacity:.55">'
-        f'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" '
+        f'      <span class="voice-ico" aria-hidden="true">'
+        f'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" '
         f'stroke="currentColor" stroke-width="2" stroke-linejoin="round">'
         f'<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span>\n'
         f'      <button type="button" data-voice="f" '
@@ -589,18 +588,7 @@ TEMPLATE = """<!doctype html>
 
   .toolbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap;
     margin:28px 0 0; }
-  .voice { display:inline-flex; align-items:center; flex:none; height:30px;
-    margin-left:auto; padding:2px; border-radius:999px;
-    background:var(--surface); }
-  .voice button { appearance:none; display:inline-flex; align-items:center;
-    justify-content:center; height:26px; padding:0 10px; border:0;
-    border-radius:999px; background:transparent; color:var(--muted);
-    font:inherit; font-size:12px; font-weight:500; letter-spacing:0.02em;
-    cursor:pointer; transition:background-color .18s ease, color .18s ease; }
-  .voice button:hover { color:var(--fg); }
-  .voice button[aria-pressed="true"] { background:var(--bg); color:var(--fg);
-    box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .voice button:focus-visible { outline:2px solid var(--blue); outline-offset:1px; }
+  .voice { margin-left:auto; }
 
   .tabs { display:flex; flex-wrap:wrap; gap:8px; }
   .tabs a { display:inline-flex; align-items:center; justify-content:center;
