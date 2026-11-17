@@ -67,6 +67,7 @@ const server = createServer(async (req, res) => {
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}`;
+const HAS_DATA_VIZ = await fetch(BASE + '/data-viz/').then((r) => r.ok).catch(() => false);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -379,7 +380,7 @@ const cases = [
     async run() {
       const links = await evaluate(
         "[...document.querySelectorAll('a')].map(a => new URL(a.getAttribute('href'), location.href).pathname)");
-      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/collocation/', '/data-viz/'];
+      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/collocation/', '/visual-vocabulary/'];
       const missing = want.filter((w) => !links.some((h) => h && h.startsWith(w)));
       return { ok: missing.length === 0, detail: missing.length ? `缺少链接 ${missing}` : `${want.length} 个入口齐全` };
     },
@@ -1673,6 +1674,7 @@ const cases = [
 const results = [];
 for (const c of cases) {
   if (ONLY && c.name !== ONLY) continue;
+  if (c.name.startsWith('data-viz') && !HAS_DATA_VIZ) continue;
   let outcome;
   try {
     await goto(c.path);

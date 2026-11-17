@@ -112,7 +112,9 @@ AUDIO_HEADERS = """/*
 
 # 旧页面缓存里还是主站下的 /conversation/audio/Ava/… 或 ESLSE 的相对
 # audio/…，转给音频站。旧的 /phrasal/ 路径转给 /collocation/。
-REDIRECTS = """/phrasal/*  /collocation/:splat  301
+REDIRECTS = """/data-viz/*  /  302
+/data-viz  /  302
+/phrasal/*  /collocation/:splat  301
 /phrasal  /collocation/  301
 /conversation/audio/Ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
 /conversation/audio/ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
@@ -287,6 +289,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="装配 Cloudflare Pages 部署树")
     parser.add_argument("--no-image-opt", action="store_true",
                         help="Visual Vocabulary 保持 640px 原图（回滚用）")
+    parser.add_argument("--with-data-viz", action="store_true",
+                        help="把开发中的数据图表英语一并装配（默认不进主站）")
     args = parser.parse_args()
 
     vv_images = None
@@ -376,15 +380,17 @@ def main() -> int:
     finish_group(PageGroup(
         drill_out, "index.html", lambda _: "drill/", site_back))
 
-    # 数据图表英语：单页应用，hashed 数据包 + 每主题语言包懒加载。
-    if DATA_VIZ.exists():
+    # 数据图表英语：开发中，默认不进主站；本地联调加 --with-data-viz。
+    if args.with_data_viz and DATA_VIZ.exists():
         data_viz_out = OUT / "data-viz"
         shutil.copytree(DATA_VIZ, data_viz_out, ignore=data_viz_ignore)
         finish_group(PageGroup(
             data_viz_out, "index.html", lambda _: "data-viz/", site_back))
         print("  数据图表英语：已包含")
-    else:
+    elif args.with_data_viz:
         print("警告：数据图表英语目录不存在，未包含")
+    else:
+        print("  数据图表英语：开发中，未包含")
 
     # Conversation Starters：页面进主站，全部级别的两套语音进音频站。
     # 应用目录里的 source/ 是构建器，不属于部署内容。
@@ -491,7 +497,8 @@ def main() -> int:
     print(f"  Question Drill：{SITE_URL}/drill/")
     print(f"  常见发音现象：{SITE_URL}/phenomena/")
     print(f"  短语搭配：{SITE_URL}/collocation/")
-    print(f"  数据图表英语：{SITE_URL}/data-viz/")
+    if args.with_data_viz:
+        print(f"  数据图表英语：{SITE_URL}/data-viz/")
     if AUDIO_OUT.exists():
         afiles, asize = stats(AUDIO_OUT)
         print(f"音频站：{AUDIO_OUT.relative_to(ROOT)}")

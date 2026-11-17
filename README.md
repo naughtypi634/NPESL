@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站。八个线上应用共用一个入口：
+成人英语练习网站。七个线上应用共用一个入口：
 
 | 应用 | 线上 | 源 |
 |---|---|---|
@@ -11,7 +11,8 @@
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
 | 短语搭配 Collocations（41 个主题 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
 | Visual Vocabulary 图解词汇（六组图解词表） | https://npesl.pages.dev/visual-vocabulary/ | `apps/visual-vocabulary/` |
-| 数据图表英语 Data Visualization Playground | https://npesl.pages.dev/data-viz/ | `content/data-viz/` → `apps/data-viz/` |
+
+> 数据图表英语（Data Visualization Playground）在 `content/data-viz/` + `apps/data-viz/` 开发中，**暂不部署**。本地联调：先构建，再 `tools/build_cloudflare_site.py --with-data-viz`。
 
 ## 目录
 
@@ -51,7 +52,7 @@ python -m venv .venv
 
 ## 构建
 
-日常只需要一条命令（按依赖顺序构建八个线上应用并装配主站暂存目录）：
+日常只需要一条命令（按依赖顺序构建七个线上应用并装配主站暂存目录）：
 
 ```powershell
 .venv\Scripts\python.exe -I tools\build_all.py
@@ -113,7 +114,7 @@ npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npe
 ## 自检
 
 ```powershell
-# 一次跑完：音频引用、英式英语、八个线上应用的冒烟测试
+# 一次跑完：音频引用、英式英语、七个线上应用的冒烟测试
 .venv\Scripts\python.exe -I tools\verify.py
 
 # 改构建脚本前后：拍快照，再比对（0 差异才算通过）

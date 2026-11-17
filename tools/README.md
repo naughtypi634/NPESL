@@ -15,7 +15,7 @@
 |---|---|
 | `build_all.py` | 按依赖顺序跑全部应用与站点装配；`--only`、`--skip-site`、`--refresh-ipa-audio` |
 | `verify.py` | 一次跑完产物比对、音频引用、英式英语、无头浏览器冒烟 |
-| `build_cloudflare_site.py` | 把八个线上应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/` |
+| `build_cloudflare_site.py` | 把七个线上应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/`；`--with-data-viz` 额外装配开发中的 data-viz |
 | `build_ipa_site.py` | 音标表页面 + 全部单词的男女两版录音；默认 `--tts azure`，`--skip-audio` 只用缓存 |
 | `apps/conversation/source/build_site.py` | Conversation Starters 页面与全部级别语音 |
 | `drill/make_audio.py` | Question Drill 逐句语音（读 `content/drill/questions.json`） |

@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站。八个线上应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters Beginner / Intermediate / ESLSE、常见发音现象 30 章、短语搭配 41 个主题、Visual Vocabulary 图解词汇、数据图表英语 Data Visualization Playground。旅行英语已整体删除，新方案定稿前不补代码。
+成人英语练习网站。七个线上应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters Beginner / Intermediate / ESLSE、常见发音现象 30 章、短语搭配 41 个主题、Visual Vocabulary 图解词汇。数据图表英语 Data Visualization Playground 在 `content/data-viz/` + `apps/data-viz/` 开发中，暂不部署（构建站点时默认不装配，本地联调加 `--with-data-viz`）。旅行英语已整体删除，新方案定稿前不补代码。
 
 **本库是独立项目。** 2026-10-28 从 ESLStudio 复制出来，作为岔路点独立演进；不读、不写、不依赖 ESLStudio 或任何其他仓库。内容与代码都在本库内。
 
@@ -10,7 +10,7 @@
 
 ```
 content/      phonetics/ conversation/ drill/ collocation/   写内容只看这里
-apps/         site/ phonics/ ipa/ drill/ phenomena/ collocation/ conversation/ visual-vocabulary/ data-viz/
+apps/         site/ phonics/ ipa/ drill/ phenomena/ collocation/ conversation/ visual-vocabulary/ data-viz/(开发中，不部署)
 miniprogram/  微信小程序（原生），与 apps/ 平级；内容和音频都由 tools/ 从 content/ 生成
 tools/        paths.py 与构建脚本
 build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
@@ -63,7 +63,7 @@ build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
 .venv\Scripts\python.exe -I tools\verify.py --diff before now
 ```
 
-要求 **FIX = 0**；REVIEW 项逐条人工判断。`tests\smoke.mjs` 用无头 Edge 打开八个应用，确认无 console 错误、点读真的出声。页面还要在浏览器里过一遍：手机宽度、深浅主题、点读播放、返回链接。
+要求 **FIX = 0**；REVIEW 项逐条人工判断。`tests\smoke.mjs` 用无头 Edge 打开七个应用，确认无 console 错误、点读真的出声。页面还要在浏览器里过一遍：手机宽度、深浅主题、点读播放、返回链接。
 
 - **本地验证只开一个无头 Edge，跑完必须关**：多个检查合并进一个脚本、尽量复用同一个页面。统一用 `tools/edge.mjs` 的 `launchEdge()`，它在 Windows 上按 `--user-data-dir` 精确杀整棵树；残留用 `node tools/edge.mjs` 清。不要每步临时起一个浏览器不关——Edge 的浏览器进程会改挂父进程，`proc.kill()`、`taskkill /T` 都收不干净，profile 会一直锁着，进程越积越多把内存吃满。
 - **自检最多跑一遍，不要为等绿灯重跑**：`verify.py` 一次改动只跑一次。失败项先看是否与本次改动有关（`git status` 有没有碰那个应用）；无关的话用 `node tests\smoke.mjs --only <用例名>` 单跑一次判定是不是抖动，然后**停手**——把「单跑通过、整套受负载影响」写进交付说明即可。不要连跑整套去碰运气，冒烟每轮要开浏览器、放音频，最费时间也最费 token。只有失败项确实指向本次改动时才继续排查。
