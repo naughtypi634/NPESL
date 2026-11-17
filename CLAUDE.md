@@ -65,4 +65,5 @@ npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npe
 
 - 计数、每应用 TTS 后端、门禁基线、WIP、部署授权只写 `docs/status.md`（带 `last_verified`）；本文件与 AGENTS/README 不写会变的数字。
 - 共享内容核是 `docs/shared/content-core.md`，只读、不参与构建；与另一库副本逐字节一致。独立性约束构建、检查、测试、部署与会话运行期；维护窗口内允许 owner 复制库外母本的非可执行文本。功能任务中不跨库读写。
+- 跨库需求只产出变更规格（输入/输出/验收/owner），由拥有方实施；不在一个任务里同时改两库。
 - `.claude/skills/` 是任务级审核工具，不是规则来源。
