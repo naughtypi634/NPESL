@@ -31,7 +31,8 @@ APP = ROOT / "apps" / "data-viz"
 LIBRARY = CONTENT / "library"
 TOPICS = CONTENT / "topics"
 JS_DIR = APP / "js"
-JS_ORDER = ["01-core.js", "02-renderers.js", "03-panel.js", "04-app.js"]
+JS_ORDER = ["01-core.js", "05-compute.js", "06-text.js", "02-renderers.js",
+            "07-editor.js", "03-panel.js", "04-app.js"]
 
 
 def load(path: Path):

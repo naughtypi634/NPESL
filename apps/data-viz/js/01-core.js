@@ -38,11 +38,61 @@
     while (node.firstChild) node.removeChild(node.firstChild);
   };
 
+  // Round half to even, the way Python's format() does, so a value that the
+  // build formatted as "52.5 -> 52" does not flip to "53" once the browser
+  // recalculates it.
+  DV.roundFixed = function (value, decimals) {
+    var dec = decimals == null ? 0 : Number(decimals);
+    var x = Number(value);
+    if (!isFinite(x)) return String(x);
+    var neg = x < 0;
+    var abs = Math.abs(x);
+    var raw = abs.toFixed(20);
+    if (raw.indexOf('e') >= 0) return abs.toFixed(dec);
+    var parts = raw.split('.');
+    var intPart = parts[0] || '0';
+    var frac = parts[1] || '';
+    while (frac.length < dec) frac += '0';
+    var kept = frac.slice(0, dec);
+    var rest = frac.slice(dec);
+    var digits = intPart + kept;
+    var roundUp = false;
+    if (rest) {
+      var first = rest.charCodeAt(0) - 48;
+      if (first > 5) roundUp = true;
+      else if (first === 5) {
+        if (/[1-9]/.test(rest.slice(1))) roundUp = true;
+        else {
+          var last = digits.charCodeAt(digits.length - 1) - 48;
+          roundUp = last % 2 === 1;
+        }
+      }
+    }
+    if (roundUp) {
+      var arr = digits.split('');
+      var i = arr.length - 1;
+      while (i >= 0 && arr[i] === '9') { arr[i] = '0'; i -= 1; }
+      if (i < 0) arr.unshift('1');
+      else arr[i] = String.fromCharCode(arr[i].charCodeAt(0) + 1);
+      digits = arr.join('');
+    }
+    var split = digits.length - dec;
+    var intOut = digits.slice(0, split) || '0';
+    var fracOut = dec ? digits.slice(split) : '';
+    return (neg ? '-' : '') + intOut + (dec ? '.' + fracOut : '');
+  };
+
   DV.num = function (value, decimals) {
-    var fixed = Number(value).toFixed(decimals || 0);
+    var fixed = DV.roundFixed(value, decimals);
+    if (fixed.indexOf('.') >= 0) {
+      fixed = fixed.replace(/0+$/, '').replace(/\.$/, '');
+    }
+    if (fixed === '-0' || fixed === '') fixed = '0';
+    var neg = fixed.charAt(0) === '-';
+    if (neg) fixed = fixed.slice(1);
     var parts = fixed.split('.');
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return parts.join('.');
+    return (neg ? '-' : '') + parts.join('.');
   };
 
   DV.fmtValue = function (value, unit) {

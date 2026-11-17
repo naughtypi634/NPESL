@@ -26,6 +26,7 @@ const argOf = (name, fallback) => {
 };
 const SERVE_DIR = resolve(ROOT, argOf('--dir', 'build/cloudflare-site'));
 const ONLY = argOf('--only', null);
+const MATCH = argOf('--match', null);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -1661,12 +1662,133 @@ const cases = [
         await sleep(80);
         const info = await evaluate(`(() => {
           const t = document.querySelector('.dv-table table');
-          return { rows: t ? t.querySelectorAll('tbody tr').length : 0, cap: t ? (t.querySelector('caption')||{}).textContent : '' };
+          const badge = document.querySelector('.dv-chart-head .badge');
+          return { rows: t ? t.querySelectorAll('tbody tr').length : 0,
+            badge: badge ? badge.textContent : '' };
         })()`);
-        if (info.rows < 2 || !/模拟数据/.test(info.cap || '')) failures.push(`${topic}:${info.rows}`);
+        if (info.rows < 2 || !/模拟数据/.test(info.badge || '')) failures.push(`${topic}:${info.rows}`);
         await evaluate('window.__dv.table()');
       }
       return { ok: failures.length === 0, detail: failures.length ? failures.join(' ') : '9 种图表表格齐全' };
+    },
+  },
+  {
+    name: 'data-viz-edit', path: '/data-viz/',
+    async run() {
+      await evaluate("location.hash = '#/online-shopping/share'");
+      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      if (!ready) return { ok: false, detail: '没有图表' };
+      await evaluate('window.__dv.edit(true)');
+      await sleep(120);
+      const opened = await evaluate("!!document.querySelector('.dv-data') && !document.querySelector('.dv-data').hidden");
+      await evaluate("window.__dv.select('seg:online:0')");
+      await sleep(80);
+      await evaluate(`(() => {
+        const input = document.querySelector('.dv-data-num');
+        input.value = '99';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      })()`);
+      await sleep(200);
+      const info = await evaluate(`(() => ({
+        snap: window.__dv.snapshot(),
+        value: window.__dv.data().series[0].values[0],
+        panel: document.querySelector('.dv-panel').innerText,
+        marks: document.querySelectorAll('.dv-chart [data-mark]').length
+      }))()`);
+      await evaluate('window.__dv.undoData()');
+      await sleep(150);
+      const undone = await evaluate("window.__dv.snapshot().edited");
+      await evaluate('window.__dv.redoData()');
+      await sleep(150);
+      const redone = await evaluate('({ edited: window.__dv.snapshot().edited, value: window.__dv.data().series[0].values[0] })');
+      await evaluate('window.__dv.resetData()');
+      return {
+        ok: opened && info.snap.edited && info.value === 99 && /99/.test(info.panel)
+          && info.marks > 0 && !undone && redone.edited && redone.value === 99,
+        detail: `open=${opened} v=${info.value} edited=${info.snap.edited} marks=${info.marks} undo=${!undone} redo=${redone.value}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-drag', path: '/data-viz/',
+    async run() {
+      await evaluate("location.hash = '#/food-delivery/value'");
+      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      if (!ready) return { ok: false, detail: '没有图表' };
+      await evaluate("window.__dv.setMark('bar:value:4', 54321)");
+      await sleep(220);
+      const info = await evaluate(`(() => ({
+        value: window.__dv.data().series[0].values[4],
+        mark: window.__dv.snapshot().mark,
+        panel: document.querySelector('.dv-panel').innerText,
+        marks: document.querySelectorAll('.dv-chart [data-mark]').length
+      }))()`);
+      await evaluate('window.__dv.resetData()');
+      return {
+        ok: info.value === 54321 && info.mark === 'bar:value:4' && /54,321/.test(info.panel) && info.marks > 0,
+        detail: `v=${info.value} mark=${info.mark} marks=${info.marks}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-selection', path: '/data-viz/',
+    async run() {
+      await evaluate("location.hash = '#/household-budget/flows'");
+      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      if (!ready) return { ok: false, detail: '没有图表' };
+      await evaluate("window.__dv.select('link:salary->commitments')");
+      await sleep(120);
+      const flow = await evaluate(`(() => ({
+        selected: document.querySelectorAll('.dv-chart .dv-mark.is-selected').length,
+        dim: getComputedStyle(document.querySelector('.dv-chart .dv-mark:not(.is-selected)')).opacity
+      }))()`);
+      await evaluate("location.hash = '#/study-hours/hours'");
+      await waitFor("window.__dv && window.__dv.snapshot().topic === 'study-hours' && !!document.querySelector('.dv-chart [data-mark]')", 8000);
+      await evaluate("window.__dv.select('grp:all')");
+      await sleep(120);
+      const scatter = await evaluate("document.querySelectorAll('.dv-chart .dv-dot.is-selected').length");
+      return {
+        ok: flow.selected >= 2 && Number(flow.dim) < 0.5 && scatter > 1,
+        detail: `flow=${flow.selected} dim=${flow.dim} dots=${scatter}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-editor-types', path: '/data-viz/',
+    async run() {
+      const cases = [
+        ['metro-ridership', 'daily'], ['food-delivery', 'value'], ['household-budget', 'shares'],
+        ['study-hours', 'hours'], ['energy-mix', 'mix'], ['coffee-shop', 'hours'],
+        ['package-delivery', 'flow'], ['team-headcount', 'mix'], ['electricity-bill', 'bill'],
+      ];
+      const failures = [];
+      for (const [topic, view] of cases) {
+        await evaluate(`location.hash = '#/${topic}/${view}'`);
+        const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+        if (!ready) { failures.push(`${topic}:no-chart`); continue; }
+        await evaluate('window.__dv.edit(true)');
+        await sleep(100);
+        const nums = await evaluate("document.querySelectorAll('.dv-data-num').length");
+        await evaluate(`(() => {
+          const input = document.querySelector('.dv-data-num');
+          if (!input) return;
+          const old = Number(input.value);
+          input.value = String((isFinite(old) ? old : 1) + 7);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        })()`);
+        await sleep(160);
+        const info = await evaluate(`(() => ({
+          marks: document.querySelectorAll('.dv-chart [data-mark]').length,
+          edited: window.__dv.snapshot().edited,
+          panel: document.querySelector('.dv-panel').innerText.length
+        }))()`);
+        if (!nums || info.marks < 1 || !info.edited || info.panel < 20) {
+          failures.push(`${topic}:${nums}/${info.marks}/${info.edited}/${info.panel}`);
+        }
+        await evaluate('window.__dv.resetData()');
+        await sleep(80);
+      }
+      return { ok: failures.length === 0, detail: failures.length ? failures.join(' ') : '9 种图表可改数据' };
     },
   },
 ];
@@ -1674,6 +1796,7 @@ const cases = [
 const results = [];
 for (const c of cases) {
   if (ONLY && c.name !== ONLY) continue;
+  if (MATCH && !c.name.startsWith(MATCH)) continue;
   if (c.name.startsWith('data-viz') && !HAS_DATA_VIZ) continue;
   let outcome;
   try {

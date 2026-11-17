@@ -26,18 +26,29 @@
     if (!state.feature) return state.view.subject || '整张图';
     var slots = state.feature.slots || {};
     var bits = [];
-    if (slots.period) bits.push(slots.period);
+    if (slots.source && slots.target && slots.source !== slots.target) {
+      bits.push(slots.source + ' → ' + slots.target);
+    } else if (slots.category) {
+      bits.push(slots.category);
+    } else if (slots.entity) {
+      bits.push(slots.entity);
+    }
+    if (slots.x_value && slots.y_value) bits.push(slots.x_value + ', ' + slots.y_value);
+    if (slots.period && bits.indexOf(slots.period) < 0) bits.push(slots.period);
     if (slots.from && slots.to) bits.push(slots.from + ' → ' + slots.to);
     else if (slots.value) bits.push(slots.value);
-    else if (slots.share) bits.push(slots.category + ' · ' + slots.share);
-    else if (slots.category && slots.value) bits.push(slots.category + ' · ' + slots.value);
-    else if (slots.entity) bits.push(slots.entity);
+    else if (slots.share) bits.push(slots.share);
     if (!bits.length) bits.push(slots.subject || '');
     return bits.filter(Boolean).join(' · ');
   }
 
   function registerBadge(reg) {
     return DV.el('span', { class: 'dv-reg-badge' }, REG_ZH[reg] || reg);
+  }
+
+  function cap(text) {
+    text = String(text == null ? '' : text);
+    return /^[a-z]/.test(text) ? text.charAt(0).toUpperCase() + text.slice(1) : text;
   }
 
   function wordCard(word) {
@@ -53,9 +64,10 @@
   }
 
   function patternCard(pattern, slots) {
+    slots = DV.gen.slots(slots);
     var card = DV.el('div', { class: 'dv-pattern' });
     DV.el('span', { class: 'dv-level-badge' }, card).textContent = (pattern.level || '').toUpperCase();
-    DV.el('p', { class: 'dv-pattern-en', lang: 'en' }, card).textContent = DV.fill(pattern.frame, slots);
+    DV.el('p', { class: 'dv-pattern-en', lang: 'en' }, card).textContent = cap(DV.fill(pattern.frame, slots));
     if (pattern.zh_frame) DV.el('p', { class: 'dv-pattern-zh' }, card).textContent = DV.fill(pattern.zh_frame, slots);
     if (pattern.note_zh) DV.el('p', { class: 'dv-pattern-note' }, card).textContent = pattern.note_zh;
     return card;
@@ -175,11 +187,11 @@
   function modelTexts(state) {
     var entry = entryFor(state);
     if (!entry) return null;
-    var slots = state.feature.slots;
+    var slots = DV.gen.slots(state.feature.slots);
     var out = { a2: '', b1: '', b2: '' };
     (entry.patterns || []).forEach(function (pattern) {
       var key = pattern.level || 'b1';
-      if (!out[key]) out[key] = DV.fill(pattern.frame, slots);
+      if (!out[key]) out[key] = cap(DV.fill(pattern.frame, slots));
     });
     out.a2 = out.a2 || out.b1 || out.b2;
     out.b1 = out.b1 || out.a2 || out.b2;
@@ -216,7 +228,7 @@
       var hint = (entry && entry.patterns || []).filter(function (p) { return p.level === 'b1'; })[0]
         || (entry && entry.patterns || []).filter(function (p) { return p.level === 'a2'; })[0];
       if (hint) {
-        DV.el('div', { class: 'dv-frame' }, host).textContent = DV.fill(hint.frame, state.feature.slots);
+        DV.el('div', { class: 'dv-frame' }, host).textContent = cap(DV.fill(hint.frame, DV.gen.slots(state.feature.slots)));
       }
     } else {
       DV.el('p', { class: 'dv-prompt-hint' }, host).textContent = '先把整张图的趋势、极值和结构说清楚，再补一个具体数字。';
@@ -227,6 +239,10 @@
       DV.el('summary', {}, scratch).textContent = '自己写一句（不保存）';
       var ta = DV.el('textarea', { class: 'dv-scratch-input', rows: '2', lang: 'en' }, scratch);
       ta.setAttribute('placeholder', 'Type your sentence here…');
+      ta.value = state.scratch || '';
+      ta.addEventListener('input', function () {
+        if (state.onScratch) state.onScratch(ta.value);
+      });
     }
 
     var reveal = DV.el('button', {
@@ -251,14 +267,25 @@
     }
 
     if (!state.feature) {
-      var desc = (state.view.descriptions || {});
-      var general = desc.general || {};
-      var model = desc[state.register] || general[state.level] || general.a2 || '';
-      var zh = state.register === 'general' ? '' : '';
-      if (state.register === 'general') {
-        modelCard(model, '', state.level.toUpperCase());
+      var model = '';
+      if (state.edited) {
+        if (state.register === 'general') {
+          var generated = DV.gen.levels(state.view, state.features, state.library);
+          model = generated[state.level] || generated.b1 || generated.a2 || '';
+        } else {
+          model = DV.gen.describe(state.view, state.features, state.library, state.register, 'b1');
+        }
       } else {
-        modelCard(model, '', state.register === 'ielts' ? 'IELTS' : 'Business');
+        var desc = (state.view.descriptions || {});
+        var general = desc.general || {};
+        model = desc[state.register] || general[state.level] || general.a2 || '';
+      }
+      if (model) {
+        modelCard(model, '', state.register === 'general'
+          ? state.level.toUpperCase()
+          : state.register === 'ielts' ? 'IELTS' : 'Business');
+      } else {
+        DV.el('p', { class: 'dv-empty' }, box).textContent = '这组数据还没有可用的参考句。';
       }
       return;
     }
@@ -277,7 +304,7 @@
     } else {
       var text = (entry && entry.registers || {})[state.register] || '';
       if (text) {
-        DV.el('p', { class: 'dv-model-en', lang: 'en' }, box).textContent = DV.fill(text, state.feature.slots);
+        DV.el('p', { class: 'dv-model-en', lang: 'en' }, box).textContent = cap(DV.fill(text, DV.gen.slots(state.feature.slots)));
         DV.el('p', { class: 'dv-model-note' }, box).textContent =
           state.register === 'ielts' ? '雅思：客观、先总后分。' : '商务：说完数据，顺手给一句判断。';
       }
@@ -286,13 +313,16 @@
 
   function tabRead(host, state) {
     if (state.feature) {
-      if (state.feature.interpret_zh) {
-        DV.el('p', { class: 'dv-read-lead' }, host).textContent = state.feature.interpret_zh;
+      var lead = state.feature.interpret_zh;
+      if (!lead && state.edited) {
+        lead = DV.gen.chinese(state.feature, state.library, 'b1');
       }
+      if (lead) DV.el('p', { class: 'dv-read-lead' }, host).textContent = lead;
     }
-    if (state.view.overview_zh) {
-      DV.el('p', { class: 'dv-overview' }, host).textContent = state.view.overview_zh;
-    }
+    var overview = state.edited
+      ? DV.gen.overviewZh(state.view, state.features, state.library)
+      : state.view.overview_zh;
+    if (overview) DV.el('p', { class: 'dv-overview' }, host).textContent = overview;
     if (state.view.type === 'scatter') {
       DV.el('p', { class: 'dv-causal' }, host).textContent =
         '相关不等于因果：散点图只能说明两个变量一起变化，不能说明谁导致谁。';

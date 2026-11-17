@@ -6,28 +6,38 @@
   var W = 720;
   var H = 360;
 
-  function frame(host, height, roleLabel) {
+  function frame(host, height, roleLabel, opts) {
     var h = height || H;
+    var hostW = host && host.clientWidth ? host.clientWidth : W;
+    var minW = opts && opts.minWidth ? opts.minWidth : 300;
+    var width = Math.max(minW, Math.min(960, Math.round(hostW || W)));
+    var pad = width < 520
+      ? { top: 20, right: 16, bottom: 54, left: 46 }
+      : { top: 22, right: 26, bottom: 46, left: 58 };
     var svg = DV.svg('svg', {
       class: 'dv-chart',
-      viewBox: '0 0 ' + W + ' ' + h,
+      viewBox: '0 0 ' + width + ' ' + h,
       role: 'group',
       'aria-roledescription': '图表',
       'aria-label': roleLabel || ''
     }, host);
-    return { svg: svg, H: h, pad: { top: 22, right: 26, bottom: 46, left: 58 } };
+    if (width > hostW) {
+      host.classList.add('dv-scroll');
+      svg.style.width = width + 'px';
+    }
+    return { svg: svg, W: width, H: h, pad: pad };
   }
 
   function plot(box) {
     return {
       x: box.pad.left,
       y: box.pad.top,
-      w: W - box.pad.left - box.pad.right,
+      w: box.W - box.pad.left - box.pad.right,
       h: box.H - box.pad.top - box.pad.bottom
     };
   }
 
-  function makeMark(node, id, label, api, cls) {
+  function makeMark(node, id, label, api, cls, drag) {
     node.setAttribute('data-mark', id);
     node.setAttribute('tabindex', '-1');
     node.setAttribute('role', 'button');
@@ -36,6 +46,10 @@
     node.setAttribute('class', (base + ' ' + (cls || '') + ' dv-mark').trim());
     node.addEventListener('click', function (event) {
       event.stopPropagation();
+      if (node.__suppressClick) {
+        node.__suppressClick = false;
+        return;
+      }
       api.select(id);
     });
     node.addEventListener('keydown', function (event) {
@@ -48,7 +62,88 @@
     node.addEventListener('pointerleave', function () { api.hover(null); });
     node.addEventListener('focus', function (event) { api.hover(id, event); });
     node.addEventListener('blur', function () { api.hover(null); });
+    if (drag && api.editMode && api.commitValue) attachDrag(node, id, api, drag);
     return node;
+  }
+
+  function svgPoint(svg, event) {
+    var point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    var ctm = svg.getScreenCTM();
+    return ctm ? point.matrixTransform(ctm.inverse()) : point;
+  }
+
+  function attachDrag(node, mark, api, opts) {
+    var drag = null;
+    node.classList.add('is-draggable');
+    node.addEventListener('pointerdown', function (event) {
+      if (event.button != null && event.button !== 0) return;
+      drag = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        moved: false,
+        value: opts.value()
+      };
+      try { node.setPointerCapture(event.pointerId); } catch (e) {}
+    });
+    node.addEventListener('pointermove', function (event) {
+      if (!drag || event.pointerId !== drag.id) return;
+      if (!drag.moved && Math.abs(event.clientX - drag.x) + Math.abs(event.clientY - drag.y) < 4) {
+        return;
+      }
+      drag.moved = true;
+      event.preventDefault();
+      var local = svgPoint(node.ownerSVGElement, event);
+      drag.value = opts.read(local);
+      opts.preview(drag.value);
+    });
+    function finish(event) {
+      if (!drag || event.pointerId !== drag.id) return;
+      var moved = drag.moved;
+      var value = drag.value;
+      drag = null;
+      try { node.releasePointerCapture(event.pointerId); } catch (e) {}
+      if (!moved) return;
+      opts.end();
+      api.commitValue(mark, value);
+      node.__suppressClick = true;
+      setTimeout(function () { node.__suppressClick = false; }, 0);
+    }
+    node.addEventListener('pointerup', finish);
+    node.addEventListener('pointercancel', function () {
+      if (!drag) return;
+      drag = null;
+      opts.end();
+    });
+  }
+
+  function clamp(value, lo, hi) {
+    return Math.max(lo, Math.min(hi, value));
+  }
+
+  function roundValue(value, unit) {
+    var dec = unit && unit.decimals != null ? Number(unit.decimals) : 0;
+    var factor = Math.pow(10, Math.max(0, Math.min(2, dec)));
+    return Math.round(value * factor) / factor;
+  }
+
+  function dragText(box, view) {
+    var label = DV.text(box.svg, {
+      x: 0, y: 0, 'text-anchor': 'middle', class: 'dv-drag-label', visibility: 'hidden'
+    }, '');
+    return {
+      show: function (text, x, y) {
+        label.textContent = text;
+        label.setAttribute('x', x);
+        label.setAttribute('y', y);
+        label.setAttribute('visibility', 'visible');
+      },
+      hide: function () {
+        label.setAttribute('visibility', 'hidden');
+      }
+    };
   }
 
   function roving(nodes) {
@@ -86,15 +181,25 @@
       }, DV.fmtAxis(tick, unit));
     });
     if (xLabels) {
-      var step = Math.max(1, Math.ceil(xLabels.length / 8));
+      var step = domain.categorical
+        ? 1
+        : Math.max(1, Math.ceil(xLabels.length / Math.max(2, Math.floor(p.w / 72))));
+      var indices = [];
+      for (var ti = 0; ti < xLabels.length; ti += step) indices.push(ti);
+      if (indices[indices.length - 1] !== xLabels.length - 1) indices.push(xLabels.length - 1);
+      var visible = indices.length;
+      var rotate = p.w / visible < 64;
       xLabels.forEach(function (label, i) {
-        if (i % step) return;
-        DV.text(box.svg, {
-          x: p.x + (i + 0.5) * p.w / xLabels.length,
-          y: p.y + p.h + 22,
-          'text-anchor': 'middle',
+        if (indices.indexOf(i) < 0) return;
+        var lx = p.x + (i + 0.5) * p.w / xLabels.length;
+        var ly = p.y + p.h + (rotate ? 18 : 22);
+        var node = DV.text(box.svg, {
+          x: lx,
+          y: ly,
+          'text-anchor': rotate ? 'end' : 'middle',
           class: 'dv-tick'
         }, label);
+        if (rotate) node.setAttribute('transform', 'rotate(-28 ' + lx + ' ' + ly + ')');
       });
     }
     if (unit && unit.short) {
@@ -144,10 +249,11 @@
     });
     roving(focusable);
     return {
-      setSelected: function (mark) {
-        box.svg.classList.toggle('has-selection', !!mark);
+      setSelected: function (mark, marks) {
+        var set = marks && marks.length ? marks : (mark ? [mark] : []);
+        box.svg.classList.toggle('has-selection', set.length > 0);
         nodes.forEach(function (node) {
-          node.classList.toggle('is-selected', node.getAttribute('data-mark') === mark);
+          node.classList.toggle('is-selected', set.indexOf(node.getAttribute('data-mark')) >= 0);
         });
       }
     };
@@ -170,6 +276,7 @@
     var y = axes(box, d.series[0].values, view.unit, d.x.values, { min: min, max: max });
     var nodes = [];
     var xOf = function (i) { return p.x + (i + 0.5) * p.w / n; };
+    var tip = dragText(box, view);
 
     d.series.forEach(function (s) {
       var slot = s.slot || 1;
@@ -183,10 +290,14 @@
           s.name_en + ', ' + d.x.values[i] + ' to ' + d.x.values[i + 1], api);
         nodes.push(hit);
       }
+      var previewValues = s.values.slice();
+      function linePath(values) {
+        return values.map(function (value, index) {
+          return (index ? 'L' : 'M') + xOf(index).toFixed(2) + ' ' + y(value).toFixed(2);
+        }).join(' ');
+      }
       var path = DV.svg('path', {
-        d: s.values.map(function (v, i) {
-          return (i ? 'L' : 'M') + xOf(i).toFixed(2) + ' ' + y(v).toFixed(2);
-        }).join(' '),
+        d: linePath(s.values),
         fill: 'none',
         class: 'dv-line ' + seriesClass(slot)
       }, box.svg);
@@ -195,8 +306,24 @@
           cx: xOf(i), cy: y(v), r: 4.5,
           class: 'dv-dot ' + seriesClass(slot)
         }, box.svg);
+        var drag = null;
+        if (api.editMode) {
+          drag = {
+            value: function () { return v; },
+            read: function (local) {
+              return roundValue(clamp(y.invert(local.y), min, max), view.unit);
+            },
+            preview: function (next) {
+              previewValues[i] = next;
+              path.setAttribute('d', linePath(previewValues));
+              dot.setAttribute('cy', y(next));
+              tip.show(DV.fmtValue(next, view.unit), xOf(i), y(next) - 12);
+            },
+            end: function () { tip.hide(); }
+          };
+        }
         makeMark(dot, 'pt:' + s.id + ':' + i,
-          s.name_en + ', ' + d.x.values[i] + ': ' + DV.fmtValue(v, view.unit), api);
+          s.name_en + ', ' + d.x.values[i] + ': ' + DV.fmtValue(v, view.unit), api, null, drag);
         nodes.push(dot);
       });
       var last = s.values.length - 1;
@@ -218,7 +345,8 @@
 
   // ---------------------------------------------------------------- bar
   DV.renderers.bar = function (host, view, api) {
-    var box = frame(host, H, view.subject);
+    var box = frame(host, H, view.subject,
+      { minWidth: view.data.x.values.length > 6 ? 520 : 0 });
     var p = plot(box);
     var d = view.data;
     var n = d.x.values.length;
@@ -227,26 +355,44 @@
     var lo = Math.min(0, Math.min.apply(null, all));
     var hi = Math.max(0, Math.max.apply(null, all));
     var pad = (hi - lo) * 0.12 || 1;
-    var y = axes(box, d.series[0].values, view.unit, d.x.values, { min: lo - pad, max: hi + pad });
-    if (lo < 0) {
-      DV.svg('line', { x1: p.x, x2: p.x + p.w, y1: y(0), y2: y(0), class: 'dv-baseline' }, box.svg);
-    }
+    var y = axes(box, d.series[0].values, view.unit, d.x.values,
+      { min: lo - pad, max: hi + pad, categorical: true });
+    DV.svg('line', { x1: p.x, x2: p.x + p.w, y1: y(0), y2: y(0), class: 'dv-baseline' }, box.svg);
     var nodes = [];
     var band = p.w / n;
     var count = d.series.length;
-    var bw = Math.min(24, (band * 0.68) / count);
+    var bw = Math.min(64, (band * 0.72) / count);
+    var tip = dragText(box, view);
     d.series.forEach(function (s, si) {
       s.values.forEach(function (v, i) {
         var x = p.x + i * band + band / 2 - (count * bw) / 2 + si * bw;
         var zero = y(0);
         var top = y(v);
-        var h = top - zero;
+        var h = zero - top;
         var path = DV.svg('path', {
-          d: h >= 0 ? roundedTop(x, top, bw - 2, h, 4) : roundedBottom(x, zero, bw - 2, h, 4),
+          d: h >= 0 ? roundedTop(x, top, bw - 2, h, 3) : roundedBottom(x, zero, bw - 2, h, 3),
           class: 'dv-bar ' + seriesClass(s.slot || 1)
         }, box.svg);
+        var drag = null;
+        if (api.editMode) {
+          drag = {
+            value: function () { return v; },
+            read: function (local) {
+              return roundValue(clamp(y.invert(local.y), lo - pad, hi + pad), view.unit);
+            },
+            preview: function (next) {
+              var nextTop = y(next);
+              var nextH = zero - nextTop;
+              path.setAttribute('d', nextH >= 0
+                ? roundedTop(x, nextTop, bw - 2, nextH, 4)
+                : roundedBottom(x, zero, bw - 2, nextH, 4));
+              tip.show(DV.fmtValue(next, view.unit), x + bw / 2, Math.min(nextTop, zero) - 8);
+            },
+            end: function () { tip.hide(); }
+          };
+        }
         makeMark(path, 'bar:' + s.id + ':' + i,
-          s.name_en + ', ' + d.x.values[i] + ': ' + DV.fmtValue(v, view.unit), api);
+          s.name_en + ', ' + d.x.values[i] + ': ' + DV.fmtValue(v, view.unit), api, null, drag);
         nodes.push(path);
         var hit = DV.svg('rect', {
           x: x - 2, y: Math.min(top, zero) - 12, width: bw + 2,
@@ -254,8 +400,14 @@
           class: 'dv-mark'
         }, box.svg);
         makeMark(hit, 'bar:' + s.id + ':' + i,
-          s.name_en + ', ' + d.x.values[i] + ': ' + DV.fmtValue(v, view.unit), api);
+          s.name_en + ', ' + d.x.values[i] + ': ' + DV.fmtValue(v, view.unit), api, null, drag);
         nodes.push(hit);
+        if (n <= 8 && count <= 2) {
+          var labelY = v >= 0 ? top - 7 : zero + 15;
+          DV.text(box.svg, {
+            x: x + bw / 2, y: labelY, 'text-anchor': 'middle', class: 'dv-value-label'
+          }, DV.fmtAxis(v, view.unit) + (view.unit.short === '%' ? '%' : ''));
+        }
       });
     });
     var out = finish(box, nodes);
@@ -272,8 +424,9 @@
 
   // ---------------------------------------------------------------- pie
   DV.renderers.pie = function (host, view, api) {
-    var box = frame(host, 340, view.subject);
-    var cx = W / 2, cy = 172, r1 = 128, r0 = 68;
+    var box = frame(host, 380, view.subject);
+    var cx = box.W / 2, cy = 190;
+    var r1 = Math.min(150, box.W * 0.30), r0 = r1 * 0.72;
     var parts = view.data.parts;
     var total = parts.reduce(function (sum, part) { return sum + part.value; }, 0) || 1;
     var nodes = [];
@@ -339,6 +492,7 @@
     var groups = {};
     (d.groups || []).forEach(function (grp) { groups[grp.id] = grp; });
     var nodes = [];
+    var tip = dragText(box, view);
     d.points.forEach(function (pt) {
       var grp = groups[pt.group] || {};
       var dot = DV.svg('circle', {
@@ -351,8 +505,26 @@
       var hit = DV.svg('circle', {
         cx: sx(pt.x), cy: sy(pt.y), r: 13, fill: 'transparent', class: 'dv-mark'
       }, box.svg);
+      var drag = null;
+      if (api.editMode) {
+        drag = {
+          value: function () { return { x: pt.x, y: pt.y }; },
+          read: function (local) {
+            return {
+              x: roundValue(clamp(sx.invert(local.x), xmin - xpad, xmax + xpad), { decimals: 1 }),
+              y: roundValue(clamp(sy.invert(local.y), ymin - ypad, ymax + ypad), { decimals: 1 })
+            };
+          },
+          preview: function (next) {
+            dot.setAttribute('cx', sx(next.x));
+            dot.setAttribute('cy', sy(next.y));
+            tip.show(DV.num(next.x, 1) + ', ' + DV.num(next.y, 1), sx(next.x), sy(next.y) - 12);
+          },
+          end: function () { tip.hide(); }
+        };
+      }
       makeMark(hit, 'pt:' + pt.id,
-        (grp.name_en ? grp.name_en + ', ' : '') + pt.x + ', ' + pt.y, api);
+        (grp.name_en ? grp.name_en + ', ' : '') + pt.x + ', ' + pt.y, api, null, drag);
       nodes.push(hit);
     });
     var out = finish(box, nodes);
@@ -370,7 +542,8 @@
 
   // ---------------------------------------------------------------- stacked
   DV.renderers.stacked = function (host, view, api) {
-    var box = frame(host, H, view.subject);
+    var box = frame(host, H, view.subject,
+      { minWidth: view.data.x.values.length > 6 ? 520 : 0 });
     var p = plot(box);
     var d = view.data;
     var n = d.x.values.length;
@@ -379,8 +552,9 @@
     });
     var max = d.mode === 'percent' ? 100 : Math.max.apply(null, totals) * 1.1;
     var y = axes(box, totals, view.unit,
-      d.x.values, { min: 0, max: max || 1 });
+      d.x.values, { min: 0, max: max || 1, categorical: true });
     var nodes = [];
+    DV.svg('line', { x1: p.x, x2: p.x + p.w, y1: y(0), y2: y(0), class: 'dv-baseline' }, box.svg);
     var band = p.w / n;
     var bw = Math.min(56, band * 0.62);
     d.x.values.forEach(function (label, i) {
@@ -396,12 +570,19 @@
         var h = (value / (max || 1)) * p.h;
         var yy = p.y + p.h - (base + value) / (max || 1) * p.h;
         var seg = DV.svg('rect', {
-          x: x, y: yy + 1, width: bw, height: Math.max(0, h - 2),
+          x: x, y: yy + 1, width: bw, height: Math.max(0, h - 2), rx: 3,
           class: 'dv-bar ' + seriesClass(s.slot || 1)
         }, box.svg);
         makeMark(seg, 'seg:' + i + ':' + s.id,
           s.name_en + ', ' + label + ': ' + DV.fmtValue(value, view.unit), api);
         nodes.push(seg);
+        var segShare = value / (totals[i] || 1) * 100;
+        if (bw >= 26 && segShare >= 12) {
+          DV.text(box.svg, {
+            x: x + bw / 2, y: yy + Math.max(0, h) / 2 + 4,
+            'text-anchor': 'middle', class: 'dv-seg-label'
+          }, Math.round(segShare) + '%');
+        }
         base += value;
       });
     });
@@ -421,7 +602,11 @@
   DV.renderers.heatmap = function (host, view, api) {
     var d = view.data;
     var rows = d.rows.length, cols = d.cols.length;
-    var left = 108, top = 30, cell = Math.max(34, Math.min(54, 640 / cols));
+    var hostW = host && host.clientWidth ? host.clientWidth : 720;
+    var target = Math.max(560, Math.min(760, hostW || 720));
+    var left = target < 620 ? 84 : 108, top = 30;
+    var cell = Math.max(target < 620 ? 24 : 34,
+      Math.min(54, (target - left - 24) / cols));
     var width = left + cols * cell + 24;
     var height = top + rows * cell + 54;
     var svg = DV.svg('svg', {
@@ -429,6 +614,7 @@
       role: 'group', 'aria-roledescription': '图表', 'aria-label': view.subject || ''
     }, host);
     host.classList.add('dv-scroll');
+    if (width > hostW) svg.style.width = width + 'px';
     var flat = [];
     d.cells.forEach(function (row) { flat = flat.concat(row); });
     var lo = Math.min.apply(null, flat), hi = Math.max.apply(null, flat);
@@ -454,8 +640,8 @@
         var t = (value - lo) / ((hi - lo) || 1);
         var bin = Math.min(4, Math.floor(t * 5));
         var rect = DV.svg('rect', {
-          x: left + c * cell + 1, y: top + r * cell + 1,
-          width: cell - 2, height: cell - 2, rx: 3,
+          x: left + c * cell + 0.5, y: top + r * cell + 0.5,
+          width: cell - 1, height: cell - 1, rx: 2,
           class: 'dv-cell ' + ramp[bin]
         }, svg);
         makeMark(rect, 'cell:' + row.id + ':' + col.id,
@@ -485,16 +671,22 @@
   // ---------------------------------------------------------------- sankey
   DV.renderers.sankey = function (host, view, api) {
     var d = view.data;
-    var W2 = 760, H2 = 380;
+    var hostW = host && host.clientWidth ? host.clientWidth : 760;
+    var W2 = Math.max(560, Math.min(760, hostW || 760));
+    var H2 = 380;
     var svg = DV.svg('svg', {
       class: 'dv-chart', viewBox: '0 0 ' + W2 + ' ' + H2,
       role: 'group', 'aria-roledescription': '图表', 'aria-label': view.subject || ''
     }, host);
+    if (W2 > hostW) {
+      host.classList.add('dv-scroll');
+      svg.style.width = W2 + 'px';
+    }
     var margin = { top: 28, bottom: 28, left: 16, right: 16 };
     var columns = d.columns;
     var ncols = columns.length;
     var colW = (W2 - margin.left - margin.right) / ncols;
-    var nodeW = 14;
+    var nodeW = 8;
     var nodesById = {};
     d.nodes.forEach(function (n) { nodesById[n.id] = n; });
     var inTotals = {}, outTotals = {};
@@ -555,7 +747,7 @@
       var pos = positions[n.id];
       if (!pos) return;
       var rect = DV.svg('rect', {
-        x: pos.x, y: pos.y, width: nodeW, height: pos.h, rx: 3,
+        x: pos.x, y: pos.y, width: nodeW, height: pos.h, rx: 4,
         class: 'dv-node ' + seriesClass(n.slot || 1)
       }, svg);
       makeMark(rect, 'node:' + n.id, n.name_en + ', ' + DV.fmtValue(totals[n.id] || 0, view.unit), api);
@@ -581,7 +773,7 @@
 
   // ---------------------------------------------------------------- slope
   DV.renderers.slope = function (host, view, api) {
-    var box = frame(host, H, view.subject);
+    var box = frame(host, H, view.subject, { minWidth: 560 });
     var p = plot(box);
     var d = view.data;
     var n = d.entities.length;
@@ -599,10 +791,12 @@
     var nodes = [];
     d.entities.forEach(function (entity, ei) {
       var last = nPeriods - 1;
+      var moved = rankOf(0, ei) !== rankOf(last, ei);
       var path = DV.svg('line', {
         x1: xAt(0), y1: yAt(0, ei),
         x2: xAt(last), y2: yAt(last, ei),
         class: 'dv-line dv-slope-line ' + seriesClass(entity.slot || 1)
+          + (moved ? ' is-moved' : '')
       }, box.svg);
       makeMark(path, 'line:' + entity.id,
         entity.name_en + ': ' + DV.fmtValue(entity.values[0], view.unit) + ' → ' +
@@ -641,7 +835,7 @@
 
   // ---------------------------------------------------------------- waterfall
   DV.renderers.waterfall = function (host, view, api) {
-    var box = frame(host, H, view.subject);
+    var box = frame(host, H, view.subject, { minWidth: 520 });
     var p = plot(box);
     var d = view.data;
     var start = Number(d.start_value || 0);
@@ -653,6 +847,7 @@
     var pad = (hi - lo) * 0.15 || 1;
     var y = axes(box, points, view.unit, null, { min: lo - pad, max: hi + pad });
     var nodes = [];
+    DV.svg('line', { x1: p.x, x2: p.x + p.w, y1: y(0), y2: y(0), class: 'dv-baseline' }, box.svg);
     var count = d.steps.length + 2;
     var band = p.w / count;
     var bw = Math.min(46, band * 0.62);

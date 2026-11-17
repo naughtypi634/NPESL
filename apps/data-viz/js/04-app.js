@@ -25,8 +25,15 @@
     table: false,
     filter: 'all',
     hidden: {},
+    edited: {},
+    scratch: {},
+    editOpen: false,
     renderer: null,
-    featureIndex: {}
+    featureIndex: {},
+    commitValue: null,
+    select: null,
+    resizeHandler: null,
+    observer: null
   };
 
   var app = null;
@@ -212,7 +219,7 @@
         data.series.forEach(function (s3) {
           var val = s3.values[ci];
           var bh = val / max2 * h;
-          DV.svg('rect', { x: x, y: pad + h - (base + val) / max2 * h, width: colW, height: Math.max(1, bh - 1),
+          DV.svg('rect', { x: x, y: pad + h - (base + val) / max2 * h, width: colW, height: Math.max(1, bh - 1), rx: 2,
             class: 'dv-mini-bar ' + DV.slotClass(s3.slot || 1) }, svg);
           base += val;
         });
@@ -226,7 +233,7 @@
       data.cells.forEach(function (row, r) {
         row.forEach(function (v, c) {
           var bin = Math.min(4, Math.floor((v - lo2) / ((hi2 - lo2) || 1) * 5));
-          DV.svg('rect', { x: pad + c * cw, y: pad + r * ch, width: cw - 1, height: ch - 1,
+          DV.svg('rect', { x: pad + c * cw, y: pad + r * ch, width: cw - 1, height: ch - 1, rx: 2,
             class: 'dv-mini-cell dv-heat-' + (bin + 1) }, svg);
         });
       });
@@ -277,7 +284,7 @@
         var p2 = pos[n.id];
         if (!p2) return;
         DV.svg('rect', {
-          x: p2.x - 2, y: p2.y, width: 5, height: p2.h, rx: 1.5,
+          x: p2.x - 2, y: p2.y, width: 5, height: p2.h, rx: 2,
           class: 'dv-mini-node ' + DV.slotClass(n.slot || 1)
         }, svg);
       });
@@ -297,19 +304,19 @@
       var all = data.steps.length + 2;
       var bw2 = Math.min(16, w / all * 0.6);
       function wy(v) { return pad + h - (v - lo3) / span3 * h; }
-      DV.svg('rect', { x: pad, y: wy(pts2[0]), width: bw2, height: pad + h - wy(pts2[0]), class: 'dv-mini-bar dv-total' }, svg);
+      DV.svg('rect', { x: pad, y: wy(pts2[0]), width: bw2, height: pad + h - wy(pts2[0]), rx: 2, class: 'dv-mini-bar dv-total' }, svg);
       data.steps.forEach(function (s5, i) {
         var base = pts2[i], value = pts2[i + 1];
         var x = pad + (i + 1) * w / all + (w / all - bw2) / 2;
         DV.svg('rect', {
           x: x, y: Math.min(wy(base), wy(value)), width: bw2,
-          height: Math.max(2, Math.abs(wy(base) - wy(value))),
+          height: Math.max(2, Math.abs(wy(base) - wy(value))), rx: 2,
           class: 'dv-mini-bar ' + (s5.value > 0 ? 'dv-pos' : 'dv-neg')
         }, svg);
       });
       var lastX = pad + (all - 1) * w / all;
       DV.svg('rect', { x: lastX, y: wy(pts2[pts2.length - 1]), width: bw2,
-        height: pad + h - wy(pts2[pts2.length - 1]), class: 'dv-mini-bar dv-total' }, svg);
+        height: pad + h - wy(pts2[pts2.length - 1]), rx: 2, class: 'dv-mini-bar dv-total' }, svg);
     }
     if (!svg.firstChild) {
       DV.svg('rect', { x: pad, y: pad, width: w, height: h, rx: 8, class: 'dv-mini-empty' }, svg);
@@ -330,6 +337,14 @@
   function renderGallery() {
     S.mode = 'gallery';
     S.mark = null;
+    if (S.resizeHandler) {
+      window.removeEventListener('resize', S.resizeHandler);
+      S.resizeHandler = null;
+    }
+    if (S.observer) {
+      S.observer.disconnect();
+      S.observer = null;
+    }
     DV.clear(app);
     var head = DV.el('header', { class: 'dv-gallery-head' }, app);
     var titles = DV.el('div', {}, head);
@@ -393,9 +408,12 @@
     var slots = feature.slots || {};
     var value = slots.value || slots.share || (slots.from && slots.to ? slots.from + ' → ' + slots.to : '');
     DV.el('p', { class: 'dv-tip-value', lang: 'en' }, node).textContent = value || '';
-    DV.el('p', { class: 'dv-tip-label' }, node).textContent =
-      [slots.category, slots.period].filter(Boolean).join(' · ');
     var entry = (S.library && S.library.features || {})[feature.kind];
+    var bits = [];
+    [slots.category, slots.period, entry && entry.label_zh].forEach(function (bit) {
+      if (bit && bits.indexOf(bit) < 0) bits.push(bit);
+    });
+    DV.el('p', { class: 'dv-tip-label' }, node).textContent = bits.join(' · ');
     if (entry && entry.words && entry.words[0]) {
       DV.el('p', { class: 'dv-tip-say', lang: 'en' }, node).textContent = '“' + entry.words[0].en + '”';
     }
@@ -434,6 +452,10 @@
   }
 
   function renderWorkspace() {
+    if (S.observer) {
+      S.observer.disconnect();
+      S.observer = null;
+    }
     var topic = currentTopic();
     var view = currentView();
     if (!topic || !view) { renderGallery(); return; }
@@ -447,13 +469,14 @@
     var top = DV.el('div', { class: 'toolbar dv-topbar' }, app);
     var wallLink = DV.el('a', { class: 'dv-wall-link', href: '#/' }, top);
     wallLink.textContent = '图表墙';
+    var nav = DV.el('div', { class: 'dv-topic-nav' }, top);
     function step(target, label, dir) {
       var link = DV.el('a', { class: 'dv-step', href: '#/' + target.id + '/' + target.default_view,
-        'aria-label': label }, top);
+        'aria-label': label }, nav);
       link.textContent = dir;
     }
     step(prev, '上一个主题：' + prev.title_zh, '‹');
-    var topicBtn = DV.el('button', { class: 'dv-topic-btn', type: 'button', 'aria-haspopup': 'dialog' }, top);
+    var topicBtn = DV.el('button', { class: 'dv-topic-btn', type: 'button', 'aria-haspopup': 'dialog' }, nav);
     DV.el('span', { class: 'dv-topic-zh' }, topicBtn).textContent = topic.title_zh;
     DV.el('span', { class: 'dv-topic-en', lang: 'en' }, topicBtn).textContent = topic.title_en;
     DV.el('span', { class: 'dv-chev', 'aria-hidden': 'true' }, topicBtn).textContent = '▾';
@@ -481,7 +504,10 @@
     });
 
     var grid = DV.el('div', { class: 'dv-workspace' }, app);
-    var chartCard = DV.el('section', { class: 'card dv-chart-card', 'aria-labelledby': 'chart-title' }, grid);
+    var chartCard = DV.el('section', {
+      class: 'card dv-chart-card' + (S.editOpen ? ' is-editing' : ''),
+      'aria-labelledby': 'chart-title'
+    }, grid);
     var chead = DV.el('header', { class: 'dv-chart-head' }, chartCard);
     var titles = DV.el('div', { class: 'dv-chart-titles' }, chead);
     DV.el('h2', { id: 'chart-title', lang: 'en' }, titles).textContent = topic.title_en;
@@ -498,50 +524,18 @@
       });
     }
 
-    var hiddenSeries = S.hidden[topic.id + '/' + view.id] || {};
-    var renderData = { data: view.data, unit: view.unit, subject: view.subject, type: view.type };
-    if ((view.type === 'line' || view.type === 'bar' || view.type === 'stacked') && renderData.data.series) {
-      renderData.data = Object.assign({}, renderData.data);
-      renderData.data.series = renderData.data.series.filter(function (s) { return !hiddenSeries[s.id]; });
-    }
-
-    var legendItems = [];
-    if (view.data.series && view.data.series.length > 1) {
-      view.data.series.forEach(function (s) { legendItems.push({ id: s.id, name: s.name_en, slot: s.slot, kind: 'series', shape: view.type === 'line' ? 'line' : 'rect' }); });
-    } else if (view.type === 'pie' && view.data.parts) {
-      view.data.parts.forEach(function (p) { legendItems.push({ id: p.id, name: p.name_en, slot: p.slot, kind: 'slice', shape: 'rect' }); });
-    } else if (view.type === 'scatter' && view.data.groups && view.data.groups.length > 1) {
-      view.data.groups.forEach(function (g) { legendItems.push({ id: g.id, name: g.name_en, slot: g.slot, kind: 'group', shape: 'dot' }); });
-    }
-    if (legendItems.length) {
-      var legend = DV.el('div', { class: 'dv-legend', role: 'group', 'aria-label': '数据系列' }, chartCard);
-      legendItems.forEach(function (item) {
-        var btn = DV.el('button', { class: 'dv-legend-item', type: 'button',
-          'aria-pressed': item.kind === 'series' ? (hiddenSeries[item.id] ? 'false' : 'true') : 'false' }, legend);
-        DV.el('span', { class: 'dv-key dv-key-' + (item.shape || 'line') + ' ' + DV.slotClass(item.slot || 1) }, btn);
-        DV.el('span', { lang: 'en' }, btn).textContent = item.name;
-        btn.addEventListener('click', function () {
-          if (item.kind === 'series') {
-            var visible = view.data.series.filter(function (s) { return !hiddenSeries[s.id] || s.id === item.id; });
-            if (hiddenSeries[item.id] !== true && visible.length <= 1) return;
-            hiddenSeries[item.id] = !hiddenSeries[item.id];
-            S.hidden[topic.id + '/' + view.id] = hiddenSeries;
-            if (S.mark && S.mark.indexOf(':' + item.id + ':') >= 0) S.mark = null;
-            S.featureIndex = buildFeatureIndex(view);
-            renderWorkspace();
-          } else if (item.kind === 'slice') {
-            select('slice:' + item.id);
-          } else {
-            select('grp:' + item.id);
-          }
-        });
-      });
-    }
-
+    var legendHost = DV.el('div', { class: 'dv-legend', role: 'group', 'aria-label': '数据系列' }, chartCard);
     var figure = DV.el('figure', { class: 'dv-figure' }, chartCard);
     var chartHost = DV.el('div', { class: 'dv-chart-host' }, figure);
     var tableWrap = DV.el('div', { class: 'dv-table', hidden: 'hidden' }, chartCard);
+    var editorHost = DV.el('div', { class: 'dv-data-host' }, chartCard);
+    editorHost.hidden = true;
     var foot = DV.el('footer', { class: 'dv-chart-foot' }, chartCard);
+    var editBtn = DV.el('button', {
+      class: 'pill dv-edit-toggle', type: 'button',
+      'aria-expanded': S.editOpen ? 'true' : 'false'
+    }, foot);
+    editBtn.textContent = S.editOpen ? '收起数据' : '编辑数据';
     var tableBtn = DV.el('button', { class: 'pill dv-table-toggle', type: 'button',
       'aria-expanded': S.table ? 'true' : 'false' }, foot);
     tableBtn.textContent = S.table ? '看图' : '看表格';
@@ -554,36 +548,195 @@
     var panelHost = DV.el('aside', { class: 'card dv-panel' }, grid);
     var live = DV.el('div', { class: 'dv-live', 'aria-live': 'polite', 'aria-atomic': 'true' }, app);
 
-    S.featureIndex = buildFeatureIndex(view);
-    if (S.mark && !S.featureIndex[S.mark]) S.mark = null;
-    var renderer = DV.renderers[view.type](chartHost, renderData, {
-      select: select,
-      hover: function (mark, event) { showTip(S.featureIndex[mark], event); }
-    });
-    S.renderer = renderer;
+    var key = topic.id + '/' + view.id;
 
-    function panelState() {
-      return {
-        view: view,
+    function entry() { return S.edited[key]; }
+    function dataNow() { var e = entry(); return e ? e.data : view.data; }
+    function runtimeNow() { return DV.liveView(view, dataNow()); }
+    function editedNow() { return !!(entry() && entry().dirty !== false); }
+
+    function visibleRuntime() {
+      var runtime = runtimeNow();
+      var hidden = S.hidden[key] || {};
+      if ((view.type === 'line' || view.type === 'bar') && runtime.data.series) {
+        var series = runtime.data.series.filter(function (s) { return !hidden[s.id]; });
+        if (!series.length) {
+          S.hidden[key] = {};
+          return runtime;
+        }
+        if (series.length !== runtime.data.series.length) {
+          return Object.assign({}, runtime, {
+            data: Object.assign({}, runtime.data, { series: series })
+          });
+        }
+      }
+      return runtime;
+    }
+
+    function currentFeatures(runtime) {
+      var hidden = S.hidden[key] || {};
+      var filtered = Object.keys(hidden).some(function (id) { return hidden[id]; });
+      return editedNow() || filtered ? DV.compute.view(runtime) : view.features;
+    }
+
+    function selectionMarks() {
+      var feature = featureFor(S.mark);
+      if (!feature) return null;
+      var marks = (feature.marks || []).slice();
+      if (view.type === 'scatter' && S.mark) {
+        if (S.mark === 'all') {
+          ((dataNow().points) || []).forEach(function (point) {
+            marks.push('pt:' + point.id);
+          });
+        } else if (S.mark.indexOf('grp:') === 0) {
+          var gid = S.mark.slice(4);
+          ((dataNow().points) || []).forEach(function (point) {
+            if (point.group === gid) marks.push('pt:' + point.id);
+          });
+        }
+      }
+      return marks;
+    }
+
+    function paintLegend() {
+      DV.clear(legendHost);
+      var runtime = runtimeNow();
+      var data = runtime.data || {};
+      var hidden = S.hidden[key] || {};
+      var items = [];
+      if (data.series && data.series.length > 1
+          && (view.type === 'line' || view.type === 'bar' || view.type === 'stacked')) {
+        var stacked = view.type === 'stacked';
+        data.series.forEach(function (s) {
+          items.push({ id: s.id, name: s.name_en, slot: s.slot,
+            kind: stacked ? 'component' : 'series',
+            shape: view.type === 'line' ? 'line' : 'rect' });
+        });
+      } else if (view.type === 'pie' && data.parts) {
+        data.parts.forEach(function (p) {
+          items.push({ id: p.id, name: p.name_en, slot: p.slot, kind: 'slice', shape: 'rect' });
+        });
+      } else if (view.type === 'scatter' && data.groups && data.groups.length > 1) {
+        data.groups.forEach(function (g) {
+          items.push({ id: g.id, name: g.name_en, slot: g.slot, kind: 'group', shape: 'dot' });
+        });
+      }
+      legendHost.hidden = !items.length;
+      items.forEach(function (item) {
+        var btn = DV.el('button', { class: 'dv-legend-item', type: 'button',
+          'aria-pressed': item.kind === 'series' ? (hidden[item.id] ? 'false' : 'true') : 'false' }, legendHost);
+        DV.el('span', { class: 'dv-key dv-key-' + (item.shape || 'line') + ' ' + DV.slotClass(item.slot || 1) }, btn);
+        DV.el('span', { lang: 'en' }, btn).textContent = item.name;
+        btn.addEventListener('click', function () {
+          if (item.kind === 'series') {
+            var visible = data.series.filter(function (s) {
+              return !hidden[s.id] || s.id === item.id;
+            });
+            if (hidden[item.id] !== true && visible.length <= 1) return;
+            hidden[item.id] = !hidden[item.id];
+            S.hidden[key] = hidden;
+            if (S.mark && S.mark.indexOf(':' + item.id + ':') >= 0) S.mark = null;
+            paintLegend();
+            renderChart();
+            paintPanel();
+          } else if (item.kind === 'component') {
+            var series = data.series.filter(function (s) { return s.id === item.id; })[0];
+            if (!series) return;
+            var best = 0;
+            var bestValue = -Infinity;
+            (data.x.values || []).forEach(function (_, i) {
+              if (series.values[i] > bestValue) {
+                bestValue = series.values[i];
+                best = i;
+              }
+            });
+            select('seg:' + best + ':' + item.id);
+          } else if (item.kind === 'slice') {
+            select('slice:' + item.id);
+          } else {
+            select('grp:' + item.id);
+          }
+        });
+      });
+    }
+
+    function renderChart() {
+      var runtime = visibleRuntime();
+      S.featureIndex = DV.featureIndex(currentFeatures(runtime));
+      if (S.mark && !S.featureIndex[S.mark]) S.mark = null;
+      DV.clear(chartHost);
+      chartHost.classList.remove('dv-scroll');
+      var renderer = DV.renderers[view.type](chartHost, runtime, {
+        select: select,
+        hover: function (mark, event) { showTip(S.featureIndex[mark], event); },
+        editMode: S.editOpen,
+        commitValue: commitValue
+      });
+      S.renderer = renderer;
+      var svgNode = chartHost.querySelector('svg');
+      if (svgNode) svgNode.classList.toggle('is-editing', !!S.editOpen);
+      renderer.setSelected(S.mark, selectionMarks());
+      if (S.table) paintTable();
+    }
+
+    function commitValue(mark, value) {
+      var parts = String(mark).split(':');
+      if (view.type === 'bar' && parts[0] === 'bar') {
+        applyEdit(function (next) {
+          var series = next.series.filter(function (s) { return s.id === parts[1]; })[0];
+          if (series) series.values[Number(parts[2])] = value;
+        }, false);
+      } else if (view.type === 'line' && parts[0] === 'pt') {
+        applyEdit(function (next) {
+          var series = next.series.filter(function (s) { return s.id === parts[1]; })[0];
+          if (series) series.values[Number(parts[2])] = value;
+        }, false);
+      } else if (view.type === 'scatter' && parts[0] === 'pt') {
+        applyEdit(function (next) {
+          var point = next.points.filter(function (p) { return p.id === parts[1]; })[0];
+          if (point) { point.x = value.x; point.y = value.y; }
+        }, false);
+      } else {
+        return;
+      }
+      paintEditor();
+      if (S.mark !== mark) select(mark);
+    }
+
+    function paintPanel() {
+      var runtime = visibleRuntime();
+      DV.panel.render(panelHost, {
+        view: runtime,
+        features: currentFeatures(runtime),
         feature: featureFor(S.mark),
         library: S.library,
+        edited: editedNow(),
+        scratch: S.scratch[key] || '',
         register: S.register,
         tab: S.tab,
         level: S.level,
         revealed: S.revealed,
-        onRegister: function (reg) { S.register = reg; DV.store.set('npesl-dataviz-reg', reg); replaceRoute([topic.id, view.id]); paintPanel(); },
-        onTab: function (tab) { S.tab = tab; DV.store.set('npesl-dataviz-tab', tab); replaceRoute([topic.id, view.id]); paintPanel(); },
+        onScratch: function (value) { S.scratch[key] = value; },
+        onRegister: function (reg) {
+          S.register = reg;
+          DV.store.set('npesl-dataviz-reg', reg);
+          replaceRoute([topic.id, view.id]);
+          paintPanel();
+        },
+        onTab: function (tab) {
+          S.tab = tab;
+          DV.store.set('npesl-dataviz-tab', tab);
+          replaceRoute([topic.id, view.id]);
+          paintPanel();
+        },
         onLevel: function (level) { S.level = level; paintPanel(); },
         onReveal: function (open) { S.revealed = open; paintPanel(); },
         onClear: function () { select(null); }
-      };
-    }
-
-    function paintPanel() {
-      DV.panel.render(panelHost, panelState());
+      });
       if (S.mark) {
         var f = featureFor(S.mark);
-        peekText.textContent = f ? (f.slots.value || f.slots.share || (f.slots.from && f.slots.to ? f.slots.from + ' → ' + f.slots.to : '')) : '';
+        peekText.textContent = f ? (f.slots.value || f.slots.share
+          || (f.slots.from && f.slots.to ? f.slots.from + ' → ' + f.slots.to : '')) : '';
         peek.hidden = false;
       } else {
         peek.hidden = true;
@@ -593,7 +746,7 @@
     function select(mark) {
       S.mark = mark && S.featureIndex[mark] ? mark : null;
       S.revealed = false;
-      renderer.setSelected(S.mark);
+      if (S.renderer) S.renderer.setSelected(S.mark, selectionMarks());
       replaceRoute([topic.id, view.id]);
       paintPanel();
       if (S.mark) {
@@ -605,11 +758,11 @@
     }
 
     function paintTable() {
-      var data = renderer.table ? renderer.table() : null;
+      var data = S.renderer && S.renderer.table ? S.renderer.table() : null;
       DV.clear(tableWrap);
       if (!data) return;
       var table = DV.el('table', {}, tableWrap);
-      DV.el('caption', {}, table).textContent = topic.title_en + ' · 模拟数据';
+      DV.el('caption', {}, table).textContent = topic.title_en;
       var thead = DV.el('thead', {}, table);
       var tr = DV.el('tr', {}, thead);
       data.head.forEach(function (h) { DV.el('th', { scope: 'col' }, tr).textContent = h; });
@@ -630,6 +783,144 @@
       tableBtn.textContent = S.table ? '看图' : '看表格';
       if (S.table) paintTable();
     }
+
+    function syncEditorTools() {
+      var undo = editorHost.querySelector('.dv-data-undo');
+      var reset = editorHost.querySelector('.dv-data-reset');
+      var canUndo = !!(entry() && entry().history.length);
+      var canRedo = !!(entry() && entry().future && entry().future.length);
+      if (undo) {
+        undo.disabled = !canUndo;
+        undo.setAttribute('aria-disabled', canUndo ? 'false' : 'true');
+      }
+      var redo = editorHost.querySelector('.dv-data-redo');
+      if (redo) {
+        redo.disabled = !canRedo;
+        redo.setAttribute('aria-disabled', canRedo ? 'false' : 'true');
+      }
+      if (reset) {
+        reset.disabled = !editedNow();
+        reset.setAttribute('aria-disabled', editedNow() ? 'false' : 'true');
+      }
+    }
+
+    function paintEditor() {
+      if (!S.editOpen) {
+        editorHost.hidden = true;
+        return;
+      }
+      editorHost.hidden = false;
+      var runtime = runtimeNow();
+      DV.editor.render(editorHost, {
+        data: dataNow(),
+        type: view.type,
+        unit: runtime.unit,
+        subject: runtime.subject,
+        edited: editedNow(),
+        canUndo: !!(entry() && entry().history.length),
+        canRedo: !!(entry() && entry().future && entry().future.length),
+        onChange: applyEdit,
+        onUndo: undoEdit,
+        onRedo: redoEdit,
+        onReset: resetEdit
+      });
+    }
+
+    var lastEditAt = 0;
+
+    function applyEdit(mutator, structural) {
+      var before = dataNow();
+      var next = DV.clone(before);
+      mutator(next);
+      var current = entry();
+      var history = current ? current.history.slice() : [];
+      var now = Date.now();
+      // A typing burst is one undo step; structural edits always get their own.
+      if (structural || !current || now - lastEditAt > 700) {
+        history.push(DV.clone(before));
+        if (history.length > 40) history.shift();
+      }
+      lastEditAt = now;
+      S.edited[key] = { data: next, history: history, future: [], dirty: true };
+      S.revealed = false;
+      if (structural) {
+        S.mark = null;
+        showTip(null);
+      }
+      paintLegend();
+      renderChart();
+      paintPanel();
+      syncEditorTools();
+      if (structural) paintEditor();
+    }
+
+    function undoEdit() {
+      var current = entry();
+      if (!current || !current.history.length) return;
+      lastEditAt = 0;
+      var history = current.history.slice();
+      var previous = history.pop();
+      var future = (current.future || []).slice();
+      future.push(DV.clone(current.data));
+      if (history.length) {
+        S.edited[key] = { data: previous, history: history, future: future, dirty: true };
+      } else {
+        S.edited[key] = { data: DV.clone(view.data), history: [], future: future, dirty: false };
+      }
+      S.revealed = false;
+      paintLegend();
+      renderChart();
+      paintPanel();
+      paintEditor();
+    }
+
+    function redoEdit() {
+      var current = entry();
+      if (!current || !current.future || !current.future.length) return;
+      lastEditAt = 0;
+      var future = current.future.slice();
+      var next = future.pop();
+      var history = current.history.slice();
+      history.push(DV.clone(current.data));
+      if (history.length > 40) history.shift();
+      S.edited[key] = { data: next, history: history, future: future, dirty: true };
+      S.revealed = false;
+      paintLegend();
+      renderChart();
+      paintPanel();
+      paintEditor();
+    }
+
+    function resetEdit() {
+      if (!editedNow()) return;
+      lastEditAt = 0;
+      var current = entry();
+      var history = ((current && current.history) || []).slice();
+      history.push(DV.clone(dataNow()));
+      if (history.length > 40) history.shift();
+      S.edited[key] = {
+        data: DV.clone(view.data),
+        history: history,
+        future: [],
+        dirty: false
+      };
+      S.revealed = false;
+      paintLegend();
+      renderChart();
+      paintPanel();
+      paintEditor();
+    }
+
+    function toggleEditor() {
+      S.editOpen = !S.editOpen;
+      editBtn.textContent = S.editOpen ? '收起数据' : '编辑数据';
+      editBtn.setAttribute('aria-expanded', S.editOpen ? 'true' : 'false');
+      chartCard.classList.toggle('is-editing', S.editOpen);
+      paintEditor();
+      renderChart();
+    }
+
+    editBtn.addEventListener('click', toggleEditor);
     tableBtn.addEventListener('click', function () { S.table = !S.table; applyTable(); });
     peekBtn.addEventListener('click', function () {
       panelHost.scrollIntoView({ behavior: DV.prefersReduced() ? 'auto' : 'smooth', block: 'start' });
@@ -637,9 +928,13 @@
       if (tab) tab.focus({ preventScroll: true });
     });
 
-    renderer.setSelected(S.mark);
+    paintLegend();
+    renderChart();
     applyTable();
     paintPanel();
+    paintEditor();
+    S.commitValue = commitValue;
+    S.select = select;
     if (!S.mark) live.textContent = '已打开：' + topic.title_zh;
   }
 
@@ -704,21 +999,13 @@
       }
     });
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && S.mode === 'workspace' && S.mark) {
-        var btn = app.querySelector('.dv-clear');
-        if (btn) btn.click();
-        else {
-          S.mark = null;
-          S.revealed = false;
-          if (S.renderer) S.renderer.setSelected(null);
-          var panel = app.querySelector('.dv-panel');
-          if (panel) DV.panel.render(panel, {
-            view: currentView(), feature: null, library: S.library,
-            register: S.register, tab: S.tab, level: S.level, revealed: false,
-            onRegister: function () {}, onTab: function () {}, onLevel: function () {},
-            onReveal: function () {}, onClear: function () {}
-          });
-        }
+      if (event.key !== 'Escape' || S.mode !== 'workspace') return;
+      if (tooltip) tooltip.classList.remove('is-open');
+      var clear = app.querySelector('.dv-clear');
+      if (S.mark && clear) { clear.click(); return; }
+      if (S.editOpen) {
+        var edit = app.querySelector('.dv-edit-toggle');
+        if (edit) edit.click();
       }
     });
     window.addEventListener('hashchange', route);
@@ -729,11 +1016,19 @@
           mode: S.mode, topic: S.topic, view: S.view, mark: S.mark,
           kind: featureFor(S.mark) ? featureFor(S.mark).kind : null,
           tab: S.tab, register: S.register, level: S.level,
-          revealed: S.revealed, table: S.table,
+          revealed: S.revealed, table: S.table, editOpen: S.editOpen,
+          edited: !!((S.edited[(S.topic || '') + '/' + (S.view || '')] || {}).dirty !== false
+            && S.edited[(S.topic || '') + '/' + (S.view || '')]),
           topics: G.topics.length
         };
       },
+      data: function () {
+        if (!S.topic || !S.view) return null;
+        var entry = S.edited[S.topic + '/' + S.view];
+        return entry ? JSON.parse(JSON.stringify(entry.data)) : null;
+      },
       select: function (mark) {
+        if (S.select && S.featureIndex[mark]) { S.select(mark); return; }
         var node = app.querySelector('[data-mark="' + String(mark).replace(/"/g, '\\"') + '"]');
         if (node) node.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       },
@@ -754,6 +1049,27 @@
       table: function () {
         var btn = app.querySelector('.dv-table-toggle');
         if (btn) btn.click();
+      },
+      edit: function (open) {
+        var want = open == null ? !S.editOpen : !!open;
+        if (want === S.editOpen) return;
+        var btn = app.querySelector('.dv-edit-toggle');
+        if (btn) btn.click();
+      },
+      resetData: function () {
+        var btn = app.querySelector('.dv-data-reset');
+        if (btn && !btn.disabled) btn.click();
+      },
+      undoData: function () {
+        var btn = app.querySelector('.dv-data-undo');
+        if (btn && !btn.disabled) btn.click();
+      },
+      redoData: function () {
+        var btn = app.querySelector('.dv-data-redo');
+        if (btn && !btn.disabled) btn.click();
+      },
+      setMark: function (mark, value) {
+        if (S.commitValue) S.commitValue(mark, value);
       }
     };
     route();

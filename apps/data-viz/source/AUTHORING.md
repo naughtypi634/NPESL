@@ -120,3 +120,35 @@
 - 产物：`build.py`，再用 `audit_build.py --label before/--diff` 证明没碰别的应用。
 - 浏览器：`node tools/preview_site.mjs` 打开 `/data-viz/`，过一遍手机宽度、
   light/dark/glass、点读（有音频时）、表格和返回链接。
+
+## 页面里改数据
+
+工作表里的“编辑数据”允许读者改数值、类别名、系列名、分组和节点；图表、表格、提示、
+词汇、句型、描述与解读都按当前数据重算。为此浏览器端有两份运行时模块：
+
+- `apps/data-viz/js/05-compute.js`：`source/features.py` 的逐条移植（分类阈值、槽位、数字格式完全一致）。
+- `apps/data-viz/js/06-text.js`：按当前特征从语言库的句型框架生成整图描述；作者写的
+  `descriptions` / `overview_zh` 只在未改数据时显示，避免改完数据后留着旧数字。
+
+改了 `features.py` 或 `05-compute.js` 的任何一方，都要跑：
+
+```powershell
+node tests\dataviz-parity.mjs
+node tests\dataviz-text.mjs
+```
+
+第一条同时比较原始数据和改过数值的数据（每个视图两份样本），要求所有 mark 的
+kind 与 slots 完全一致；第二条把每个视图的 A2/B1/B2/雅思/商务和中文总结都生成
+一遍，拦截空槽位、双空格、百分号、基数词排名和散点因果措辞。不一致时先修引擎，
+不要改测试。
+
+## 视觉与交互（全站统一）
+
+- 所有表面都要有圆角：卡片/面板用 `--radius-card`，控件与图片用
+  `--radius-control`，徽章和分段控件用 999px。SVG 里的柱、热力格、桑基节点
+  用 `rx` 2–4；不要留直角矩形，包括画廊 mini 图。
+- 男女声切换如果以后加音频，统一用 `.seg`（药丸槽 + 30px 内嵌墨色药丸 +
+  喇叭图标），不要再造 `.voices` / `.voice-seg` 这类新样式。
+- 按钮的缓动/弹簧和页面平滑滚动由部署时注入的 `/theme.css` 统一提供；
+  `style.css` 不要覆盖 `transition: transform` 或 `scroll-behavior`。
+- 圆角只是外观，不改变图表读数和“只有相关、没有因果”的表述。

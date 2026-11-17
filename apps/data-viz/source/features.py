@@ -32,7 +32,10 @@ PP_STEADY = 3.0
 # ---------------------------------------------------------------- numbers
 
 def fmt_num(value: float, decimals: int = 0) -> str:
-    return f"{float(value):,.{decimals}f}"
+    text = f"{float(value):,.{decimals}f}"
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return "0" if text in {"-0", ""} else text
 
 
 def fmt_value(value: float, unit: dict) -> str:
@@ -41,11 +44,11 @@ def fmt_value(value: float, unit: dict) -> str:
     x = float(value) * scale
     dec = int(unit.get("decimals", 0) or 0)
     if unit.get("kind") == "percent":
-        return f"{x:,.{dec}f} percent"
+        return f"{fmt_num(x, dec)} percent"
     if unit.get("million") and abs(x) >= 1_000_000:
-        return f"{x / 1_000_000:,.1f} million {unit.get('en', '')}".strip()
+        return f"{fmt_num(x / 1_000_000, 1)} million {unit.get('en', '')}".strip()
     noun = unit.get("en", "")
-    return f"{x:,.{dec}f} {noun}".strip()
+    return f"{fmt_num(x, dec)} {noun}".strip()
 
 
 def fmt_axis(value: float, unit: dict) -> str:
@@ -57,7 +60,7 @@ def fmt_delta(delta: float, unit: dict) -> str:
     """An absolute change, with points for percent-share data."""
     if unit.get("points"):
         dec = int(unit.get("decimals", 0) or 0)
-        return f"{abs(delta):,.{dec}f} percentage points"
+        return f"{fmt_num(abs(delta), dec)} percentage points"
     return fmt_value(abs(delta), unit)
 
 
@@ -72,13 +75,13 @@ def pct_text(a: float, b: float) -> str:
     if value is None:
         return ""
     if abs(value) < 10:
-        return f"{abs(value):.1f}"
-    return f"{abs(value):.0f}"
+        return fmt_num(abs(value), 1)
+    return fmt_num(abs(value), 0)
 
 
 def pp_text(delta: float, unit: dict) -> str:
     dec = int(unit.get("decimals", 0) or 0)
-    return f"{abs(delta):,.{dec}f}"
+    return fmt_num(abs(delta), dec)
 
 
 # ---------------------------------------------------------------- classify
@@ -236,12 +239,12 @@ def compute_bar(view: dict) -> dict[str, dict]:
             mark = f"bar:{series['id']}:{i}"
             kind = "ranking"
             if rank[i] == 1:
-                if second and top / second >= 1.5:
-                    kind = "large_gap"
-                elif second and abs(top - second) / abs(top) <= 0.10:
-                    kind = "small_gap"
-                else:
-                    kind = "highest"
+                # The top bar always reads as "highest". The large_gap entry
+                # assumes the clicked bar is the lower of a pair, so it stays
+                # authored content rather than an automatic kind.
+                kind = "highest"
+            elif rank[i] == 2 and second and abs(top - second) / abs(top or 1) <= 0.10:
+                kind = "small_gap"
             elif rank[i] == count:
                 kind = "lowest"
             elif spread <= 0.10:
@@ -281,7 +284,7 @@ def compute_pie(view: dict) -> dict[str, dict]:
             "subject": view.get("subject", ""),
             "category": part.get("name_en", ""),
             "share": fmt_value(share, unit),
-            "share_number": f"{share:,.{int(unit.get('decimals', 0) or 0)}f}",
+            "share_number": fmt_num(share, int(unit.get("decimals", 0) or 0)),
             "value": fmt_value(part["value"], unit),
             "rank": str(rank[i]),
         }
@@ -397,7 +400,7 @@ def compute_stacked(view: dict) -> dict[str, dict]:
                 "period": label(view, i),
                 "value": fmt_value(value, unit),
                 "share": fmt_value(share, unit),
-                "share_number": f"{share:,.{int(unit.get('decimals', 0) or 0)}f}",
+                "share_number": fmt_num(share, int(unit.get("decimals", 0) or 0)),
                 "total": fmt_value(total, unit),
             })
             out[mark] = make(kind, [mark], slots)
@@ -434,9 +437,11 @@ def compute_heatmap(view: dict) -> dict[str, dict]:
             }
             out[mark] = make(kind, [mark], slots)
         mark = f"row:{row['id']}"
+        busiest = max(range(len(cols)), key=lambda c: cells[r][c])
         slots = {
             "subject": view.get("subject", ""),
             "row": row.get("name_en", ""),
+            "col": cols[busiest].get("name_en", ""),
             "category": row.get("name_en", ""),
             "period": "the week",
             "value": fmt_value(sum(cells[r]) / len(cols), unit),
@@ -446,8 +451,10 @@ def compute_heatmap(view: dict) -> dict[str, dict]:
     for c, col in enumerate(cols):
         mark = f"col:{col['id']}"
         avg = sum(cells[r][c] for r in range(len(rows))) / len(rows)
+        busiest = max(range(len(rows)), key=lambda r: cells[r][c])
         slots = {
             "subject": view.get("subject", ""),
+            "row": rows[busiest].get("name_en", ""),
             "col": col.get("name_en", ""),
             "category": col.get("name_en", ""),
             "period": col.get("name_en", ""),
@@ -470,6 +477,8 @@ def compute_sankey(view: dict) -> dict[str, dict]:
     for link in links:
         out_total[link["source"]] = out_total.get(link["source"], 0) + link["value"]
         in_total[link["target"]] = in_total.get(link["target"], 0) + link["value"]
+    first_column = set((view.get("columns") or [[]])[0])
+    root_total = sum(l["value"] for l in links if l["source"] in first_column) or 1
     for link in links:
         src, dst = link["source"], link["target"]
         mark = f"link:{src}->{dst}"
@@ -482,7 +491,7 @@ def compute_sankey(view: dict) -> dict[str, dict]:
             "source": nodes.get(src, {}).get("name_en", src),
             "target": nodes.get(dst, {}).get("name_en", dst),
             "value": fmt_value(link["value"], unit),
-            "share": fmt_value(share, unit),
+            "share": fmt_value(share, {"kind": "percent", "decimals": 0}),
             "pct": f"{share:.0f}",
             "period": view.get("period_label", ""),
             "unit": unit.get("short", ""),
@@ -492,19 +501,35 @@ def compute_sankey(view: dict) -> dict[str, dict]:
         mark = f"node:{node['id']}"
         ins = in_total.get(node["id"], 0)
         outs = out_total.get(node["id"], 0)
-        kind = "merge" if ins > outs and ins else "split"
+        node_kind = "merge" if ins > outs and ins else "split"
+        incoming = [l for l in links if l["target"] == node["id"]]
+        outgoing = [l for l in links if l["source"] == node["id"]]
+        if node_kind == "merge" and incoming:
+            main = max(incoming, key=lambda l: l["value"])
+            source = nodes.get(main["source"], {}).get("name_en", main["source"])
+            target = node.get("name_en", "")
+            share = max(ins, outs) / root_total * 100
+        elif outgoing:
+            main = max(outgoing, key=lambda l: l["value"])
+            source = node.get("name_en", "")
+            target = nodes.get(main["target"], {}).get("name_en", main["target"])
+            share = main["value"] / (outs or 1) * 100
+        else:
+            source = node.get("name_en", "")
+            target = node.get("name_en", "")
+            share = 0.0
         slots = {
             "subject": view.get("subject", ""),
-            "source": node.get("name_en", ""),
-            "target": node.get("name_en", ""),
+            "source": source,
+            "target": target,
             "category": node.get("name_en", ""),
             "value": fmt_value(max(ins, outs), unit),
-            "share": "",
-            "pct": "",
+            "share": fmt_value(share, {"kind": "percent", "decimals": 0}),
+            "pct": f"{share:.0f}",
             "period": view.get("period_label", ""),
             "unit": unit.get("short", ""),
         }
-        out[mark] = make(kind, [mark], slots)
+        out[mark] = make(node_kind, [mark], slots)
     return out
 
 
