@@ -56,11 +56,20 @@ OUT = SITE_OUT
 
 ICON = f"{SITE_URL}/npesl-icon.png"
 
-HEADERS = """/phonics/audio/*
+HEADERS = """/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/phonics/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /drill/bank.*.js
   Cache-Control: public, max-age=31536000, immutable
+
+/collocation/data.*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/visual-vocabulary/*.webp
+  Cache-Control: public, max-age=604800
 
 /drill/audio/*
   Cache-Control: public, max-age=31536000, immutable
@@ -77,7 +86,7 @@ HEADERS = """/phonics/audio/*
 /conversation/eslse/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
-/visual-vocabulary/*/audio/*
+/visual-vocabulary/*.mp3
   Cache-Control: public, max-age=31536000, immutable
 
 /npesl-icon.png
@@ -251,6 +260,21 @@ def ipa_ignore(directory, names):
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+
+    import argparse
+    parser = argparse.ArgumentParser(description="装配 Cloudflare Pages 部署树")
+    parser.add_argument("--no-image-opt", action="store_true",
+                        help="Visual Vocabulary 保持 640px 原图（回滚用）")
+    args = parser.parse_args()
+
+    vv_images = None
+    if not args.no_image_opt:
+        from build_vv_images import (ensure_derivatives, inject_lazy_attrs,
+                                     overlay_derivatives)
+        vv_images = (ensure_derivatives, inject_lazy_attrs, overlay_derivatives)
+        built, skipped = vv_images[0]()
+        print(f"  Visual Vocabulary 480px：生成 {built}，复用 {skipped}")
+
     if OUT.exists():
         shutil.rmtree(OUT)
     if AUDIO_OUT.exists():
@@ -262,6 +286,14 @@ def main() -> int:
                  "apple-touch-icon.png", "favicon-32.png", "favicon-16.png",
                  "favicon.ico"):
         shutil.copy2(SITE_SRC / name, OUT / name)
+
+    # 自托管字体：Geist latin / latin-ext（可变字体）
+    fonts_src = SITE_SRC / "fonts"
+    if not (fonts_src / "geist-latin-v5.woff2").exists():
+        print(f"错误：缺少 {fonts_src / 'geist-latin-v5.woff2'}；"
+              "先放回自托管字体再装配", file=sys.stderr)
+        return 2
+    shutil.copytree(fonts_src, OUT / "fonts")
 
     site_back = BackLink("/", "NPESL")
 
@@ -362,6 +394,10 @@ def main() -> int:
 
         vv_out = OUT / "visual-vocabulary"
         shutil.copytree(VISUAL_VOCAB, vv_out, ignore=vv_ignore)
+        if vv_images:
+            _, inject_lazy, overlay = vv_images
+            copied = overlay(vv_out)
+            print(f"  480px 图片已替换：{copied} 个")
         finish_group(PageGroup(
             vv_out, "index.html", lambda _: "visual-vocabulary/", site_back))
         for sub in ("home", "clothing", "packing", "body-parts",
@@ -376,12 +412,39 @@ def main() -> int:
                 vv_out / sub, "index.html",
                 lambda _, sub=sub: f"visual-vocabulary/{sub}/",
                 BackLink("/visual-vocabulary/", "Visual Vocabulary")))
+        if vv_images:
+            lazy = vv_images[1](vv_out)
+            print(f"  lazy/async 图片：{lazy} 个")
         print("  Visual Vocabulary：已包含")
     else:
         print("警告：Visual Vocabulary 目录不存在，未包含")
 
+    # Cloudflare Pages 的 _headers 每条规则只允许一个 *；两个 * 的规则会被忽略。
+    bad_rules = [
+        line for line in HEADERS.splitlines()
+        if line.startswith("/") and line.count("*") > 1
+    ]
+    if bad_rules:
+        print("错误：_headers 规则含有多个 *，Cloudflare 会忽略：", file=sys.stderr)
+        for line in bad_rules:
+            print(f"  {line}", file=sys.stderr)
+        return 2
+
     (OUT / "_headers").write_text(HEADERS, encoding="utf-8")
     (OUT / "_redirects").write_text(REDIRECTS, encoding="utf-8")
+
+    # 字体已自托管：任何页面还残留 Google Fonts 都说明有生成物没重建。
+    stale = [
+        p for p in OUT.rglob("*.html")
+        if "fonts.googleapis.com" in p.read_text(encoding="utf-8")
+        or "fonts.gstatic.com" in p.read_text(encoding="utf-8")
+    ]
+    if stale:
+        print("错误：以下页面仍引用 Google Fonts，先重建对应应用：",
+              file=sys.stderr)
+        for path in stale[:10]:
+            print(f"  {path.relative_to(OUT)}", file=sys.stderr)
+        return 2
 
     def stats(path: Path) -> tuple:
         files = [p for p in path.rglob("*") if p.is_file()]

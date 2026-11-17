@@ -78,7 +78,7 @@
   .prow { display:flex; align-items:baseline; gap:12px; width:100%;
     text-align:left; font:inherit; color:inherit; background:var(--bg);
     border:1px solid var(--rule); border-radius:var(--radius-control, 14px); padding:12px 14px;
-    cursor:pointer; }
+    cursor:pointer; content-visibility:auto; contain-intrinsic-block-size:22px; }
   .prow:hover { background:var(--surface); }
   .prow .en { font-size:17px; font-weight:600; min-width:0; }
   .prow .zh { margin-left:auto; max-width:48%; text-align:right; color:var(--muted);
@@ -221,7 +221,7 @@
 <div class="chips" data-chips="theme" hidden></div>
 <div id="view"></div>
 </div>
-<script src="data.41becd8bf9.js"></script>
+<script src="data.9d84c1f6b4.js"></script>
 <script>
 (function(){
 var D=window.COLLOCATION_INDEX;
@@ -303,7 +303,8 @@ function partHtml(){
   });
   return out;
 }
-var html={scene:sceneHtml(),particle:partHtml()};
+var html={};
+function htmlFor(m){if(!html[m])html[m]=(m==='scene'?sceneHtml():partHtml());return html[m];}
 function themeGroup(cat){
   for(var i=0;i<D.scene.length;i++)if(D.scene[i].id===cat)return D.scene[i];
   return null;
@@ -357,13 +358,14 @@ function paint(m,value,scroll,restore,keepScroll,keepOpp){
   if(changed)positions[mode]=window.scrollY;
   if(shouldRestore)restoringPosition=true;
   mode=m;if(value!==undefined)state[m]=value;
-  view.innerHTML=html[m];open=null;
+  view.innerHTML=htmlFor(m);open=null;
   var attr=(m==='scene'?'cat':'particle');
   var groups=view.querySelectorAll('.group');
   for(var g=0;g<groups.length;g++)groups[g].style.display=(state[m]==='all'||groups[g].getAttribute('data-'+attr)===state[m])?'':'none';
   setChips(m);
   if(scroll){setChipsExpanded(showThemeLevel());scrollToFirstTheme();}
   else if(shouldRestore)requestAnimationFrame(function(){var y=Math.min(positions[m],Math.max(0,document.documentElement.scrollHeight-window.innerHeight));window.scrollTo(0,y);positions[m]=y;restoringPosition=false;persistState();});
+  bindRows();
   persistState();
 }
 var stateTimer=0;
@@ -377,6 +379,7 @@ window.addEventListener('pagehide',function(){positions[mode]=window.scrollY;per
 function toggleCard(btn){
   exitOpp();
   var i=+btn.getAttribute('data-i');
+  prefetchAt(i);
   var existing=view.querySelector('.card');
   var prev=view.querySelector('.prow[aria-expanded="true"]');
   if(open===i){if(existing)existing.remove();btn.setAttribute('aria-expanded','false');open=null;return;}
@@ -386,6 +389,7 @@ function toggleCard(btn){
 }
 function openOppTarget(i){
   var e=D.entries[i];if(!e)return false;
+  prefetchAt(i);
   if(mode!=='scene'||state.scene!==e.c)paint('scene',e.c,false,false,true,true);
   var row=view.querySelector('.prow[data-i="'+i+'"]');if(!row)return false;
   if(open!==i){
@@ -421,15 +425,73 @@ function returnToOppOrigin(){
 }
 var KEY_VOICE='pv-voice';var voice='f';
 try{var sv=localStorage.getItem(KEY_VOICE);if(sv==='f'||sv==='m')voice=sv;}catch(e){}
-var audio=new Audio();audio.preload='auto';var srcCache={};var stopAt=0,onEl=null;window.__phAudio=audio;
+var audio=new Audio();audio.preload='auto';var srcCache={},blobOrder=[];var stopAt=0,onEl=null;window.__phAudio=audio;
 function srcFor(url){
   if(srcCache[url])return srcCache[url];
   var can=location.protocol!=='file:'&&window.fetch&&window.URL&&URL.createObjectURL;
   if(!can){srcCache[url]=Promise.resolve(url);return srcCache[url];}
-  srcCache[url]=fetch(url).then(function(r){if(!r.ok)throw 0;return r.blob();})
+  var p=fetch(url).then(function(r){if(!r.ok)throw 0;return r.blob();})
     .then(function(b){return URL.createObjectURL(b);}).catch(function(){return url;});
-  return srcCache[url];
+  srcCache[url]=p;
+  // 只保留最近 12 个 blob，避免点很多行后内存一直涨；正在播放的不回收。
+  p.then(function(src){
+    if(src.indexOf('blob:')!==0)return;
+    blobOrder.push([url,src,p]);
+    while(blobOrder.length>12){
+      var old=blobOrder.shift();
+      if(old[1]===audio.src){blobOrder.push(old);break;}
+      try{URL.revokeObjectURL(old[1]);}catch(e){}
+      if(srcCache[old[0]]===old[2])delete srcCache[old[0]];
+    }
+  });
+  return p;
 }
+function chunkRel(i,v){
+  var e=D.entries[i],k=e&&e.sp;
+  if(!k)return '';
+  var row=D.spr&&D.spr[k-1];
+  var rel=row&&row[v||voice];
+  return rel?'audio/'+rel:'';
+}
+var prefetched={};
+function prefetchAt(i,v){
+  if(stopAt)return;
+  if(location.protocol==='file:'||!window.fetch)return;
+  if(navigator.connection&&navigator.connection.saveData)return;
+  var rel=chunkRel(i,v||voice);
+  if(!rel||prefetched[rel])return;
+  prefetched[rel]=1;
+  fetch(rel,{cache:'force-cache'}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();})
+    .catch(function(){delete prefetched[rel];});
+}
+var io=null,visibleRows=[];
+function bindRows(){
+  if(!('IntersectionObserver' in window))return;
+  if(io)io.disconnect();
+  visibleRows=[];
+  io=new IntersectionObserver(function(list){
+    for(var n=0;n<list.length;n++){
+      var row=list[n].target,at=visibleRows.indexOf(row);
+      if(list[n].isIntersecting){
+        if(at<0)visibleRows.push(row);
+        prefetchAt(+row.getAttribute('data-i'));
+      }else if(at>=0)visibleRows.splice(at,1);
+    }
+  },{rootMargin:'400px 0px'});
+  var rows=view.querySelectorAll('.prow');
+  for(var i=0;i<rows.length;i++)io.observe(rows[i]);
+}
+function prefetchVisible(v){
+  for(var i=0;i<visibleRows.length;i++)prefetchAt(+visibleRows[i].getAttribute('data-i'),v);
+}
+view.addEventListener('pointerover',function(e){
+  var r=e.target.closest&&e.target.closest('.prow');
+  if(r)prefetchAt(+r.getAttribute('data-i'));
+},{passive:true});
+view.addEventListener('focusin',function(e){
+  var r=e.target.closest&&e.target.closest('.prow');
+  if(r)prefetchAt(+r.getAttribute('data-i'));
+});
 var raf=0,stopTimer=0,playGen=0,playFrom=0;
 function finishStop(){
   try{audio.pause();}catch(e){}
@@ -453,7 +515,9 @@ function armStop(from,to){
 function playFallback(el,s,en){
   var gen=++playGen;
   if(raf)cancelAnimationFrame(raf);
-  srcFor('audio/'+D.entries[+el.getAttribute('data-i')].sp[voice]).then(function(src){
+  var rel=chunkRel(+el.getAttribute('data-i'));
+  if(!rel)return;
+  srcFor(rel).then(function(src){
     if(gen!==playGen)return;
     var abs=new URL(src,location.href).href,changed=audio.src!==abs;
     if(changed)audio.src=src;
@@ -488,7 +552,7 @@ function playFallback(el,s,en){
 function playSay(el){
   var i=+el.getAttribute('data-i'),k=+el.getAttribute('data-k');
   var e=D.entries[i];var span=e.au[k];
-  if(!span||!e.sp||!e.sp[voice])return;
+  if(!span||!chunkRel(i))return;
   var s=voice==='f'?span[0]:span[2],en=voice==='f'?span[1]:span[3];
   if(s==null||en==null)return;
   window.__phEnd=en;
@@ -498,7 +562,7 @@ var voiceBtns=document.querySelectorAll('[data-voice]');
 function paintVoice(){
   for(var v=0;v<voiceBtns.length;v++)voiceBtns[v].setAttribute('aria-pressed',voiceBtns[v].getAttribute('data-voice')===voice?'true':'false');
 }
-for(var vv=0;vv<voiceBtns.length;vv++)voiceBtns[vv].addEventListener('click',function(e){voice=e.currentTarget.getAttribute('data-voice');try{localStorage.setItem(KEY_VOICE,voice);}catch(err){}paintVoice();});
+for(var vv=0;vv<voiceBtns.length;vv++)voiceBtns[vv].addEventListener('click',function(e){voice=e.currentTarget.getAttribute('data-voice');try{localStorage.setItem(KEY_VOICE,voice);}catch(err){}paintVoice();setTimeout(function(){prefetchVisible(voice);},0);});
 paintVoice();
 rowScene.innerHTML=chip('scene','all','全部')+D.scene.map(function(g){return chip('scene',g.id,g.zh);}).join('');
 rowPart.innerHTML=chip('particle','all','全部')+D.particle.map(function(g){return chip('particle',g.p,g.label||g.p);}).join('');

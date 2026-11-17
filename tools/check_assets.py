@@ -49,6 +49,49 @@ def check_page(page: Path, site: Path, audio_site: Path | None) -> list[str]:
         if not target.exists():
             problems.append(f"{rel_page}: 缺少 {rel}（{note}）")
 
+    # 字体已自托管；任何 Google Fonts 残留都说明有页面没重建。
+    if "fonts.googleapis.com" in text or "fonts.gstatic.com" in text:
+        problems.append(f"{rel_page}: 仍引用 Google Fonts")
+
+    # 短语搭配：data.*.js 里的 spr 表 + 每个词条的 1-based sp 索引
+    if rel_page == "collocation/index.html":
+        match = re.search(r'<script src="(data\.[0-9a-f]+\.js)"></script>', text)
+        if not match:
+            problems.append("collocation/index.html: 找不到 data.*.js")
+        else:
+            data_path = page.parent / match.group(1)
+            if not data_path.exists():
+                problems.append(f"collocation/index.html: 缺少 {match.group(1)}")
+            else:
+                raw = data_path.read_text(encoding="utf-8").strip()
+                prefix = "window.COLLOCATION_INDEX="
+                if raw.startswith(prefix):
+                    raw = raw[len(prefix):]
+                if raw.endswith(";"):
+                    raw = raw[:-1]
+                try:
+                    data = json.loads(raw)
+                except json.JSONDecodeError as exc:
+                    problems.append(f"{match.group(1)}: JSON 解析失败（{exc}）")
+                    data = {}
+                spr = data.get("spr") or []
+                for k, row in enumerate(spr, 1):
+                    for voice, rel in row.items():
+                        if voice in ("f", "m") and rel:
+                            want("audio/" + rel, f"collocation chunk {k}")
+                for entry in data.get("entries") or []:
+                    sp = entry.get("sp", 0)
+                    if not sp:
+                        continue
+                    if not isinstance(sp, int) or not 1 <= sp <= len(spr):
+                        problems.append(
+                            f"{match.group(1)}: 词条 {entry.get('id')} 的 sp={sp} 越界")
+                        continue
+                    if any(x is not None for x in entry.get("au") or []):
+                        if not (spr[sp - 1].get("f") and spr[sp - 1].get("m")):
+                            problems.append(
+                                f"{match.group(1)}: 词条 {entry.get('id')} 有音频但 chunk {sp} 缺音色")
+
     # 自然拼读：audioMap 里是相对 lesson 的 URL
     if "/phonics/lessons/" in f"/{rel_page}":
         for value in load_json_script(text, "audioMap").values():
@@ -119,6 +162,31 @@ def main() -> int:
         problems.extend(check_page(page, site, audio_site))
     if (site / "drill").exists():
         problems.extend(check_drill(site))
+
+    # 自托管字体：页面 / theme.css 里引用的 woff2 都必须存在。
+    font_refs: set[str] = set()
+    theme_css = site / "theme.css"
+    if theme_css.exists():
+        font_refs.update(re.findall(
+            r'/fonts/[A-Za-z0-9._-]+\.woff2', theme_css.read_text(encoding="utf-8")))
+    for page in site.rglob("*.html"):
+        font_refs.update(re.findall(
+            r'/fonts/[A-Za-z0-9._-]+\.woff2', page.read_text(encoding="utf-8")))
+    for rel in sorted(font_refs):
+        if not (site / rel.lstrip("/")).exists():
+            problems.append(f"字体缺少 {rel}")
+
+    # 视觉词汇：词图存在，且子页面都带 loading=lazy。
+    for page in sorted(site.glob("visual-vocabulary/*/index.html")):
+        text = page.read_text(encoding="utf-8")
+        rel_page = page.relative_to(site).as_posix()
+        for tag in re.findall(r"<img\b[^>]*>", text):
+            if 'src="assets/' in tag and 'loading="lazy"' not in tag:
+                problems.append(f"{rel_page}: <img> 没有 loading=lazy")
+                break
+        for src in re.findall(r'<img\b[^>]*src="([^"]+\.webp)"', text):
+            if not (page.parent / src).exists():
+                problems.append(f"{rel_page}: 缺少图片 {src}")
 
     for problem in problems[:40]:
         print("  MISSING", problem)

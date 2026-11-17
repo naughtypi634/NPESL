@@ -13,15 +13,12 @@ from __future__ import annotations
 THEME_IDS = ("light", "dark", "glass")
 THEME_IDS_JS = "[" + ",".join(f"'{theme}'" for theme in THEME_IDS) + "]"
 
-# Solid Glass 的字体：Geist 配思源黑体。只声明、不预载，浏览器只为真正
-# 用到的字族下载文件。
-FONT_LINK = (
-    '<link rel="preconnect" href="https://fonts.googleapis.com">'
-    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2'
-    "?family=Geist:wght@400;500;600;700"
-    "&family=Noto+Sans+SC:wght@400;500;600"
-    '&display=swap">'
+# Solid Glass 的字体：Geist 自托管在 /fonts/，中文走系统字体。
+# 预载 latin 文件（可变字体，100–900 共用一份）；latin-ext 由主题 CSS
+# 的 @font-face 按 unicode-range 按需加载。
+FONT_PRELOAD = (
+    '<link rel="preload" href="/fonts/geist-latin-v5.woff2" '
+    'as="font" type="font/woff2" crossorigin>'
 )
 
 
@@ -36,7 +33,7 @@ def theme_boot(css_href: str | None = None, extra_js: str = "") -> str:
         f"t&&{THEME_IDS_JS}.indexOf(t)>-1?t:'light');"
         + extra_js
         + "}catch(e){document.documentElement.setAttribute('data-theme','light');}"
-        "</script>"
+        "</script>\n"
+        + FONT_PRELOAD
         + (f'\n<link rel="stylesheet" href="{css_href}">' if css_href else "")
-        + "\n" + FONT_LINK
     )

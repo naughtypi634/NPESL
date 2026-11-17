@@ -41,6 +41,9 @@ VOICES = {
 }
 RATE = "+0%"
 
+# 一条 sprite 覆盖 8 个词条：点读时只下一小段，页面再按视口提前预热。
+CHUNK_ENTRIES = 8
+
 REGISTER_ZH = {"spoken": "口语", "neutral": "中性", "written": "书面"}
 KIND_ZH = {"phrasal": "短语动词", "prep": "介词搭配", "idiom": "习语"}
 
@@ -375,7 +378,7 @@ INDEX_STYLE = """
   .prow { display:flex; align-items:baseline; gap:12px; width:100%;
     text-align:left; font:inherit; color:inherit; background:var(--bg);
     border:1px solid var(--rule); border-radius:var(--radius-control, 14px); padding:12px 14px;
-    cursor:pointer; }
+    cursor:pointer; content-visibility:auto; contain-intrinsic-block-size:22px; }
   .prow:hover { background:var(--surface); }
   .prow .en { font-size:17px; font-weight:600; min-width:0; }
   .prow .zh { margin-left:auto; max-width:48%; text-align:right; color:var(--muted);
@@ -518,23 +521,35 @@ REAL_PARTICLES = set(PARTICLE_ORDER + PARTICLE_EXTRA)
 
 
 def theme_audio(theme):
-    """Build this theme's sprite and per-entry clip spans for the index."""
-    plan = ClipPlan()
-    for entry in theme["entries"]:
-        for text in entry_texts(entry):
-            plan.attrs(text)
-    cursor, sprites = build_sprites(plan)
+    """按每 8 个词条一组拼 sprite，返回 (chunks, entry_chunk, spans)。
+
+    chunks[k-1] 是第 k 组的女/男 sprite；entry_chunk 记录词条属于哪一组；
+    spans 里每个偏移都相对本组 sprite 的起点。词条不跨组切断。
+    """
+    chunks = []
+    entry_chunk = {}
     spans = {}
-    for entry in theme["entries"]:
-        items = []
-        for _ in entry_texts(entry):
-            item = cursor.next_span()
-            female = item.get("f")
-            male = item.get("m")
-            items.append([female[0], female[1], male[0], male[1]]
-                         if female and male else None)
-        spans[entry["id"]] = items
-    return sprites, spans
+    entries = theme["entries"]
+    for start in range(0, len(entries), CHUNK_ENTRIES):
+        block = entries[start:start + CHUNK_ENTRIES]
+        plan = ClipPlan()
+        for entry in block:
+            for text in entry_texts(entry):
+                plan.attrs(text)
+        cursor, urls = build_sprites(plan)
+        chunks.append(urls)
+        chunk_no = len(chunks)
+        for entry in block:
+            entry_chunk[entry["id"]] = chunk_no
+            items = []
+            for _ in entry_texts(entry):
+                item = cursor.next_span()
+                female = item.get("f")
+                male = item.get("m")
+                items.append([female[0], female[1], male[0], male[1]]
+                             if female and male else None)
+            spans[entry["id"]] = items
+    return chunks, entry_chunk, spans
 
 
 def index_data(themes, opp_map=None, word_map=None):
@@ -545,8 +560,11 @@ def index_data(themes, opp_map=None, word_map=None):
     entries = []
     index_of = {}
     theme_rows = {}
+    spr = []
     for theme in themes:
-        sprites, spans = theme_audio(theme)
+        chunks, entry_chunk, spans = theme_audio(theme)
+        base = len(spr)
+        spr.extend(chunks)
         rows = []
         for entry in theme["entries"]:
             index_of[(theme["id"], entry["id"])] = len(entries)
@@ -591,7 +609,8 @@ def index_data(themes, opp_map=None, word_map=None):
                 "coll": [],
                 "conf": [],
                 "opp": [], "wo": [],
-                "sp": sprites, "au": spans.get(entry["id"], []),
+                "sp": base + entry_chunk[entry["id"]],
+                "au": spans.get(entry["id"], []),
             })
         theme_rows[theme["id"]] = rows
 
@@ -661,7 +680,7 @@ def index_data(themes, opp_map=None, word_map=None):
     if others:
         particle.append({"p": "others", "label": "其他", "rows": others})
 
-    return {"scene": scene, "particle": particle, "entries": entries}
+    return {"spr": spr, "scene": scene, "particle": particle, "entries": entries}
 
 
 def build_index(themes, opp_map=None, word_map=None):
@@ -782,7 +801,8 @@ def build_index(themes, opp_map=None, word_map=None):
         "  });\n"
         "  return out;\n"
         "}\n"
-        "var html={scene:sceneHtml(),particle:partHtml()};\n"
+        "var html={};\n"
+        "function htmlFor(m){if(!html[m])html[m]=(m==='scene'?sceneHtml():partHtml());return html[m];}\n"
         "function themeGroup(cat){\n"
         "  for(var i=0;i<D.scene.length;i++)if(D.scene[i].id===cat)return D.scene[i];\n"
         "  return null;\n"
@@ -836,13 +856,14 @@ def build_index(themes, opp_map=None, word_map=None):
         "  if(changed)positions[mode]=window.scrollY;\n"
         "  if(shouldRestore)restoringPosition=true;\n"
         "  mode=m;if(value!==undefined)state[m]=value;\n"
-        "  view.innerHTML=html[m];open=null;\n"
+        "  view.innerHTML=htmlFor(m);open=null;\n"
         "  var attr=(m==='scene'?'cat':'particle');\n"
         "  var groups=view.querySelectorAll('.group');\n"
         "  for(var g=0;g<groups.length;g++)groups[g].style.display=(state[m]==='all'||groups[g].getAttribute('data-'+attr)===state[m])?'':'none';\n"
         "  setChips(m);\n"
         "  if(scroll){setChipsExpanded(showThemeLevel());scrollToFirstTheme();}\n"
         "  else if(shouldRestore)requestAnimationFrame(function(){var y=Math.min(positions[m],Math.max(0,document.documentElement.scrollHeight-window.innerHeight));window.scrollTo(0,y);positions[m]=y;restoringPosition=false;persistState();});\n"
+        "  bindRows();\n"
         "  persistState();\n"
         "}\n"
         "var stateTimer=0;\n"
@@ -856,6 +877,7 @@ def build_index(themes, opp_map=None, word_map=None):
         "function toggleCard(btn){\n"
         "  exitOpp();\n"
         "  var i=+btn.getAttribute('data-i');\n"
+        "  prefetchAt(i);\n"
         "  var existing=view.querySelector('.card');\n"
         "  var prev=view.querySelector('.prow[aria-expanded=\"true\"]');\n"
         "  if(open===i){if(existing)existing.remove();btn.setAttribute('aria-expanded','false');open=null;return;}\n"
@@ -865,6 +887,7 @@ def build_index(themes, opp_map=None, word_map=None):
         "}\n"
         "function openOppTarget(i){\n"
         "  var e=D.entries[i];if(!e)return false;\n"
+        "  prefetchAt(i);\n"
         "  if(mode!=='scene'||state.scene!==e.c)paint('scene',e.c,false,false,true,true);\n"
         "  var row=view.querySelector('.prow[data-i=\"'+i+'\"]');if(!row)return false;\n"
         "  if(open!==i){\n"
@@ -900,15 +923,73 @@ def build_index(themes, opp_map=None, word_map=None):
         "}\n"
         "var KEY_VOICE='pv-voice';var voice='f';\n"
         "try{var sv=localStorage.getItem(KEY_VOICE);if(sv==='f'||sv==='m')voice=sv;}catch(e){}\n"
-        "var audio=new Audio();audio.preload='auto';var srcCache={};var stopAt=0,onEl=null;window.__phAudio=audio;\n"
+        "var audio=new Audio();audio.preload='auto';var srcCache={},blobOrder=[];var stopAt=0,onEl=null;window.__phAudio=audio;\n"
         "function srcFor(url){\n"
         "  if(srcCache[url])return srcCache[url];\n"
         "  var can=location.protocol!=='file:'&&window.fetch&&window.URL&&URL.createObjectURL;\n"
         "  if(!can){srcCache[url]=Promise.resolve(url);return srcCache[url];}\n"
-        "  srcCache[url]=fetch(url).then(function(r){if(!r.ok)throw 0;return r.blob();})\n"
+        "  var p=fetch(url).then(function(r){if(!r.ok)throw 0;return r.blob();})\n"
         "    .then(function(b){return URL.createObjectURL(b);}).catch(function(){return url;});\n"
-        "  return srcCache[url];\n"
+        "  srcCache[url]=p;\n"
+        "  // 只保留最近 12 个 blob，避免点很多行后内存一直涨；正在播放的不回收。\n"
+        "  p.then(function(src){\n"
+        "    if(src.indexOf('blob:')!==0)return;\n"
+        "    blobOrder.push([url,src,p]);\n"
+        "    while(blobOrder.length>12){\n"
+        "      var old=blobOrder.shift();\n"
+        "      if(old[1]===audio.src){blobOrder.push(old);break;}\n"
+        "      try{URL.revokeObjectURL(old[1]);}catch(e){}\n"
+        "      if(srcCache[old[0]]===old[2])delete srcCache[old[0]];\n"
+        "    }\n"
+        "  });\n"
+        "  return p;\n"
         "}\n"
+        "function chunkRel(i,v){\n"
+        "  var e=D.entries[i],k=e&&e.sp;\n"
+        "  if(!k)return '';\n"
+        "  var row=D.spr&&D.spr[k-1];\n"
+        "  var rel=row&&row[v||voice];\n"
+        "  return rel?'audio/'+rel:'';\n"
+        "}\n"
+        "var prefetched={};\n"
+        "function prefetchAt(i,v){\n"
+        "  if(stopAt)return;\n"
+        "  if(location.protocol==='file:'||!window.fetch)return;\n"
+        "  if(navigator.connection&&navigator.connection.saveData)return;\n"
+        "  var rel=chunkRel(i,v||voice);\n"
+        "  if(!rel||prefetched[rel])return;\n"
+        "  prefetched[rel]=1;\n"
+        "  fetch(rel,{cache:'force-cache'}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();})\n"
+        "    .catch(function(){delete prefetched[rel];});\n"
+        "}\n"
+        "var io=null,visibleRows=[];\n"
+        "function bindRows(){\n"
+        "  if(!('IntersectionObserver' in window))return;\n"
+        "  if(io)io.disconnect();\n"
+        "  visibleRows=[];\n"
+        "  io=new IntersectionObserver(function(list){\n"
+        "    for(var n=0;n<list.length;n++){\n"
+        "      var row=list[n].target,at=visibleRows.indexOf(row);\n"
+        "      if(list[n].isIntersecting){\n"
+        "        if(at<0)visibleRows.push(row);\n"
+        "        prefetchAt(+row.getAttribute('data-i'));\n"
+        "      }else if(at>=0)visibleRows.splice(at,1);\n"
+        "    }\n"
+        "  },{rootMargin:'400px 0px'});\n"
+        "  var rows=view.querySelectorAll('.prow');\n"
+        "  for(var i=0;i<rows.length;i++)io.observe(rows[i]);\n"
+        "}\n"
+        "function prefetchVisible(v){\n"
+        "  for(var i=0;i<visibleRows.length;i++)prefetchAt(+visibleRows[i].getAttribute('data-i'),v);\n"
+        "}\n"
+        "view.addEventListener('pointerover',function(e){\n"
+        "  var r=e.target.closest&&e.target.closest('.prow');\n"
+        "  if(r)prefetchAt(+r.getAttribute('data-i'));\n"
+        "},{passive:true});\n"
+        "view.addEventListener('focusin',function(e){\n"
+        "  var r=e.target.closest&&e.target.closest('.prow');\n"
+        "  if(r)prefetchAt(+r.getAttribute('data-i'));\n"
+        "});\n"
         "var raf=0,stopTimer=0,playGen=0,playFrom=0;\n"
         "function finishStop(){\n"
         "  try{audio.pause();}catch(e){}\n"
@@ -932,7 +1013,9 @@ def build_index(themes, opp_map=None, word_map=None):
         "function playFallback(el,s,en){\n"
         "  var gen=++playGen;\n"
         "  if(raf)cancelAnimationFrame(raf);\n"
-        "  srcFor('audio/'+D.entries[+el.getAttribute('data-i')].sp[voice]).then(function(src){\n"
+        "  var rel=chunkRel(+el.getAttribute('data-i'));\n"
+        "  if(!rel)return;\n"
+        "  srcFor(rel).then(function(src){\n"
         "    if(gen!==playGen)return;\n"
         "    var abs=new URL(src,location.href).href,changed=audio.src!==abs;\n"
         "    if(changed)audio.src=src;\n"
@@ -967,7 +1050,7 @@ def build_index(themes, opp_map=None, word_map=None):
         "function playSay(el){\n"
         "  var i=+el.getAttribute('data-i'),k=+el.getAttribute('data-k');\n"
         "  var e=D.entries[i];var span=e.au[k];\n"
-        "  if(!span||!e.sp||!e.sp[voice])return;\n"
+        "  if(!span||!chunkRel(i))return;\n"
         "  var s=voice==='f'?span[0]:span[2],en=voice==='f'?span[1]:span[3];\n"
         "  if(s==null||en==null)return;\n"
         "  window.__phEnd=en;\n"
@@ -977,7 +1060,7 @@ def build_index(themes, opp_map=None, word_map=None):
         "function paintVoice(){\n"
         "  for(var v=0;v<voiceBtns.length;v++)voiceBtns[v].setAttribute('aria-pressed',voiceBtns[v].getAttribute('data-voice')===voice?'true':'false');\n"
         "}\n"
-        "for(var vv=0;vv<voiceBtns.length;vv++)voiceBtns[vv].addEventListener('click',function(e){voice=e.currentTarget.getAttribute('data-voice');try{localStorage.setItem(KEY_VOICE,voice);}catch(err){}paintVoice();});\n"
+        "for(var vv=0;vv<voiceBtns.length;vv++)voiceBtns[vv].addEventListener('click',function(e){voice=e.currentTarget.getAttribute('data-voice');try{localStorage.setItem(KEY_VOICE,voice);}catch(err){}paintVoice();setTimeout(function(){prefetchVisible(voice);},0);});\n"
         "paintVoice();\n"
         "rowScene.innerHTML=chip('scene','all','全部')+D.scene.map(function(g){return chip('scene',g.id,g.zh);}).join('');\n"
         "rowPart.innerHTML=chip('particle','all','全部')+D.particle.map(function(g){return chip('particle',g.p,g.label||g.p);}).join('');\n"
@@ -1048,10 +1131,12 @@ async def main():
     numbers = {theme["id"]: index + 1 for index, theme in enumerate(themes)}
     opp_map, word_map, _ = opposite_maps(themes, numbers)
 
+    # 不管有没有 --skip-audio 都清掉旧 sprite：分片后旧的整主题
+    # sprite 不会再被引用，留着只会被一起部署。
+    sprites = AUDIO_DIR / "sprites"
+    if sprites.exists():
+        shutil.rmtree(sprites)
     if not args.skip_audio:
-        sprites = AUDIO_DIR / "sprites"
-        if sprites.exists():
-            shutil.rmtree(sprites)
         failed = await ensure_clips(themes, args.tts)
     else:
         failed = []
