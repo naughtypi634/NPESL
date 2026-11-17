@@ -15,7 +15,7 @@
 |---|---|
 | `build_all.py` | 按依赖顺序跑全部应用与站点装配；`--only`、`--skip-site`、`--refresh-ipa-audio` |
 | `verify.py` | 一次跑完产物比对、音频引用、英式英语、无头浏览器冒烟 |
-| `build_cloudflare_site.py` | 把六个线上应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/` |
+| `build_cloudflare_site.py` | 把八个线上应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/` |
 | `build_ipa_site.py` | 音标表页面 + 全部单词的男女两版录音；默认 `--tts azure`，`--skip-audio` 只用缓存 |
 | `apps/conversation/source/build_site.py` | Conversation Starters 页面与全部级别语音 |
 | `drill/make_audio.py` | Question Drill 逐句语音（读 `content/drill/questions.json`） |
@@ -50,6 +50,8 @@
 | `drill/prune_audio.py` | 删除题库不再引用的音频 |
 | `drill/test_app.mjs` | Question Drill 单文件版的行为测试 |
 | `apps/collocation/source/validate.py` | 短语搭配内容校验（改内容后必须先跑） |
+| `apps/data-viz/source/validate.py` | 数据图表英语内容校验（英式词、槽位、数据一致性、因果词） |
+| `apps/data-viz/source/build.py` | 数据图表英语页面 + gallery/lang/topic hashed 数据包 |
 | `apps/phonics/source/validate.py` | 自然拼读结构校验 |
 | `apps/phenomena/source/validate.py` | 发音现象标注校验 |
 | `collocation/*.py` | 短语搭配内容流水线：手册导入、词条替换、频率打分、近义 / 反义报告 |

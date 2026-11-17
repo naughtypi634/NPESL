@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站。六个线上应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters Beginner / Intermediate / ESLSE、常见发音现象 30 章、短语搭配 41 个主题。旅行英语已整体删除，新方案定稿前不补代码。
+成人英语练习网站。八个线上应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters Beginner / Intermediate / ESLSE、常见发音现象 30 章、短语搭配 41 个主题、Visual Vocabulary 图解词汇、数据图表英语 Data Visualization Playground。旅行英语已整体删除，新方案定稿前不补代码。
 
 **本库是独立项目。** 2026-10-28 从 ESLStudio 复制出来，作为岔路点独立演进；不读、不写、不依赖 ESLStudio 或任何其他仓库。内容与代码都在本库内。
 
@@ -10,7 +10,7 @@
 
 ```
 content/      phonetics/ conversation/ drill/ collocation/   写内容只看这里
-apps/         site/ phonics/ ipa/ drill/ phenomena/ collocation/ conversation/ visual-vocabulary/
+apps/         site/ phonics/ ipa/ drill/ phenomena/ collocation/ conversation/ visual-vocabulary/ data-viz/
 miniprogram/  微信小程序（原生），与 apps/ 平级；内容和音频都由 tools/ 从 content/ 生成
 tools/        paths.py 与构建脚本
 build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
@@ -46,6 +46,7 @@ build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
 - **音频交付分两层**：逐条录音是母版（`apps/drill/audio/{f,m}/`、`apps/ipa/audio/*.mp3`、`apps/phenomena/audio/{f,m}/`、`apps/collocation/audio/{f,m}/`、`build/tts/cs/`），部署只带构建时拼出来的 `sprites/`（每页/每课/每题每音色一条，`apps/conversation/audio/` 下同样只有 sprite）。改一句读音：删掉该条母版再跑对应构建，只重合成这一条，然后只重拼那一页的 sprite；部署按内容哈希只上传变化的文件。
 - **短语搭配**：内容源是 `content/collocation/themes.json` 加每个主题一个 JSON（**41 个主题，共 3,296 条**，分 6 大类），反义关系在 `content/collocation/opposites.json`（`pairs` 成对跳转，`word_opposites` 是单词反义提示），页面在 `apps/collocation/`。音频默认 Azure（Ava/Andrew）；`--tts qwen` 是本地 Qwen3-TTS 备选，同一站点不要混用两种音源。页面只显示【口语】【可分】两个徽章，不显示等级和编号。改内容后先跑 `apps/collocation/source/validate.py`（英式词、例句长度、IPA、chip、l1_note 都在这里拦），再跑 `build.py`。音频后端可选 `--tts azure|edge|kokoro|qwen`：`qwen` 用本地 Qwen3-TTS（ROCm 环境在 `F:\AIProject\tts-lab`，女声 vivian、男声 aiden，短句约 6–8 秒/条）；`kokoro` 是本地 ONNX 备选。两种都输出 24kHz/48kbps 定长 MP3，sprite 直接可用。**同一个页面必须用同一个音色来源，不要新旧混用**；换后端要先清空 `apps/collocation/audio/{f,m}` 再全量重跑。例句一律美式、2026 中国成年人场景，不搬参考书原句。
 - **Conversation 正文的逐词时间**和 mp3 用同一次 Edge TTS 请求生成，存在 mp3 旁的 `.json` sidecar（WordBoundary）。删母版时连 sidecar 一起删；只删 mp3 也能工作，构建会重新合成并补上。sprite 文件名带音频 sha1，重合成后旧的长缓存不会和新页面错配。
+- **数据图表英语**：内容源在 `content/data-viz/`（`manifest.json` + `library/<type>.json` + `topics/<slug>.json`），页面在 `apps/data-viz/`（`index.html`、`data.gallery.*.js`、`lang/`、`topics/` 都是 `source/build.py` 的产物，不要手改）。改内容先跑 `apps/data-viz/source/validate.py`，再跑 `build.py`。所有数据是模拟数据，页面必须保留 `Demo data · 模拟数据`；散点只讲相关、不许断言因果；不显示计数、进度或已学标记。
 - **旅行英语（已删除，待重做）**：旧的页面、内容、音频母版和构建脚本（`apps/travel/`、`content/travel/`、`tools/build_travel.py`、`tools/validate_travel.py`）已全部删除。新方案定稿前不要按旧架构补代码；音频后续可用 Edge TTS 免费生成。不显示计数、进度、已学标记。
 - **Azure 语音**：Phonics 和 IPA 用 Azure F0（凭证 `~/.azure-speech/key.txt`，每月 50 万字符）。Phonics 用 Speech SDK 的 word boundary 保留分块时间轴；IPA 默认全量 300 词 × 男女两版（Ava/Andrew，REST），PDF 录音只用于核对顺序，`--tts edge` 可回退旧混合方案。Azure 输出同样是 24kHz/48kbps MP3，sprite 拼接不用改。
 - **Phenomena 语音**：2026-11-15 起用本地 Qwen3-TTS **Base** 克隆音色，与 Conversation 完全一致（女 `h2` / 男 `c`，参考音 `build/qwen-voicedesign/ref-h2.wav`、`ref-c.wav`，x-vector，temperature 0.6 / top_p 0.9），worker 是 `apps/phenomena/source/qwen_clone_worker.py`，不再是 Azure。Qwen 没有音素入口，构建把 `[written|spoken|ipa]` 里的 spoken 拼写直接喂进去；`'er`、`usta`、`c'mon`、`didncha` 这类会被读错的退回原词（宁可少一个弱读也不读错词），所以弱读是近似的、不是强制的。要逐音素精确读法用 Kokoro 的 phoneme 注入（`--tts kokoro`，音质已被否）。改读音改 content 里的 spoken，再跑 `apps/phenomena/source/build.py`；`--tts` 可临时覆盖音源试听。
@@ -62,7 +63,7 @@ build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
 .venv\Scripts\python.exe -I tools\verify.py --diff before now
 ```
 
-要求 **FIX = 0**；REVIEW 项逐条人工判断。`tests\smoke.mjs` 用无头 Edge 打开六个应用，确认无 console 错误、点读真的出声。页面还要在浏览器里过一遍：手机宽度、深浅主题、点读播放、返回链接。
+要求 **FIX = 0**；REVIEW 项逐条人工判断。`tests\smoke.mjs` 用无头 Edge 打开八个应用，确认无 console 错误、点读真的出声。页面还要在浏览器里过一遍：手机宽度、深浅主题、点读播放、返回链接。
 
 - **本地验证只开一个无头 Edge，跑完必须关**：多个检查合并进一个脚本、尽量复用同一个页面。统一用 `tools/edge.mjs` 的 `launchEdge()`，它在 Windows 上按 `--user-data-dir` 精确杀整棵树；残留用 `node tools/edge.mjs` 清。不要每步临时起一个浏览器不关——Edge 的浏览器进程会改挂父进程，`proc.kill()`、`taskkill /T` 都收不干净，profile 会一直锁着，进程越积越多把内存吃满。
 - **自检最多跑一遍，不要为等绿灯重跑**：`verify.py` 一次改动只跑一次。失败项先看是否与本次改动有关（`git status` 有没有碰那个应用）；无关的话用 `node tests\smoke.mjs --only <用例名>` 单跑一次判定是不是抖动，然后**停手**——把「单跑通过、整套受负载影响」写进交付说明即可。不要连跑整套去碰运气，冒烟每轮要开浏览器、放音频，最费时间也最费 token。只有失败项确实指向本次改动时才继续排查。

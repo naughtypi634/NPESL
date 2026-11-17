@@ -40,7 +40,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import (AUDIO_OUT, AUDIO_URL, CONVERSATION_APP, DRILL_APP,
                    IPA_APP, PHENOMENA_APP, PHONICS_APP, COLLOCATION_APP,
-                   SITE_APP, SITE_OUT, SITE_URL, VISUAL_VOCAB_APP)
+                   DATA_VIZ_APP, SITE_APP, SITE_OUT, SITE_URL, VISUAL_VOCAB_APP)
 from themes import theme_boot
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -52,6 +52,7 @@ COLLOCATION = COLLOCATION_APP
 DRILL = DRILL_APP
 CONVERSATION = CONVERSATION_APP
 VISUAL_VOCAB = VISUAL_VOCAB_APP
+DATA_VIZ = DATA_VIZ_APP
 OUT = SITE_OUT
 
 ICON = f"{SITE_URL}/npesl-icon.png"
@@ -66,6 +67,18 @@ HEADERS = """/fonts/*
   Cache-Control: public, max-age=31536000, immutable
 
 /collocation/data.*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/data-viz/data.*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/data-viz/lang/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/data-viz/topics/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/data-viz/audio/*
   Cache-Control: public, max-age=31536000, immutable
 
 /visual-vocabulary/*.webp
@@ -251,6 +264,15 @@ def collocation_ignore(directory, names):
     return skip
 
 
+def data_viz_ignore(directory, names):
+    """脚本构建器和逐条录音母版不部署；页面带 hashed 数据包和 sprite。"""
+    skip = set(shutil.ignore_patterns("source", "js", "__pycache__", "*.py", "*.md")(
+        directory, names))
+    if Path(directory) == DATA_VIZ / "audio":
+        skip |= {"f", "m", "h2", "c"}
+    return skip
+
+
 def ipa_ignore(directory, names):
     """部署只要拼好的 sprite，不搬逐词母版。"""
     if Path(directory).name == "audio":
@@ -353,6 +375,16 @@ def main() -> int:
     shutil.copytree(DRILL / "audio", drill_out / "audio", ignore=drill_ignore)
     finish_group(PageGroup(
         drill_out, "index.html", lambda _: "drill/", site_back))
+
+    # 数据图表英语：单页应用，hashed 数据包 + 每主题语言包懒加载。
+    if DATA_VIZ.exists():
+        data_viz_out = OUT / "data-viz"
+        shutil.copytree(DATA_VIZ, data_viz_out, ignore=data_viz_ignore)
+        finish_group(PageGroup(
+            data_viz_out, "index.html", lambda _: "data-viz/", site_back))
+        print("  数据图表英语：已包含")
+    else:
+        print("警告：数据图表英语目录不存在，未包含")
 
     # Conversation Starters：页面进主站，全部级别的两套语音进音频站。
     # 应用目录里的 source/ 是构建器，不属于部署内容。
@@ -459,6 +491,7 @@ def main() -> int:
     print(f"  Question Drill：{SITE_URL}/drill/")
     print(f"  常见发音现象：{SITE_URL}/phenomena/")
     print(f"  短语搭配：{SITE_URL}/collocation/")
+    print(f"  数据图表英语：{SITE_URL}/data-viz/")
     if AUDIO_OUT.exists():
         afiles, asize = stats(AUDIO_OUT)
         print(f"音频站：{AUDIO_OUT.relative_to(ROOT)}")

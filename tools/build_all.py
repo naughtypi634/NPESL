@@ -24,7 +24,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.cli import run_step, utf8_stdout  # noqa: E402
 
-ORDER = ["ipa", "phonics", "phenomena", "collocation", "conversation", "drill", "site"]
+ORDER = ["ipa", "phonics", "phenomena", "collocation", "conversation", "drill",
+         "data-viz", "site"]
 
 
 def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple[str, list[str]]]]:
@@ -50,6 +51,10 @@ def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple[str, list[str]]]]:
         "drill": [
             ("Question Drill 语音", ["-I", "tools/drill/make_audio.py"]),
             ("Question Drill 页面", ["-I", "tools/drill/assemble.py"]),
+        ],
+        "data-viz": [
+            ("数据图表英语内容校验", ["-I", "apps/data-viz/source/validate.py"]),
+            ("数据图表英语页面", ["-I", "-X", "utf8", "apps/data-viz/source/build.py"]),
         ],
         "site": [
             ("站点装配", ["-I", "tools/build_cloudflare_site.py"]),

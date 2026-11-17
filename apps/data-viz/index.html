@@ -1,0 +1,2645 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>数据图表英语 · Data Visualization Playground</title>
+<style>/* Data Visualization Playground — Solid Glass surfaces, chart palette, layout. */
+
+.dv-app {
+  --dv-1: #2a78d6;
+  --dv-2: #eb6834;
+  --dv-3: #1baf7a;
+  --dv-4: #eda100;
+  --dv-5: #e87ba4;
+  --dv-6: #008300;
+  --dv-7: #6250d6;
+  --dv-8: #e34948;
+  --dv-seq-1: #cde2fb;
+  --dv-seq-2: #9ec5f4;
+  --dv-seq-3: #6da7ec;
+  --dv-seq-4: #3987e5;
+  --dv-seq-5: #1c5cab;
+  --dv-pos: #2a78d6;
+  --dv-neg: #e34948;
+  --dv-total: #8b93a1;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] .dv-app,
+html[data-theme="glass"] .dv-app {
+  --dv-1: #3987e5;
+  --dv-2: #d95926;
+  --dv-3: #199e70;
+  --dv-4: #c98500;
+  --dv-5: #d55181;
+  --dv-6: #008300;
+  --dv-7: #9085e9;
+  --dv-8: #e66767;
+  --dv-seq-1: #0d366b;
+  --dv-seq-2: #184f95;
+  --dv-seq-3: #2a78d6;
+  --dv-seq-4: #6da7ec;
+  --dv-seq-5: #b7d3f6;
+  --dv-pos: #3987e5;
+  --dv-neg: #e66767;
+  --dv-total: #7c8794;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+html[data-theme] .dv-app {
+  color: var(--fg);
+  font-family: var(--font);
+  line-height: 1.5;
+}
+
+.dv-shell {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 12px max(16px, env(safe-area-inset-left, 0px)) 96px;
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+.page > .npesl-back {
+  position: static;
+  display: inline-flex;
+  margin: 8px 0 4px max(16px, env(safe-area-inset-left, 0px));
+}
+
+[hidden] { display: none !important; }
+
+/* ---------------------------------------------------------------- gallery */
+.dv-gallery-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 2px 18px;
+  flex-wrap: wrap;
+}
+
+.dv-h1 {
+  margin: 0;
+  font-size: clamp(28px, 4.4vw, 42px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.03;
+}
+
+.dv-h1-zh {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.dv-tagline {
+  margin: 10px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.dv-demo-badge { flex: none; }
+
+.dv-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 14px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.dv-chips::-webkit-scrollbar { display: none; }
+.dv-chips button {
+  flex: none;
+  padding: 8px 13px;
+  border-radius: var(--radius-pill);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.dv-wall {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.dv-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-card);
+  transition: background-color 0.12s ease;
+}
+.dv-tile-feature { grid-column: span 2; }
+
+.dv-tile-chart {
+  display: block;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--pane-solid);
+  padding: 8px;
+}
+.dv-tile-feature .dv-tile-chart { padding: 12px; }
+.dv-mini { display: block; width: 100%; height: auto; }
+
+.dv-tile-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dv-tile-en { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
+.dv-tile-zh { font-size: 13px; color: var(--muted); }
+.dv-tile-blurb { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ---------------------------------------------------------------- workspace */
+.dv-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  margin-bottom: 14px;
+}
+
+.dv-wall-link,
+.dv-step,
+.dv-topic-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: none;
+}
+.dv-step { width: 38px; justify-content: center; font-size: 20px; line-height: 1; border: 0; background: transparent; }
+.dv-topic-btn {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  cursor: pointer;
+  border: 0;
+  background-color: var(--ctrl-fill);
+  box-shadow: inset 0 1px 0 var(--ctrl-rim), 0 0 0 1px var(--pane-edge), 0 1px 2px var(--pane-contact);
+}
+.dv-topic-zh { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dv-topic-en { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dv-chev { color: var(--muted); font-size: 11px; }
+
+.dv-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 420px);
+  gap: 22px;
+  align-items: start;
+}
+
+.dv-chart-card {
+  position: sticky;
+  top: 62px;
+  padding: 20px 20px 14px;
+  border-width: 0;
+  background-color: var(--pane-solid);
+  color: var(--fg);
+  border-radius: var(--radius-card);
+  box-shadow:
+    inset 0 1px 0 var(--pane-rim),
+    inset 0 0 0 1px var(--pane-inner),
+    0 0 0 1px var(--pane-edge),
+    0 1px 2px var(--pane-contact),
+    0 12px 32px -14px var(--pane-shade);
+}
+
+.dv-chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.dv-chart-titles { min-width: 0; }
+.dv-chart-head h2 {
+  margin: 0;
+  font-size: clamp(22px, 2.6vw, 27px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+.dv-chart-zh { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+.dv-chart-sub { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+
+.dv-views { margin: 0 0 12px; }
+.dv-views a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: var(--radius-control);
+  color: var(--fg);
+  font-size: 13px;
+  text-decoration: none;
+}
+html[data-theme] .dv-views a[aria-current="page"] {
+  background-color: var(--blue);
+  color: var(--on-blue);
+  box-shadow:
+    inset 0 1px 0 var(--ink-rim),
+    inset 0 -1px 0 var(--ink-under),
+    0 1px 2px var(--pane-contact);
+}
+
+.dv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.dv-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dv-key { flex: none; width: 14px; height: 3px; border-radius: 2px; background: var(--c, var(--dv-1)); }
+.dv-key-rect { width: 10px; height: 10px; border-radius: 3px; }
+.dv-key-dot { width: 9px; height: 9px; border-radius: 50%; }
+.dv-key.dv-s1 { --c: var(--dv-1); }
+.dv-key.dv-s2 { --c: var(--dv-2); }
+.dv-key.dv-s3 { --c: var(--dv-3); }
+.dv-key.dv-s4 { --c: var(--dv-4); }
+.dv-key.dv-s5 { --c: var(--dv-5); }
+.dv-key.dv-s6 { --c: var(--dv-6); }
+.dv-key.dv-s7 { --c: var(--dv-7); }
+.dv-key.dv-s8 { --c: var(--dv-8); }
+
+.dv-figure { margin: 0; }
+.dv-chart-host { position: relative; }
+.dv-chart { display: block; width: 100%; height: auto; overflow: visible; }
+.dv-chart-host.dv-scroll { overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.dv-chart-host.dv-scroll .dv-chart-wide { width: max(100%, 560px); }
+
+.dv-chart-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
+.dv-table-toggle, .dv-peek-btn { cursor: pointer; font: inherit; }
+
+.dv-peek {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--ctrl-fill);
+  box-shadow: inset 0 1px 0 var(--ctrl-rim), 0 0 0 1px var(--pane-edge);
+}
+.dv-peek-label { font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------------------------------------------------------------- panel */
+.dv-panel {
+  padding: 16px;
+  border-width: 0;
+  border-radius: var(--radius-card);
+  color: var(--fg);
+}
+
+.dv-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+}
+.dv-focus-label { margin: 0; font-size: 11px; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+.dv-focus { margin: 3px 0 0; font-size: 15px; font-weight: 600; line-height: 1.3; }
+.dv-clear { flex: none; cursor: pointer; font: inherit; font-size: 12px; }
+
+.dv-register {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin: 12px 0 10px;
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: var(--well-fill);
+  box-shadow: inset 0 1px 2px var(--well-shade), inset 0 -1px 0 var(--well-rim);
+}
+.dv-register button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+html[data-theme] .dv-register button[aria-checked="true"] {
+  background-color: var(--blue);
+  color: var(--on-blue);
+  box-shadow: inset 0 1px 0 var(--ink-rim), inset 0 -1px 0 var(--ink-under),
+    0 1px 2px var(--pane-contact);
+}
+
+.dv-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 12px;
+}
+.dv-tabs button {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.dv-tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--blue); }
+
+.dv-panel-body { min-height: 180px; }
+
+.dv-word {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.dv-word:last-child { border-bottom: 0; }
+.dv-word-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.dv-word-en { font-size: 16px; font-weight: 600; }
+.dv-word-zh { font-size: 13px; color: var(--muted); }
+.dv-reg-badge {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--blue-tint);
+  color: var(--muted);
+  font-size: 10px;
+}
+.dv-word-note { margin: 5px 0 0; font-size: 13px; color: var(--fg); }
+.dv-word-meta { margin: 4px 0 0; font-size: 11px; color: var(--muted); }
+
+.dv-pattern {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.dv-pattern:last-child { border-bottom: 0; }
+.dv-level-badge {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--state-fill);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.dv-pattern-en { margin: 0; font-size: 15px; line-height: 1.5; }
+.dv-pattern-zh { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.dv-pattern-note { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+
+.dv-compare, .dv-trap {
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: var(--surface);
+}
+.dv-compare-title { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+.dv-compare-line { margin: 3px 0; font-size: 12px; color: var(--fg); }
+.dv-compare-ex { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.dv-trap { background: transparent; box-shadow: inset 0 0 0 1px var(--pane-edge); }
+.dv-trap-wrong { margin: 0; font-size: 13px; color: var(--danger); }
+.dv-trap-right { margin: 4px 0 0; font-size: 13px; }
+.dv-trap-why { margin: 5px 0 0; font-size: 12px; color: var(--muted); }
+
+.dv-prompt { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.dv-prompt-hint { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+.dv-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.dv-keyword {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--ctrl-fill);
+  box-shadow: inset 0 1px 0 var(--ctrl-rim), 0 0 0 1px var(--pane-edge);
+  font-size: 12px;
+}
+.dv-keyword-zh { color: var(--muted); font-size: 11px; }
+.dv-frame {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.dv-scratch { margin: 10px 0; font-size: 12px; color: var(--muted); }
+.dv-scratch summary { cursor: pointer; }
+.dv-scratch-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--field-fill);
+  box-shadow: inset 0 1px 0 var(--ctrl-rim), 0 0 0 1px var(--pane-edge);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+.dv-reveal { margin: 6px 0 2px; cursor: pointer; font: inherit; }
+.dv-models { margin-top: 10px; }
+.dv-levels { display: flex; gap: 4px; margin-bottom: 10px; }
+.dv-levels button {
+  flex: 1;
+  min-height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--well-fill);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+html[data-theme] .dv-levels button[aria-checked="true"] {
+  background: var(--blue);
+  color: var(--on-blue);
+}
+.dv-model-en { margin: 0; font-size: 15px; line-height: 1.6; }
+.dv-model-zh { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.dv-model-note { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
+
+.dv-read-lead { margin: 0 0 10px; font-size: 14px; line-height: 1.6; }
+.dv-read-caution { margin: 0 0 10px; padding: 9px 11px; border-radius: 12px; background: var(--surface); font-size: 12px; color: var(--muted); }
+.dv-overview { margin: 0; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.dv-causal { margin: 10px 0 0; padding: 9px 11px; border-radius: 12px; background: var(--blue-tint); font-size: 12px; }
+
+.dv-empty { margin: 12px 0; font-size: 13px; color: var(--muted); }
+.dv-loading { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+.dv-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------------------------------------------------------------- chart */
+.dv-mark { cursor: pointer; }
+.dv-mark:focus-visible { outline: none; filter: drop-shadow(0 0 4px var(--focus-line)); }
+.dv-chart.has-selection .dv-mark:not(.is-selected) { opacity: 0.45; }
+.dv-chart .dv-mark.is-selected { filter: drop-shadow(0 0 3px var(--focus-line)); }
+
+.dv-s1 { --c: var(--dv-1); }
+.dv-s2 { --c: var(--dv-2); }
+.dv-s3 { --c: var(--dv-3); }
+.dv-s4 { --c: var(--dv-4); }
+.dv-s5 { --c: var(--dv-5); }
+.dv-s6 { --c: var(--dv-6); }
+.dv-s7 { --c: var(--dv-7); }
+.dv-s8 { --c: var(--dv-8); }
+
+.dv-line { stroke: var(--c, var(--dv-1)); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; fill: none; }
+.dv-line.is-selected { stroke-width: 3.5; }
+.dv-bar { fill: var(--c, var(--dv-1)); }
+.dv-bar.is-selected { stroke: var(--fg); stroke-width: 2; }
+.dv-bar.dv-pos { fill: var(--dv-pos); }
+.dv-bar.dv-neg { fill: var(--dv-neg); }
+.dv-bar.dv-total { fill: var(--dv-total); }
+.dv-slice { fill: var(--c, var(--dv-1)); stroke: var(--pane-solid); stroke-width: 2; }
+.dv-slice.is-selected { stroke: var(--fg); stroke-width: 2; }
+.dv-dot { fill: var(--c, var(--dv-1)); stroke: var(--pane-solid); stroke-width: 2; }
+.dv-dot.is-selected { stroke: var(--fg); stroke-width: 2.5; }
+.dv-seg-hit:hover { opacity: 1; }
+.dv-seg-hit.is-selected { stroke: var(--fg); stroke-width: 8; opacity: 0.18; }
+.dv-node { fill: var(--c, var(--dv-1)); }
+.dv-node.is-selected { stroke: var(--fg); stroke-width: 2; }
+.dv-link { fill: var(--c, var(--dv-1)); opacity: 0.42; }
+.dv-link.is-selected { opacity: 0.9; stroke: var(--fg); stroke-width: 1.5; }
+.dv-cell { stroke: var(--pane-solid); stroke-width: 1; }
+.dv-cell.is-selected { stroke: var(--fg); stroke-width: 2; }
+.dv-connector { stroke: var(--muted); stroke-width: 1; opacity: 0.5; }
+
+.dv-heat-1 { fill: var(--dv-seq-1); }
+.dv-heat-2 { fill: var(--dv-seq-2); }
+.dv-heat-3 { fill: var(--dv-seq-3); }
+.dv-heat-4 { fill: var(--dv-seq-4); }
+.dv-heat-5 { fill: var(--dv-seq-5); }
+
+.dv-gridline { stroke: var(--rule); stroke-width: 1; }
+.dv-baseline { stroke: var(--muted); stroke-width: 1; opacity: 0.55; }
+.dv-tick { fill: var(--muted); font-size: 11px; font-family: inherit; }
+.dv-unit { fill: var(--muted); font-size: 11px; font-family: inherit; }
+.dv-label { fill: var(--fg); font-size: 11px; font-weight: 600; font-family: inherit; paint-order: stroke; stroke: var(--pane-solid); stroke-width: 3px; stroke-linejoin: round; }
+.dv-slice-label { fill: var(--fg); font-size: 11px; font-weight: 600; font-family: inherit; paint-order: stroke; stroke: var(--pane-solid); stroke-width: 3px; }
+
+.dv-mini-line { stroke: var(--c, var(--dv-1)); stroke-width: 2; fill: none; }
+.dv-mini-area { fill: var(--c, var(--dv-1)); opacity: 0.12; }
+.dv-mini-bar { fill: var(--c, var(--dv-1)); }
+.dv-mini-slice { fill: var(--c, var(--dv-1)); stroke: var(--pane-solid); stroke-width: 1.5; }
+.dv-mini-dot { fill: var(--c, var(--dv-1)); }
+.dv-mini-link { fill: none; stroke: var(--c, var(--dv-1)); stroke-width: 5; opacity: 0.35; stroke-linecap: round; }
+.dv-mini-linkband { fill: var(--c, var(--dv-1)); opacity: 0.38; }
+.dv-mini-node { fill: var(--c, var(--dv-1)); }
+.dv-mini-cell { stroke: var(--pane-solid); stroke-width: 1; }
+.dv-mini-empty { fill: var(--surface); }
+
+/* ---------------------------------------------------------------- table */
+.dv-table { margin-top: 12px; overflow-x: auto; }
+.dv-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dv-table caption { caption-side: top; text-align: left; padding: 4px 0 8px; color: var(--muted); font-size: 11px; }
+.dv-table th, .dv-table td { padding: 6px 8px; border-bottom: 1px solid var(--rule); text-align: right; font-variant-numeric: tabular-nums; }
+.dv-table th:first-child, .dv-table td:first-child { text-align: left; font-variant-numeric: normal; }
+.dv-table thead th { color: var(--muted); font-weight: 600; }
+
+/* ---------------------------------------------------------------- dialog */
+.dv-topic-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: 70vh;
+  padding: 16px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--popover);
+  color: var(--fg);
+  box-shadow: 0 24px 60px -18px var(--pane-shade), 0 6px 16px -6px var(--pane-contact);
+}
+.dv-topic-dialog::backdrop { background: rgba(0, 0, 0, 0.3); }
+.dv-dialog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.dv-dialog-head h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.dv-dialog-close { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.dv-topic-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; overflow-y: auto; max-height: 56vh; }
+.dv-topic-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--fg);
+  text-decoration: none;
+}
+.dv-topic-item:hover { background: var(--state-fill); }
+.dv-topic-item[aria-current="page"] { background: var(--blue); color: var(--on-blue); }
+.dv-topic-item-en { font-size: 13px; font-weight: 600; }
+.dv-topic-item-zh { font-size: 11px; color: var(--muted); }
+.dv-topic-item[aria-current="page"] .dv-topic-item-zh { color: inherit; opacity: 0.75; }
+
+/* ---------------------------------------------------------------- misc */
+.dv-tooltip {
+  position: fixed;
+  z-index: 1000;
+  display: none;
+  max-width: 250px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: var(--popover);
+  color: var(--fg);
+  box-shadow: 0 12px 30px -10px var(--pane-shade), 0 0 0 1px var(--pane-edge);
+  pointer-events: none;
+}
+.dv-tooltip.is-open { display: block; }
+.dv-tip-value { margin: 0; font-size: 14px; font-weight: 600; }
+.dv-tip-label { margin: 2px 0 0; font-size: 11px; color: var(--muted); }
+.dv-tip-say { margin: 6px 0 0; padding-top: 6px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); }
+
+.dv-error, .dv-noscript {
+  margin: 48px auto;
+  max-width: 480px;
+  padding: 22px;
+  border-radius: var(--radius-card);
+}
+.dv-error h2, .dv-noscript h2 { margin: 0 0 8px; font-size: 18px; }
+.dv-error p, .dv-noscript p { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+.dv-error .pill { display: inline-flex; margin-right: 8px; padding: 7px 12px; color: var(--fg); text-decoration: none; cursor: pointer; font: inherit; font-size: 13px; }
+.dv-noscript { max-width: 720px; padding: 48px 24px; }
+.dv-noscript ul { columns: 2; gap: 24px; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.9; }
+.dv-notice { margin: 12px 0; color: var(--muted); font-size: 13px; }
+.dv-boot { padding: 48px 0; color: var(--muted); font-size: 13px; }
+
+/* ---------------------------------------------------------------- responsive */
+@media (max-width: 1023px) {
+  .dv-wall { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dv-workspace { grid-template-columns: 1fr; max-width: 760px; margin: 0 auto; }
+  .dv-chart-card { position: static; }
+  .dv-topbar { position: sticky; }
+}
+
+@media (max-width: 679px) {
+  .dv-shell { padding-left: 12px; padding-right: 12px; }
+  .dv-wall { grid-template-columns: 1fr; gap: 12px; }
+  .dv-tile-feature { grid-column: auto; }
+  .dv-gallery-head { padding: 12px 2px 8px; }
+  .dv-chart-card { padding: 14px 14px 12px; }
+  .dv-panel { padding: 14px; }
+  .dv-peek { display: flex; }
+  .dv-topic-list { grid-template-columns: 1fr; }
+  .dv-topic-en { display: none; }
+  .dv-tabs button { font-size: 12px; }
+}
+
+@media (min-width: 680px) {
+  .dv-peek { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dv-tile, .dv-mark { transition: none !important; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .dv-chart-card, .dv-panel { background-color: var(--pane-solid); }
+}
+</style>
+</head>
+<body class="dv-app">
+<main class="page">
+<div id="app" class="dv-shell">
+<div class="dv-boot">载入中…</div>
+</div>
+</main>
+<noscript><section class="dv-noscript"><h2>主题</h2><p>这个页面需要 JavaScript 才能看图表。</p><ul><li><b lang="en">Household Budget</b> · 家庭预算</li><li><b lang="en">Coffee Shop</b> · 咖啡店</li><li><b lang="en">Metro Ridership</b> · 地铁客流</li><li><b lang="en">Online Shopping Share</b> · 网购占比</li><li><b lang="en">Remote Work Share</b> · 远程办公占比</li><li><b lang="en">Energy Mix</b> · 能源结构</li><li><b lang="en">Food Delivery Orders</b> · 外卖单量</li><li><b lang="en">Air Quality</b> · 空气质量</li><li><b lang="en">Commute Time</b> · 通勤时间</li><li><b lang="en">Study Hours and Scores</b> · 学习时长与分数</li><li><b lang="en">Salary and Experience</b> · 工龄与月薪</li><li><b lang="en">Rent by District</b> · 分区房租</li><li><b lang="en">Job Postings</b> · 招聘岗位</li><li><b lang="en">Screen Time</b> · 屏幕时间</li><li><b lang="en">Gym Attendance</b> · 健身房客流</li><li><b lang="en">Package Delivery</b> · 快递流向</li><li><b lang="en">Campus Commute</b> · 校园通勤</li><li><b lang="en">Electricity Bill</b> · 电费账单</li><li><b lang="en">Team Headcount</b> · 团队人数</li><li><b lang="en">Streaming vs Cinema</b> · 流媒体与影院</li></ul></section></noscript>
+<script src="data.gallery.7674762a9e.js"></script>
+<script>/* Core helpers: DOM, SVG, number formatting, template filling, storage. */
+(function (global) {
+  'use strict';
+
+  var DV = global.DV = global.DV || {};
+  DV.renderers = {};
+  DV.SVG_NS = 'http://www.w3.org/2000/svg';
+
+  DV.el = function (tag, attrs, parent) {
+    var node = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (key) {
+      if (attrs[key] == null) return;
+      if (key === 'text') node.textContent = String(attrs[key]);
+      else if (key === 'class') node.className = attrs[key];
+      else node.setAttribute(key, String(attrs[key]));
+    });
+    if (parent) parent.appendChild(node);
+    return node;
+  };
+
+  DV.svg = function (tag, attrs, parent) {
+    var node = document.createElementNS(DV.SVG_NS, tag);
+    Object.keys(attrs || {}).forEach(function (key) {
+      if (attrs[key] == null) return;
+      node.setAttribute(key, String(attrs[key]));
+    });
+    if (parent) parent.appendChild(node);
+    return node;
+  };
+
+  DV.text = function (parent, attrs, value) {
+    var node = DV.svg('text', attrs, parent);
+    node.textContent = value == null ? '' : String(value);
+    return node;
+  };
+
+  DV.clear = function (node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  };
+
+  DV.num = function (value, decimals) {
+    var fixed = Number(value).toFixed(decimals || 0);
+    var parts = fixed.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+  };
+
+  DV.fmtValue = function (value, unit) {
+    unit = unit || {};
+    var scale = unit.scale ? Number(unit.scale) : 1;
+    var x = Number(value) * scale;
+    var dec = unit.decimals == null ? 0 : Number(unit.decimals);
+    if (unit.kind === 'percent') return DV.num(x, dec) + ' percent';
+    if (unit.million && Math.abs(x) >= 1e6) {
+      return DV.num(x / 1e6, 1) + ' million ' + (unit.en || '');
+    }
+    return (DV.num(x, dec) + ' ' + (unit.en || '')).trim();
+  };
+
+  DV.fmtAxis = function (value, unit) {
+    return DV.num(value, unit && unit.decimals != null ? unit.decimals : 0);
+  };
+
+  DV.fill = function (template, slots) {
+    return String(template || '').replace(/\{([a-z_]+)\}/g, function (match, key) {
+      return slots && slots[key] != null ? String(slots[key]) : match;
+    });
+  };
+
+  DV.slotClass = function (slot) {
+    return 'dv-s' + (Number(slot) >= 1 && Number(slot) <= 8 ? Number(slot) : 1);
+  };
+
+  DV.ticks = function (min, max, count) {
+    var span = max - min;
+    if (!(span > 0)) return [min];
+    var raw = span / (count || 4);
+    var power = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+    var step = power;
+    var rel = raw / power;
+    if (rel >= 5) step = power * 5;
+    else if (rel >= 2) step = power * 2;
+    var out = [];
+    for (var v = Math.ceil(min / step) * step; v <= max + step * 1e-9; v += step) {
+      out.push(Number(v.toFixed(10)));
+    }
+    return out;
+  };
+
+  DV.linear = function (domain, range) {
+    var d0 = domain[0], d1 = domain[1], r0 = range[0], r1 = range[1];
+    var span = d1 - d0 || 1;
+    var scale = function (v) { return r0 + (v - d0) / span * (r1 - r0); };
+    scale.invert = function (p) { return d0 + (p - r0) / (r1 - r0 || 1) * span; };
+    return scale;
+  };
+
+  DV.store = {
+    get: function (key, fallback) {
+      try {
+        var value = localStorage.getItem(key);
+        return value == null ? fallback : value;
+      } catch (e) { return fallback; }
+    },
+    set: function (key, value) {
+      try { localStorage.setItem(key, value); } catch (e) {}
+    },
+    session: function (key, fallback) {
+      try {
+        var value = sessionStorage.getItem(key);
+        return value == null ? fallback : value;
+      } catch (e) { return fallback; }
+    },
+    setSession: function (key, value) {
+      try { sessionStorage.setItem(key, value); } catch (e) {}
+    }
+  };
+
+  DV.prefersReduced = function () {
+    return global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  };
+
+  DV.esc = function (text) {
+    return String(text == null ? '' : text)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  };
+})(window);
+
+/* SVG renderers. Each returns { marks, setSelected, table }.
+ * Every clickable mark carries data-mark and calls api.select(id). */
+(function (DV) {
+  'use strict';
+
+  var W = 720;
+  var H = 360;
+
+  function frame(host, height, roleLabel) {
+    var h = height || H;
+    var svg = DV.svg('svg', {
+      class: 'dv-chart',
+      viewBox: '0 0 ' + W + ' ' + h,
+      role: 'group',
+      'aria-roledescription': '图表',
+      'aria-label': roleLabel || ''
+    }, host);
+    return { svg: svg, H: h, pad: { top: 22, right: 26, bottom: 46, left: 58 } };
+  }
+
+  function plot(box) {
+    return {
+      x: box.pad.left,
+      y: box.pad.top,
+      w: W - box.pad.left - box.pad.right,
+      h: box.H - box.pad.top - box.pad.bottom
+    };
+  }
+
+  function makeMark(node, id, label, api, cls) {
+    node.setAttribute('data-mark', id);
+    node.setAttribute('tabindex', '-1');
+    node.setAttribute('role', 'button');
+    node.setAttribute('aria-label', label);
+    var base = node.getAttribute('class') || '';
+    node.setAttribute('class', (base + ' ' + (cls || '') + ' dv-mark').trim());
+    node.addEventListener('click', function (event) {
+      event.stopPropagation();
+      api.select(id);
+    });
+    node.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        api.select(id);
+      }
+    });
+    node.addEventListener('pointerenter', function (event) { api.hover(id, event); });
+    node.addEventListener('pointerleave', function () { api.hover(null); });
+    node.addEventListener('focus', function (event) { api.hover(id, event); });
+    node.addEventListener('blur', function () { api.hover(null); });
+    return node;
+  }
+
+  function roving(nodes) {
+    if (!nodes.length) return;
+    nodes[0].setAttribute('tabindex', '0');
+    nodes.forEach(function (node, index) {
+      node.addEventListener('keydown', function (event) {
+        var next = null;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = index + 1;
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = index - 1;
+        if (event.key === 'Home') next = 0;
+        if (event.key === 'End') next = nodes.length - 1;
+        if (next == null) return;
+        event.preventDefault();
+        next = Math.max(0, Math.min(nodes.length - 1, next));
+        nodes.forEach(function (n) { n.setAttribute('tabindex', '-1'); });
+        nodes[next].setAttribute('tabindex', '0');
+        nodes[next].focus();
+      });
+    });
+  }
+
+  function axes(box, values, unit, xLabels, opts) {
+    var p = plot(box);
+    var domain = opts || {};
+    var min = domain.min != null ? domain.min : 0;
+    var max = domain.max != null ? domain.max : 1;
+    var y = DV.linear([min, max], [p.y + p.h, p.y]);
+    var g = DV.svg('g', { class: 'dv-grid' }, box.svg);
+    DV.ticks(min, max, 4).forEach(function (tick) {
+      var ty = y(tick);
+      DV.svg('line', { x1: p.x, x2: p.x + p.w, y1: ty, y2: ty, class: 'dv-gridline' }, g);
+      DV.text(box.svg, {
+        x: p.x - 10, y: ty + 4, 'text-anchor': 'end', class: 'dv-tick'
+      }, DV.fmtAxis(tick, unit));
+    });
+    if (xLabels) {
+      var step = Math.max(1, Math.ceil(xLabels.length / 8));
+      xLabels.forEach(function (label, i) {
+        if (i % step) return;
+        DV.text(box.svg, {
+          x: p.x + (i + 0.5) * p.w / xLabels.length,
+          y: p.y + p.h + 22,
+          'text-anchor': 'middle',
+          class: 'dv-tick'
+        }, label);
+      });
+    }
+    if (unit && unit.short) {
+      DV.text(box.svg, {
+        x: p.x - 10, y: p.y - 8, 'text-anchor': 'end', class: 'dv-unit'
+      }, unit.short);
+    }
+    return y;
+  }
+
+  function roundedTop(x, y, w, h, r) {
+    r = Math.min(r, w / 2, Math.abs(h));
+    if (h <= 0) return '';
+    return 'M' + x + ',' + (y + h) + 'L' + x + ',' + (y + r) +
+      'Q' + x + ',' + y + ' ' + (x + r) + ',' + y +
+      'L' + (x + w - r) + ',' + y + 'Q' + (x + w) + ',' + y + ' ' + (x + w) + ',' + (y + r) +
+      'L' + (x + w) + ',' + (y + h) + 'Z';
+  }
+
+  function roundedBottom(x, y, w, h, r) {
+    r = Math.min(r, w / 2, Math.abs(h));
+    if (h >= 0) return '';
+    h = -h;
+    return 'M' + x + ',' + y + 'L' + x + ',' + (y + h - r) +
+      'Q' + x + ',' + (y + h) + ' ' + (x + r) + ',' + (y + h) +
+      'L' + (x + w - r) + ',' + (y + h) + 'Q' + (x + w) + ',' + (y + h) + ' ' + (x + w) + ',' + (y + h - r) +
+      'L' + (x + w) + ',' + y + 'Z';
+  }
+
+  function arcPath(cx, cy, r0, r1, a0, a1) {
+    var large = a1 - a0 > Math.PI ? 1 : 0;
+    var x0 = cx + r1 * Math.cos(a0), y0 = cy + r1 * Math.sin(a0);
+    var x1 = cx + r1 * Math.cos(a1), y1 = cy + r1 * Math.sin(a1);
+    var x2 = cx + r0 * Math.cos(a1), y2 = cy + r0 * Math.sin(a1);
+    var x3 = cx + r0 * Math.cos(a0), y3 = cy + r0 * Math.sin(a0);
+    return 'M' + x0 + ' ' + y0 + 'A' + r1 + ' ' + r1 + ' 0 ' + large + ' 1 ' + x1 + ' ' + y1 +
+      'L' + x2 + ' ' + y2 + 'A' + r0 + ' ' + r0 + ' 0 ' + large + ' 0 ' + x3 + ' ' + y3 + 'Z';
+  }
+
+  function finish(box, nodes) {
+    var seen = {};
+    var focusable = nodes.filter(function (node) {
+      var id = node.getAttribute('data-mark');
+      if (seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+    roving(focusable);
+    return {
+      setSelected: function (mark) {
+        box.svg.classList.toggle('has-selection', !!mark);
+        nodes.forEach(function (node) {
+          node.classList.toggle('is-selected', node.getAttribute('data-mark') === mark);
+        });
+      }
+    };
+  }
+
+  function seriesClass(slot) { return DV.slotClass(slot); }
+
+  // ---------------------------------------------------------------- line
+  DV.renderers.line = function (host, view, api) {
+    var box = frame(host, H, view.subject);
+    var p = plot(box);
+    var d = view.data;
+    var n = d.x.values.length;
+    var all = [];
+    d.series.forEach(function (s) { all = all.concat(s.values); });
+    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    var span = hi - lo || 1;
+    var min = Math.max(0, lo - span * 0.15);
+    var max = hi + span * 0.15;
+    var y = axes(box, d.series[0].values, view.unit, d.x.values, { min: min, max: max });
+    var nodes = [];
+    var xOf = function (i) { return p.x + (i + 0.5) * p.w / n; };
+
+    d.series.forEach(function (s) {
+      var slot = s.slot || 1;
+      for (var i = 0; i < n - 1; i++) {
+        var hit = DV.svg('line', {
+          x1: xOf(i), y1: y(s.values[i]), x2: xOf(i + 1), y2: y(s.values[i + 1]),
+          stroke: 'transparent', 'stroke-width': 26, 'stroke-linecap': 'round',
+          class: 'dv-seg-hit ' + seriesClass(slot)
+        }, box.svg);
+        makeMark(hit, 'seg:' + s.id + ':' + i,
+          s.name_en + ', ' + d.x.values[i] + ' to ' + d.x.values[i + 1], api);
+        nodes.push(hit);
+      }
+      var path = DV.svg('path', {
+        d: s.values.map(function (v, i) {
+          return (i ? 'L' : 'M') + xOf(i).toFixed(2) + ' ' + y(v).toFixed(2);
+        }).join(' '),
+        fill: 'none',
+        class: 'dv-line ' + seriesClass(slot)
+      }, box.svg);
+      s.values.forEach(function (v, i) {
+        var dot = DV.svg('circle', {
+          cx: xOf(i), cy: y(v), r: 4.5,
+          class: 'dv-dot ' + seriesClass(slot)
+        }, box.svg);
+        makeMark(dot, 'pt:' + s.id + ':' + i,
+          s.name_en + ', ' + d.x.values[i] + ': ' + DV.fmtValue(v, view.unit), api);
+        nodes.push(dot);
+      });
+      var last = s.values.length - 1;
+      DV.text(box.svg, {
+        x: xOf(last) + 10, y: y(s.values[last]) - 8, class: 'dv-label'
+      }, DV.fmtAxis(s.values[last], view.unit) + (view.unit.short === '%' ? '%' : ''));
+    });
+    var out = finish(box, nodes);
+    out.table = function () {
+      return {
+        head: [d.x.label_en || 'Period'].concat(d.series.map(function (s) { return s.name_en; })),
+        rows: d.x.values.map(function (label, i) {
+          return [label].concat(d.series.map(function (s) { return DV.fmtValue(s.values[i], view.unit); }));
+        })
+      };
+    };
+    return out;
+  };
+
+  // ---------------------------------------------------------------- bar
+  DV.renderers.bar = function (host, view, api) {
+    var box = frame(host, H, view.subject);
+    var p = plot(box);
+    var d = view.data;
+    var n = d.x.values.length;
+    var all = [];
+    d.series.forEach(function (s) { all = all.concat(s.values); });
+    var lo = Math.min(0, Math.min.apply(null, all));
+    var hi = Math.max(0, Math.max.apply(null, all));
+    var pad = (hi - lo) * 0.12 || 1;
+    var y = axes(box, d.series[0].values, view.unit, d.x.values, { min: lo - pad, max: hi + pad });
+    if (lo < 0) {
+      DV.svg('line', { x1: p.x, x2: p.x + p.w, y1: y(0), y2: y(0), class: 'dv-baseline' }, box.svg);
+    }
+    var nodes = [];
+    var band = p.w / n;
+    var count = d.series.length;
+    var bw = Math.min(24, (band * 0.68) / count);
+    d.series.forEach(function (s, si) {
+      s.values.forEach(function (v, i) {
+        var x = p.x + i * band + band / 2 - (count * bw) / 2 + si * bw;
+        var zero = y(0);
+        var top = y(v);
+        var h = top - zero;
+        var path = DV.svg('path', {
+          d: h >= 0 ? roundedTop(x, top, bw - 2, h, 4) : roundedBottom(x, zero, bw - 2, h, 4),
+          class: 'dv-bar ' + seriesClass(s.slot || 1)
+        }, box.svg);
+        makeMark(path, 'bar:' + s.id + ':' + i,
+          s.name_en + ', ' + d.x.values[i] + ': ' + DV.fmtValue(v, view.unit), api);
+        nodes.push(path);
+        var hit = DV.svg('rect', {
+          x: x - 2, y: Math.min(top, zero) - 12, width: bw + 2,
+          height: Math.max(24, Math.abs(h) + 24), fill: 'transparent',
+          class: 'dv-mark'
+        }, box.svg);
+        makeMark(hit, 'bar:' + s.id + ':' + i,
+          s.name_en + ', ' + d.x.values[i] + ': ' + DV.fmtValue(v, view.unit), api);
+        nodes.push(hit);
+      });
+    });
+    var out = finish(box, nodes);
+    out.table = function () {
+      return {
+        head: [d.x.label_en || 'Category'].concat(d.series.map(function (s) { return s.name_en; })),
+        rows: d.x.values.map(function (label, i) {
+          return [label].concat(d.series.map(function (s) { return DV.fmtValue(s.values[i], view.unit); }));
+        })
+      };
+    };
+    return out;
+  };
+
+  // ---------------------------------------------------------------- pie
+  DV.renderers.pie = function (host, view, api) {
+    var box = frame(host, 340, view.subject);
+    var cx = W / 2, cy = 172, r1 = 128, r0 = 68;
+    var parts = view.data.parts;
+    var total = parts.reduce(function (sum, part) { return sum + part.value; }, 0) || 1;
+    var nodes = [];
+    var angle = -Math.PI / 2;
+    parts.forEach(function (part) {
+      var a0 = angle;
+      var a1 = angle + part.value / total * Math.PI * 2;
+      angle = a1;
+      var path = DV.svg('path', {
+        d: arcPath(cx, cy, r0, r1, a0 + 0.012, a1 - 0.012),
+        class: 'dv-slice ' + seriesClass(part.slot || 1)
+      }, box.svg);
+      makeMark(path, 'slice:' + part.id,
+        part.name_en + ': ' + DV.fmtValue(part.value, view.unit), api);
+      nodes.push(path);
+      var mid = (a0 + a1) / 2;
+      if (part.value / total >= 0.08) {
+        DV.text(box.svg, {
+          x: cx + (r0 + r1) / 2 * Math.cos(mid),
+          y: cy + (r0 + r1) / 2 * Math.sin(mid) + 4,
+          'text-anchor': 'middle',
+          class: 'dv-slice-label'
+        }, Math.round(part.value / total * 100) + '%');
+      }
+    });
+    var out = finish(box, nodes);
+    out.table = function () {
+      return {
+        head: ['Category', 'Share'],
+        rows: parts.map(function (part) {
+          return [part.name_en, DV.fmtValue(part.value / total * 100, view.unit)];
+        })
+      };
+    };
+    return out;
+  };
+
+  // ---------------------------------------------------------------- scatter
+  DV.renderers.scatter = function (host, view, api) {
+    var box = frame(host, H, view.subject);
+    var p = plot(box);
+    var d = view.data;
+    var xs = d.points.map(function (pt) { return pt.x; });
+    var ys = d.points.map(function (pt) { return pt.y; });
+    var xmin = Math.min.apply(null, xs), xmax = Math.max.apply(null, xs);
+    var ymin = Math.min.apply(null, ys), ymax = Math.max.apply(null, ys);
+    var xpad = (xmax - xmin) * 0.06 || 1, ypad = (ymax - ymin) * 0.08 || 1;
+    var sx = DV.linear([xmin - xpad, xmax + xpad], [p.x, p.x + p.w]);
+    var sy = DV.linear([ymin - ypad, ymax + ypad], [p.y + p.h, p.y]);
+    var g = DV.svg('g', { class: 'dv-grid' }, box.svg);
+    DV.ticks(xmin, xmax, 5).forEach(function (t) {
+      DV.text(box.svg, { x: sx(t), y: p.y + p.h + 22, 'text-anchor': 'middle', class: 'dv-tick' },
+        DV.fmtAxis(t, { decimals: 0 }));
+    });
+    DV.ticks(ymin, ymax, 4).forEach(function (t) {
+      DV.svg('line', { x1: p.x, x2: p.x + p.w, y1: sy(t), y2: sy(t), class: 'dv-gridline' }, g);
+      DV.text(box.svg, { x: p.x - 10, y: sy(t) + 4, 'text-anchor': 'end', class: 'dv-tick' },
+        DV.fmtAxis(t, { decimals: 0 }));
+    });
+    DV.text(box.svg, { x: p.x + p.w, y: p.y + p.h + 40, 'text-anchor': 'end', class: 'dv-unit' },
+      d.x.label_en || '');
+    DV.text(box.svg, { x: p.x, y: p.y - 8, class: 'dv-unit' }, d.y.label_en || '');
+    var groups = {};
+    (d.groups || []).forEach(function (grp) { groups[grp.id] = grp; });
+    var nodes = [];
+    d.points.forEach(function (pt) {
+      var grp = groups[pt.group] || {};
+      var dot = DV.svg('circle', {
+        cx: sx(pt.x), cy: sy(pt.y), r: 5,
+        class: 'dv-dot ' + seriesClass(grp.slot || 1)
+      }, box.svg);
+      makeMark(dot, 'pt:' + pt.id,
+        (grp.name_en ? grp.name_en + ', ' : '') + pt.x + ', ' + pt.y, api);
+      nodes.push(dot);
+      var hit = DV.svg('circle', {
+        cx: sx(pt.x), cy: sy(pt.y), r: 13, fill: 'transparent', class: 'dv-mark'
+      }, box.svg);
+      makeMark(hit, 'pt:' + pt.id,
+        (grp.name_en ? grp.name_en + ', ' : '') + pt.x + ', ' + pt.y, api);
+      nodes.push(hit);
+    });
+    var out = finish(box, nodes);
+    out.table = function () {
+      return {
+        head: ['Group', d.x.label_en || 'X', d.y.label_en || 'Y'],
+        rows: d.points.map(function (pt) {
+          return [(groups[pt.group] || {}).name_en || pt.group || '—',
+            String(pt.x), String(pt.y)];
+        })
+      };
+    };
+    return out;
+  };
+
+  // ---------------------------------------------------------------- stacked
+  DV.renderers.stacked = function (host, view, api) {
+    var box = frame(host, H, view.subject);
+    var p = plot(box);
+    var d = view.data;
+    var n = d.x.values.length;
+    var totals = d.x.values.map(function (_, i) {
+      return d.series.reduce(function (sum, s) { return sum + s.values[i]; }, 0);
+    });
+    var max = d.mode === 'percent' ? 100 : Math.max.apply(null, totals) * 1.1;
+    var y = axes(box, totals, view.unit,
+      d.x.values, { min: 0, max: max || 1 });
+    var nodes = [];
+    var band = p.w / n;
+    var bw = Math.min(56, band * 0.62);
+    d.x.values.forEach(function (label, i) {
+      var x = p.x + i * band + (band - bw) / 2;
+      var base = 0;
+      var stack = DV.svg('rect', {
+        x: x, y: p.y, width: bw, height: p.h, fill: 'transparent', class: 'dv-mark'
+      }, box.svg);
+      makeMark(stack, 'stack:' + i, label + ', total', api);
+      nodes.push(stack);
+      d.series.forEach(function (s) {
+        var value = s.values[i];
+        var h = (value / (max || 1)) * p.h;
+        var yy = p.y + p.h - (base + value) / (max || 1) * p.h;
+        var seg = DV.svg('rect', {
+          x: x, y: yy + 1, width: bw, height: Math.max(0, h - 2),
+          class: 'dv-bar ' + seriesClass(s.slot || 1)
+        }, box.svg);
+        makeMark(seg, 'seg:' + i + ':' + s.id,
+          s.name_en + ', ' + label + ': ' + DV.fmtValue(value, view.unit), api);
+        nodes.push(seg);
+        base += value;
+      });
+    });
+    var out = finish(box, nodes);
+    out.table = function () {
+      return {
+        head: [d.x.label_en || 'Category'].concat(d.series.map(function (s) { return s.name_en; })),
+        rows: d.x.values.map(function (label, i) {
+          return [label].concat(d.series.map(function (s) { return DV.fmtValue(s.values[i], view.unit); }));
+        })
+      };
+    };
+    return out;
+  };
+
+  // ---------------------------------------------------------------- heatmap
+  DV.renderers.heatmap = function (host, view, api) {
+    var d = view.data;
+    var rows = d.rows.length, cols = d.cols.length;
+    var left = 108, top = 30, cell = Math.max(34, Math.min(54, 640 / cols));
+    var width = left + cols * cell + 24;
+    var height = top + rows * cell + 54;
+    var svg = DV.svg('svg', {
+      class: 'dv-chart dv-chart-wide', viewBox: '0 0 ' + width + ' ' + height,
+      role: 'group', 'aria-roledescription': '图表', 'aria-label': view.subject || ''
+    }, host);
+    host.classList.add('dv-scroll');
+    var flat = [];
+    d.cells.forEach(function (row) { flat = flat.concat(row); });
+    var lo = Math.min.apply(null, flat), hi = Math.max.apply(null, flat);
+    var ramp = ['dv-heat-1', 'dv-heat-2', 'dv-heat-3', 'dv-heat-4', 'dv-heat-5'];
+    var nodes = [];
+    d.rows.forEach(function (row, r) {
+      DV.text(svg, { x: left - 10, y: top + r * cell + cell / 2 + 4, 'text-anchor': 'end', class: 'dv-tick' },
+        row.name_en);
+      var rowHit = DV.svg('rect', { x: 4, y: top + r * cell, width: left - 8, height: cell, fill: 'transparent', class: 'dv-mark' }, svg);
+      makeMark(rowHit, 'row:' + row.id, row.name_en + ', row average', api);
+      nodes.push(rowHit);
+    });
+    d.cols.forEach(function (col, c) {
+      DV.text(svg, { x: left + c * cell + cell / 2, y: top - 10, 'text-anchor': 'middle', class: 'dv-tick' },
+        col.name_en);
+      var colHit = DV.svg('rect', { x: left + c * cell, y: 4, width: cell, height: top - 8, fill: 'transparent', class: 'dv-mark' }, svg);
+      makeMark(colHit, 'col:' + col.id, col.name_en + ', column average', api);
+      nodes.push(colHit);
+    });
+    d.rows.forEach(function (row, r) {
+      d.cols.forEach(function (col, c) {
+        var value = d.cells[r][c];
+        var t = (value - lo) / ((hi - lo) || 1);
+        var bin = Math.min(4, Math.floor(t * 5));
+        var rect = DV.svg('rect', {
+          x: left + c * cell + 1, y: top + r * cell + 1,
+          width: cell - 2, height: cell - 2, rx: 3,
+          class: 'dv-cell ' + ramp[bin]
+        }, svg);
+        makeMark(rect, 'cell:' + row.id + ':' + col.id,
+          row.name_en + ', ' + col.name_en + ': ' + DV.fmtValue(value, view.unit), api);
+        nodes.push(rect);
+      });
+    });
+    var legendY = top + rows * cell + 22;
+    DV.text(svg, { x: left, y: legendY + 4, class: 'dv-unit' }, '低');
+    ramp.forEach(function (cls, i) {
+      DV.svg('rect', { x: left + 26 + i * 22, y: legendY - 8, width: 20, height: 12, rx: 2, class: 'dv-cell ' + cls }, svg);
+    });
+    DV.text(svg, { x: left + 26 + 5 * 22 + 4, y: legendY + 4, class: 'dv-unit' }, '高');
+    var out = finish({ svg: svg }, nodes);
+    out.table = function () {
+      var rows2 = [];
+      d.rows.forEach(function (row, r) {
+        d.cols.forEach(function (col, c) {
+          rows2.push([row.name_en, col.name_en, DV.fmtValue(d.cells[r][c], view.unit)]);
+        });
+      });
+      return { head: ['Row', 'Column', 'Value'], rows: rows2 };
+    };
+    return out;
+  };
+
+  // ---------------------------------------------------------------- sankey
+  DV.renderers.sankey = function (host, view, api) {
+    var d = view.data;
+    var W2 = 760, H2 = 380;
+    var svg = DV.svg('svg', {
+      class: 'dv-chart', viewBox: '0 0 ' + W2 + ' ' + H2,
+      role: 'group', 'aria-roledescription': '图表', 'aria-label': view.subject || ''
+    }, host);
+    var margin = { top: 28, bottom: 28, left: 16, right: 16 };
+    var columns = d.columns;
+    var ncols = columns.length;
+    var colW = (W2 - margin.left - margin.right) / ncols;
+    var nodeW = 14;
+    var nodesById = {};
+    d.nodes.forEach(function (n) { nodesById[n.id] = n; });
+    var inTotals = {}, outTotals = {};
+    d.links.forEach(function (l) {
+      outTotals[l.source] = (outTotals[l.source] || 0) + l.value;
+      inTotals[l.target] = (inTotals[l.target] || 0) + l.value;
+    });
+    var totals = {};
+    d.nodes.forEach(function (n) {
+      totals[n.id] = Math.max(inTotals[n.id] || 0, outTotals[n.id] || 0);
+    });
+    var avail = H2 - margin.top - margin.bottom;
+    var columnTotals = columns.map(function (col) {
+      return col.reduce(function (sum, id) { return sum + totals[id]; }, 0);
+    });
+    var maxColumn = Math.max.apply(null, columnTotals.concat([1]));
+    var scale = avail / maxColumn;
+    var positions = {};
+    columns.forEach(function (col, ci) {
+      var used = col.reduce(function (sum, id) { return sum + totals[id] * scale; }, 0);
+      var gap = col.length > 1 ? (avail - used) / (col.length - 1) : 0;
+      gap = Math.max(4, Math.min(30, gap));
+      var y = margin.top;
+      col.forEach(function (id) {
+        var h = Math.max(8, totals[id] * scale);
+        positions[id] = { x: margin.left + ci * colW + (ci === ncols - 1 ? colW - nodeW : 0),
+          y: y, h: h, col: ci };
+        y += h + gap;
+      });
+    });
+    function colIndex(id) { return nodesById[id] ? nodesById[id].column : 0; }
+    var outNodes = {};
+    var nodes = [];
+    d.links.forEach(function (link) {
+      var s = positions[link.source], t = positions[link.target];
+      if (!s || !t) return;
+      // Allocate link bands proportionally down each node.
+      var taken = outNodes[link.source] || 0;
+      var linkH = Math.max(2, link.value * scale);
+      var y0 = s.y + taken * scale;
+      outNodes[link.source] = taken + link.value;
+      var inTaken = outNodes['in:' + link.target] || 0;
+      var y1 = t.y + inTaken * scale;
+      outNodes['in:' + link.target] = inTaken + link.value;
+      var x0 = s.x + nodeW, x1 = t.x;
+      var mid = (x0 + x1) / 2;
+      var path = DV.svg('path', {
+        d: 'M' + x0 + ' ' + y0 + 'C' + mid + ' ' + y0 + ' ' + mid + ' ' + y1 + ' ' + x1 + ' ' + y1 +
+          'L' + x1 + ' ' + (y1 + linkH) + 'C' + mid + ' ' + (y1 + linkH) + ' ' + mid + ' ' + (y0 + linkH) + ' ' + x0 + ' ' + (y0 + linkH) + 'Z',
+        class: 'dv-link ' + seriesClass((nodesById[link.source] || {}).slot || 1)
+      }, svg);
+      makeMark(path, 'link:' + link.source + '->' + link.target,
+        (nodesById[link.source] || {}).name_en + ' → ' + (nodesById[link.target] || {}).name_en +
+        ': ' + DV.fmtValue(link.value, view.unit), api);
+      nodes.push(path);
+    });
+    d.nodes.forEach(function (n) {
+      var pos = positions[n.id];
+      if (!pos) return;
+      var rect = DV.svg('rect', {
+        x: pos.x, y: pos.y, width: nodeW, height: pos.h, rx: 3,
+        class: 'dv-node ' + seriesClass(n.slot || 1)
+      }, svg);
+      makeMark(rect, 'node:' + n.id, n.name_en + ', ' + DV.fmtValue(totals[n.id] || 0, view.unit), api);
+      nodes.push(rect);
+      var labelX = pos.col === ncols - 1 ? pos.x - 8 : pos.x + nodeW + 8;
+      DV.text(svg, {
+        x: labelX, y: pos.y + Math.min(pos.h / 2 + 4, 20),
+        'text-anchor': pos.col === ncols - 1 ? 'end' : 'start', class: 'dv-label'
+      }, n.name_en);
+    });
+    var out = finish({ svg: svg }, nodes);
+    out.table = function () {
+      return {
+        head: ['From', 'To', 'Value'],
+        rows: d.links.map(function (l) {
+          return [(nodesById[l.source] || {}).name_en, (nodesById[l.target] || {}).name_en,
+            DV.fmtValue(l.value, view.unit)];
+        })
+      };
+    };
+    return out;
+  };
+
+  // ---------------------------------------------------------------- slope
+  DV.renderers.slope = function (host, view, api) {
+    var box = frame(host, H, view.subject);
+    var p = plot(box);
+    var d = view.data;
+    var n = d.entities.length;
+    var nPeriods = d.periods.length;
+    var xAt = function (i) {
+      if (nPeriods <= 1) return p.x + p.w / 2;
+      return p.x + 76 + i * (p.w - 152) / (nPeriods - 1);
+    };
+    var ranks = d.periods.map(function (_, pi) {
+      return d.entities.map(function (_, ei) { return ei; })
+        .sort(function (a, b) { return d.entities[b].values[pi] - d.entities[a].values[pi]; });
+    });
+    var rankOf = function (pi, ei) { return ranks[pi].indexOf(ei); };
+    var yAt = function (pi, ei) { return p.y + (rankOf(pi, ei) + 0.5) * p.h / n; };
+    var nodes = [];
+    d.entities.forEach(function (entity, ei) {
+      var last = nPeriods - 1;
+      var path = DV.svg('line', {
+        x1: xAt(0), y1: yAt(0, ei),
+        x2: xAt(last), y2: yAt(last, ei),
+        class: 'dv-line dv-slope-line ' + seriesClass(entity.slot || 1)
+      }, box.svg);
+      makeMark(path, 'line:' + entity.id,
+        entity.name_en + ': ' + DV.fmtValue(entity.values[0], view.unit) + ' → ' +
+        DV.fmtValue(entity.values[last], view.unit), api);
+      nodes.push(path);
+      entity.values.forEach(function (value, pi) {
+        var dot = DV.svg('circle', {
+          cx: xAt(pi), cy: yAt(pi, ei), r: 5,
+          class: 'dv-dot ' + seriesClass(entity.slot || 1)
+        }, box.svg);
+        makeMark(dot, 'pt:' + entity.id + ':' + pi,
+          entity.name_en + ', ' + d.periods[pi].label_en + ': ' + DV.fmtValue(value, view.unit), api);
+        nodes.push(dot);
+      });
+      DV.text(box.svg, {
+        x: xAt(0) - 14, y: yAt(0, ei) + 4, 'text-anchor': 'end', class: 'dv-label'
+      }, entity.name_en);
+      DV.text(box.svg, {
+        x: xAt(last) + 14, y: yAt(last, ei) + 4, class: 'dv-label'
+      }, entity.name_en);
+    });
+    d.periods.forEach(function (period, pi) {
+      DV.text(box.svg, { x: xAt(pi), y: p.y + p.h + 26, 'text-anchor': 'middle', class: 'dv-tick' }, period.label_en);
+    });
+    var out = finish(box, nodes);
+    out.table = function () {
+      return {
+        head: ['Item'].concat(d.periods.map(function (per) { return per.label_en; })),
+        rows: d.entities.map(function (e) {
+          return [e.name_en].concat(e.values.map(function (v) { return DV.fmtValue(v, view.unit); }));
+        })
+      };
+    };
+    return out;
+  };
+
+  // ---------------------------------------------------------------- waterfall
+  DV.renderers.waterfall = function (host, view, api) {
+    var box = frame(host, H, view.subject);
+    var p = plot(box);
+    var d = view.data;
+    var start = Number(d.start_value || 0);
+    var running = start;
+    var points = [start];
+    d.steps.forEach(function (step) { running += step.value; points.push(running); });
+    var lo = Math.min(0, Math.min.apply(null, points));
+    var hi = Math.max(0, Math.max.apply(null, points));
+    var pad = (hi - lo) * 0.15 || 1;
+    var y = axes(box, points, view.unit, null, { min: lo - pad, max: hi + pad });
+    var nodes = [];
+    var count = d.steps.length + 2;
+    var band = p.w / count;
+    var bw = Math.min(46, band * 0.62);
+    function bar(i, label, value, base, kind, markId) {
+      var x = p.x + i * band + (band - bw) / 2;
+      var top = y(value), bottom = y(base);
+      var path = DV.svg('path', {
+        d: top <= bottom ? roundedTop(x, top, bw, bottom - top, 4) : roundedBottom(x, bottom, bw, bottom - top, 4),
+        class: 'dv-bar ' + (kind === 'up' ? 'dv-pos' : kind === 'down' ? 'dv-neg' : 'dv-total')
+      }, box.svg);
+      makeMark(path, markId, label + ': ' + DV.fmtValue(value, view.unit), api);
+      nodes.push(path);
+      DV.text(box.svg, {
+        x: x + bw / 2, y: Math.min(top, bottom) - 7, 'text-anchor': 'middle', class: 'dv-label'
+      }, label);
+      return { x: x, y: Math.min(top, bottom), w: bw };
+    }
+    var startBar = bar(0, d.start ? d.start.name_en : 'Start', start, 0, 'total', 'total:start');
+    var prev = startBar;
+    d.steps.forEach(function (step, si) {
+      var base = running;
+      running += step.value;
+      var b = bar(si + 1, (step.value > 0 ? '+' : '−') + DV.fmtAxis(Math.abs(step.value), { decimals: 0 }),
+        running, base, step.value > 0 ? 'up' : 'down', 'step:' + step.id);
+      DV.svg('line', {
+        x1: prev.x + prev.w, x2: b.x, y1: y(base), y2: y(base), class: 'dv-connector'
+      }, box.svg);
+      prev = b;
+    });
+    var endBar = bar(count - 1, d.end ? d.end.name_en : 'End', running, 0, 'total', 'total:end');
+    DV.svg('line', { x1: prev.x + prev.w, x2: endBar.x, y1: y(running), y2: y(running), class: 'dv-connector' }, box.svg);
+    var out = finish(box, nodes);
+    out.table = function () {
+      var rows = [[d.start ? d.start.name_en : 'Start', DV.fmtValue(start, view.unit), DV.fmtValue(start, view.unit)]];
+      var total = start;
+      d.steps.forEach(function (step) {
+        total += step.value;
+        rows.push([step.name_en, (step.value > 0 ? '+' : '−') + DV.fmtValue(Math.abs(step.value), view.unit),
+          DV.fmtValue(total, view.unit)]);
+      });
+      rows.push([d.end ? d.end.name_en : 'End', '', DV.fmtValue(total, view.unit)]);
+      return { head: ['Step', 'Change', 'Running total'], rows: rows };
+    };
+    return out;
+  };
+})(window.DV);
+
+/* Expression panel: header, register lens, five tabs, Describe It reveal. */
+(function (DV) {
+  'use strict';
+
+  var TABS = [
+    { id: 'words', label: '词汇' },
+    { id: 'patterns', label: '句型' },
+    { id: 'compare', label: '辨析' },
+    { id: 'describe', label: '描述' },
+    { id: 'read', label: '解读' }
+  ];
+  var REGISTERS = [
+    { id: 'general', label: '通用' },
+    { id: 'ielts', label: '雅思' },
+    { id: 'business', label: '商务' }
+  ];
+  var REG_ZH = { spoken: '口语', neutral: '通用', written: '书面' };
+  var REG_ORDER = { spoken: 0, neutral: 1, written: 2 };
+
+  function entryFor(state) {
+    if (!state.feature || !state.library) return null;
+    return (state.library.features || {})[state.feature.kind] || null;
+  }
+
+  function focusText(state) {
+    if (!state.feature) return state.view.subject || '整张图';
+    var slots = state.feature.slots || {};
+    var bits = [];
+    if (slots.period) bits.push(slots.period);
+    if (slots.from && slots.to) bits.push(slots.from + ' → ' + slots.to);
+    else if (slots.value) bits.push(slots.value);
+    else if (slots.share) bits.push(slots.category + ' · ' + slots.share);
+    else if (slots.category && slots.value) bits.push(slots.category + ' · ' + slots.value);
+    else if (slots.entity) bits.push(slots.entity);
+    if (!bits.length) bits.push(slots.subject || '');
+    return bits.filter(Boolean).join(' · ');
+  }
+
+  function registerBadge(reg) {
+    return DV.el('span', { class: 'dv-reg-badge' }, REG_ZH[reg] || reg);
+  }
+
+  function wordCard(word) {
+    var card = DV.el('div', { class: 'dv-word' });
+    var head = DV.el('div', { class: 'dv-word-head' }, card);
+    DV.el('b', { class: 'dv-word-en', lang: 'en' }, head).textContent = word.en;
+    DV.el('span', { class: 'dv-word-zh' }, head).textContent = word.zh || '';
+    DV.el('span', { class: 'dv-reg-badge' }, head).textContent = REG_ZH[word.register] || '';
+    DV.el('p', { class: 'dv-word-note' }, card).textContent = word.note_zh || '';
+    var meta = [word.grammar, (word.collocations || []).slice(0, 2).join(' · ')].filter(Boolean).join(' · ');
+    if (meta) DV.el('p', { class: 'dv-word-meta' }, card).textContent = meta;
+    return card;
+  }
+
+  function patternCard(pattern, slots) {
+    var card = DV.el('div', { class: 'dv-pattern' });
+    DV.el('span', { class: 'dv-level-badge' }, card).textContent = (pattern.level || '').toUpperCase();
+    DV.el('p', { class: 'dv-pattern-en', lang: 'en' }, card).textContent = DV.fill(pattern.frame, slots);
+    if (pattern.zh_frame) DV.el('p', { class: 'dv-pattern-zh' }, card).textContent = DV.fill(pattern.zh_frame, slots);
+    if (pattern.note_zh) DV.el('p', { class: 'dv-pattern-note' }, card).textContent = pattern.note_zh;
+    return card;
+  }
+
+  function compareCard(comp) {
+    var card = DV.el('div', { class: 'dv-compare' });
+    DV.el('h4', { class: 'dv-compare-title' }, card).textContent = comp.a + ' vs ' + comp.b;
+    DV.el('p', { class: 'dv-compare-line' }, card).textContent = comp.meaning_zh || '';
+    DV.el('p', { class: 'dv-compare-line' }, card).textContent = '语法：' + (comp.grammar_zh || '');
+    DV.el('p', { class: 'dv-compare-line' }, card).textContent = '搭配：' + (comp.collocations_zh || '');
+    DV.el('p', { class: 'dv-compare-line' }, card).textContent = '用法：' + (comp.usage_zh || '');
+    (comp.examples || []).slice(0, 1).forEach(function (ex) {
+      DV.el('p', { class: 'dv-compare-ex', lang: 'en' }, card).textContent = ex.en;
+    });
+    return card;
+  }
+
+  function trapCard(trap, slots) {
+    var card = DV.el('div', { class: 'dv-trap' });
+    DV.el('p', { class: 'dv-trap-wrong', lang: 'en' }, card).textContent = '✗ ' + trap.wrong_en;
+    DV.el('p', { class: 'dv-trap-right', lang: 'en' }, card).textContent = '✓ ' + trap.right_en;
+    DV.el('p', { class: 'dv-trap-why' }, card).textContent = trap.why_zh || '';
+    return card;
+  }
+
+  function wholeWords(state) {
+    var seen = {};
+    var out = [];
+    var view = state.view;
+    (view.features || []).forEach(function (feature) {
+      var entry = (state.library.features || {})[feature.kind];
+      if (!entry) return;
+      (entry.words || []).forEach(function (word) {
+        if (seen[word.en] || out.length >= 8) return;
+        seen[word.en] = true;
+        out.push(word);
+      });
+    });
+    return out;
+  }
+
+  function firstEntry(state) {
+    var view = state.view;
+    for (var i = 0; i < (view.features || []).length; i++) {
+      var entry = (state.library.features || {})[view.features[i].kind];
+      if (entry) return entry;
+    }
+    return null;
+  }
+
+  function tabWords(host, state) {
+    var entry = entryFor(state);
+    var words = entry ? (entry.words || []).slice() : wholeWords(state);
+    words.sort(function (a, b) {
+      return (REG_ORDER[a.register] || 1) - (REG_ORDER[b.register] || 1);
+    });
+    words.slice(0, 8).forEach(function (word) { host.appendChild(wordCard(word)); });
+    if (!words.length) DV.el('p', { class: 'dv-empty' }, host).textContent = '这个点还没有词汇条目。';
+  }
+
+  function tabPatterns(host, state) {
+    var entry = entryFor(state) || firstEntry(state);
+    if (!entry) {
+      DV.el('p', { class: 'dv-empty' }, host).textContent = '这个点还没有句型。';
+      return;
+    }
+    var slots = state.feature ? state.feature.slots : firstSlots(state);
+    (entry.patterns || []).slice(0, 3).forEach(function (pattern) {
+      host.appendChild(patternCard(pattern, slots));
+    });
+  }
+
+  function firstSlots(state) {
+    var view = state.view;
+    for (var i = 0; i < (view.features || []).length; i++) {
+      if (view.features[i].slots) return view.features[i].slots;
+    }
+    return {};
+  }
+
+  function tabCompare(host, state) {
+    var entry = entryFor(state) || firstEntry(state);
+    if (!entry) {
+      DV.el('p', { class: 'dv-empty' }, host).textContent = '这个点还没有辨析。';
+      return;
+    }
+    var ids = (entry.compare || []).slice(0, 2);
+    var comps = (state.library.comparisons || []).filter(function (c) {
+      return ids.indexOf(c.id) >= 0;
+    });
+    comps.forEach(function (comp) { host.appendChild(compareCard(comp)); });
+    var trapSlots = state.feature ? state.feature.slots : firstSlots(state);
+    (entry.traps || []).slice(0, 2).forEach(function (trap) { host.appendChild(trapCard(trap, trapSlots)); });
+    if (!comps.length && !(entry.traps || []).length) {
+      DV.el('p', { class: 'dv-empty' }, host).textContent = '这一项暂时没有容易混淆的表达。';
+    }
+  }
+
+  function promptFor(state) {
+    var kind = state.feature ? state.feature.kind : '';
+    if (/rise|fall|flat|fluctuate|peak|trough|turning|compare|contributor|net_change|offset|share_shift|growth/.test(kind)) {
+      return '用一句话描述这个变化。';
+    }
+    if (/largest|smallest|majority|minority|half|share|composition|component/.test(kind)) {
+      return '用一句话描述这个占比。';
+    }
+    if (/correlat|cluster|outlier|positive|negative|weak|point/.test(kind)) {
+      return '用一句话描述这个关系。';
+    }
+    if (/main_path|secondary|drop_off|merge|split|rank|overtake|converge|diverge/.test(kind)) {
+      return '用一句话描述这个走向。';
+    }
+    return '用一句话描述这个数据。';
+  }
+
+  function modelTexts(state) {
+    var entry = entryFor(state);
+    if (!entry) return null;
+    var slots = state.feature.slots;
+    var out = { a2: '', b1: '', b2: '' };
+    (entry.patterns || []).forEach(function (pattern) {
+      var key = pattern.level || 'b1';
+      if (!out[key]) out[key] = DV.fill(pattern.frame, slots);
+    });
+    out.a2 = out.a2 || out.b1 || out.b2;
+    out.b1 = out.b1 || out.a2 || out.b2;
+    out.b2 = out.b2 || out.b1 || out.a2;
+    var examples = state.feature.examples || [];
+    if (examples.length >= 2) out.b2 = examples[1].en;
+    else if (examples.length === 1 && !out.b1) out.b1 = examples[0].en;
+    return out;
+  }
+
+  function modelCard(text, zh, level) {
+    var card = DV.el('div', { class: 'dv-model' });
+    DV.el('span', { class: 'dv-level-badge' }, card).textContent = level;
+    DV.el('p', { class: 'dv-model-en', lang: 'en' }, card).textContent = text;
+    if (zh) DV.el('p', { class: 'dv-model-zh' }, card).textContent = zh;
+    return card;
+  }
+
+  function tabDescribe(host, state) {
+    var entry = entryFor(state);
+    var prompt = promptFor(state);
+    DV.el('p', { class: 'dv-prompt' }, host).textContent = prompt;
+
+    if (state.feature) {
+      var words = (entry && entry.words || []).slice(0, 4);
+      if (words.length) {
+        var keys = DV.el('div', { class: 'dv-keywords' }, host);
+        words.forEach(function (word) {
+          var chip = DV.el('span', { class: 'dv-keyword' }, keys);
+          chip.textContent = word.en;
+          DV.el('span', { class: 'dv-keyword-zh' }, chip).textContent = word.zh || '';
+        });
+      }
+      var hint = (entry && entry.patterns || []).filter(function (p) { return p.level === 'b1'; })[0]
+        || (entry && entry.patterns || []).filter(function (p) { return p.level === 'a2'; })[0];
+      if (hint) {
+        DV.el('div', { class: 'dv-frame' }, host).textContent = DV.fill(hint.frame, state.feature.slots);
+      }
+    } else {
+      DV.el('p', { class: 'dv-prompt-hint' }, host).textContent = '先把整张图的趋势、极值和结构说清楚，再补一个具体数字。';
+    }
+
+    if (state.feature) {
+      var scratch = DV.el('details', { class: 'dv-scratch' }, host);
+      DV.el('summary', {}, scratch).textContent = '自己写一句（不保存）';
+      var ta = DV.el('textarea', { class: 'dv-scratch-input', rows: '2', lang: 'en' }, scratch);
+      ta.setAttribute('placeholder', 'Type your sentence here…');
+    }
+
+    var reveal = DV.el('button', {
+      class: 'pill dv-reveal', type: 'button',
+      'aria-expanded': state.revealed ? 'true' : 'false'
+    }, host);
+    reveal.textContent = state.revealed ? '收起参考' : '看参考';
+    reveal.addEventListener('click', function () { state.onReveal(!state.revealed); });
+
+    if (!state.revealed) return;
+    var box = DV.el('div', { class: 'dv-models' }, host);
+
+    if (state.register === 'general') {
+      var levels = DV.el('div', { class: 'dv-levels', role: 'radiogroup', 'aria-label': '参考说法' }, box);
+      [['a2', 'A2 简单'], ['b1', 'B1 自然'], ['b2', 'B2 具体']].forEach(function (item) {
+        var btn = DV.el('button', {
+          type: 'button', role: 'radio', 'aria-checked': state.level === item[0] ? 'true' : 'false'
+        }, levels);
+        btn.textContent = item[1];
+        btn.addEventListener('click', function () { state.onLevel(item[0]); });
+      });
+    }
+
+    if (!state.feature) {
+      var desc = (state.view.descriptions || {});
+      var general = desc.general || {};
+      var model = desc[state.register] || general[state.level] || general.a2 || '';
+      var zh = state.register === 'general' ? '' : '';
+      if (state.register === 'general') {
+        modelCard(model, '', state.level.toUpperCase());
+      } else {
+        modelCard(model, '', state.register === 'ielts' ? 'IELTS' : 'Business');
+      }
+      return;
+    }
+
+    if (state.register === 'general') {
+      var levels = modelTexts(state);
+      if (levels) {
+        DV.el('p', { class: 'dv-model-en', lang: 'en' }, box).textContent = levels[state.level] || levels.a2;
+        var ex = (state.feature.examples || [])[0];
+        if (state.level === 'a2' && ex && ex.zh) {
+          DV.el('p', { class: 'dv-model-zh' }, box).textContent = ex.zh;
+        }
+        DV.el('p', { class: 'dv-model-note' }, box).textContent =
+          'A2 直接、B1 自然、B2 更具体；三种都可以，按场合选。';
+      }
+    } else {
+      var text = (entry && entry.registers || {})[state.register] || '';
+      if (text) {
+        DV.el('p', { class: 'dv-model-en', lang: 'en' }, box).textContent = DV.fill(text, state.feature.slots);
+        DV.el('p', { class: 'dv-model-note' }, box).textContent =
+          state.register === 'ielts' ? '雅思：客观、先总后分。' : '商务：说完数据，顺手给一句判断。';
+      }
+    }
+  }
+
+  function tabRead(host, state) {
+    if (state.feature) {
+      if (state.feature.interpret_zh) {
+        DV.el('p', { class: 'dv-read-lead' }, host).textContent = state.feature.interpret_zh;
+      }
+    }
+    if (state.view.overview_zh) {
+      DV.el('p', { class: 'dv-overview' }, host).textContent = state.view.overview_zh;
+    }
+    if (state.view.type === 'scatter') {
+      DV.el('p', { class: 'dv-causal' }, host).textContent =
+        '相关不等于因果：散点图只能说明两个变量一起变化，不能说明谁导致谁。';
+    }
+  }
+
+  DV.panel = {
+    render: function (host, state) {
+      DV.clear(host);
+      host.className = 'card dv-panel';
+      var head = DV.el('header', { class: 'dv-panel-head' }, host);
+      var left = DV.el('div', {}, head);
+      DV.el('p', { class: 'dv-focus-label' }, left).textContent = state.feature ? '已选' : '整张图';
+      var focus = DV.el('p', { class: 'dv-focus', id: 'panel-focus' }, left);
+      focus.textContent = focusText(state);
+      if (state.feature) {
+        var clear = DV.el('button', { class: 'pill dv-clear', type: 'button', 'aria-label': '清除选择' }, head);
+        clear.textContent = '清除';
+        clear.addEventListener('click', function () { state.onClear(); });
+      }
+
+      var regs = DV.el('div', { class: 'dv-register', role: 'radiogroup', 'aria-label': '说法场合' }, host);
+      REGISTERS.forEach(function (reg) {
+        var btn = DV.el('button', {
+          type: 'button', role: 'radio', 'aria-checked': reg.id === state.register ? 'true' : 'false'
+        }, regs);
+        btn.textContent = reg.label;
+        btn.addEventListener('click', function () { state.onRegister(reg.id); });
+      });
+
+      var tabs = DV.el('div', { class: 'dv-tabs', role: 'tablist', 'aria-label': '表达内容' }, host);
+      TABS.forEach(function (tab) {
+        var btn = DV.el('button', {
+          type: 'button', role: 'tab', id: 'tab-' + tab.id,
+          'aria-controls': 'panel-' + tab.id,
+          'aria-selected': tab.id === state.tab ? 'true' : 'false',
+          tabindex: tab.id === state.tab ? '0' : '-1'
+        }, tabs);
+        btn.textContent = tab.label;
+        btn.addEventListener('click', function () { state.onTab(tab.id); });
+        btn.addEventListener('keydown', function (event) {
+          var idx = TABS.indexOf(tab);
+          var next = null;
+          if (event.key === 'ArrowRight') next = (idx + 1) % TABS.length;
+          if (event.key === 'ArrowLeft') next = (idx - 1 + TABS.length) % TABS.length;
+          if (event.key === 'Home') next = 0;
+          if (event.key === 'End') next = TABS.length - 1;
+          if (next == null) return;
+          event.preventDefault();
+          state.onTab(TABS[next].id);
+        });
+      });
+
+      var body = DV.el('div', {
+        class: 'dv-panel-body', role: 'tabpanel', id: 'panel-' + state.tab,
+        'aria-labelledby': 'tab-' + state.tab, tabindex: '0'
+      }, host);
+      if (state.tab === 'words') tabWords(body, state);
+      else if (state.tab === 'patterns') tabPatterns(body, state);
+      else if (state.tab === 'compare') tabCompare(body, state);
+      else if (state.tab === 'describe') tabDescribe(body, state);
+      else tabRead(body, state);
+
+      if (state.loading) {
+        DV.el('p', { class: 'dv-loading' }, host).textContent = '载入中…';
+      }
+      return host;
+    }
+  };
+})(window.DV);
+
+/* App shell: hash routing, gallery wall, workspace, lazy bundles, selection. */
+(function (DV) {
+  'use strict';
+
+  var G = window.DV_GALLERY || { topics: [], types: [], bundles: { lang: {}, topics: {} } };
+  var TOPICS = {};
+  var LANGS = {};
+  var LOADING = {};
+  var BOOT_ID = String(Math.random()).slice(2);
+  var loaded = {};
+
+  var S = {
+    mode: 'gallery',
+    topic: null,
+    view: null,
+    mark: null,
+    tab: ['words', 'patterns', 'compare', 'describe', 'read'].indexOf(
+      DV.store.get('npesl-dataviz-tab', 'describe')) >= 0
+      ? DV.store.get('npesl-dataviz-tab', 'describe') : 'describe',
+    register: ['general', 'ielts', 'business'].indexOf(
+      DV.store.get('npesl-dataviz-reg', 'general')) >= 0
+      ? DV.store.get('npesl-dataviz-reg', 'general') : 'general',
+    level: 'a2',
+    revealed: false,
+    table: false,
+    filter: 'all',
+    hidden: {},
+    renderer: null,
+    featureIndex: {}
+  };
+
+  var app = null;
+  var tooltip = null;
+
+  function byOrder(list) {
+    return list.slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+  }
+
+  function topicCard(slug) {
+    return G.topics.filter(function (t) { return t.id === slug; })[0];
+  }
+
+  function typeMeta(id) {
+    return G.types.filter(function (t) { return t.id === id; })[0] || { label_zh: id, label_en: id };
+  }
+
+  function currentTopic() { return TOPICS[S.topic]; }
+  function currentView() {
+    var topic = currentTopic();
+    if (!topic) return null;
+    return topic.views.filter(function (v) { return v.id === S.view; })[0] || topic.views[0];
+  }
+
+  function featureFor(mark) {
+    return mark ? S.featureIndex[mark] || null : null;
+  }
+
+  // ------------------------------------------------------------ hash router
+  function parseRoute() {
+    var raw = (location.hash || '#/').slice(1);
+    var q = {};
+    var qi = raw.indexOf('?');
+    if (qi >= 0) {
+      raw.slice(qi + 1).split('&').forEach(function (pair) {
+        if (!pair) return;
+        var bits = pair.split('=');
+        q[decodeURIComponent(bits[0])] = decodeURIComponent(bits.slice(1).join('='));
+      });
+      raw = raw.slice(0, qi);
+    }
+    var parts = raw.split('/').filter(Boolean).map(decodeURIComponent);
+    return { parts: parts, q: q };
+  }
+
+  function currentQuery() {
+    var q = [];
+    if (S.mark) q.push('mark=' + encodeURIComponent(S.mark));
+    if (S.tab !== 'describe') q.push('tab=' + S.tab);
+    if (S.register !== 'general') q.push('reg=' + S.register);
+    return q.length ? '?' + q.join('&') : '';
+  }
+
+  function routeHash(parts) {
+    return '#/' + parts.join('/') + currentQuery();
+  }
+
+  function pushRoute(parts) {
+    location.hash = routeHash(parts);
+  }
+
+  function replaceRoute(parts) {
+    var target = routeHash(parts);
+    if (location.hash === target) return;
+    try { history.replaceState(null, '', target); } catch (e) { location.hash = target; }
+  }
+
+  function applyQuery(q) {
+    S.tab = q.tab && ['words', 'patterns', 'compare', 'describe', 'read'].indexOf(q.tab) >= 0 ? q.tab : S.tab;
+    S.register = q.reg && ['general', 'ielts', 'business'].indexOf(q.reg) >= 0 ? q.reg : S.register;
+    if (q.mark) S.mark = q.mark;
+  }
+
+  // ------------------------------------------------------------ loading
+  function loadScript(url) {
+    if (loaded[url]) return Promise.resolve();
+    if (LOADING[url]) return LOADING[url];
+    LOADING[url] = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      var timer = setTimeout(function () { cleanup(); reject(new Error('timeout')); }, 10000);
+      function cleanup() {
+        clearTimeout(timer);
+        script.onload = script.onerror = null;
+      }
+      script.src = url;
+      script.async = true;
+      script.onload = function () { cleanup(); loaded[url] = true; resolve(); };
+      script.onerror = function () { cleanup(); script.remove(); reject(new Error('network')); };
+      document.head.appendChild(script);
+    }).catch(function (error) {
+      delete LOADING[url];
+      throw error;
+    });
+    return LOADING[url];
+  }
+
+  function ensureTopic(slug) {
+    if (TOPICS[slug]) return Promise.resolve();
+    var bundle = (G.bundles.topics || {})[slug];
+    if (!bundle) return Promise.reject(new Error('no bundle'));
+    return loadScript(bundle).then(function () {
+      TOPICS[slug] = (window.DV_TOPICS || {})[slug];
+      if (!TOPICS[slug]) throw new Error('missing data');
+    });
+  }
+
+  function ensureLang(type) {
+    if (LANGS[type]) return Promise.resolve();
+    var bundle = (G.bundles.lang || {})[type];
+    if (!bundle) return Promise.reject(new Error('no lang bundle'));
+    return loadScript(bundle).then(function () {
+      LANGS[type] = (window.DV_LANG || {})[type];
+      if (!LANGS[type]) throw new Error('missing language');
+    });
+  }
+
+  // ------------------------------------------------------------ gallery
+  function miniChart(type, data, unit, subject) {
+    var W = 240, H = 132;
+    var svg = DV.svg('svg', {
+      viewBox: '0 0 ' + W + ' ' + H, class: 'dv-mini',
+      'aria-hidden': 'true', focusable: 'false'
+    });
+    var pad = 12, w = W - pad * 2, h = H - pad * 2;
+    function poly(points, cls) {
+      return DV.svg('polyline', {
+        points: points.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '),
+        fill: 'none', class: 'dv-mini-line ' + cls
+      }, svg);
+    }
+    if (type === 'line' && data.series) {
+      var s = data.series[0];
+      var lo = Math.min.apply(null, s.values), hi = Math.max.apply(null, s.values);
+      var span = hi - lo || 1;
+      var pts = s.values.map(function (v, i) {
+        return [pad + i * w / (s.values.length - 1 || 1), pad + h - (v - lo) / span * h];
+      });
+      var area = pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' ') + ' ' + (pad + w) + ',' + (pad + h) + ' ' + pad + ',' + (pad + h);
+      DV.svg('polygon', { points: area, class: 'dv-mini-area ' + DV.slotClass(s.slot || 1) }, svg);
+      poly(pts, DV.slotClass(s.slot || 1));
+      var top = pts[s.values.indexOf(hi)];
+      DV.svg('circle', { cx: top[0], cy: top[1], r: 4, class: 'dv-mini-dot ' + DV.slotClass(s.slot || 1) }, svg);
+    } else if (type === 'bar' && data.series) {
+      var vals = data.series[0].values;
+      var max = Math.max.apply(null, vals) || 1;
+      var bw = Math.min(18, w / vals.length * 0.6);
+      vals.forEach(function (v, i) {
+        var x = pad + i * w / vals.length + (w / vals.length - bw) / 2;
+        var bh = Math.max(2, v / max * h);
+        DV.svg('rect', { x: x, y: pad + h - bh, width: bw, height: bh, rx: 3,
+          class: 'dv-mini-bar ' + DV.slotClass(data.series[0].slot || 1) }, svg);
+      });
+    } else if (type === 'pie' && data.parts) {
+      var total = data.parts.reduce(function (n, p) { return n + p.value; }, 0) || 1;
+      var cx = W / 2, cy = H / 2, r1 = 52, r0 = 28, a = -Math.PI / 2;
+      data.parts.forEach(function (part) {
+        var a1 = a + part.value / total * Math.PI * 2;
+        DV.svg('path', { d: sliceArc(cx, cy, r0, r1, a + 0.02, a1 - 0.02),
+          class: 'dv-mini-slice ' + DV.slotClass(part.slot || 1) }, svg);
+        a = a1;
+      });
+    } else if (type === 'scatter' && data.points) {
+      var xs = data.points.map(function (p) { return p.x; });
+      var ys = data.points.map(function (p) { return p.y; });
+      var xmin = Math.min.apply(null, xs), xmax = Math.max.apply(null, xs);
+      var ymin = Math.min.apply(null, ys), ymax = Math.max.apply(null, ys);
+      data.points.forEach(function (p) {
+        var px = pad + (p.x - xmin) / ((xmax - xmin) || 1) * w;
+        var py = pad + h - (p.y - ymin) / ((ymax - ymin) || 1) * h;
+        DV.svg('circle', { cx: px, cy: py, r: 2.6, class: 'dv-mini-dot dv-s1' }, svg);
+      });
+    } else if (type === 'stacked' && data.series) {
+      var n = data.x.values.length;
+      var sums = data.x.values.map(function (_, i) {
+        return data.series.reduce(function (n2, s2) { return n2 + s2.values[i]; }, 0);
+      });
+      var max2 = Math.max.apply(null, sums) || 1;
+      var picks = n <= 4 ? data.x.values.map(function (_, i) { return i; }) : [0, Math.floor(n / 3), Math.floor(2 * n / 3), n - 1];
+      var colW = Math.min(26, w / picks.length * 0.6);
+      picks.forEach(function (ci, k) {
+        var x = pad + k * w / picks.length + (w / picks.length - colW) / 2;
+        var base = 0;
+        data.series.forEach(function (s3) {
+          var val = s3.values[ci];
+          var bh = val / max2 * h;
+          DV.svg('rect', { x: x, y: pad + h - (base + val) / max2 * h, width: colW, height: Math.max(1, bh - 1),
+            class: 'dv-mini-bar ' + DV.slotClass(s3.slot || 1) }, svg);
+          base += val;
+        });
+      });
+    } else if (type === 'heatmap' && data.cells) {
+      var flat = [];
+      data.cells.forEach(function (r) { flat = flat.concat(r); });
+      var lo2 = Math.min.apply(null, flat), hi2 = Math.max.apply(null, flat);
+      var cols = data.cols.length, rows = data.rows.length;
+      var cw = w / cols, ch = h / rows;
+      data.cells.forEach(function (row, r) {
+        row.forEach(function (v, c) {
+          var bin = Math.min(4, Math.floor((v - lo2) / ((hi2 - lo2) || 1) * 5));
+          DV.svg('rect', { x: pad + c * cw, y: pad + r * ch, width: cw - 1, height: ch - 1,
+            class: 'dv-mini-cell dv-heat-' + (bin + 1) }, svg);
+        });
+      });
+    } else if (type === 'sankey' && data.links) {
+      var cols = data.columns || [];
+      var nodesById = {};
+      data.nodes.forEach(function (n) { nodesById[n.id] = n; });
+      var inT = {}, outT = {};
+      data.links.forEach(function (l) {
+        outT[l.source] = (outT[l.source] || 0) + l.value;
+        inT[l.target] = (inT[l.target] || 0) + l.value;
+      });
+      var tot = {};
+      data.nodes.forEach(function (n) { tot[n.id] = Math.max(inT[n.id] || 0, outT[n.id] || 0); });
+      var colTot = cols.map(function (col) {
+        return col.reduce(function (sum, id) { return sum + tot[id]; }, 0);
+      });
+      var maxCol = Math.max.apply(null, colTot.concat([1]));
+      var scale = h / maxCol;
+      var pos = {};
+      cols.forEach(function (col, ci) {
+        var used = col.reduce(function (sum, id) { return sum + tot[id] * scale; }, 0);
+        var gap = col.length > 1 ? Math.max(2, Math.min(10, (h - used) / (col.length - 1))) : 0;
+        var y = pad;
+        col.forEach(function (id) {
+          var hh = Math.max(2, tot[id] * scale);
+          pos[id] = { x: pad + ci * (w - 6) / Math.max(1, cols.length - 1), y: y, h: hh };
+          y += hh + gap;
+        });
+      });
+      var outUsed = {}, inUsed = {};
+      data.links.forEach(function (link) {
+        var sPos = pos[link.source], tPos = pos[link.target];
+        if (!sPos || !tPos) return;
+        var y0 = sPos.y + (outUsed[link.source] || 0) * scale;
+        var y1 = tPos.y + (inUsed[link.target] || 0) * scale;
+        outUsed[link.source] = (outUsed[link.source] || 0) + link.value;
+        inUsed[link.target] = (inUsed[link.target] || 0) + link.value;
+        var hh = Math.max(1, link.value * scale);
+        var mid = (sPos.x + tPos.x) / 2;
+        DV.svg('path', {
+          d: 'M' + sPos.x + ' ' + y0 + 'C' + mid + ' ' + y0 + ' ' + mid + ' ' + y1 + ' ' + tPos.x + ' ' + y1 +
+            'L' + tPos.x + ' ' + (y1 + hh) + 'C' + mid + ' ' + (y1 + hh) + ' ' + mid + ' ' + (y0 + hh) + ' ' + sPos.x + ' ' + (y0 + hh) + 'Z',
+          class: 'dv-mini-linkband ' + DV.slotClass((nodesById[link.source] || {}).slot || 1)
+        }, svg);
+      });
+      data.nodes.forEach(function (n) {
+        var p2 = pos[n.id];
+        if (!p2) return;
+        DV.svg('rect', {
+          x: p2.x - 2, y: p2.y, width: 5, height: p2.h, rx: 1.5,
+          class: 'dv-mini-node ' + DV.slotClass(n.slot || 1)
+        }, svg);
+      });
+    } else if (type === 'slope' && data.entities) {
+      data.entities.slice(0, 5).forEach(function (e, i) {
+        var y0 = pad + h * (i / 5) + 8;
+        var y1 = pad + h * (((i + 2) % 5) / 5) + 8;
+        DV.svg('line', { x1: pad, y1: y0, x2: W - pad, y2: y1,
+          class: 'dv-mini-line ' + DV.slotClass(e.slot || (i + 1)) }, svg);
+      });
+    } else if (type === 'waterfall' && data.steps) {
+      var running = Number(data.start_value || 0);
+      var pts2 = [running];
+      data.steps.forEach(function (s4) { running += s4.value; pts2.push(running); });
+      var lo3 = Math.min.apply(null, pts2), hi3 = Math.max.apply(null, pts2);
+      var span3 = (hi3 - lo3) || 1;
+      var all = data.steps.length + 2;
+      var bw2 = Math.min(16, w / all * 0.6);
+      function wy(v) { return pad + h - (v - lo3) / span3 * h; }
+      DV.svg('rect', { x: pad, y: wy(pts2[0]), width: bw2, height: pad + h - wy(pts2[0]), class: 'dv-mini-bar dv-total' }, svg);
+      data.steps.forEach(function (s5, i) {
+        var base = pts2[i], value = pts2[i + 1];
+        var x = pad + (i + 1) * w / all + (w / all - bw2) / 2;
+        DV.svg('rect', {
+          x: x, y: Math.min(wy(base), wy(value)), width: bw2,
+          height: Math.max(2, Math.abs(wy(base) - wy(value))),
+          class: 'dv-mini-bar ' + (s5.value > 0 ? 'dv-pos' : 'dv-neg')
+        }, svg);
+      });
+      var lastX = pad + (all - 1) * w / all;
+      DV.svg('rect', { x: lastX, y: wy(pts2[pts2.length - 1]), width: bw2,
+        height: pad + h - wy(pts2[pts2.length - 1]), class: 'dv-mini-bar dv-total' }, svg);
+    }
+    if (!svg.firstChild) {
+      DV.svg('rect', { x: pad, y: pad, width: w, height: h, rx: 8, class: 'dv-mini-empty' }, svg);
+    }
+    return svg;
+  }
+
+  function sliceArc(cx, cy, r0, r1, a0, a1) {
+    var large = a1 - a0 > Math.PI ? 1 : 0;
+    var x0 = cx + r1 * Math.cos(a0), y0 = cy + r1 * Math.sin(a0);
+    var x1 = cx + r1 * Math.cos(a1), y1 = cy + r1 * Math.sin(a1);
+    var x2 = cx + r0 * Math.cos(a1), y2 = cy + r0 * Math.sin(a1);
+    var x3 = cx + r0 * Math.cos(a0), y3 = cy + r0 * Math.sin(a0);
+    return 'M' + x0 + ' ' + y0 + 'A' + r1 + ' ' + r1 + ' 0 ' + large + ' 1 ' + x1 + ' ' + y1 +
+      'L' + x2 + ' ' + y2 + 'A' + r0 + ' ' + r0 + ' 0 ' + large + ' 0 ' + x3 + ' ' + y3 + 'Z';
+  }
+
+  function renderGallery() {
+    S.mode = 'gallery';
+    S.mark = null;
+    DV.clear(app);
+    var head = DV.el('header', { class: 'dv-gallery-head' }, app);
+    var titles = DV.el('div', {}, head);
+    DV.el('h1', { class: 'dv-h1' }, titles).textContent = 'Data Visualization Playground';
+    DV.el('p', { class: 'dv-h1-zh' }, titles).textContent = '数据图表英语';
+    DV.el('p', { class: 'dv-tagline', lang: 'en' }, titles).textContent =
+      'Explore data. Discover patterns. Learn to express.';
+    DV.el('span', { class: 'badge dv-demo-badge' }, head).textContent = 'Demo data · 模拟数据';
+
+    var chips = DV.el('nav', { class: 'dv-chips', role: 'group', 'aria-label': '图表类型' }, app);
+    function chip(id, label) {
+      var btn = DV.el('button', { type: 'button', 'aria-pressed': S.filter === id ? 'true' : 'false' }, chips);
+      btn.textContent = label;
+      btn.addEventListener('click', function () {
+        S.filter = id;
+        var params = id === 'all' ? '' : '?type=' + id;
+        try { history.replaceState(null, '', '#/' + params); } catch (e) {}
+        renderGallery();
+      });
+    }
+    chip('all', '全部');
+    G.types.forEach(function (type) { chip(type.id, type.label_zh); });
+
+    var wall = DV.el('div', { class: 'dv-wall' }, app);
+    var cards = byOrder(G.topics).filter(function (card) {
+      return S.filter === 'all' || card.types.indexOf(S.filter) >= 0;
+    });
+    cards.forEach(function (card, index) {
+      var tile = DV.el('a', {
+        class: 'card dv-tile' + (index === 0 ? ' dv-tile-feature' : ''),
+        href: '#/' + card.id + '/' + card.default_view,
+        'aria-label': card.title_en + '，' + card.title_zh
+      }, wall);
+      var thumb = DV.el('span', { class: 'dv-tile-chart' }, tile);
+      var primary = card.primary;
+      thumb.appendChild(miniChart(primary.type, primary.data, primary.unit, card.title_en));
+      var copy = DV.el('span', { class: 'dv-tile-copy' }, tile);
+      DV.el('span', { class: 'dv-tile-en', lang: 'en' }, copy).textContent = card.title_en;
+      DV.el('span', { class: 'dv-tile-zh' }, copy).textContent = card.title_zh;
+      DV.el('span', { class: 'dv-tile-blurb' }, copy).textContent = card.blurb_zh || '';
+      tile.addEventListener('click', function (event) {
+        event.preventDefault();
+        pushRoute([card.id, card.default_view]);
+      });
+    });
+    if (!cards.length) DV.el('p', { class: 'dv-empty' }, app).textContent = '这个类型还没有图。';
+  }
+
+  // ------------------------------------------------------------ tooltip
+  function ensureTooltip() {
+    if (!tooltip) {
+      tooltip = DV.el('div', { class: 'dv-tooltip', 'aria-hidden': 'true' }, document.body);
+    }
+    return tooltip;
+  }
+
+  function showTip(feature, event) {
+    var node = ensureTooltip();
+    if (!feature) { node.classList.remove('is-open'); return; }
+    DV.clear(node);
+    var slots = feature.slots || {};
+    var value = slots.value || slots.share || (slots.from && slots.to ? slots.from + ' → ' + slots.to : '');
+    DV.el('p', { class: 'dv-tip-value', lang: 'en' }, node).textContent = value || '';
+    DV.el('p', { class: 'dv-tip-label' }, node).textContent =
+      [slots.category, slots.period].filter(Boolean).join(' · ');
+    var entry = (S.library && S.library.features || {})[feature.kind];
+    if (entry && entry.words && entry.words[0]) {
+      DV.el('p', { class: 'dv-tip-say', lang: 'en' }, node).textContent = '“' + entry.words[0].en + '”';
+    }
+    var x = 0, y = 0;
+    if (event && event.clientX) { x = event.clientX + 16; y = event.clientY + 16; }
+    else {
+      var rect = event && event.target && event.target.getBoundingClientRect
+        ? event.target.getBoundingClientRect() : null;
+      x = rect ? rect.right + 8 : 20;
+      y = rect ? rect.top : 20;
+    }
+    node.style.left = Math.max(8, Math.min(x, window.innerWidth - 250)) + 'px';
+    node.style.top = Math.max(8, Math.min(y, window.innerHeight - 130)) + 'px';
+    node.classList.add('is-open');
+  }
+
+  // ------------------------------------------------------------ workspace
+  function renderLoading() {
+    S.mode = 'workspace';
+    DV.clear(app);
+    var shell = DV.el('div', { class: 'dv-workspace dv-loading-shell' }, app);
+    DV.el('div', { class: 'card dv-chart-card' }, shell).textContent = '载入中…';
+    DV.el('div', { class: 'card dv-panel' }, shell).textContent = '载入中…';
+  }
+
+  function renderError(message) {
+    DV.clear(app);
+    var box = DV.el('div', { class: 'card dv-error', role: 'alert' }, app);
+    DV.el('h2', {}, box).textContent = '没加载出来。';
+    DV.el('p', {}, box).textContent = message || '';
+    var retry = DV.el('button', { class: 'pill', type: 'button' }, box);
+    retry.textContent = '重试';
+    retry.addEventListener('click', function () { route(); });
+    var back = DV.el('a', { class: 'pill', href: '#/' }, box);
+    back.textContent = '回图表墙';
+  }
+
+  function renderWorkspace() {
+    var topic = currentTopic();
+    var view = currentView();
+    if (!topic || !view) { renderGallery(); return; }
+    S.mode = 'workspace';
+    DV.clear(app);
+    var order = byOrder(G.topics);
+    var idx = order.map(function (t) { return t.id; }).indexOf(topic.id);
+    var prev = order[(idx - 1 + order.length) % order.length];
+    var next = order[(idx + 1) % order.length];
+
+    var top = DV.el('div', { class: 'toolbar dv-topbar' }, app);
+    var wallLink = DV.el('a', { class: 'dv-wall-link', href: '#/' }, top);
+    wallLink.textContent = '图表墙';
+    function step(target, label, dir) {
+      var link = DV.el('a', { class: 'dv-step', href: '#/' + target.id + '/' + target.default_view,
+        'aria-label': label }, top);
+      link.textContent = dir;
+    }
+    step(prev, '上一个主题：' + prev.title_zh, '‹');
+    var topicBtn = DV.el('button', { class: 'dv-topic-btn', type: 'button', 'aria-haspopup': 'dialog' }, top);
+    DV.el('span', { class: 'dv-topic-zh' }, topicBtn).textContent = topic.title_zh;
+    DV.el('span', { class: 'dv-topic-en', lang: 'en' }, topicBtn).textContent = topic.title_en;
+    DV.el('span', { class: 'dv-chev', 'aria-hidden': 'true' }, topicBtn).textContent = '▾';
+    step(next, '下一个主题：' + next.title_zh, '›');
+
+    var dialog = DV.el('dialog', { class: 'dv-topic-dialog', 'aria-label': '换主题' }, app);
+    var dhead = DV.el('header', { class: 'dv-dialog-head' }, dialog);
+    DV.el('h2', {}, dhead).textContent = '换主题';
+    var close = DV.el('button', { class: 'dv-dialog-close', type: 'button', 'aria-label': '关闭' }, dhead);
+    close.textContent = '关闭';
+    var list = DV.el('div', { class: 'dv-topic-list' }, dialog);
+    order.forEach(function (item) {
+      var link = DV.el('a', {
+        class: 'dv-topic-item', href: '#/' + item.id + '/' + item.default_view,
+        'aria-current': item.id === topic.id ? 'page' : null
+      }, list);
+      DV.el('span', { class: 'dv-topic-item-en', lang: 'en' }, link).textContent = item.title_en;
+      DV.el('span', { class: 'dv-topic-item-zh' }, link).textContent = item.title_zh;
+      link.addEventListener('click', function () { dialog.close(); });
+    });
+    topicBtn.addEventListener('click', function () { dialog.showModal(); });
+    close.addEventListener('click', function () { dialog.close(); });
+    dialog.addEventListener('click', function (event) {
+      if (event.target === dialog) dialog.close();
+    });
+
+    var grid = DV.el('div', { class: 'dv-workspace' }, app);
+    var chartCard = DV.el('section', { class: 'card dv-chart-card', 'aria-labelledby': 'chart-title' }, grid);
+    var chead = DV.el('header', { class: 'dv-chart-head' }, chartCard);
+    var titles = DV.el('div', { class: 'dv-chart-titles' }, chead);
+    DV.el('h2', { id: 'chart-title', lang: 'en' }, titles).textContent = topic.title_en;
+    DV.el('p', { class: 'dv-chart-zh' }, titles).textContent = topic.title_zh;
+    if (view.subtitle_en) DV.el('p', { class: 'dv-chart-sub', lang: 'en' }, titles).textContent = view.subtitle_en;
+    DV.el('span', { class: 'badge' }, chead).textContent = 'Demo data · 模拟数据';
+
+    if (topic.views.length > 1) {
+      var views = DV.el('nav', { class: 'seg dv-views', 'aria-label': '切换视图' }, chartCard);
+      topic.views.forEach(function (v) {
+        var link = DV.el('a', { href: '#/' + topic.id + '/' + v.id,
+          'aria-current': v.id === view.id ? 'page' : null }, views);
+        link.textContent = v.label_zh || v.id;
+      });
+    }
+
+    var hiddenSeries = S.hidden[topic.id + '/' + view.id] || {};
+    var renderData = { data: view.data, unit: view.unit, subject: view.subject, type: view.type };
+    if ((view.type === 'line' || view.type === 'bar' || view.type === 'stacked') && renderData.data.series) {
+      renderData.data = Object.assign({}, renderData.data);
+      renderData.data.series = renderData.data.series.filter(function (s) { return !hiddenSeries[s.id]; });
+    }
+
+    var legendItems = [];
+    if (view.data.series && view.data.series.length > 1) {
+      view.data.series.forEach(function (s) { legendItems.push({ id: s.id, name: s.name_en, slot: s.slot, kind: 'series', shape: view.type === 'line' ? 'line' : 'rect' }); });
+    } else if (view.type === 'pie' && view.data.parts) {
+      view.data.parts.forEach(function (p) { legendItems.push({ id: p.id, name: p.name_en, slot: p.slot, kind: 'slice', shape: 'rect' }); });
+    } else if (view.type === 'scatter' && view.data.groups && view.data.groups.length > 1) {
+      view.data.groups.forEach(function (g) { legendItems.push({ id: g.id, name: g.name_en, slot: g.slot, kind: 'group', shape: 'dot' }); });
+    }
+    if (legendItems.length) {
+      var legend = DV.el('div', { class: 'dv-legend', role: 'group', 'aria-label': '数据系列' }, chartCard);
+      legendItems.forEach(function (item) {
+        var btn = DV.el('button', { class: 'dv-legend-item', type: 'button',
+          'aria-pressed': item.kind === 'series' ? (hiddenSeries[item.id] ? 'false' : 'true') : 'false' }, legend);
+        DV.el('span', { class: 'dv-key dv-key-' + (item.shape || 'line') + ' ' + DV.slotClass(item.slot || 1) }, btn);
+        DV.el('span', { lang: 'en' }, btn).textContent = item.name;
+        btn.addEventListener('click', function () {
+          if (item.kind === 'series') {
+            var visible = view.data.series.filter(function (s) { return !hiddenSeries[s.id] || s.id === item.id; });
+            if (hiddenSeries[item.id] !== true && visible.length <= 1) return;
+            hiddenSeries[item.id] = !hiddenSeries[item.id];
+            S.hidden[topic.id + '/' + view.id] = hiddenSeries;
+            if (S.mark && S.mark.indexOf(':' + item.id + ':') >= 0) S.mark = null;
+            S.featureIndex = buildFeatureIndex(view);
+            renderWorkspace();
+          } else if (item.kind === 'slice') {
+            select('slice:' + item.id);
+          } else {
+            select('grp:' + item.id);
+          }
+        });
+      });
+    }
+
+    var figure = DV.el('figure', { class: 'dv-figure' }, chartCard);
+    var chartHost = DV.el('div', { class: 'dv-chart-host' }, figure);
+    var tableWrap = DV.el('div', { class: 'dv-table', hidden: 'hidden' }, chartCard);
+    var foot = DV.el('footer', { class: 'dv-chart-foot' }, chartCard);
+    var tableBtn = DV.el('button', { class: 'pill dv-table-toggle', type: 'button',
+      'aria-expanded': S.table ? 'true' : 'false' }, foot);
+    tableBtn.textContent = S.table ? '看图' : '看表格';
+
+    var peek = DV.el('div', { class: 'dv-peek', hidden: 'hidden' }, chartCard);
+    var peekText = DV.el('span', { class: 'dv-peek-label', lang: 'en' }, peek);
+    var peekBtn = DV.el('button', { class: 'pill dv-peek-btn', type: 'button' }, peek);
+    peekBtn.textContent = '看说法';
+
+    var panelHost = DV.el('aside', { class: 'card dv-panel' }, grid);
+    var live = DV.el('div', { class: 'dv-live', 'aria-live': 'polite', 'aria-atomic': 'true' }, app);
+
+    S.featureIndex = buildFeatureIndex(view);
+    if (S.mark && !S.featureIndex[S.mark]) S.mark = null;
+    var renderer = DV.renderers[view.type](chartHost, renderData, {
+      select: select,
+      hover: function (mark, event) { showTip(S.featureIndex[mark], event); }
+    });
+    S.renderer = renderer;
+
+    function panelState() {
+      return {
+        view: view,
+        feature: featureFor(S.mark),
+        library: S.library,
+        register: S.register,
+        tab: S.tab,
+        level: S.level,
+        revealed: S.revealed,
+        onRegister: function (reg) { S.register = reg; DV.store.set('npesl-dataviz-reg', reg); replaceRoute([topic.id, view.id]); paintPanel(); },
+        onTab: function (tab) { S.tab = tab; DV.store.set('npesl-dataviz-tab', tab); replaceRoute([topic.id, view.id]); paintPanel(); },
+        onLevel: function (level) { S.level = level; paintPanel(); },
+        onReveal: function (open) { S.revealed = open; paintPanel(); },
+        onClear: function () { select(null); }
+      };
+    }
+
+    function paintPanel() {
+      DV.panel.render(panelHost, panelState());
+      if (S.mark) {
+        var f = featureFor(S.mark);
+        peekText.textContent = f ? (f.slots.value || f.slots.share || (f.slots.from && f.slots.to ? f.slots.from + ' → ' + f.slots.to : '')) : '';
+        peek.hidden = false;
+      } else {
+        peek.hidden = true;
+      }
+    }
+
+    function select(mark) {
+      S.mark = mark && S.featureIndex[mark] ? mark : null;
+      S.revealed = false;
+      renderer.setSelected(S.mark);
+      replaceRoute([topic.id, view.id]);
+      paintPanel();
+      if (S.mark) {
+        var f = featureFor(S.mark);
+        live.textContent = '已选：' + (f && (f.slots.value || f.slots.share || f.slots.period) || '');
+      } else {
+        live.textContent = '已回到整张图';
+      }
+    }
+
+    function paintTable() {
+      var data = renderer.table ? renderer.table() : null;
+      DV.clear(tableWrap);
+      if (!data) return;
+      var table = DV.el('table', {}, tableWrap);
+      DV.el('caption', {}, table).textContent = topic.title_en + ' · 模拟数据';
+      var thead = DV.el('thead', {}, table);
+      var tr = DV.el('tr', {}, thead);
+      data.head.forEach(function (h) { DV.el('th', { scope: 'col' }, tr).textContent = h; });
+      var tbody = DV.el('tbody', {}, table);
+      data.rows.forEach(function (row) {
+        var r = DV.el('tr', {}, tbody);
+        row.forEach(function (cell, i) {
+          var td = i === 0 ? DV.el('th', { scope: 'row' }, r) : DV.el('td', {}, r);
+          td.textContent = cell;
+        });
+      });
+    }
+
+    function applyTable() {
+      figure.hidden = S.table;
+      tableWrap.hidden = !S.table;
+      tableBtn.setAttribute('aria-expanded', S.table ? 'true' : 'false');
+      tableBtn.textContent = S.table ? '看图' : '看表格';
+      if (S.table) paintTable();
+    }
+    tableBtn.addEventListener('click', function () { S.table = !S.table; applyTable(); });
+    peekBtn.addEventListener('click', function () {
+      panelHost.scrollIntoView({ behavior: DV.prefersReduced() ? 'auto' : 'smooth', block: 'start' });
+      var tab = panelHost.querySelector('[role="tab"][aria-selected="true"]');
+      if (tab) tab.focus({ preventScroll: true });
+    });
+
+    renderer.setSelected(S.mark);
+    applyTable();
+    paintPanel();
+    if (!S.mark) live.textContent = '已打开：' + topic.title_zh;
+  }
+
+  function buildFeatureIndex(view) {
+    var index = {};
+    (view.features || []).forEach(function (f) {
+      (f.marks || []).forEach(function (mark) { index[mark] = f; });
+    });
+    return index;
+  }
+
+  // ------------------------------------------------------------ routing
+  function route() {
+    var r = parseRoute();
+    if (!r.parts.length) {
+      if (r.q.type) S.filter = r.q.type;
+      renderGallery();
+      return;
+    }
+    var slug = r.parts[0];
+    var card = topicCard(slug);
+    if (!card) {
+      S.filter = 'all';
+      renderGallery();
+      DV.el('p', { class: 'dv-notice' }, app).textContent = '没找到这个主题。';
+      return;
+    }
+    S.topic = slug;
+    S.view = r.parts[1] || null;
+    S.mark = null;
+    applyQuery(r.q);
+    renderLoading();
+    ensureTopic(slug).then(function () {
+      var topic = TOPICS[slug];
+      if (!S.view) S.view = topic.views[0].id;
+      var view = topic.views.filter(function (v) { return v.id === S.view; })[0];
+      if (!view) S.view = topic.views[0].id;
+      view = topic.views.filter(function (v) { return v.id === S.view; })[0];
+      return ensureLang(view.type).then(function () {
+        S.library = LANGS[view.type];
+      });
+    }).then(function () {
+      renderWorkspace();
+    }).catch(function (error) {
+      if (window.console && console.error) console.error(error && error.stack || error);
+      renderError(String(error && (error.stack || error.message) || error));
+    });
+  }
+
+  // ------------------------------------------------------------ boot
+  function boot() {
+    app = document.getElementById('app');
+    if (!app) return;
+    if (!G.topics || !G.topics.length) {
+      app.textContent = '没有内容。';
+      return;
+    }
+    document.addEventListener('click', function (event) {
+      if (!tooltip || !tooltip.classList.contains('is-open')) return;
+      if (!event.target.closest || !event.target.closest('[data-mark]')) {
+        tooltip.classList.remove('is-open');
+      }
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && S.mode === 'workspace' && S.mark) {
+        var btn = app.querySelector('.dv-clear');
+        if (btn) btn.click();
+        else {
+          S.mark = null;
+          S.revealed = false;
+          if (S.renderer) S.renderer.setSelected(null);
+          var panel = app.querySelector('.dv-panel');
+          if (panel) DV.panel.render(panel, {
+            view: currentView(), feature: null, library: S.library,
+            register: S.register, tab: S.tab, level: S.level, revealed: false,
+            onRegister: function () {}, onTab: function () {}, onLevel: function () {},
+            onReveal: function () {}, onClear: function () {}
+          });
+        }
+      }
+    });
+    window.addEventListener('hashchange', route);
+    window.__dv = {
+      bootId: BOOT_ID,
+      snapshot: function () {
+        return {
+          mode: S.mode, topic: S.topic, view: S.view, mark: S.mark,
+          kind: featureFor(S.mark) ? featureFor(S.mark).kind : null,
+          tab: S.tab, register: S.register, level: S.level,
+          revealed: S.revealed, table: S.table,
+          topics: G.topics.length
+        };
+      },
+      select: function (mark) {
+        var node = app.querySelector('[data-mark="' + String(mark).replace(/"/g, '\\"') + '"]');
+        if (node) node.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      },
+      clear: function () {
+        var btn = app.querySelector('.dv-clear');
+        if (btn) btn.click();
+      },
+      setRegister: function (reg) {
+        var btns = app.querySelectorAll('.dv-register button');
+        for (var i = 0; i < btns.length; i++) {
+          if (btns[i].textContent === ({ general: '通用', ielts: '雅思', business: '商务' }[reg])) btns[i].click();
+        }
+      },
+      reveal: function () {
+        var btn = app.querySelector('.dv-reveal');
+        if (btn) btn.click();
+      },
+      table: function () {
+        var btn = app.querySelector('.dv-table-toggle');
+        if (btn) btn.click();
+      }
+    };
+    route();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})(window.DV);
+</script>
+</body>
+</html>

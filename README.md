@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站。六个线上应用共用一个入口：
+成人英语练习网站。八个线上应用共用一个入口：
 
 | 应用 | 线上 | 源 |
 |---|---|---|
@@ -10,6 +10,8 @@
 | Conversation Starters Beginner / Intermediate / ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `apps/conversation/` |
 | 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
 | 短语搭配 Collocations（41 个主题 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
+| Visual Vocabulary 图解词汇（六组图解词表） | https://npesl.pages.dev/visual-vocabulary/ | `apps/visual-vocabulary/` |
+| 数据图表英语 Data Visualization Playground | https://npesl.pages.dev/data-viz/ | `content/data-viz/` → `apps/data-viz/` |
 
 ## 目录
 
@@ -21,6 +23,7 @@
 | `content/conversation/` | Conversation Starters 分级 `content.py`、逐段中文翻译、发音标注 |
 | `content/drill/` | Question Drill 题库：`raw/` `reviewed/` `final/` 批次、`questions.json`、翻译与修订表 |
 | `content/collocation/` | 短语搭配：`themes.json` + 41 个主题词条 JSON（内容源） |
+| `content/data-viz/` | 数据图表英语：`manifest.json`、9 个图表语言库、每主题一个 JSON |
 | `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Light / Dark / Glass） |
 | `apps/phonics/` | 48 课网页、`source/`（内容与构建器）、`audio/` |
 | `apps/ipa/` | 音标表网页（`index.html` + `audio/`），40 个音标 × 10 个单词 |
@@ -28,6 +31,7 @@
 | `apps/phenomena/` | 30 章发音现象课，逐词音素标注 + 男女声 |
 | `apps/collocation/` | 短语搭配章节页（`source/` 构建器 + `audio/`），每章一条 sprite |
 | `apps/conversation/` | Conversation Starters 页面与 `audio/`（`source/` 构建器，内容源在 `content/conversation/`） |
+| `apps/data-viz/` | 数据图表英语单页应用：`source/` 校验与构建器、`js/` 源码、hashed 数据包 |
 | `miniprogram/` | 微信小程序（原生）；数据与音频由 `tools/miniprogram/` 从已构建页面生成 |
 | `tools/` | 构建、校验脚本；`tools/README.md` 是脚本索引，`tools/paths.py` 是路径的唯一来源 |
 | `tools/audio_sprite.py` | 把逐条录音拼成每页/每课/每题一条（不改码率，音质不变） |
@@ -47,7 +51,7 @@ python -m venv .venv
 
 ## 构建
 
-日常只需要一条命令（按依赖顺序构建六个线上应用并装配主站暂存目录）：
+日常只需要一条命令（按依赖顺序构建八个线上应用并装配主站暂存目录）：
 
 ```powershell
 .venv\Scripts\python.exe -I tools\build_all.py
@@ -109,7 +113,7 @@ npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npe
 ## 自检
 
 ```powershell
-# 一次跑完：音频引用、英式英语、六个线上应用的冒烟测试
+# 一次跑完：音频引用、英式英语、八个线上应用的冒烟测试
 .venv\Scripts\python.exe -I tools\verify.py
 
 # 改构建脚本前后：拍快照，再比对（0 差异才算通过）

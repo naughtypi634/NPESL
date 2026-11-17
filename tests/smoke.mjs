@@ -379,7 +379,7 @@ const cases = [
     async run() {
       const links = await evaluate(
         "[...document.querySelectorAll('a')].map(a => new URL(a.getAttribute('href'), location.href).pathname)");
-      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/collocation/'];
+      const want = ['/phonics/', '/ipa/', '/drill/', '/conversation/', '/phenomena/', '/collocation/', '/data-viz/'];
       const missing = want.filter((w) => !links.some((h) => h && h.startsWith(w)));
       return { ok: missing.length === 0, detail: missing.length ? `缺少链接 ${missing}` : `${want.length} 个入口齐全` };
     },
@@ -1435,6 +1435,237 @@ const cases = [
             + JSON.stringify(queueStopped)} `
           + `start=${p.started} t=${p.currentTime?.toFixed(2)} want≥${start}`,
       };
+    },
+  },
+
+  {
+    name: 'data-viz-index', path: '/data-viz/',
+    async run() {
+      const ready = await waitFor("!!document.querySelector('.dv-tile')", 8000);
+      if (!ready) return { ok: false, detail: '画廊没有卡片' };
+      const info = await evaluate(`(() => {
+        const snap = window.__dv && window.__dv.snapshot ? window.__dv.snapshot() : null;
+        return {
+          tiles: document.querySelectorAll('.dv-tile').length,
+          minis: document.querySelectorAll('.dv-tile svg').length,
+          snap,
+          text: document.body.innerText,
+        };
+      })()`);
+      const bad = /\d+\s*(个主题|种图表|条表达)|已学|完成|进度|打卡/.test(info.text);
+      const filtered = await evaluate(`(() => {
+        const chips = [...document.querySelectorAll('.dv-chips button')];
+        const pie = chips.find(b => b.textContent === '饼图');
+        if (pie) pie.click();
+        const n = document.querySelectorAll('.dv-tile').length;
+        const all = chips.find(b => b.textContent === '全部');
+        if (all) all.click();
+        return { pie: n, all: document.querySelectorAll('.dv-tile').length };
+      })()`);
+      return {
+        ok: info.tiles === 20 && info.minis === 20 && info.snap && info.snap.mode === 'gallery' && !bad
+          && filtered.pie >= 2 && filtered.all === 20,
+        detail: `tiles=${info.tiles} minis=${info.minis} mode=${info.snap && info.snap.mode} bad=${bad} filter=${JSON.stringify(filtered)}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-workspace', path: '/data-viz/',
+    async run() {
+      await evaluate("location.hash = '#/online-shopping/share'");
+      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      if (!ready) return { ok: false, detail: '工作台没有可点的数据标记' };
+      const before = await evaluate('window.__dv.snapshot()');
+      await evaluate("window.__dv.select('seg:online:0')");
+      await sleep(150);
+      const after = await evaluate('window.__dv.snapshot()');
+      const panel = await evaluate("document.querySelector('.dv-panel').innerText");
+      const hasPattern = await evaluate(`(() => {
+        const t = document.querySelector('#tab-patterns');
+        if (!t) return false;
+        t.click();
+        return true;
+      })()`);
+      await sleep(100);
+      const patternText = await evaluate("document.querySelector('.dv-panel').innerText");
+      return {
+        ok: before.mode === 'workspace' && after.mark === 'seg:online:0' && after.kind === 'rise_steady'
+          && /rise|increased/i.test(panel) && hasPattern && /Online|online/.test(patternText),
+        detail: `mode=${before.mode} mark=${after.mark} kind=${after.kind} hasPattern=${hasPattern} panel=${panel.replace(/\s+/g, ' ').slice(0, 220)} pat=${patternText.replace(/\s+/g, ' ').slice(0, 160)} body=${(await evaluate("document.querySelector('.dv-panel-body').innerHTML")).slice(0,180)} langs=${await evaluate('JSON.stringify(Object.keys(window.DV_LANG||{}))')}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-table', path: '/data-viz/',
+    async run() {
+      await evaluate("location.hash = '#/rent-by-district/rent'");
+      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      if (!ready) return { ok: false, detail: '租金图没有渲染' };
+      await evaluate('window.__dv.table()');
+      await sleep(100);
+      const info = await evaluate(`(() => {
+        const table = document.querySelector('.dv-table table');
+        return {
+          rows: table ? table.querySelectorAll('tbody tr').length : 0,
+          text: table ? table.innerText : '',
+          hidden: document.querySelector('.dv-figure').hidden,
+        };
+      })()`);
+      return {
+        ok: info.rows === 8 && /7,800/.test(info.text) && info.hidden,
+        detail: `rows=${info.rows} hidden=${info.hidden}`,
+      };
+    },
+  },
+
+  {
+    name: 'data-viz-describe', path: '/data-viz/',
+    async run() {
+      await evaluate("location.hash = '#/online-shopping/share'");
+      await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      await evaluate("(() => { const el = document.querySelector('#tab-describe'); if (el) el.click(); })()");
+      await sleep(80);
+      await evaluate("window.__dv.select('seg:online:0')");
+      await evaluate("(() => { const el = document.querySelector('#tab-describe'); if (el) el.click(); })()");
+      await sleep(80);
+      const hiddenBefore = await evaluate("!document.querySelector('.dv-models')");
+      await evaluate('window.__dv.reveal()');
+      await sleep(100);
+      const model = await evaluate("(document.querySelector('.dv-model-en')||{}).textContent || ''");
+      await evaluate("window.__dv.setRegister('ielts')");
+      await sleep(100);
+      const ieltsModel = await evaluate("(document.querySelector('.dv-model-en')||{}).textContent || ''");
+      const note = await evaluate("document.querySelector('.dv-model-note') ? document.querySelector('.dv-model-note').textContent : ''");
+      const snap = await evaluate('window.__dv.snapshot()');
+      return {
+        ok: hiddenBefore && /Online|rose|share/i.test(model) && snap.register === 'ielts'
+          && ieltsModel !== model && /雅思|increased|rose|accounted/i.test(ieltsModel + note),
+        detail: `hidden=${hiddenBefore} reg=${snap.register} a2=${String(model).slice(0,40)} ielts=${String(ieltsModel).slice(0,60)}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-deeplink', path: '/data-viz/',
+    async run() {
+      await evaluate("location.hash = '#/food-delivery/value?mark=bar:value:4&tab=words&reg=business'");
+      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      const diag = await evaluate(`(() => ({
+        hash: location.hash,
+        snap: window.__dv ? window.__dv.snapshot() : null,
+        topics: Object.keys(window.DV_TOPICS || {}),
+        langs: Object.keys(window.DV_LANG || {}),
+        body: document.body.innerText.slice(0, 120),
+        marks: document.querySelectorAll('.dv-chart [data-mark]').length
+      }))()`);
+      if (!ready) return { ok: false, detail: '深链没有渲染 ' + JSON.stringify(diag) };
+      const snap = await evaluate('window.__dv.snapshot()');
+      const text = await evaluate("document.querySelector('.dv-panel') ? document.querySelector('.dv-panel').innerText : 'NO PANEL'");
+      await evaluate("location.hash = '#/no-such-topic'");
+      await sleep(200);
+      const fallback = await evaluate('window.__dv.snapshot()');
+      return {
+        ok: snap.topic === 'food-delivery' && snap.view === 'value' && snap.mark === 'bar:value:4'
+          && snap.tab === 'words' && snap.register === 'business'
+          && /highest|54/.test(text) && fallback.mode === 'gallery',
+        detail: `topic=${snap.topic} view=${snap.view} mark=${snap.mark} tab=${snap.tab} reg=${snap.register} fallback=${fallback.mode} diag=${JSON.stringify(diag)}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-back', path: '/data-viz/',
+    async run() {
+      const boot = await evaluate('window.__dv.bootId');
+      await evaluate("location.hash = '#/rent-by-district/rent'");
+      await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      await evaluate('history.back()');
+      await sleep(400);
+      const after = await evaluate('({ bootId: window.__dv && window.__dv.bootId, mode: window.__dv && window.__dv.snapshot().mode })');
+      return {
+        ok: after.bootId === boot && after.mode === 'gallery',
+        detail: `boot=${after.bootId === boot} mode=${after.mode}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-theme', path: '/data-viz/',
+    async run() {
+      await evaluate("localStorage.setItem('npesl-theme','glass'); location.hash = '#/coffee-shop/week'; location.reload()");
+      await sleep(900);
+      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      const info = await evaluate(`(() => ({
+        theme: document.documentElement.getAttribute('data-theme'),
+        marks: document.querySelectorAll('.dv-chart [data-mark]').length,
+        heat: document.querySelectorAll('.dv-cell').length
+      }))()`);
+      return { ok: ready && info.theme === 'glass' && info.marks > 0 && info.heat > 0,
+        detail: `theme=${info.theme} marks=${info.marks} heat=${info.heat}` };
+    },
+  },
+
+  {
+    name: 'data-viz-types', path: '/data-viz/',
+    async run() {
+      const cases = [
+        ['metro-ridership', 'daily', 'line'],
+        ['food-delivery', 'value', 'bar'],
+        ['household-budget', 'shares', 'pie'],
+        ['study-hours', 'hours', 'scatter'],
+        ['energy-mix', 'mix', 'stacked'],
+        ['coffee-shop', 'hours', 'heatmap'],
+        ['package-delivery', 'flow', 'sankey'],
+        ['team-headcount', 'mix', 'slope'],
+        ['electricity-bill', 'bill', 'waterfall'],
+      ];
+      const failures = [];
+      for (const [topic, view, type] of cases) {
+        await evaluate(`location.hash = '#/${topic}/${view}'`);
+        const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+        if (!ready) { failures.push(`${type}:no-chart`); continue; }
+        const mark = await evaluate("(document.querySelector('.dv-chart [data-mark]')||{}).getAttribute ? document.querySelector('.dv-chart [data-mark]').getAttribute('data-mark') : ''");
+        await evaluate(`window.__dv.select(${JSON.stringify(mark)})`);
+        await sleep(80);
+        const snap = await evaluate('window.__dv.snapshot()');
+        const panel = await evaluate("(document.querySelector('.dv-panel')||{}).innerText || ''");
+        if (!mark || !snap.kind || snap.kind === 'null' || panel.length < 30) {
+          failures.push(`${type}:${snap.kind || 'no-kind'}:${panel.length}`);
+        }
+      }
+      return {
+        ok: failures.length === 0,
+        detail: failures.length ? `失败 ${failures.join(' ')}` : `${cases.length} 种图表全部可点`,
+      };
+    },
+  },
+
+  {
+    name: 'data-viz-table-types', path: '/data-viz/',
+    async run() {
+      const cases = [
+        ['metro-ridership', 'daily'],
+        ['food-delivery', 'value'],
+        ['household-budget', 'shares'],
+        ['study-hours', 'hours'],
+        ['energy-mix', 'mix'],
+        ['coffee-shop', 'hours'],
+        ['package-delivery', 'flow'],
+        ['team-headcount', 'mix'],
+        ['electricity-bill', 'bill'],
+      ];
+      const failures = [];
+      for (const [topic, view] of cases) {
+        await evaluate(`location.hash = '#/${topic}/${view}'`);
+        const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+        if (!ready) { failures.push(`${topic}:no-chart`); continue; }
+        await evaluate('window.__dv.table()');
+        await sleep(80);
+        const info = await evaluate(`(() => {
+          const t = document.querySelector('.dv-table table');
+          return { rows: t ? t.querySelectorAll('tbody tr').length : 0, cap: t ? (t.querySelector('caption')||{}).textContent : '' };
+        })()`);
+        if (info.rows < 2 || !/模拟数据/.test(info.cap || '')) failures.push(`${topic}:${info.rows}`);
+        await evaluate('window.__dv.table()');
+      }
+      return { ok: failures.length === 0, detail: failures.length ? failures.join(' ') : '9 种图表表格齐全' };
     },
   },
 ];

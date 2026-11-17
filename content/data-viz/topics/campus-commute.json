@@ -1,0 +1,251 @@
+{
+  "id": "campus-commute",
+  "title_en": "Campus Commute",
+  "title_zh": "校园通勤",
+  "blurb_zh": "学生从哪来、怎么来、走哪个门",
+  "scene_zh": "一所大学每日到校通勤（模拟数据）",
+  "demo": true,
+  "views": [
+    {
+      "id": "commute",
+      "type": "sankey",
+      "label_zh": "通勤方式",
+      "label_en": "Commute flow",
+      "subject": "How 2,400 students get to campus",
+      "subtitle_en": "Where students start, how they travel, and which gate they use.",
+      "unit": { "en": "students per day", "short": "students", "decimals": 0, "kind": "count" },
+      "period_label": "a typical day",
+      "columns": [
+        ["near", "west", "south", "suburb"],
+        ["walk", "bus", "metro", "car"],
+        ["east", "north"]
+      ],
+      "nodes": [
+        { "id": "near", "name_en": "Nearby", "name_zh": "附近", "column": 0, "slot": 1 },
+        { "id": "west", "name_en": "West District", "name_zh": "西区", "column": 0, "slot": 2 },
+        { "id": "south", "name_en": "South District", "name_zh": "南区", "column": 0, "slot": 3 },
+        { "id": "suburb", "name_en": "Suburbs", "name_zh": "郊区", "column": 0, "slot": 4 },
+        { "id": "walk", "name_en": "Walk or bike", "name_zh": "步行或骑车", "column": 1, "slot": 1 },
+        { "id": "bus", "name_en": "Bus", "name_zh": "公交", "column": 1, "slot": 2 },
+        { "id": "metro", "name_en": "Metro", "name_zh": "地铁", "column": 1, "slot": 3 },
+        { "id": "car", "name_en": "Car", "name_zh": "开车", "column": 1, "slot": 4 },
+        { "id": "east", "name_en": "East Gate", "name_zh": "东门", "column": 2, "slot": 1 },
+        { "id": "north", "name_en": "North Gate", "name_zh": "北门", "column": 2, "slot": 2 }
+      ],
+      "links": [
+        { "source": "near", "target": "walk", "value": 500 },
+        { "source": "near", "target": "bus", "value": 50 },
+        { "source": "near", "target": "metro", "value": 50 },
+        { "source": "west", "target": "walk", "value": 100 },
+        { "source": "west", "target": "bus", "value": 250 },
+        { "source": "west", "target": "metro", "value": 300 },
+        { "source": "west", "target": "car", "value": 50 },
+        { "source": "south", "target": "walk", "value": 150 },
+        { "source": "south", "target": "bus", "value": 200 },
+        { "source": "south", "target": "metro", "value": 250 },
+        { "source": "suburb", "target": "walk", "value": 50 },
+        { "source": "suburb", "target": "bus", "value": 100 },
+        { "source": "suburb", "target": "metro", "value": 100 },
+        { "source": "suburb", "target": "car", "value": 250 },
+        { "source": "walk", "target": "east", "value": 650 },
+        { "source": "walk", "target": "north", "value": 150 },
+        { "source": "bus", "target": "east", "value": 250 },
+        { "source": "bus", "target": "north", "value": 350 },
+        { "source": "metro", "target": "east", "value": 300 },
+        { "source": "metro", "target": "north", "value": 400 },
+        { "source": "car", "target": "east", "value": 100 },
+        { "source": "car", "target": "north", "value": 200 }
+      ],
+      "features": [
+        {
+          "id": "cm-near-walk",
+          "kind": "main_path",
+          "marks": ["link:near->walk"],
+          "examples": [
+            {
+              "en": "Nearby students mostly walk or bike: 500 of 600 make the trip without a vehicle.",
+              "zh": "附近的学生多数步行或骑车：600 人里有 500 人不坐车。"
+            }
+          ],
+          "note_zh": "X of Y 是口语里给比例最直接的方式。",
+          "interpret_zh": "附近学生没有一条开车流，距离短到不需要机动车。"
+        },
+        {
+          "id": "cm-suburb-car",
+          "kind": "main_path",
+          "marks": ["link:suburb->car"],
+          "examples": [
+            {
+              "en": "250 students from the suburbs drive, the largest group of drivers.",
+              "zh": "郊区有 250 人开车，是最大的开车群体。"
+            }
+          ],
+          "note_zh": "the largest group of + 人群，用来比较构成。",
+          "interpret_zh": "郊区开车的人占郊区学生的一半，是公共交通覆盖不足的迹象。"
+        },
+        {
+          "id": "cm-west-metro",
+          "kind": "main_path",
+          "marks": ["link:west->metro"],
+          "examples": [
+            {
+              "en": "West District sends 300 students by metro, the largest single metro flow.",
+              "zh": "西区有 300 人坐地铁，是地铁最大的一条来源。"
+            }
+          ],
+          "note_zh": "single flow 强调单条流，不和总和比。",
+          "interpret_zh": "西区坐地铁的人比坐公交的多 50 人。"
+        },
+        {
+          "id": "cm-gates",
+          "kind": "merge",
+          "marks": ["node:east", "node:north"],
+          "examples": [
+            {
+              "en": "The east gate takes 1,300 students a day, 200 more than the north gate.",
+              "zh": "东门每天进 1300 人，比北门多 200 人。"
+            }
+          ],
+          "note_zh": "take + 人数 描述入口吞吐量很自然。",
+          "interpret_zh": "东门承担 54% 的到校人流，高峰压力更集中。"
+        },
+        {
+          "id": "cm-walk-split",
+          "kind": "split",
+          "marks": ["node:walk"],
+          "examples": [
+            {
+              "en": "Walkers and cyclists split between the gates: 650 use the east gate and 150 the north.",
+              "zh": "步行和骑车的人在两个门之间分流：650 人走东门，150 人走北门。"
+            }
+          ],
+          "note_zh": "split between + 两个对象，冒号后给具体数。",
+          "interpret_zh": "步行者主要走东门，可能和东门靠近教学区有关，但图里没有位置信息。"
+        },
+        {
+          "id": "cm-bus-north",
+          "kind": "main_path",
+          "marks": ["link:bus->north"],
+          "examples": [
+            {
+              "en": "Buses drop 350 students at the north gate, the largest bus flow.",
+              "zh": "公交在北门放下 350 人，是公交最大的一条流。"
+            }
+          ],
+          "note_zh": "drop + 人数 + at + 地点，描述公交下客很地道。",
+          "interpret_zh": "公交更偏北门，和地铁的分布不同。"
+        },
+        {
+          "id": "cm-metro-east",
+          "kind": "secondary_path",
+          "marks": ["link:metro->east"],
+          "examples": [
+            {
+              "en": "A smaller metro stream of 300 students enters through the east gate.",
+              "zh": "还有 300 人坐地铁从东门进校，规模较小。"
+            }
+          ],
+          "note_zh": "a smaller stream of + 数值 说明这是次要路径。",
+          "interpret_zh": "地铁主流走北门 400 人，东门只是次要入口。"
+        }
+      ],
+      "overview_zh": "附近学生以步行骑车为主，郊区学生一半开车。全校 800 人步行骑车、700 人坐地铁、600 人坐公交、300 人开车；东门承担 1300 人，北门 1100 人。",
+      "descriptions": {
+        "general": {
+          "a2": "Many students live near campus, and 500 of them walk or bike. Students from the suburbs often drive. The east gate is busier than the north gate.",
+          "b1": "Of 2,400 students, 800 walk or bike, 700 take the metro, 600 take the bus and 300 drive. The east gate handles 1,300 students a day, compared with 1,100 at the north gate.",
+          "b2": "Nearby students overwhelmingly walk or bike: 500 of 600. The suburbs are different, with 250 of 500 students driving. Across all groups, the metro carries 700 students and the bus 600, and the east gate absorbs 54 percent of arrivals."
+        },
+        "ielts": "Walking and cycling was the most common mode, used by 800 of 2,400 students, followed by the metro at 700 and the bus at 600. Cars carried 300 students. The east gate received 1,300 students a day, while the north gate handled 1,100.",
+        "business": "The campus is pedestrian-heavy: 800 of 2,400 students walk or bike, and nearby residents rarely use motorized transport. Suburban students are the exception, with 250 of 500 driving. The east gate carries 54 percent of arrivals, so that is where capacity upgrades should start."
+      }
+    },
+    {
+      "id": "travel-time",
+      "type": "bar",
+      "label_zh": "通勤时间",
+      "label_en": "Travel time",
+      "subject": "Average door-to-door travel time by mode",
+      "subtitle_en": "Minutes from home to class in 2026.",
+      "unit": { "en": "minutes", "short": "min", "decimals": 0, "kind": "count" },
+      "x": {
+        "label_en": "Mode",
+        "label_zh": "方式",
+        "values": ["Walk or bike", "Metro", "Bus", "Car"]
+      },
+      "series": [
+        {
+          "id": "minutes",
+          "name_en": "Average travel time",
+          "name_zh": "平均通勤时间",
+          "slot": 1,
+          "values": [12, 24, 28, 31]
+        }
+      ],
+      "features": [
+        {
+          "id": "tt-walk",
+          "kind": "lowest",
+          "marks": ["bar:minutes:0"],
+          "examples": [
+            {
+              "en": "Walking or biking is the fastest, at 12 minutes.",
+              "zh": "步行或骑车最快，为 12 分钟。"
+            }
+          ],
+          "note_zh": "the fastest + at + 时间；fast 形容方式，不形容时长本身。",
+          "interpret_zh": "最快只对住在附近的人成立，郊区步行并不现实。"
+        },
+        {
+          "id": "tt-metro",
+          "kind": "ranking",
+          "marks": ["bar:minutes:1"],
+          "examples": [
+            {
+              "en": "The metro ranks second, at 24 minutes.",
+              "zh": "地铁排第二，为 24 分钟。"
+            }
+          ],
+          "note_zh": "rank second 不加 the；主语是交通方式时用单数。",
+          "interpret_zh": "地铁比步行慢一倍，但覆盖距离远得多。"
+        },
+        {
+          "id": "tt-bus",
+          "kind": "compare_groups",
+          "marks": ["bar:minutes:2"],
+          "examples": [
+            {
+              "en": "The bus takes 28 minutes, four minutes longer than the metro.",
+              "zh": "公交要 28 分钟，比地铁多四分钟。"
+            }
+          ],
+          "note_zh": "four minutes longer than 直接说差距，不用 difference。",
+          "interpret_zh": "公交和地铁只差四分钟，但班次和准点率可能差很多。"
+        },
+        {
+          "id": "tt-car",
+          "kind": "highest",
+          "marks": ["bar:minutes:3"],
+          "examples": [
+            {
+              "en": "Driving is the slowest, at 31 minutes.",
+              "zh": "开车最慢，为 31 分钟。"
+            }
+          ],
+          "note_zh": "the slowest + at + 时间；注意不要说 the most slow。",
+          "interpret_zh": "开车最慢可能包括找车位和步行进校的时间。"
+        }
+      ],
+      "overview_zh": "步行骑车 12 分钟最快，开车 31 分钟最慢；地铁 24 分钟，公交 28 分钟。时间最短的方式只适合住得近的学生。",
+      "descriptions": {
+        "general": {
+          "a2": "Walking or biking is the fastest way, at 12 minutes. The metro takes 24 minutes, the bus 28, and driving 31 minutes. The slowest option takes more than twice as long as walking.",
+          "b1": "Travel time rises from 12 minutes for walking or biking to 31 minutes for driving. The metro is second at 24 minutes, while the bus takes 28, only four minutes less than a car.",
+          "b2": "Active travel is by far the quickest at 12 minutes, less than half the driving time of 31 minutes. Motorized modes cluster between 24 and 31 minutes, with the bus just three minutes behind the car."
+        },
+        "ielts": "Walking or biking took the least time at 12 minutes on average, followed by the metro at 24 minutes and the bus at 28 minutes. Driving was the slowest option, at 31 minutes.",
+        "business": "Walking wins on time at 12 minutes, but only for students who live close. For everyone else, the metro's 24 minutes beats the bus and car by four and seven minutes, which explains its 700 daily riders."
+      }
+    }
+  ]
+}
