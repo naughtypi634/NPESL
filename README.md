@@ -4,13 +4,13 @@
 
 | 应用 | 线上 | 源 |
 |---|---|---|
-| 自然拼读阅读训练 48 课 | https://npesl.pages.dev/phonics/ | `apps/phonics/` |
+| 自然拼读阅读训练 | https://npesl.pages.dev/phonics/ | `apps/phonics/` |
 | 美式英语音标表 | https://npesl.pages.dev/ipa/ | `apps/ipa/` |
 | Question Drill 中译英随机练习 | https://npesl.pages.dev/drill/ | `apps/drill/` |
 | Conversation Starters Beginner / Intermediate / ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `apps/conversation/` |
-| 常见发音现象 30 章 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
-| 短语搭配 Collocations（41 个主题 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
-| Visual Vocabulary 图解词汇（六组图解词表） | https://npesl.pages.dev/visual-vocabulary/ | `apps/visual-vocabulary/` |
+| 常见发音现象 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
+| 短语搭配 Collocations（主题词表 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
+| Visual Vocabulary 图解词汇 | https://npesl.pages.dev/visual-vocabulary/ | `apps/visual-vocabulary/` |
 
 > 数据图表英语（Data Visualization Playground）在 `content/data-viz/` + `apps/data-viz/` 开发中，**暂不部署**。本地联调：先构建，再 `tools/build_cloudflare_site.py --with-data-viz`。
 
@@ -23,13 +23,13 @@
 | `content/phonetics/` | 音标表 Markdown 源 + 成品 PDF（网页从 PDF 抽内嵌录音） |
 | `content/conversation/` | Conversation Starters 分级 `content.py`、逐段中文翻译、发音标注 |
 | `content/drill/` | Question Drill 题库：`raw/` `reviewed/` `final/` 批次、`questions.json`、翻译与修订表 |
-| `content/collocation/` | 短语搭配：`themes.json` + 41 个主题词条 JSON（内容源） |
+| `content/collocation/` | 短语搭配：`themes.json` + 每个主题一个词条 JSON（内容源） |
 | `content/data-viz/` | 数据图表英语：`manifest.json`、9 个图表语言库、每主题一个 JSON |
 | `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Light / Dark / Glass） |
-| `apps/phonics/` | 48 课网页、`source/`（内容与构建器）、`audio/` |
-| `apps/ipa/` | 音标表网页（`index.html` + `audio/`），40 个音标 × 10 个单词 |
+| `apps/phonics/` | 自然拼读网页、`source/`（内容与构建器）、`audio/` |
+| `apps/ipa/` | 音标表网页（`index.html` + `audio/`） |
 | `apps/drill/` | 中译英练习网页（`index.html` + `audio/f,m/`）与独立单文件 HTML |
-| `apps/phenomena/` | 30 章发音现象课，逐词音素标注 + 男女声 |
+| `apps/phenomena/` | 发音现象课，逐词音素标注 + 男女声 |
 | `apps/collocation/` | 短语搭配章节页（`source/` 构建器 + `audio/`），每章一条 sprite |
 | `apps/conversation/` | Conversation Starters 页面与 `audio/`（`source/` 构建器，内容源在 `content/conversation/`） |
 | `apps/data-viz/` | 数据图表英语单页应用：`source/` 校验与构建器、`js/` 源码、hashed 数据包 |
@@ -66,10 +66,10 @@ python -m venv .venv
 # 音标表页面（--skip-audio 只用缓存；去掉则让 Azure 重录全部单词）
 .venv\Scripts\python.exe -I tools\build_ipa_site.py --skip-audio
 
-# 自然拼读 48 课
+# 自然拼读
 .venv\Scripts\python.exe -I -X utf8 apps\phonics\source\build.py
 
-# 常见发音现象 30 章
+# 常见发音现象
 .venv\Scripts\python.exe -I -X utf8 apps\phenomena\source\build.py
 
 # 短语搭配：校验内容，再合成音频并出章节页

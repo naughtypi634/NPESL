@@ -1,6 +1,6 @@
 # NPESL
 
-成人英语练习网站。七个线上应用共用一个域名（https://npesl.pages.dev/）：自然拼读 48 课、美式英语音标表、Question Drill、Conversation Starters Beginner / Intermediate / ESLSE、常见发音现象 30 章、短语搭配 41 个主题、Visual Vocabulary 图解词汇。数据图表英语 Data Visualization Playground 在 `content/data-viz/` + `apps/data-viz/` 开发中，暂不部署（构建站点时默认不装配，本地联调加 `--with-data-viz`）。旅行英语已整体删除，新方案定稿前不补代码。
+成人英语练习网站。七个线上应用共用一个域名（https://npesl.pages.dev/）：自然拼读、美式英语音标表、Question Drill、Conversation Starters Beginner / Intermediate / ESLSE、常见发音现象、短语搭配、Visual Vocabulary 图解词汇。数据图表英语 Data Visualization Playground 在 `content/data-viz/` + `apps/data-viz/` 开发中，暂不部署（构建站点时默认不装配，本地联调加 `--with-data-viz`）。旅行英语已整体删除，新方案定稿前不补代码。
 
 **本库是独立项目。** 2026-10-28 从 ESLStudio 复制出来，作为岔路点独立演进；不读、不写、不依赖 ESLStudio 或任何其他仓库。内容与代码都在本库内。
 
@@ -45,7 +45,7 @@ build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
 
 - **不要手改生成物**：`apps/phonics/lessons/`、该系列的 `index.html`、`apps/ipa/index.html`、`apps/drill/index.html`、`apps/phenomena/*.html`、`apps/collocation/*.html`、`apps/conversation/*.html`、`build/cloudflare-*/` 都是脚本产物。改内容改源（`content/`、`apps/phonics/source/content/`、`content/drill/*.json`、`content/collocation/*.json`、`content/conversation/`），再重新构建。
 - **Question Drill 的权威题库是 `content/drill/questions.json`**（题数以 `docs/status.md` 为准）。批次 JSON 复现不出它——`extra-questions.json` 里还有 192 道补充题，所以 `assemble.py` 默认从 `questions.json` 重渲染，只有显式 `--from-batches` 才从批次重建。音频由 `make_audio.py` 按内容哈希写入 `apps/drill/audio/`。
-- **Question Drill 用两级场景筛选**：一级是旅游 / 日常生活 / 工作商务，二级是 21 个 chip（机场、车站、住宿、景点、交通、餐厅、购物、买药、办事、居住、看病、家务、社交、休闲、学习、数码、面试、办公室、会议、客户、行政），定义在 `content/drill/chips.json`，每题有 `chip` 字段。交通、餐厅、购物、买药、办事 5 个 chip 由旅游和日常共用，题目只写一份。补题写进 `content/drill/topup/*.json`，先跑 `tools/drill/check_dup.py` 和 `check_text.py`，再用 `tools/drill/tag_chips.py --merge` 合并；每个 chip 至少 100 题。
+- **Question Drill 用两级场景筛选**：一级是旅游 / 日常生活 / 工作商务，二级是 chip（机场、车站、住宿、景点、交通、餐厅、购物、买药、办事、居住、看病、家务、社交、休闲、学习、数码、面试、办公室、会议、客户、行政），定义在 `content/drill/chips.json`，每题有 `chip` 字段。交通、餐厅、购物、买药、办事 5 个 chip 由旅游和日常共用，题目只写一份。补题写进 `content/drill/topup/*.json`，先跑 `tools/drill/check_dup.py` 和 `check_text.py`，再用 `tools/drill/tag_chips.py --merge` 合并；每个 chip 至少 100 题。
 - **语音缓存不要删**：`build/tts/cs/`（Conversation Starters）和 `apps/phonics/source/audio/` 是本地缓存，gitignore，但删了就得重新联网合成。内容没变的音频会自动跳过。
 - **音频交付分两层**：逐条录音是母版（`apps/drill/audio/{f,m}/`、`apps/ipa/audio/*.mp3`、`apps/phenomena/audio/{f,m}/`、`apps/collocation/audio/{f,m}/`、`build/tts/cs/`），部署只带构建时拼出来的 `sprites/`（每页/每课/每题每音色一条，`apps/conversation/audio/` 下同样只有 sprite）。改一句读音：删掉该条母版再跑对应构建，只重合成这一条，然后只重拼那一页的 sprite；部署按内容哈希只上传变化的文件。
 - **短语搭配**：内容源是 `content/collocation/themes.json` 加每个主题一个 JSON（主题与词条数以 `docs/status.md` 为准，分 6 大类），反义关系在 `content/collocation/opposites.json`（`pairs` 成对跳转，`word_opposites` 是单词反义提示），页面在 `apps/collocation/`。音频默认 Azure（Ava/Andrew）；`--tts qwen` 是本地 Qwen3-TTS 备选，同一站点不要混用两种音源。页面只显示【口语】【可分】两个徽章，不显示等级和编号。改内容后先跑 `apps/collocation/source/validate.py`（英式词、例句长度、IPA、chip、l1_note 都在这里拦），再跑 `build.py`。音频后端可选 `--tts azure|edge|kokoro|qwen`：`qwen` 用本地 Qwen3-TTS（本地环境见 `docs/status.md`，女声 vivian、男声 aiden，短句约 6–8 秒/条）；`kokoro` 是本地 ONNX 备选。两种都输出 24kHz/48kbps 定长 MP3，sprite 直接可用。**同一个页面必须用同一个音色来源，不要新旧混用**；换后端要先清空 `apps/collocation/audio/{f,m}` 再全量重跑。例句一律美式、2026 中国成年人场景，不搬参考书原句。
