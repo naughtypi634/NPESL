@@ -14,6 +14,7 @@ splits into two deploy roots:
         phenomena/                  常见发音现象 30 章
         collocation/                短语搭配 41 个主题
         conversation/               Conversation Starters 页面（Beginner / Intermediate / ESLSE）
+        charts/                     数据图表英语（/charts/ 直达，首页不列入入口）
 
     build/cloudflare-audio/         音频站 → 项目 npesl-audio
         audio/ava/sprites/…         全部级别女声（每页一条 sprite）
@@ -69,17 +70,17 @@ HEADERS = """/fonts/*
 /collocation/data.*.js
   Cache-Control: public, max-age=31536000, immutable
 
-/data-viz/data.*.js
+/charts/assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-/data-viz/lang/*.js
+/charts/data/lang/*.json
   Cache-Control: public, max-age=31536000, immutable
 
-/data-viz/topics/*.js
+/charts/data/topics/*.json
   Cache-Control: public, max-age=31536000, immutable
 
-/data-viz/audio/*
-  Cache-Control: public, max-age=31536000, immutable
+/charts/data/index.json
+  Cache-Control: public, max-age=0, must-revalidate
 
 /visual-vocabulary/*.webp
   Cache-Control: public, max-age=604800
@@ -112,8 +113,9 @@ AUDIO_HEADERS = """/*
 
 # 旧页面缓存里还是主站下的 /conversation/audio/Ava/… 或 ESLSE 的相对
 # audio/…，转给音频站。旧的 /phrasal/ 路径转给 /collocation/。
-REDIRECTS = """/data-viz/*  /  302
-/data-viz  /  302
+REDIRECTS = """/charts  /charts/  301
+/data-viz/*  /charts/:splat  301
+/data-viz  /charts/  301
 /phrasal/*  /collocation/:splat  301
 /phrasal  /collocation/  301
 /conversation/audio/Ava/*  https://npesl-audio.pages.dev/audio/ava/:splat  301
@@ -281,7 +283,7 @@ def main() -> int:
     parser.add_argument("--no-image-opt", action="store_true",
                         help="Visual Vocabulary 保持 640px 原图（回滚用）")
     parser.add_argument("--with-data-viz", action="store_true",
-                        help="把开发中的数据图表英语一并装配（默认不进主站）")
+                        help="兼容旧命令；数据图表英语现在默认装配到 /charts/（首页不列入）")
     args = parser.parse_args()
 
     vv_images = None
@@ -371,18 +373,16 @@ def main() -> int:
     finish_group(PageGroup(
         drill_out, "index.html", lambda _: "drill/", site_back))
 
-    # 数据图表英语：开发中，默认不进主站；本地联调加 --with-data-viz。
-    data_viz_dist = DATA_VIZ / "dist"
-    if args.with_data_viz and (data_viz_dist / "index.html").exists():
-        data_viz_out = OUT / "data-viz"
-        shutil.copytree(data_viz_dist, data_viz_out)
+    # 数据图表英语：部署在 /charts/，首页不列入入口。
+    charts_dist = DATA_VIZ / "dist"
+    if (charts_dist / "index.html").exists():
+        charts_out = OUT / "charts"
+        shutil.copytree(charts_dist, charts_out)
         finish_group(PageGroup(
-            data_viz_out, "index.html", lambda _: "data-viz/", site_back))
-        print("  数据图表英语：已包含")
-    elif args.with_data_viz:
-        print("警告：数据图表英语 dist 不存在，先跑 build_all.py --only data-viz")
+            charts_out, "index.html", lambda _: "charts/", site_back))
+        print("  数据图表英语：已包含 /charts/（首页不列入）")
     else:
-        print("  数据图表英语：开发中，未包含")
+        print("警告：数据图表英语 dist 不存在，先跑 build_all.py --only data-viz")
 
     # Conversation Starters：页面进主站，全部级别的两套语音进音频站。
     # 应用目录里的 source/ 是构建器，不属于部署内容。

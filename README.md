@@ -12,7 +12,7 @@
 | 短语搭配 Collocations（主题词表 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
 | Visual Vocabulary 图解词汇 | https://npesl.pages.dev/visual-vocabulary/ | `apps/visual-vocabulary/` |
 
-> 数据图表英语（Data Visualization Gallery）在 `content/data-viz/` + `apps/data-viz/` 开发中，**暂不部署**。前端是 React + TypeScript + Vite + ECharts；本地联调先构建，再 `tools/build_cloudflare_site.py --with-data-viz`。
+> 数据图表英语（Data Visualization Gallery）在 `content/data-viz/` + `apps/data-viz/`，已装配到主站 `/charts/`，但首页不列入入口。前端是 React + TypeScript + Vite + ECharts；构建站点时自动包含 `charts/`，直接访问 `https://npesl.pages.dev/charts/`。
 
 ## 目录
 

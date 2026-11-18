@@ -10,7 +10,7 @@
 | 项 | 值 | 来源 / 说明 |
 |---|---|---|
 | 线上应用 | 7 个 | 入口页 `apps/site/index.html` 的链接：phonics / ipa / drill / conversation / phenomena / collocation / visual-vocabulary |
-| data-viz | 开发中，不部署 | `content/data-viz/` + `apps/data-viz/web/`（React + ECharts）+ `apps/data-viz/source/engine/`（Rust 数据）；主站默认不装配，本地联调加 `build_cloudflare_site.py --with-data-viz`；`/data-viz/*` 线上 302 回首页 |
+| data-viz | 已部署，隐藏入口 | 主站 `https://npesl.pages.dev/charts/` 直达；首页 `apps/site/index.html` 不列入入口。`content/data-viz/` + `apps/data-viz/web/`（React + ECharts）+ `apps/data-viz/source/engine/`（Rust 数据）；`/data-viz/*` 301 到 `/charts/*` |
 | Question Drill | 2,247 题 | `content/drill/questions.json`；`extra-questions.json` 另有 192 道补充题 |
 | 短语搭配 | 41 个主题 / 3,296 条 / 6 大类 | `content/collocation/themes.json` + 41 个主题 JSON |
 | Conversation Starters | 150 个故事 / 503 段 | `content/conversation/{A1,B1,ESLSE}/content.py`（每级 10 单元 × 5 故事） |
@@ -57,12 +57,12 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅内容合成时使用，不
   - 详情页：点任意图元出生成句/中文，预先写好的位置额外显示原句；上一处/下一处按预先写好的观察顺序走，没有同类例句时用自动特征；折叠区有整图 Basic/Advanced/IELTS/Business。
   - 编辑：折线/柱/瀑布/斜率/散点/饼图可拖，堆叠/热力/流向用输入框；只改数值，图表与词句实时重算；改数据后预先写好的原句隐藏，还原恢复。
   - 测试：`dv-engine validate` 通过；`dataviz-parity` 80 样本 1836 mark 0 差异；`dataviz-text` 40 视图 240 段通过；新增 `tests/dataviz-goals.mjs` 通过（20 主题 / 40 视图，目标覆盖 12 / 6 / 19 / 4 / 17）；新增 `tests/dataviz-ui.mjs` 41/41 通过（首页目标/领域/类型筛选、取消目标、卡片预览、详情点选、上一处/下一处、六种拖动 + 四种输入、三套主题、390 px 无横向溢出、无 console 错误）。
-  - 旧的四个入口、Tabs、语域/等级切换、练习框、整页数据表已删除；data-viz 仍不装配、不部署。
+  - 旧的四个入口、Tabs、语域/等级切换、练习框、整页数据表已删除；data-viz 现在随主站装配在 `/charts/`，首页不列入入口。
 
 ## 部署授权
 
 - 2026-10-31：用户授权「每轮改完、自检通过后直接部署主站」；音频站仅在音频有变化时一并部署。除此之外不主动部署。
-- 2026-11-18：data-viz 发布水平不够，已从主站撤下（`7e27c7e9`）；不部署，直到用户重新验收。
+- 2026-11-18：用户要求把 data-viz 部署到主站，但首页不加入口；只通过 `/charts/` 直达。主站装配现在默认包含 `charts/`，`/data-viz/*` 301 到 `/charts/*`。
 
 ## 共享内容核
 
@@ -73,4 +73,4 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅内容合成时使用，不
 ## 当前 WIP
 
 - 视觉层（主题、模板、构建器、visual-vocabulary 页面与产物）由另一个并行会话负责；只提交本任务文件，不要把别人的视觉层 WIP 带进提交。
-- data-viz 代码在库内但主站不装配；不要因为 `build_all.py` 的 `ORDER` 含 data-viz 就部署它。
+- 数据图表英语已装配到主站 `/charts/`，首页不列入入口；主站部署会自动带上 `charts/`。

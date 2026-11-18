@@ -60,7 +60,7 @@ def main() -> int:
     ap.add_argument("--strict-content", action="store_true",
                     help="存量英式英语也算失败")
     ap.add_argument("--with-data-viz", action="store_true",
-                    help="额外校验 data-viz 内容（默认不装配、不部署）")
+                    help="额外校验 data-viz 内容（页面已默认装配到 /charts/）")
     ap.add_argument("--label", help="给部署产物拍一份 audit_build 快照")
     ap.add_argument("--diff", nargs=2, metavar=("OLD", "NEW"),
                     help="比对两份 audit_build 快照；NEW 可以是 now")

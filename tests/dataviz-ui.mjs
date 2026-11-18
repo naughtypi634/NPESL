@@ -15,7 +15,7 @@ import { launchEdge } from '../tools/edge.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 5175;
-const BASE = `http://127.0.0.1:${PORT}/data-viz/`;
+const BASE = `http://127.0.0.1:${PORT}/charts/`;
 const VITE = join(ROOT, 'apps', 'data-viz', 'web', 'node_modules', 'vite', 'bin', 'vite.js');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

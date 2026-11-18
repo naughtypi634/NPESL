@@ -13,7 +13,7 @@
 | 改 app 内容 | 根 AGENTS §二/§三 → `apps/<app>/source/AUTHORING.md` 或 `content/collocation/README.md` |
 | 改构建脚本/加 app | 根 AGENTS §三 → `README.md` 构建节 → `tools/README.md` → `tools/build_all.py` 的 `ORDER` → `tools/paths.py` |
 | 改 Visual Vocabulary | `apps/visual-vocabulary/` 是手写源；新增 set 同改 `index.html` 与 `build_cloudflare_site.py` 的 VV 元组 |
-| 改 data-viz | 根 AGENTS §三 → `content/data-viz/` → `apps/data-viz/web/`（React/TS）+ `apps/data-viz/source/engine/`（Rust 数据）；`build_all.py --only data-viz`；默认不部署 |
+| 改 data-viz | 根 AGENTS §三 → `content/data-viz/` → `apps/data-viz/web/`（React/TS）+ `apps/data-viz/source/engine/`（Rust 数据）；`build_all.py --only data-viz,site`；主站 `/charts/` 直达，首页不列入 |
 | 改小程序 | `tools/miniprogram/build_data.py` 顶部说明（从已构建页面抽取） |
 | 部署 | 根 AGENTS §三 → `README.md` 部署节 → `docs/status.md` 的授权行 |
 
@@ -22,13 +22,13 @@
 ## 首轮陷阱
 
 - `build_all.py --only <app>` 不重建 `build/cloudflare-site`；验证/部署写 `--only <app>,site`。
-- 主站当前只列七个应用；data-viz 默认不装配，本地联调才加 `tools/build_cloudflare_site.py --with-data-viz`。不要部署 data-viz。
+- 主站首页只列七个应用；data-viz 已装配在 `/charts/`，首页不列入入口，只能直接打开 `https://npesl.pages.dev/charts/`。主站部署默认带上 `charts/`；`/data-viz/*` 301 到 `/charts/*`。
 - `verify.py` 现在验证四层：全站链接/资源、可见文本（英式英语 + 禁用文案）、内容 validator、无头浏览器全站巡检与点读。`--fast` 跳过浏览器层。
 - 英式英语的存量基线在 `tools/verify/british_baseline.json`；新增命中会失败，修掉内容后用 `--update-baseline` 收紧。旧 `check_bre.py` 只扫 Markdown，不再参与交付门禁。
 - `tests\verify_runtime.mjs` 没有 `--help`，会直接开无头 Edge 跑全套并放音频；只单跑 `node tests\verify_runtime.mjs --only <case>`。
 - `tools\drill\assemble.py` 默认会重写 `content/drill/questions.json`；改前先 `git status`。
 - `apps\collocation\source\build.py` 每次全量重建 sprite，不是增量。
-- 部署主站是用户已授权的动作（2026-10-31），自检通过后执行；音频站仅在音频变化时；两个 staging 不合并。
+- 部署主站是用户已授权的动作（2026-10-31），自检通过后执行；音频站仅在音频变化时；两个 staging 不合并。data-viz 随主站部署到 `/charts/`，首页不加入口。
 - 开工先 `git status --porcelain`；本库常有多个会话并行，只动本任务文件，视觉层/构建产物不要替别人提交。
 
 ## 日常命令（cwd = `F:\AIProject\NPESL`）
@@ -42,6 +42,8 @@ node tests\verify_runtime.mjs --only <case>
 .venv\Scripts\python.exe -I tools\audit_build.py --diff before now
 npx --yes wrangler@latest pages deploy build\cloudflare-site --project-name npesl --branch main
 ```
+
+data-viz 直达（首页不列入入口）：`https://npesl.pages.dev/charts/`。本地预览用 `npm --prefix apps\data-viz\web run dev`，地址 `http://127.0.0.1:5173/charts/`。
 
 音频站仅在音频变化时：
 

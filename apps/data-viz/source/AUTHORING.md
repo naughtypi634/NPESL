@@ -142,7 +142,7 @@ Advanced 取 B1（没有 B1 时取 B2）；整图描述 Basic 取 `general.a2`�
   过首页筛选、卡片预览、详情点选、上一处/下一处、每种图表的拖动/输入、三套主题和
   390 px 宽度。也可以 `npm --prefix apps/data-viz/web run dev` 手工看。
 - 引擎一致性：`node tests/dataviz-parity.mjs`；文本质量：`node tests/dataviz-text.mjs`。
-- data-viz 目前不部署；不要跑 wrangler，也不要把 `dist` 装配进主站。
+- data-viz 随主站部署在 `/charts/`，首页不列入入口；部署主站会自动带上 `charts/`，旧 `/data-viz/*` 301 到 `/charts/*`。
 
 ## 页面里改数据
 

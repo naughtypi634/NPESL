@@ -16,7 +16,7 @@
 | `build_all.py` | 按依赖顺序跑全部应用与站点装配；`--only`、`--skip-site`、`--refresh-ipa-audio` |
 | `verify.py` | 四层自检：全站链接/资源、可见内容、内容 validator、无头浏览器全站巡检与点读；`--fast` 跳过浏览器；`--label/--diff` 追加产物快照 |
 | `verify/` | 新版 verify 的实现：`site.py` 全站引用、`content.py` 可见文本与英式英语基线、`rules.py` 规则表、`validators.py` 内容校验 |
-| `build_cloudflare_site.py` | 把七个线上应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/`；`--with-data-viz` 额外装配开发中的 data-viz |
+| `build_cloudflare_site.py` | 把七个首页应用与隐藏入口 data-viz 装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/`；data-viz 默认装配到 `/charts/`，旧 `--with-data-viz` 仅为兼容保留 |
 | `build_ipa_site.py` | 音标表页面 + 全部单词的男女两版录音；默认 `--tts azure`，`--skip-audio` 只用缓存 |
 | `apps/conversation/source/build_site.py` | Conversation Starters 页面与全部级别语音 |
 | `drill/make_audio.py` | Question Drill 逐句语音（读 `content/drill/questions.json`） |
