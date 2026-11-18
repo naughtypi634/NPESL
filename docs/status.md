@@ -2,7 +2,7 @@
 
 本文件是 NPESL 唯一允许写计数、日期、门禁基线和一次性授权的地方。它不是规范；规范见根 `AGENTS.md` 与 `README.md`。
 
-- last_verified: 2026-11-18
+- last_verified: 2026-11-19
 - 维护方式：计数或门禁基线变化时更新本文件；规范文件不写会变的数字。
 
 ## 应用与内容计数
@@ -23,10 +23,12 @@
 | 应用 | 后端 |
 |---|---|
 | Phonics / IPA | Azure F0（Ava / Andrew） |
-| Phenomena / Conversation | 本地 Qwen3-TTS Base 克隆音色（女 `h2` / 男 `c`）；Conversation 母版由 `build/qwen-voicedesign/gen_corpus.py` 生成，逐词时间由 `add_timings*.py` 补齐 |
+| Phenomena | 本地 CosyVoice 3（女 `h2` / 男 `c`）；第 1/6/13/20/21 课按完整拼写读，其余课保留安全口语拼写；`'` 开头及 `whaddaya`/`doncha`/`c'mon` 等不稳定写法退回原词 |
+| Conversation | 本地 Qwen3-TTS Base 克隆音色（女 `h2` / 男 `c`）；母版由 `build/qwen-voicedesign/gen_corpus.py` 生成，逐词时间由 `add_timings*.py` 补齐 |
 | Collocation | 默认 Azure（Ava / Andrew）；`--tts qwen|edge|kokoro` 可选，同一页面不得混用音源 |
 
-Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅内容合成时使用，不是构建/部署依赖）。
+CosyVoice 3 本地环境：`F:\AIProject\CosyVoice`（仅 Phenomena 合成时使用；部署只带 sprites，逐条母版留在 `apps/phenomena/audio/`）。
+Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使用，不是构建/部署依赖）。
 
 ## 门禁基线
 
@@ -38,6 +40,7 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅内容合成时使用，不
   - `data-viz-describe` 报 `TypeError: Cannot read properties of undefined (reading 'select')`。data-viz 未部署，`/data-viz/` 302 回首页；`tests/smoke.mjs` 的 `HAS_DATA_VIZ` 用 `fetch().ok` 判定，跟随 302 后误判为存在，导致 data-viz 用例在首页上运行。这是测试跳过判定问题，不是线上缺陷。2026-11-18 已修：改为 `redirect: 'manual'` 且只认 200。
 - 2026-11-18（卡片回弹修正后）完整 `verify.py`：音频引用 PASS（247 页，0 缺失）；英式英语 PASS（FIX 0，REVIEW 3 同上）；冒烟 17/20，失败项为 `collocation-index`、`collocation-chunk-variants`、`collocation-noun-uses` 三个时序用例，代表用例 `collocation-index` 单跑 PASS（delta 0.008s），与上一条的负载抖动一致。
 - `tests/smoke.mjs` 覆盖七个线上应用；data-viz 用例在暂存没有该目录时自动跳过（2026-11-18 修正了 302 误判）。
+- 2026-11-19：Phenomena 切换 CosyVoice 3 H2/C 后完整 `verify.py`：248 页 · 786 链接 · 2,785 资源 · 8,096 条音频引用 · 1,395 张 VV 图片；可见文本 78,819 词，英式英语存量 85、新增 0；collocation / phonics / phenomena 校验通过；运行时 21/21，248/248 页；PASS。
 - 2026-11-18：`tools/verify.py` 重做为四层结果导向验证：全站链接/资源、可见文本（英式英语 + 禁用文案）、内容 validator、无头浏览器全站巡检 + 七应用点读/交互；运行时层默认屏蔽图片下载，音频走本地 `build/cloudflare-audio`。
   - 首次扫描发现 conversation 构建页存量英式英语 85 处（B1 74 / A1 11），旧 `check_bre.py` 只扫 Markdown 未发现；存量写入 `tools/verify/british_baseline.json`，新增命中阻断，报告每次显示存量数。
   - 2026-11-18 staging 定稿后的正式结果：247 页 · 785 链接 · 2,776 资源 · 8,096 条音频引用 · 1,395 张 VV 图片全部解析；可见文本 78,817 词，英式英语存量 85、新增 0；collocation / phonics / phenomena 三个 validator 通过；运行时 21/21（20 个点读/交互用例 + 247 页巡检），单次 1 分 47 秒（`--fast` 约 4 秒）。

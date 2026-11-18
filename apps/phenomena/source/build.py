@@ -4,8 +4,9 @@
 Each dialogue line gets one clip per voice. Lessons whose `tts` is "qwen" are
 synthesized locally from the spoken respellings (yer, wanna, gotta), because
 Qwen has no phoneme input; "kokoro" instead injects the lesson's IPA into a
-phoneme string for exact weak forms. Clips are content-addressed, so re-running
-only synthesizes what is new.
+phoneme string for exact weak forms; "cosyvoice" runs CosyVoice 3 from the
+same respellings, with CMU tokens for the few it misreads. Clips are
+content-addressed, so re-running only synthesizes what is new.
 """
 
 import argparse
@@ -54,11 +55,23 @@ QWEN_PYTHON = pathlib.Path(os.environ.get(
 QWEN_WORKER = ROOT / "qwen_clone_worker.py"
 QWEN_VOICES = {"f": "h2", "m": "c"}
 
+# CosyVoice 3 用独立 venv（F:\\AIProject\\CosyVoice），参考音仍是 h2 / c。
+COSYVOICE_PYTHON = pathlib.Path(os.environ.get(
+    "COSYVOICE_PYTHON", r"F:\AIProject\CosyVoice\.venv\Scripts\python.exe"))
+COSYVOICE_WORKER = ROOT / "cosyvoice_worker.py"
+COSYVOICE_VOICES = {"f": "h2", "m": "c"}
+SIDECAR_VOICES = {"qwen": QWEN_VOICES, "cosyvoice": COSYVOICE_VOICES}
+
 BACKEND = ""  # --tts 覆盖 content 里的 tts 字段，用于试听另一种音源
-RISKY_SPELLINGS = {"usta", "didncha", "cancha", "doncha", "c'mon"}
+RISKY_SPELLINGS = {"usta", "didncha", "cancha", "doncha", "c'mon", "whaddaya"}
+# CosyVoice 3: these lessons read the written form and let the model reduce
+# naturally; forcing respellings made H2 sound deliberate and misread some
+# forms (to -> da, orderin' -> order in, Woncha/Havencha/Arencha).
+NATURAL_LESSONS = {1, 6, 13, 20, 21}
 SIDECARS = {
     "kokoro": (KOKORO_PYTHON, KOKORO_WORKER),
     "qwen": (QWEN_PYTHON, QWEN_WORKER),
+    "cosyvoice": (COSYVOICE_PYTHON, COSYVOICE_WORKER),
 }
 
 
@@ -193,6 +206,39 @@ def qwen_clips(lesson, display):
     return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
 
 
+def sentence_case(text):
+    """Capitalise sentence starts without touching anything else."""
+    out = []
+    capital = True
+    for ch in text:
+        if capital and ch.isalpha():
+            out.append(ch.upper())
+            capital = False
+        else:
+            out.append(ch)
+            if ch in ".!?":
+                capital = True
+            elif ch.isalnum():
+                capital = False
+    return "".join(out)
+
+
+def cosyvoice_text(lesson, display):
+    """CosyVoice 3: written form for natural lessons, safe respellings elsewhere."""
+    if lesson.get("num") in NATURAL_LESSONS:
+        text = written_text(display)
+    else:
+        text = respelled_text(display)
+    return sentence_case(" ".join(text.split()))
+
+
+def cosyvoice_clips(lesson, display):
+    """CosyVoice 3 also takes text only; natural lessons keep full spelling."""
+    text = cosyvoice_text(lesson, display)
+    key = "cosyvoice:" + text
+    return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
+
+
 def line_clips(lesson, line):
     backend = backend_for(lesson)
     if backend == "azure":
@@ -205,6 +251,8 @@ def line_clips(lesson, line):
         return kokoro_clips(lesson, line["display"])
     if backend == "qwen":
         return qwen_clips(lesson, line["display"])
+    if backend == "cosyvoice":
+        return cosyvoice_clips(lesson, line["display"])
     text = spoken_text(line)
     return {f"clip-{voice}": clip_rel(text, voice, RATE) for voice in VOICES}
 
@@ -236,6 +284,12 @@ def lesson_jobs(lesson):
         if rel:
             jobs.append((rel, text, voice, RATE, "qwen"))
 
+    def add_cosyvoice(display, voice):
+        text = cosyvoice_text(lesson, display)
+        rel = clip_rel("cosyvoice:" + text, voice, RATE)
+        if rel:
+            jobs.append((rel, text, voice, RATE, "cosyvoice"))
+
     for line in lesson["lines"]:
         for voice in VOICES:
             if backend == "azure":
@@ -244,6 +298,8 @@ def lesson_jobs(lesson):
                 add_kokoro(line["display"], voice)
             elif backend == "qwen":
                 add_qwen(line["display"], voice)
+            elif backend == "cosyvoice":
+                add_cosyvoice(line["display"], voice)
             else:
                 add_text(spoken_text(line), voice, RATE)
     for target in lesson.get("targets", []):
@@ -261,6 +317,9 @@ def lesson_jobs(lesson):
         elif backend == "qwen":
             for voice in VOICES:
                 add_qwen(display, voice)
+        elif backend == "cosyvoice":
+            for voice in VOICES:
+                add_cosyvoice(display, voice)
         else:
             for voice in VOICES:
                 add_text(text, voice, RATE)
@@ -317,7 +376,7 @@ def run_sidecar(backend, jobs):
     else:
         payload = [
             {"out": str(AUDIO_DIR / rel), "text": value,
-             "voice": QWEN_VOICES[voice]}
+             "voice": SIDECAR_VOICES[backend][voice]}
             for rel, value, voice, rate, _ in jobs
         ]
     manifest.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
@@ -340,7 +399,7 @@ async def ensure_clips(lessons, voices):
     if not missing:
         return []
     failed = []
-    for backend in ("kokoro", "qwen"):
+    for backend in ("kokoro", "qwen", "cosyvoice"):
         group = [job for job in missing if job[4] == backend]
         if group:
             print(f"audio: {backend} {len(group)} clips")
@@ -477,6 +536,9 @@ def text_clips(lesson, text):
     if backend == "qwen":
         key = "qwen-clone:" + " ".join(text.split())
         return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
+    if backend == "cosyvoice":
+        key = "cosyvoice:" + sentence_case(" ".join(text.split()))
+        return {f"clip-{voice}": clip_rel(key, voice, RATE) for voice in VOICES}
     return {f"clip-{voice}": clip_rel(text, voice, RATE) for voice in VOICES}
 
 
@@ -505,6 +567,8 @@ def build_targets(lesson, audio):
                 clips = kokoro_clips(lesson, display)
             elif backend == "qwen":
                 clips = qwen_clips(lesson, display)
+            elif backend == "cosyvoice":
+                clips = cosyvoice_clips(lesson, display)
             else:
                 clips = text_clips(lesson, text)
             parts.append(
@@ -727,7 +791,7 @@ async def main():
     parser.add_argument("--skip-audio", action="store_true")
     parser.add_argument("--index-only", action="store_true")
     parser.add_argument("--voices", default="f,m", help="要合成的音色：f,m")
-    parser.add_argument("--tts", choices=["azure", "edge", "kokoro", "qwen"],
+    parser.add_argument("--tts", choices=["azure", "edge", "kokoro", "qwen", "cosyvoice"],
                         default="", help="覆盖 content 的 tts 字段，试听另一音源")
     args = parser.parse_args()
     global BACKEND
