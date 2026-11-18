@@ -607,11 +607,15 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
  * 按下时快速缩到 96%，松开走一条轻微过冲的曲线回到原位，读起来像弹簧。
  * 只需要“缓动”的地方（底色、文字、阴影）仍用 0.18s ease，不跟着弹。
  * 尊重系统的减少动态偏好：开了 reduce 就完全不缩放、不滚动动画。
+ *
+ * 卡片容器不缩放：卡里有播放按钮，整张卡一缩，按钮会在按下与松开之间
+ * 挪走，点击就落不到按钮上了。整张卡可点的 .card[href] 仍保留回弹，
+ * 它本身就是点击目标。
  */
 
 @media (prefers-reduced-motion: no-preference) {
   html[data-theme] body :is(button, [role="button"], .card[href], .row, .prow,
-      .tabs a, .chips a, .card, .dv-tile, .dv-wall-link, .dv-step,
+      .tabs a, .chips a, .dv-tile, .dv-wall-link, .dv-step,
       .dv-views a, .dv-topic-item, .npesl-back):not(:disabled) {
     transition:
       transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -622,15 +626,15 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
   }
 
   html[data-theme] body :is(button, [role="button"], .card[href], .row, .prow,
-      .tabs a, .chips a, .card, .dv-tile, .npesl-back):not(:disabled):active {
+      .tabs a, .chips a, .dv-tile, .npesl-back):not(:disabled):active {
     transform: scale(0.96);
     transition-duration: 0.1s;
   }
 
-  /* 句子里可以点的词和整句不是“按钮”，按下去只变色，不缩放；
-     否则一行文字会跟着抖。 */
+  /* 句子里可以点的词、整句和小播放按钮不是“按钮”，按下去只变色，
+     不缩放；否则一行文字会跟着抖，小播放件也会从指尖底下移走。 */
   html[data-theme] body :is(button, [role="button"]):is(
-      .s, .vocab-s, .chunk, .word, .title-s, .line):not(:disabled):active {
+      .s, .vocab-s, .chunk, .word, .title-s, .line, .playbtn):not(:disabled):active {
     transform: none;
   }
 }
