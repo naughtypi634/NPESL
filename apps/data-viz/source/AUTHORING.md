@@ -1,7 +1,7 @@
 # 数据图表英语 · 内容规范
 
 内容源只有两处：`content/data-viz/library/<type>.json`（图表类型的语言库）和
-`content/data-viz/topics/<slug>.json`（主题数据与作者内容）。数据包由
+`content/data-viz/topics/<slug>.json`（主题数据与预先写好的例句）。数据包由
 `apps/data-viz/source/engine/`（Rust）生成，页面由 `apps/data-viz/web/`
 （React + TypeScript + Vite + ECharts）构建；`web/public/data/` 与 `dist/`
 都是产物，不要手改。
@@ -17,9 +17,10 @@ npm --prefix apps\data-viz\web run build
 build\rust\data-viz\release\dv-engine.exe build --explain <slug>/<view>
 ```
 
-页面分四段：图表画廊（按图表类型浏览）、互动实验室（改数据、切视图、实时重算）、
-英语表达（按上升/下降、持平、峰值、波动、比较分组练习）、真实数据（按 business /
-technology / lifestyle / economy / education 领域浏览）。
+页面只有两段：首页（按「我想学」的五个目标、领域、图表类型筛选卡片）和详情页
+（一张大图、右侧「这处变化怎么说」、底部编辑数据）。五个目标由
+`source/engine/src/goals.rs` 的 kind 映射自动算出，构建时写进
+`web/public/data/index.json` 的 `kind_goals`；内容里不需要给每张图手写目标标签。
 
 ## 硬规则
 
@@ -35,7 +36,7 @@ technology / lifestyle / economy / education 领域浏览）。
 
 ## 主题文件
 
-每个主题 1–3 个视图，每个视图 4–8 条作者特征、5 段整图描述。
+每个主题 1–8 个视图（目前每个主题 2 个），每个视图 4–8 条预先写好的特征、5 段整图描述。
 
 ```json
 {
@@ -74,7 +75,7 @@ technology / lifestyle / economy / education 领域浏览）。
 ### 主题字段
 
 `domain` 取 `business` / `technology` / `lifestyle` / `economy` / `education`，
-决定「真实数据」里的分组；缺了或写错校验器会拦。
+用于首页的领域筛选；缺了或写错校验器会拦。
 
 ### unit
 
@@ -98,14 +99,16 @@ technology / lifestyle / economy / education 领域浏览）。
 | slope | `line:<entityId>`、`pt:<entityId>:<periodIndex>` |
 | waterfall | `step:<stepId>`、`total:start`、`total:end` |
 
-每条作者特征至少覆盖一个存在的 mark；一个特征可以覆盖多个相邻段（line 的
+每条预先写好的特征至少覆盖一个存在的 mark；一个特征可以覆盖多个相邻段（line 的
 `seg:...:0` + `seg:...:1`），构建会把 `from/to/period` 合成整段。
 
 ## 语言库
 
 每个 kind 需要：`label_zh`、`requires`、≥3 个覆盖 spoken/neutral/written 的
-`words`、≥2 条 `patterns`（至少一条 A2）、`compare` 引用、`traps`、三条 `registers`。
-模板只能使用这些槽位：
+`words`、≥2 条 `patterns`（至少一条 A2，另至少一条 B1 或 B2）、`compare` 引用、
+`traps`、三条 `registers`。界面只显示 Basic / Advanced 两档：Basic 取 A2，
+Advanced 取 B1（没有 B1 时取 B2）；整图描述 Basic 取 `general.a2`，Advanced 取
+`general.b2`（没有 B2 时取 `general.b1`）。A2/B1/B2 字段本身不改。模板只能使用这些槽位：
 
 ```
 {subject} {from} {to} {unit} {period} {from_period} {to_period} {pct} {pp}
@@ -118,11 +121,12 @@ technology / lifestyle / economy / education 领域浏览）。
 `registers` 必须是槽位模板，不能写死某个主题的实体（校验器会拦）。具体例句放
 `examples`。
 
-## 生成与作者内容的分工
+## 生成内容与预先写好内容的分工
 
-- **作者写**：数据、每条特征的例句 / 备注 / 解读、整图五段描述、`overview_zh`。
+- **预先写好**：数据、每条特征的例句 / 备注 / 解读、整图五段描述、`overview_zh`。
 - **构建生成**：每个 mark 的分类、槽位数值、词汇卡、句型填空、三种语境句、
-  表格、tooltip、画廊小图。
+  图表提示、画廊小图。没有预先写好例句的位置由页面按当前数据生成句子，并标
+  「自动生成」；预先写好的例句只是额外参考，不是每处都必须写。
 
 分类阈值在 `apps/data-viz/source/engine/src/features.rs`：线图/堆叠变化 3% / 10% / 25%
 （份额数据用 0.5 / 1.5 / 3 个百分点），散点 |r| 0.2 / 0.4 / 0.7，离群点
@@ -132,17 +136,30 @@ technology / lifestyle / economy / education 领域浏览）。
 
 - 内容：`dv-engine validate` 必须 0 问题。
 - 数据包：`dv-engine build`；页面：`npm --prefix apps/data-viz/web run build`。
-- 浏览器：`tools/build_cloudflare_site.py --with-data-viz` 后在暂存里过一遍手机宽度、
-  light/dark/glass、点标记、改数据、表格和返回链接；`node tests/dataviz-parity.mjs`
-  与 `node tests/dataviz-text.mjs` 必须 0 差异。
+- 目标标签：`node tests/dataviz-goals.mjs`，检查五个目标每个至少 3 个主题、所有
+  kind 都有归属、每个主题的 `views[]` 和 `goals` 一致。
+- 浏览器：`node tests/dataviz-ui.mjs`（自己起 Vite、只开一个无头 Edge，跑完关闭），
+  过首页筛选、卡片预览、详情点选、上一处/下一处、每种图表的拖动/输入、三套主题和
+  390 px 宽度。也可以 `npm --prefix apps/data-viz/web run dev` 手工看。
+- 引擎一致性：`node tests/dataviz-parity.mjs`；文本质量：`node tests/dataviz-text.mjs`。
+- data-viz 目前不部署；不要跑 wrangler，也不要把 `dist` 装配进主站。
 
 ## 页面里改数据
 
-工作表里的“编辑数据”允许读者改数值、类别名、系列名、分组和节点；图表、表格、提示、
-词汇、句型、描述与解读都按当前数据重算。为此浏览器端有两份运行时模块：
+详情页底部有「编辑数据」开关，默认关着：
+
+- 折线、柱状、瀑布、斜率、散点可以拖动数据点；饼图按住一块边缘沿圆周拖，其他块
+  按比例补足；其余图表（堆叠、热力、流向）用选中位置下方的数值输入框改。
+- 只改数值，不改系列名、类目名、节点名、周期名。改完图表、生成句、句型里的数字
+  一起更新。
+- 预先写好的 `examples` 按原始数据写，改数据后隐藏；右侧改用当前数据生成的句子。
+  点「还原」恢复原始数据和原句。
+- 编辑状态按「主题/视图」保存在内存里，切换视图或离开再回来仍在，刷新页面丢失。
+
+为此浏览器端有两份运行时模块：
 
 - `apps/data-viz/web/src/engine/05-compute.js`：`source/engine/src/features.rs` 的逐条移植（分类阈值、槽位、数字格式完全一致）。
-- `apps/data-viz/web/src/engine/06-text.js`：按当前特征从语言库的句型框架生成整图描述；作者写的
+- `apps/data-viz/web/src/engine/06-text.js`：按当前特征从语言库的句型框架生成整图描述；预先写好的
   `descriptions` / `overview_zh` 只在未改数据时显示，避免改完数据后留着旧数字。
 
 改了 `engine/src/features.rs` 或 `web/src/engine/05-compute.js` 的任何一方，都要跑：

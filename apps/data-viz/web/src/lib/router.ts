@@ -1,54 +1,86 @@
-import type { Route, Section, Tab } from '../data/types';
+import type { Domain, GoalId, Route } from '../data/types';
+import { DOMAINS, GOAL_IDS, VIEW_TYPE_IDS } from '../data/types';
 
-const TABS: Tab[] = ['observe', 'words', 'patterns', 'describe', 'table', 'edit'];
-
-function sectionOf(value: string): Section {
-  return value === 'play' || value === 'lab' || value === 'data' ? value : 'gallery';
+function goalOf(value: string | null): GoalId | undefined {
+  return GOAL_IDS.includes(value as GoalId) ? (value as GoalId) : undefined;
 }
 
+function domainOf(value: string | null): Domain | undefined {
+  return DOMAINS.some((domain) => domain.id === value) ? (value as Domain) : undefined;
+}
+
+function typeOf(value: string | null): string | undefined {
+  return VIEW_TYPE_IDS.includes(value as (typeof VIEW_TYPE_IDS)[number]) ? value ?? undefined : undefined;
+}
+
+function decode(value: string | undefined): string | undefined {
+  return value ? decodeURIComponent(value) : undefined;
+}
+
+/**
+ * Canonical routes:
+ *   #/                       home, with goal/domain/type filters
+ *   #/t/<slug>/<view>        detail, with goal/domain/type/mark
+ *
+ * Old routes (#/gallery, #/play/..., #/lab?family=..., #/data?domain=...)
+ * are translated so existing links keep working.
+ */
 export function parseHash(hash: string = window.location.hash): Route {
   const raw = hash.replace(/^#\/?/, '');
   const [path, query = ''] = raw.split('?');
   const parts = path.split('/').filter(Boolean);
   const params = new URLSearchParams(query);
-  const section = sectionOf(parts[0] || 'gallery');
-  const route: Route = { section };
-  if (section === 'play') {
-    route.slug = parts[1] ? decodeURIComponent(parts[1]) : undefined;
-    route.view = parts[2] ? decodeURIComponent(parts[2]) : undefined;
-    const mark = params.get('mark');
-    const tab = params.get('tab') as Tab | null;
-    route.mark = mark ? decodeURIComponent(mark) : undefined;
-    route.tab = tab && TABS.includes(tab) ? tab : 'observe';
-  } else if (section === 'lab') {
-    route.family = params.get('family') || undefined;
-    route.sample = params.get('sample') || undefined;
-  } else if (section === 'data') {
-    route.domain = params.get('domain') || undefined;
+  const goal = goalOf(params.get('goal') ?? params.get('family'));
+  const domain = domainOf(params.get('domain'));
+  const type = typeOf(params.get('type'));
+
+  if (parts[0] === 't' && parts[1]) {
+    return {
+      section: 'detail',
+      slug: decode(parts[1]),
+      view: decode(parts[2]),
+      mark: decode(params.get('mark') ?? undefined),
+      goal,
+      domain,
+      type,
+    };
   }
-  return route;
+
+  if (parts[0] === 'play' && parts[1]) {
+    return {
+      section: 'detail',
+      slug: decode(parts[1]),
+      view: decode(parts[2]),
+      mark: decode(params.get('mark') ?? undefined),
+      goal,
+      domain,
+      type,
+    };
+  }
+
+  if (parts[0] === 'lab' || parts[0] === 'data') {
+    return { section: 'home', goal, domain, type };
+  }
+
+  return { section: 'home', goal, domain, type };
 }
 
 export function routeHash(route: Route): string {
-  if (route.section === 'play') {
-    const parts = ['#/play', route.slug || '', route.view || ''].filter(Boolean);
-    const params = new URLSearchParams();
+  const params = new URLSearchParams();
+  if (route.goal) params.set('goal', route.goal);
+  if (route.domain) params.set('domain', route.domain);
+  if (route.type) params.set('type', route.type);
+
+  if (route.section === 'detail' && route.slug) {
     if (route.mark) params.set('mark', route.mark);
-    if (route.tab) params.set('tab', route.tab);
+    const parts = ['#/t', encodeURIComponent(route.slug)];
+    if (route.view) parts.push(encodeURIComponent(route.view));
     const query = params.toString();
     return parts.join('/') + (query ? `?${query}` : '');
   }
-  if (route.section === 'lab') {
-    const params = new URLSearchParams();
-    if (route.family) params.set('family', route.family);
-    if (route.sample) params.set('sample', route.sample);
-    const query = params.toString();
-    return `#/lab${query ? `?${query}` : ''}`;
-  }
-  if (route.section === 'data') {
-    return route.domain ? `#/data?domain=${encodeURIComponent(route.domain)}` : '#/data';
-  }
-  return '#/gallery';
+
+  const query = params.toString();
+  return `#/${query ? `?${query}` : ''}`;
 }
 
 export function navigate(route: Route): void {

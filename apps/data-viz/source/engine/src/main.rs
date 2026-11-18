@@ -11,6 +11,7 @@
 mod build;
 mod features;
 mod fmt;
+mod goals;
 mod json;
 mod parity;
 mod validate;

@@ -1,16 +1,7 @@
 import { create } from 'zustand';
 
 import { loadGallery, loadLibrary, loadTopic } from '../data/loader';
-import type {
-  ChartOptions,
-  Gallery,
-  Level,
-  Library,
-  Register,
-  Tab,
-  Topic,
-  ViewData,
-} from '../data/types';
+import type { Gallery, Library, Topic, ViewData } from '../data/types';
 
 interface AppState {
   gallery: Gallery | null;
@@ -20,20 +11,10 @@ interface AppState {
   topicErrors: Record<string, string>;
   libraries: Record<string, Library>;
   libraryLoading: Record<string, boolean>;
-  mark: string | null;
-  tab: Tab;
-  register: Register;
-  level: Level;
-  options: ChartOptions;
   edits: Record<string, ViewData>;
   loadGallery: () => Promise<void>;
   ensureTopic: (slug: string) => Promise<Topic | null>;
   ensureLibrary: (type: string) => Promise<Library | null>;
-  setMark: (mark: string | null) => void;
-  setTab: (tab: Tab) => void;
-  setRegister: (register: Register) => void;
-  setLevel: (level: Level) => void;
-  setOption: <K extends keyof ChartOptions>(key: K, value: ChartOptions[K]) => void;
   editData: (key: string, data: ViewData) => void;
   resetEdits: (key: string) => void;
 }
@@ -50,11 +31,6 @@ export const useApp = create<AppState>((set, get) => ({
   topicErrors: {},
   libraries: {},
   libraryLoading: {},
-  mark: null,
-  tab: 'observe',
-  register: 'general',
-  level: 'b1',
-  options: { smooth: true, labels: true, sort: 'none', percent: false },
   edits: {},
 
   loadGallery: async () => {
@@ -115,12 +91,6 @@ export const useApp = create<AppState>((set, get) => ({
     }
   },
 
-  setMark: (mark) => set({ mark }),
-  setTab: (tab) => set({ tab }),
-  setRegister: (register) => set({ register }),
-  setLevel: (level) => set({ level }),
-  setOption: (key, value) =>
-    set({ options: { ...get().options, [key]: value } }),
   editData: (key, data) => set({ edits: { ...get().edits, [key]: data } }),
   resetEdits: (key) => {
     const edits = { ...get().edits };

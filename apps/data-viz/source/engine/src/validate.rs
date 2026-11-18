@@ -5,11 +5,12 @@
 
 use regex::Regex;
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::LazyLock;
 
-use crate::features::{compute_view, Index};
+use crate::features::{compute_view, merge_authored, Index};
+use crate::goals;
 use crate::json::{self, Obj};
 
 pub static TYPES: [&str; 9] = [
@@ -577,6 +578,12 @@ fn check_library(type_id: &str, lib: &Obj, problems: &mut Vec<String>) {
         if !patterns.iter().any(|p| json::text(p, "level") == "a2") {
             problems.push(format!("{kw}: 至少一个 A2 句型"));
         }
+        if !patterns
+            .iter()
+            .any(|p| matches!(json::text(p, "level").as_str(), "b1" | "b2"))
+        {
+            problems.push(format!("{kw}: 至少一个 B1 或 B2 句型（Advanced）"));
+        }
         for p in &patterns {
             let id = json::text_or(p, "id", "");
             check_slots(
@@ -697,6 +704,7 @@ pub fn validate_all(root: &Path, only_topic: Option<&str>) -> Vec<String> {
     let mut used_types: BTreeSet<String> = BTreeSet::new();
     let mut seen_sentences: indexmap::IndexMap<String, String> = indexmap::IndexMap::new();
     let mut topic_ids: Vec<String> = Vec::new();
+    let mut goal_topics: BTreeMap<&'static str, BTreeSet<String>> = BTreeMap::new();
     let entries: Vec<Obj> = if let Some(only) = only_topic {
         let mut entry = Obj::new();
         json::put(&mut entry, "id", only);
@@ -738,9 +746,9 @@ pub fn validate_all(root: &Path, only_topic: Option<&str>) -> Vec<String> {
             }
         }
         let views = json::objects(topic, "views").collect::<Vec<_>>();
-        if !(1..=3).contains(&views.len()) {
+        if !(1..=8).contains(&views.len()) {
             problems.push(format!(
-                "topics/{slug}: views 数量 {}（要 1-3）",
+                "topics/{slug}: views 数量 {}（要 1-8）",
                 views.len()
             ));
         }
@@ -770,6 +778,42 @@ pub fn validate_all(root: &Path, only_topic: Option<&str>) -> Vec<String> {
             };
             let lib = lib.as_object().cloned().unwrap_or_default();
             check_view(&where_, view, &lib, &mut problems);
+
+            // Author ids and mark ownership are stable handles for the app:
+            // the UI uses them for the previous / next tour and for editing.
+            let mut authored_ids: BTreeSet<String> = BTreeSet::new();
+            let mut authored_mark_owner: BTreeMap<String, String> = BTreeMap::new();
+            for authored in json::objects(view, "features") {
+                let id = json::text(authored, "id");
+                if id.is_empty() {
+                    problems.push(format!("{where_}/feature: 缺 id"));
+                } else if !authored_ids.insert(id.clone()) {
+                    problems.push(format!("{where_}/feature:{id}: id 重复"));
+                }
+                for mark in json::array(authored, "marks") {
+                    let mark = json::py_str(mark);
+                    if let Some(previous) = authored_mark_owner.insert(mark.clone(), id.clone()) {
+                        problems.push(format!(
+                            "{where_}: mark {mark} 同时属于 {previous} 和 {id}"
+                        ));
+                    }
+                }
+            }
+
+            let merged = merge_authored(view, compute_view(view));
+            let goals_here = goals::ordered_goals(
+                merged.values().map(|feature| feature.kind.as_str()),
+            );
+            if goals_here.is_empty() {
+                problems.push(format!("{where_}: 没有任何学习目标"));
+            }
+            for goal in goals_here {
+                goal_topics
+                    .entry(goal)
+                    .or_default()
+                    .insert(slug.clone());
+            }
+
             // Duplicate English sentences across the whole corpus.
             let mut texts: Vec<String> = Vec::new();
             for ex in json::objects(view, "features") {
@@ -807,7 +851,30 @@ pub fn validate_all(root: &Path, only_topic: Option<&str>) -> Vec<String> {
             if let Ok(lib) = json::load(&path) {
                 if let Some(lib) = lib.as_object() {
                     check_library(t, lib, &mut problems);
+                    if let Some(features) = json::field(lib, "features") {
+                        for kind in features.keys() {
+                            if goals::goal_of(kind).is_none() && !goals::is_generic(kind) {
+                                problems.push(format!(
+                                    "library/{t}/{kind}: 没有学习目标，也不在通用列表"
+                                ));
+                            }
+                        }
+                    }
                 }
+            }
+        }
+    }
+    if only_topic.is_none() {
+        for goal in &goals::GOALS {
+            let count = goal_topics
+                .get(goal.id)
+                .map(|topics| topics.len())
+                .unwrap_or(0);
+            if count < 3 {
+                problems.push(format!(
+                    "学习目标 {} 只有 {} 个主题（至少 3）",
+                    goal.label_zh, count
+                ));
             }
         }
     }

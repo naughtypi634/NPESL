@@ -1,10 +1,22 @@
 import type { EngineFeature, EngineLibrary } from '../engine';
 
-export type Section = 'gallery' | 'play' | 'lab' | 'data';
-export type Register = 'general' | 'ielts' | 'business';
-export type Level = 'a2' | 'b1' | 'b2';
-export type Tab = 'observe' | 'words' | 'patterns' | 'describe' | 'table' | 'edit';
+export type GoalId = 'change' | 'stable' | 'peak' | 'fluctuate' | 'compare';
+export type LearnerLevel = 'basic' | 'advanced';
+export type EngineLevel = 'a2' | 'b1' | 'b2';
 export type Domain = 'business' | 'technology' | 'lifestyle' | 'economy' | 'education';
+
+export const GOAL_IDS: GoalId[] = ['change', 'stable', 'peak', 'fluctuate', 'compare'];
+export const VIEW_TYPE_IDS = [
+  'line',
+  'bar',
+  'pie',
+  'scatter',
+  'stacked',
+  'heatmap',
+  'sankey',
+  'slope',
+  'waterfall',
+] as const;
 
 export interface Unit {
   en?: string;
@@ -26,6 +38,7 @@ export interface Series {
 
 export interface Axis {
   label_en?: string;
+  label_zh?: string;
   values?: string[];
 }
 
@@ -48,7 +61,7 @@ export interface ViewData {
   nodes?: (Category & { column?: number })[];
   links?: { source: string; target: string; value: number }[];
   columns?: string[][];
-  periods?: { label_en?: string }[];
+  periods?: { id?: string; label_en?: string }[];
   entities?: (Category & { values: number[] })[];
   steps?: (Category & { value: number })[];
   start_value?: number;
@@ -57,6 +70,12 @@ export interface ViewData {
   mode?: string;
   period_label?: string;
   [key: string]: unknown;
+}
+
+export interface Descriptions {
+  general?: { a2?: string; b1?: string; b2?: string };
+  ielts?: string;
+  business?: string;
 }
 
 export interface View {
@@ -69,12 +88,9 @@ export interface View {
   unit?: Unit;
   data?: ViewData;
   features?: EngineFeature[];
+  goals?: GoalId[];
   overview_zh?: string;
-  descriptions?: {
-    general?: Record<Level, string>;
-    ielts?: string;
-    business?: string;
-  };
+  descriptions?: Descriptions;
   [key: string]: unknown;
 }
 
@@ -89,6 +105,17 @@ export interface Topic {
   views: View[];
 }
 
+export interface CardView {
+  id: string;
+  type: string;
+  label_zh: string;
+  label_en?: string;
+  subject: string;
+  unit: Unit;
+  goals: GoalId[];
+  data: ViewData;
+}
+
 export interface TopicCard {
   id: string;
   order: number;
@@ -98,12 +125,20 @@ export interface TopicCard {
   blurb_zh: string;
   types: string[];
   default_view: string;
-  primary: {
+  goals: GoalId[];
+  views: CardView[];
+  primary?: {
     type: string;
     subject: string;
     unit: Unit;
     data: ViewData;
   };
+}
+
+export interface GoalMeta {
+  id: GoalId;
+  label_zh: string;
+  label_en: string;
 }
 
 export interface ViewType {
@@ -115,6 +150,9 @@ export interface ViewType {
 
 export interface Gallery {
   version: number;
+  goals: GoalMeta[];
+  kind_goals: Record<string, GoalId>;
+  generic_kinds: string[];
   types: ViewType[];
   topics: TopicCard[];
   bundles: {
@@ -125,32 +163,15 @@ export interface Gallery {
 
 export type Library = EngineLibrary;
 
-export interface ChartOptions {
-  smooth: boolean;
-  labels: boolean;
-  sort: 'none' | 'asc' | 'desc';
-  percent: boolean;
-}
-
 export interface Route {
-  section: Section;
+  section: 'home' | 'detail';
   slug?: string;
   view?: string;
   mark?: string;
-  tab?: Tab;
-  family?: string;
-  sample?: string;
-  domain?: string;
+  goal?: GoalId;
+  domain?: Domain;
+  type?: string;
 }
-
-export const TABS: { id: Tab; label: string }[] = [
-  { id: 'observe', label: '观察' },
-  { id: 'words', label: '词汇' },
-  { id: 'patterns', label: '句型' },
-  { id: 'describe', label: '整图描述' },
-  { id: 'table', label: '数据表' },
-  { id: 'edit', label: '编辑数据' },
-];
 
 export const DOMAINS: { id: Domain; label_en: string; label_zh: string }[] = [
   { id: 'business', label_en: 'Business', label_zh: '商务' },

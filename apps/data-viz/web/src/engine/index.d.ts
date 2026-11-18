@@ -58,6 +58,7 @@ export const DV: {
     fmtAxis(value: number, unit: unknown): string;
     pctText(a: number, b: number): string;
     ppText(delta: number, unit: unknown): string;
+    fmtDelta(delta: number, unit: unknown): string;
   };
   gen: {
     levels(view: unknown, features: unknown, library: unknown): { a2: string; b1: string; b2: string };

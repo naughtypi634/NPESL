@@ -7,11 +7,90 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::LazyLock;
 
-use crate::features::{self, Index};
+use crate::features::{self, Feature, Index};
+use crate::goals;
 use crate::json::{self, Obj};
 use crate::validate;
 
 static SLOT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{([a-z_]+)\}").unwrap());
+
+/// Data keys the gallery index and a shipped view may expose. Keep this list
+/// in step with the chart families; anything else is content-only.
+const ALLOWED_DATA: [&str; 19] = [
+    "x",
+    "series",
+    "parts",
+    "points",
+    "groups",
+    "rows",
+    "cols",
+    "cells",
+    "nodes",
+    "links",
+    "columns",
+    "periods",
+    "entities",
+    "steps",
+    "start_value",
+    "start",
+    "end",
+    "mode",
+    "period_label",
+];
+
+fn view_data(view: &Obj) -> Obj {
+    let mut data = Obj::new();
+    for (key, value) in view {
+        if ALLOWED_DATA.contains(&key.as_str()) {
+            data.insert(key.clone(), value.clone());
+        }
+    }
+    data
+}
+
+fn feature_key(feature: &Feature) -> String {
+    if !feature.id.is_empty() {
+        feature.id.clone()
+    } else {
+        format!(
+            "{}{}",
+            json::compact(&marks_value(&feature.marks)),
+            feature.kind
+        )
+    }
+}
+
+fn push_feature(out: &mut Vec<Value>, seen: &mut BTreeSet<String>, feature: &Feature) {
+    if !seen.insert(feature_key(feature)) {
+        return;
+    }
+    let mut item = Obj::new();
+    json::put(&mut item, "kind", &feature.kind);
+    item.insert("marks".to_string(), marks_value(&feature.marks));
+    item.insert("slots".to_string(), Value::Object(feature.slots.clone()));
+    item.insert("auto".to_string(), Value::Bool(feature.auto));
+    if !feature.id.is_empty() {
+        json::put(&mut item, "id", &feature.id);
+    }
+    if !feature.examples.is_empty() {
+        item.insert(
+            "examples".to_string(),
+            Value::Array(feature.examples.clone()),
+        );
+    }
+    if !feature.note_zh.is_empty() {
+        json::put(&mut item, "note_zh", &feature.note_zh);
+    }
+    if !feature.interpret_zh.is_empty() {
+        json::put(&mut item, "interpret_zh", &feature.interpret_zh);
+    }
+    out.push(Value::Object(item));
+}
+
+fn view_goals(index: &Index) -> Vec<&'static str> {
+    goals::ordered_goals(index.values().map(|feature| feature.kind.as_str()))
+}
+
 
 fn fill(template: &str, slots: &Obj) -> String {
     SLOT.replace_all(template, |caps: &regex::Captures| match slots.get(&caps[1]) {
@@ -30,53 +109,44 @@ fn ship_view(view: &Obj) -> Value {
     let index = features::merge_authored(view, computed);
     let mut features_out: Vec<Value> = Vec::new();
     let mut seen: BTreeSet<String> = BTreeSet::new();
-    for feature in index.values() {
-        let key = if !feature.id.is_empty() {
-            feature.id.clone()
-        } else {
-            format!("{}{}", json::compact(&marks_value(&feature.marks)), feature.kind)
-        };
-        if !seen.insert(key) {
+    let mut authored_marks: BTreeSet<String> = BTreeSet::new();
+
+    // Authored observations first, in content order: that array order is the
+    // "previous / next" tour shown by the app.
+    for authored in json::objects(view, "features") {
+        let marks: Vec<String> = json::array(authored, "marks")
+            .iter()
+            .map(json::py_str)
+            .collect();
+        if marks.is_empty() {
             continue;
         }
-        let mut item = Obj::new();
-        json::put(&mut item, "kind", &feature.kind);
-        item.insert("marks".to_string(), marks_value(&feature.marks));
-        item.insert("slots".to_string(), Value::Object(feature.slots.clone()));
-        item.insert("auto".to_string(), Value::Bool(feature.auto));
-        if !feature.id.is_empty() {
-            json::put(&mut item, "id", &feature.id);
+        if let Some(feature) = marks.iter().find_map(|mark| index.get(mark)) {
+            if !feature.auto {
+                push_feature(&mut features_out, &mut seen, feature);
+            }
         }
-        if !feature.examples.is_empty() {
-            item.insert("examples".to_string(), Value::Array(feature.examples.clone()));
-        }
-        if !feature.note_zh.is_empty() {
-            json::put(&mut item, "note_zh", &feature.note_zh);
-        }
-        if !feature.interpret_zh.is_empty() {
-            json::put(&mut item, "interpret_zh", &feature.interpret_zh);
-        }
-        features_out.push(Value::Object(item));
+        authored_marks.extend(marks);
     }
 
-    let skip = [
-        "features",
-        "overview_zh",
-        "descriptions",
-        "label_zh",
-        "label_en",
-        "subject",
-        "subtitle_en",
-        "unit",
-        "type",
-        "id",
-    ];
-    let mut data = Obj::new();
-    for (key, value) in view {
-        if !skip.contains(&key.as_str()) {
-            data.insert(key.clone(), value.clone());
+    // Then every computed feature that is not fully replaced by an authored
+    // observation. Keeping them means every clickable mark has something to
+    // show, even when nobody wrote a sentence for it.
+    for feature in index.values() {
+        if !feature.auto {
+            continue;
         }
+        if feature
+            .marks
+            .iter()
+            .all(|mark| authored_marks.contains(mark))
+        {
+            continue;
+        }
+        push_feature(&mut features_out, &mut seen, feature);
     }
+
+    let data = view_data(view);
 
     let mut shipped = Obj::new();
     json::put(&mut shipped, "id", json::text(view, "id"));
@@ -98,7 +168,21 @@ fn ship_view(view: &Obj) -> Value {
     );
     shipped.insert("data".to_string(), Value::Object(data));
     shipped.insert("features".to_string(), Value::Array(features_out));
-    json::put(&mut shipped, "overview_zh", json::text_or(view, "overview_zh", ""));
+    let shipped_goals = view_goals(&index);
+    shipped.insert(
+        "goals".to_string(),
+        Value::Array(
+            shipped_goals
+                .iter()
+                .map(|goal| Value::String((*goal).to_string()))
+                .collect(),
+        ),
+    );
+    json::put(
+        &mut shipped,
+        "overview_zh",
+        json::text_or(view, "overview_zh", ""),
+    );
     shipped.insert(
         "descriptions".to_string(),
         json::field(view, "descriptions")
@@ -112,6 +196,7 @@ fn ship_view(view: &Obj) -> Value {
 fn build_manifest_data(
     manifest: &Obj,
     topics: &IndexMap<String, Obj>,
+    libraries: &IndexMap<String, Value>,
     bundles: Value,
 ) -> Value {
     let mut entries: Vec<&Obj> = json::objects(manifest, "topics").collect();
@@ -132,30 +217,9 @@ fn build_manifest_data(
             .iter()
             .map(|v| Value::String(json::text(v, "type")))
             .collect();
-        let allowed = [
-            "x",
-            "series",
-            "parts",
-            "points",
-            "groups",
-            "rows",
-            "cols",
-            "cells",
-            "nodes",
-            "links",
-            "columns",
-            "periods",
-            "entities",
-            "steps",
-            "start_value",
-            "start",
-            "end",
-            "mode",
-            "period_label",
-        ];
         let mut primary_data = Obj::new();
         for (key, value) in primary {
-            if allowed.contains(&key.as_str()) {
+            if ALLOWED_DATA.contains(&key.as_str()) {
                 primary_data.insert(key.clone(), value.clone());
             }
         }
@@ -175,6 +239,56 @@ fn build_manifest_data(
         );
         primary_out.insert("data".to_string(), Value::Object(primary_data));
 
+        let mut topic_goal_set: BTreeSet<&'static str> = BTreeSet::new();
+        let mut view_cards: Vec<Value> = Vec::new();
+        for view in &views {
+            let index = features::merge_authored(view, features::compute_view(view));
+            let view_goal_list = view_goals(&index);
+            topic_goal_set.extend(view_goal_list.iter().copied());
+            let mut view_out = Obj::new();
+            json::put(&mut view_out, "id", json::text(view, "id"));
+            json::put(&mut view_out, "type", json::text(view, "type"));
+            json::put(
+                &mut view_out,
+                "label_zh",
+                json::text_or(view, "label_zh", ""),
+            );
+            json::put(
+                &mut view_out,
+                "label_en",
+                json::text_or(view, "label_en", ""),
+            );
+            json::put(
+                &mut view_out,
+                "subject",
+                json::text_or(view, "subject", ""),
+            );
+            view_out.insert(
+                "unit".to_string(),
+                json::field(view, "unit")
+                    .cloned()
+                    .map(Value::Object)
+                    .unwrap_or(Value::Object(Obj::new())),
+            );
+            view_out.insert(
+                "goals".to_string(),
+                Value::Array(
+                    view_goal_list
+                        .iter()
+                        .map(|goal| Value::String((*goal).to_string()))
+                        .collect(),
+                ),
+            );
+            view_out.insert("data".to_string(), Value::Object(view_data(view)));
+            view_cards.push(Value::Object(view_out));
+        }
+        let topic_goals: Vec<Value> = goals::GOALS
+            .iter()
+            .map(|goal| goal.id)
+            .filter(|id| topic_goal_set.contains(id))
+            .map(|id| Value::String(id.to_string()))
+            .collect();
+
         let mut card = Obj::new();
         json::put(&mut card, "id", &slug);
         card.insert(
@@ -187,17 +301,46 @@ fn build_manifest_data(
         json::put(&mut card, "blurb_zh", json::text_or(topic, "blurb_zh", ""));
         card.insert("types".to_string(), Value::Array(types));
         json::put(&mut card, "default_view", json::text(primary, "id"));
+        card.insert("goals".to_string(), Value::Array(topic_goals));
+        card.insert("views".to_string(), Value::Array(view_cards));
         card.insert("primary".to_string(), Value::Object(primary_out));
         cards.push(Value::Object(card));
     }
+
+    let mut kind_goals = Obj::new();
+    for library in libraries.values() {
+        let Some(library) = library.as_object() else {
+            continue;
+        };
+        let Some(features) = json::field(library, "features") else {
+            continue;
+        };
+        for kind in features.keys() {
+            if let Some(goal) = goals::goal_of(kind) {
+                kind_goals.insert(kind.to_string(), Value::String(goal.to_string()));
+            }
+        }
+    }
+    let goal_meta: Vec<Value> = goals::GOALS
+        .iter()
+        .map(|goal| {
+            let mut item = Obj::new();
+            json::put(&mut item, "id", goal.id);
+            json::put(&mut item, "label_zh", goal.label_zh);
+            json::put(&mut item, "label_en", goal.label_en);
+            Value::Object(item)
+        })
+        .collect();
+    let generic: Vec<Value> = goals::GENERIC_KINDS
+        .iter()
+        .map(|kind| Value::String((*kind).to_string()))
+        .collect();
+
     let mut out = Obj::new();
-    out.insert(
-        "version".to_string(),
-        manifest
-            .get("version")
-            .cloned()
-            .unwrap_or(Value::Number(1.into())),
-    );
+    out.insert("version".to_string(), Value::Number(2.into()));
+    out.insert("goals".to_string(), Value::Array(goal_meta));
+    out.insert("kind_goals".to_string(), Value::Object(kind_goals));
+    out.insert("generic_kinds".to_string(), Value::Array(generic));
     out.insert(
         "types".to_string(),
         manifest
@@ -370,7 +513,7 @@ pub fn run(root: &Path) -> i32 {
     let mut bundles = Obj::new();
     bundles.insert("lang".to_string(), Value::Object(lang_urls));
     bundles.insert("topics".to_string(), Value::Object(topic_urls));
-    let gallery = build_manifest_data(&manifest, &topics, Value::Object(bundles));
+    let gallery = build_manifest_data(&manifest, &topics, &libraries, Value::Object(bundles));
     let payload = json::compact(&gallery);
     if let Err(error) = json::write_text(&data_dir.join("index.json"), &payload) {
         println!("{error}");
@@ -383,6 +526,18 @@ pub fn run(root: &Path) -> i32 {
             .map(|topic| json::objects(topic, "views").count())
             .sum::<usize>()
     });
+    for goal in &goals::GOALS {
+        let count = topics
+            .values()
+            .filter(|topic| {
+                json::objects(topic, "views").any(|view| {
+                    let index = features::merge_authored(view, features::compute_view(view));
+                    view_goals(&index).contains(&goal.id)
+                })
+            })
+            .count();
+        println!("  {}：{} 个主题", goal.label_zh, count);
+    }
     println!(
         "语言包 {} 个：{}",
         libraries.len(),

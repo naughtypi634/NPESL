@@ -11,7 +11,7 @@ import { CanvasRenderer } from 'echarts/renderers';
 import type { EChartsOption } from 'echarts';
 
 import { DV } from '../engine';
-import type { ChartOptions, Unit, View, ViewData } from '../data/types';
+import type { View } from '../data/types';
 
 echarts.use([
   BarChart,
@@ -42,6 +42,14 @@ export interface Palette {
   neg: string;
   total: string;
 }
+
+export interface AxisLock {
+  x?: [number, number];
+  y?: [number, number];
+}
+
+export const PIE_CENTER: [string, string] = ['50%', '44%'];
+export const PIE_RADIUS: [string, string] = ['38%', '70%'];
 
 const FALLBACK = ['#1f5fbf', '#b25424', '#0b6b5e', '#8a6500', '#9c3f86', '#2f6b2f', '#5b45c9', '#b23a48'];
 
@@ -74,10 +82,11 @@ function alpha(color: string, value: number): string {
   return color;
 }
 
-interface BuildOptions extends ChartOptions {
-  selected?: string | null;
+interface BuildOptions {
+  selectedMarks?: string[];
   compact?: boolean;
-  units?: Unit;
+  axisLock?: AxisLock;
+  tooltip?: (params: { data?: { mark?: string } }) => string;
 }
 
 function axisText(palette: Palette, compact = false): Record<string, unknown> {
@@ -98,9 +107,13 @@ function gridOf(compact = false): Record<string, unknown> {
   };
 }
 
-function tooltipOf(palette: Palette, compact = false): Record<string, unknown> {
+function tooltipOf(
+  palette: Palette,
+  compact = false,
+  formatter?: BuildOptions['tooltip'],
+): Record<string, unknown> {
   if (compact) return { show: false };
-  return {
+  const base = {
     trigger: 'item',
     backgroundColor: palette.pane,
     borderColor: palette.rule,
@@ -109,34 +122,47 @@ function tooltipOf(palette: Palette, compact = false): Record<string, unknown> {
     textStyle: { color: palette.fg, fontFamily: palette.font, fontSize: 12 },
     extraCssText: 'border-radius: 12px; box-shadow: 0 12px 32px -14px rgba(0,0,0,.35);',
   };
+  return formatter ? { ...base, formatter } : base;
 }
 
-function base(palette: Palette, compact = false): Record<string, unknown> {
+function base(
+  palette: Palette,
+  compact = false,
+  tooltip?: BuildOptions['tooltip'],
+): Record<string, unknown> {
   return {
     animation: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     animationDuration: compact ? 250 : 420,
     animationEasing: 'cubicOut',
     textStyle: { fontFamily: palette.font, color: palette.muted },
     grid: gridOf(compact),
-    tooltip: tooltipOf(palette, compact),
+    tooltip: tooltipOf(palette, compact, tooltip),
   };
 }
 
-function selectedStyle(mark: string, selected: string | null | undefined, palette: Palette): Record<string, unknown> | undefined {
-  if (selected !== mark) return undefined;
+function isSelected(mark: string, selectedMarks: string[] | undefined): boolean {
+  return !!selectedMarks?.includes(mark);
+}
+
+function selectedStyle(
+  mark: string,
+  selectedMarks: string[] | undefined,
+  palette: Palette,
+): Record<string, unknown> | undefined {
+  if (!isSelected(mark, selectedMarks)) return undefined;
   return { borderColor: palette.fg, borderWidth: 2 };
 }
 
 function lineOption(view: View, palette: Palette, opts: BuildOptions): EChartsOption {
   const data = view.data ?? {};
   const xs = (data.x?.values ?? []).map(String);
-  const selected = opts.selected ?? null;
+  const selectedMarks = opts.selectedMarks ?? [];
   const compact = !!opts.compact;
   const series = (data.series ?? []).map((s, index) => {
     const color = palette.series[index % palette.series.length];
     const items = s.values.map((value, i) => {
       const mark = `pt:${s.id}:${i}`;
-      const highlight = mark === selected;
+      const highlight = isSelected(mark, selectedMarks);
       return {
         value,
         mark,
@@ -150,28 +176,33 @@ function lineOption(view: View, palette: Palette, opts: BuildOptions): EChartsOp
       type: 'line',
       name: s.name_en,
       data: items,
-      smooth: opts.smooth,
+      smooth: false,
       symbol: 'circle',
       symbolSize: compact ? 3 : 7,
       lineStyle: { width: compact ? 1.8 : 2.6, color },
       itemStyle: { color, borderColor: palette.pane, borderWidth: 1 },
       emphasis: { focus: 'series' },
     };
-    if (selected && selected.startsWith('seg:')) {
+    const areas: unknown[] = [];
+    for (const selected of selectedMarks) {
+      if (!selected.startsWith('seg:')) continue;
       const [, seriesId, indexText] = selected.split(':');
       const i = Number(indexText);
       if (seriesId === s.id && xs[i] != null && xs[i + 1] != null) {
-        item.markArea = {
-          silent: true,
-          itemStyle: { color: alpha(color, 0.14) },
-          data: [[{ xAxis: xs[i] }, { xAxis: xs[i + 1] }]],
-        };
+        areas.push([{ xAxis: xs[i] }, { xAxis: xs[i + 1] }]);
       }
+    }
+    if (areas.length) {
+      item.markArea = {
+        silent: true,
+        itemStyle: { color: alpha(color, 0.14) },
+        data: areas,
+      };
     }
     return item;
   });
   return {
-    ...base(palette, compact),
+    ...base(palette, compact, opts.tooltip),
     xAxis: {
       type: 'category',
       data: xs,
@@ -183,6 +214,8 @@ function lineOption(view: View, palette: Palette, opts: BuildOptions): EChartsOp
     },
     yAxis: {
       type: 'value',
+      min: opts.axisLock?.y?.[0],
+      max: opts.axisLock?.y?.[1],
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
@@ -204,39 +237,29 @@ function lineOption(view: View, palette: Palette, opts: BuildOptions): EChartsOp
   } as EChartsOption;
 }
 
-function orderedBarIndices(data: ViewData, sort: ChartOptions['sort']): number[] | null {
-  if (sort === 'none' || !data.x?.values) return null;
-  const values = (data.series ?? []).map((s) => s.values);
-  const totals = data.x.values.map((_, i) => values.reduce((sum, list) => sum + (Number(list[i]) || 0), 0));
-  const indices = data.x.values.map((_, i) => i);
-  indices.sort((a, b) => (sort === 'asc' ? totals[a] - totals[b] : totals[b] - totals[a]));
-  return indices;
-}
-
 function barOption(view: View, palette: Palette, opts: BuildOptions, stacked = false): EChartsOption {
   const data = view.data ?? {};
   const compact = !!opts.compact;
-  const selected = opts.selected ?? null;
-  const percent = stacked && (opts.percent || data.mode === 'percent');
-  const indices = orderedBarIndices(data, opts.sort);
-  const pick = <T,>(list: T[], i: number): T => (indices ? list[indices[i]] : list[i]);
+  const selectedMarks = opts.selectedMarks ?? [];
+  const percent = stacked && data.mode === 'percent';
   const count = data.x?.values?.length ?? 0;
-  const xs = Array.from({ length: count }, (_, i) => String(pick(data.x?.values ?? [], i)));
+  const xs = Array.from({ length: count }, (_, i) => String(data.x?.values?.[i] ?? ''));
   const totals = Array.from({ length: count }, (_, i) =>
-    (data.series ?? []).reduce((sum, s) => sum + (Number(pick(s.values, i)) || 0), 0),
+    (data.series ?? []).reduce((sum, s) => sum + (Number(s.values[i]) || 0), 0),
   );
   const series = (data.series ?? []).map((s, index) => {
     const color = palette.series[index % palette.series.length];
     const items = Array.from({ length: count }, (_, i) => {
-      const xIndex = indices ? indices[i] : i;
-      const raw = Number(s.values[xIndex]) || 0;
+      const raw = Number(s.values[i]) || 0;
       const value = percent ? (totals[i] ? (raw / totals[i]) * 100 : 0) : raw;
-      const mark = stacked ? `seg:${xIndex}:${s.id}` : `bar:${s.id}:${xIndex}`;
-      const stackHighlight = selected === `stack:${xIndex}`;
+      const mark = stacked ? `seg:${i}:${s.id}` : `bar:${s.id}:${i}`;
+      const stackHighlight = isSelected(`stack:${i}`, selectedMarks);
       return {
         value,
         mark,
-        itemStyle: selectedStyle(mark, selected, palette) ?? (stackHighlight ? { borderColor: palette.fg, borderWidth: 2 } : undefined),
+        itemStyle:
+          selectedStyle(mark, selectedMarks, palette) ??
+          (stackHighlight ? { borderColor: palette.fg, borderWidth: 2 } : undefined),
       };
     });
     return {
@@ -251,7 +274,7 @@ function barOption(view: View, palette: Palette, opts: BuildOptions, stacked = f
       },
       emphasis: { focus: 'series' },
       label: {
-        show: !stacked && opts.labels && !compact,
+        show: !stacked && !compact,
         position: 'top',
         color: palette.muted,
         fontFamily: palette.font,
@@ -261,7 +284,7 @@ function barOption(view: View, palette: Palette, opts: BuildOptions, stacked = f
     };
   });
   return {
-    ...base(palette, compact),
+    ...base(palette, compact, opts.tooltip),
     xAxis: {
       type: 'category',
       data: xs,
@@ -276,7 +299,8 @@ function barOption(view: View, palette: Palette, opts: BuildOptions, stacked = f
     },
     yAxis: {
       type: 'value',
-      max: percent ? 100 : undefined,
+      min: opts.axisLock?.y?.[0],
+      max: percent ? 100 : opts.axisLock?.y?.[1],
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
@@ -301,7 +325,7 @@ function barOption(view: View, palette: Palette, opts: BuildOptions, stacked = f
 function pieOption(view: View, palette: Palette, opts: BuildOptions): EChartsOption {
   const data = view.data ?? {};
   const compact = !!opts.compact;
-  const selected = opts.selected ?? null;
+  const selectedMarks = opts.selectedMarks ?? [];
   const items = (data.parts ?? []).map((part, index) => {
     const mark = `slice:${part.id}`;
     return {
@@ -313,12 +337,12 @@ function pieOption(view: View, palette: Palette, opts: BuildOptions): EChartsOpt
         borderColor: palette.pane,
         borderWidth: 2,
         borderRadius: 6,
-        ...(selectedStyle(mark, selected, palette) ?? {}),
+        ...(selectedStyle(mark, selectedMarks, palette) ?? {}),
       },
     };
   });
   return {
-    ...base(palette, compact),
+    ...base(palette, compact, opts.tooltip),
     legend: {
       show: !compact,
       bottom: 0,
@@ -330,18 +354,18 @@ function pieOption(view: View, palette: Palette, opts: BuildOptions): EChartsOpt
     series: [
       {
         type: 'pie',
-        radius: compact ? ['10%', '78%'] : ['38%', '70%'],
-        center: ['50%', compact ? '50%' : '44%'],
+        radius: compact ? ['10%', '78%'] : [...PIE_RADIUS],
+        center: compact ? ['50%', '50%'] : [...PIE_CENTER],
         avoidLabelOverlap: true,
         itemStyle: { borderColor: palette.pane, borderWidth: 2 },
         label: {
-          show: !compact && opts.labels,
+          show: !compact,
           color: palette.muted,
           fontFamily: palette.font,
           fontSize: 11,
           formatter: '{b} {d}%',
         },
-        labelLine: { show: !compact && opts.labels, lineStyle: { color: palette.rule } },
+        labelLine: { show: !compact, lineStyle: { color: palette.rule } },
         emphasis: { scale: true, scaleSize: 6, label: { show: true, color: palette.fg } },
         data: items,
       },
@@ -352,7 +376,7 @@ function pieOption(view: View, palette: Palette, opts: BuildOptions): EChartsOpt
 function scatterOption(view: View, palette: Palette, opts: BuildOptions): EChartsOption {
   const data = view.data ?? {};
   const compact = !!opts.compact;
-  const selected = opts.selected ?? null;
+  const selectedMarks = opts.selectedMarks ?? [];
   const groups = data.groups ?? [];
   const groupIds = groups.length ? groups.map((group) => group.id) : [''];
   const series = groupIds.map((groupId, index) => {
@@ -363,7 +387,10 @@ function scatterOption(view: View, palette: Palette, opts: BuildOptions): EChart
       name: groups.find((group) => group.id === groupId)?.name_en || view.label_en || 'Points',
       data: points.map((point) => {
         const mark = `pt:${point.id}`;
-        const highlight = selected === mark || selected === `grp:${groupId}` || selected === 'all';
+        const highlight =
+          isSelected(mark, selectedMarks) ||
+          isSelected(`grp:${groupId}`, selectedMarks) ||
+          isSelected('all', selectedMarks);
         return {
           value: [point.x, point.y],
           name: point.name_en,
@@ -378,10 +405,12 @@ function scatterOption(view: View, palette: Palette, opts: BuildOptions): EChart
     };
   });
   return {
-    ...base(palette, compact),
+    ...base(palette, compact, opts.tooltip),
     xAxis: {
       type: 'value',
       name: compact ? '' : data.x?.label_en ?? '',
+      min: opts.axisLock?.x?.[0],
+      max: opts.axisLock?.x?.[1],
       nameTextStyle: { color: palette.muted, fontFamily: palette.font, fontSize: 11 },
       axisLine: { lineStyle: { color: palette.rule } },
       axisTick: { show: false },
@@ -391,6 +420,8 @@ function scatterOption(view: View, palette: Palette, opts: BuildOptions): EChart
     yAxis: {
       type: 'value',
       name: compact ? '' : data.y?.label_en ?? '',
+      min: opts.axisLock?.y?.[0],
+      max: opts.axisLock?.y?.[1],
       nameTextStyle: { color: palette.muted, fontFamily: palette.font, fontSize: 11 },
       axisLine: { show: false },
       axisTick: { show: false },
@@ -412,7 +443,7 @@ function scatterOption(view: View, palette: Palette, opts: BuildOptions): EChart
 function heatmapOption(view: View, palette: Palette, opts: BuildOptions): EChartsOption {
   const data = view.data ?? {};
   const compact = !!opts.compact;
-  const selected = opts.selected ?? null;
+  const selectedMarks = opts.selectedMarks ?? [];
   const rows = data.rows ?? [];
   const cols = data.cols ?? [];
   const cells = data.cells ?? [];
@@ -424,7 +455,9 @@ function heatmapOption(view: View, palette: Palette, opts: BuildOptions): EChart
     cols.forEach((col, c) => {
       const mark = `cell:${row.id}:${col.id}`;
       const highlight =
-        selected === mark || selected === `row:${row.id}` || selected === `col:${col.id}`;
+        isSelected(mark, selectedMarks) ||
+        isSelected(`row:${row.id}`, selectedMarks) ||
+        isSelected(`col:${col.id}`, selectedMarks);
       items.push({
         value: [c, r, Number(cells[r]?.[c]) || 0],
         mark,
@@ -435,7 +468,7 @@ function heatmapOption(view: View, palette: Palette, opts: BuildOptions): EChart
     });
   });
   return {
-    ...base(palette, compact),
+    ...base(palette, compact, opts.tooltip),
     xAxis: {
       type: 'category',
       data: cols.map((col) => col.name_en),
@@ -470,7 +503,7 @@ function heatmapOption(view: View, palette: Palette, opts: BuildOptions): EChart
         type: 'heatmap',
         data: items,
         label: {
-          show: !compact && opts.labels,
+          show: !compact,
           color: palette.fg,
           fontFamily: palette.font,
           fontSize: 10,
@@ -485,40 +518,37 @@ function heatmapOption(view: View, palette: Palette, opts: BuildOptions): EChart
 function sankeyOption(view: View, palette: Palette, opts: BuildOptions): EChartsOption {
   const data = view.data ?? {};
   const compact = !!opts.compact;
-  const selected = opts.selected ?? null;
+  const selectedMarks = opts.selectedMarks ?? [];
   const nodes = data.nodes ?? [];
   const links = data.links ?? [];
   return {
-    ...base(palette, compact),
+    ...base(palette, compact, opts.tooltip),
     series: [
       {
         type: 'sankey',
         left: compact ? 2 : 8,
-        right: compact ? 2 : 96,
+        right: compact ? 2 : 8,
         top: compact ? 6 : 18,
         bottom: compact ? 6 : 18,
         nodeWidth: compact ? 6 : 10,
         nodeGap: compact ? 6 : 10,
         draggable: false,
         emphasis: { focus: 'adjacency' },
-        label: {
-          show: !compact,
-          color: palette.fg,
-          fontFamily: palette.font,
-          fontSize: 11,
-          position: 'right',
-        },
+        // Node names are shown in the legend below the chart. ECharts clips
+        // labels at the series edge, which loses the last column on phones.
+        label: { show: false },
         lineStyle: { color: 'gradient', curveness: 0.5, opacity: 0.32 },
         itemStyle: { borderWidth: 0, borderRadius: 4 },
         data: nodes.map((node, index) => {
           const mark = `node:${node.id}`;
+          const highlight = isSelected(mark, selectedMarks);
           return {
             name: node.name_en,
             mark,
             itemStyle: {
               color: palette.series[index % palette.series.length],
-              borderColor: selected === mark ? palette.fg : 'transparent',
-              borderWidth: selected === mark ? 2 : 0,
+              borderColor: highlight ? palette.fg : 'transparent',
+              borderWidth: highlight ? 2 : 0,
             },
           };
         }),
@@ -531,7 +561,7 @@ function sankeyOption(view: View, palette: Palette, opts: BuildOptions): ECharts
             target: target?.name_en ?? link.target,
             value: link.value,
             mark,
-            lineStyle: selected === mark ? { opacity: 0.9, width: 3 } : undefined,
+            lineStyle: isSelected(mark, selectedMarks) ? { opacity: 0.9, width: 3 } : undefined,
           };
         }),
       },
@@ -542,18 +572,19 @@ function sankeyOption(view: View, palette: Palette, opts: BuildOptions): ECharts
 function slopeOption(view: View, palette: Palette, opts: BuildOptions): EChartsOption {
   const data = view.data ?? {};
   const compact = !!opts.compact;
-  const selected = opts.selected ?? null;
+  const selectedMarks = opts.selectedMarks ?? [];
   const periods = (data.periods ?? []).map((period) => period.label_en ?? '');
   const entities = data.entities ?? [];
   const series = entities.map((entity, index) => {
     const color = palette.series[index % palette.series.length];
-    const dim = selected?.startsWith('line:') && selected !== `line:${entity.id}`;
+    const lineSelected = isSelected(`line:${entity.id}`, selectedMarks);
+    const dim = selectedMarks.some((mark) => mark.startsWith('line:')) && !lineSelected;
     return {
       type: 'line',
       name: entity.name_en,
       data: entity.values.map((value, periodIndex) => {
         const mark = `pt:${entity.id}:${periodIndex}`;
-        const highlight = selected === mark || selected === `line:${entity.id}`;
+        const highlight = isSelected(mark, selectedMarks) || lineSelected;
         return {
           value,
           mark,
@@ -562,7 +593,7 @@ function slopeOption(view: View, palette: Palette, opts: BuildOptions): EChartsO
         };
       }),
       symbol: 'circle',
-      lineStyle: { width: selected === `line:${entity.id}` ? 4 : 2.4, color, opacity: dim ? 0.3 : 1 },
+      lineStyle: { width: lineSelected ? 4 : 2.4, color, opacity: dim ? 0.3 : 1 },
       itemStyle: { color },
       endLabel: {
         show: !compact,
@@ -575,7 +606,7 @@ function slopeOption(view: View, palette: Palette, opts: BuildOptions): EChartsO
     };
   });
   return {
-    ...base(palette, compact),
+    ...base(palette, compact, opts.tooltip),
     grid: { left: compact ? 4 : 46, right: compact ? 34 : 118, top: compact ? 6 : 34, bottom: compact ? 6 : 26, containLabel: !compact },
     xAxis: {
       type: 'category',
@@ -587,6 +618,8 @@ function slopeOption(view: View, palette: Palette, opts: BuildOptions): EChartsO
     },
     yAxis: {
       type: 'value',
+      min: opts.axisLock?.y?.[0],
+      max: opts.axisLock?.y?.[1],
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
@@ -603,7 +636,7 @@ function slopeOption(view: View, palette: Palette, opts: BuildOptions): EChartsO
 function waterfallOption(view: View, palette: Palette, opts: BuildOptions): EChartsOption {
   const data = view.data ?? {};
   const compact = !!opts.compact;
-  const selected = opts.selected ?? null;
+  const selectedMarks = opts.selectedMarks ?? [];
   const steps = data.steps ?? [];
   const start = Number(data.start_value) || 0;
   const startLabel = data.start?.name_en ?? 'Start';
@@ -619,7 +652,7 @@ function waterfallOption(view: View, palette: Palette, opts: BuildOptions): ECha
     itemStyle: {
       color: palette.total,
       borderRadius: [6, 6, 0, 0],
-      ...(selected === 'total:start' ? { borderColor: palette.fg, borderWidth: 2 } : {}),
+      ...(isSelected('total:start', selectedMarks) ? { borderColor: palette.fg, borderWidth: 2 } : {}),
     },
   });
   for (const step of steps) {
@@ -633,7 +666,7 @@ function waterfallOption(view: View, palette: Palette, opts: BuildOptions): ECha
       itemStyle: {
         color: value >= 0 ? palette.pos : palette.neg,
         borderRadius: 4,
-        ...(selected === mark ? { borderColor: palette.fg, borderWidth: 2 } : {}),
+        ...(isSelected(mark, selectedMarks) ? { borderColor: palette.fg, borderWidth: 2 } : {}),
       },
     });
     running = next;
@@ -645,11 +678,11 @@ function waterfallOption(view: View, palette: Palette, opts: BuildOptions): ECha
     itemStyle: {
       color: palette.total,
       borderRadius: [6, 6, 0, 0],
-      ...(selected === 'total:end' ? { borderColor: palette.fg, borderWidth: 2 } : {}),
+      ...(isSelected('total:end', selectedMarks) ? { borderColor: palette.fg, borderWidth: 2 } : {}),
     },
   });
   return {
-    ...base(palette, compact),
+    ...base(palette, compact, opts.tooltip),
     xAxis: {
       type: 'category',
       data: categories,
@@ -659,6 +692,8 @@ function waterfallOption(view: View, palette: Palette, opts: BuildOptions): ECha
     },
     yAxis: {
       type: 'value',
+      min: opts.axisLock?.y?.[0],
+      max: opts.axisLock?.y?.[1],
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
@@ -683,7 +718,7 @@ function waterfallOption(view: View, palette: Palette, opts: BuildOptions): ECha
         barMaxWidth: compact ? 20 : 48,
         data: valueData,
         label: {
-          show: opts.labels && !compact,
+          show: !compact,
           position: 'top',
           color: palette.muted,
           fontFamily: palette.font,

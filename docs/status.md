@@ -26,7 +26,7 @@
 | Phenomena / Conversation | 本地 Qwen3-TTS Base 克隆音色（女 `h2` / 男 `c`）；Conversation 母版由 `build/qwen-voicedesign/gen_corpus.py` 生成，逐词时间由 `add_timings*.py` 补齐 |
 | Collocation | 默认 Azure（Ava / Andrew）；`--tts qwen|edge|kokoro` 可选，同一页面不得混用音源 |
 
-Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅作者合成时使用，不是构建/部署依赖）。
+Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅内容合成时使用，不是构建/部署依赖）。
 
 ## 门禁基线
 
@@ -51,6 +51,13 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅作者合成时使用，不
   - 内容：20 个主题全部加 `domain`（business / technology / lifestyle / economy / education），`dv-engine validate` 拦截非法值。
   - 测试：`node tests/dataviz-parity.mjs` 80 样本 1836 mark 0 差异；`node tests/dataviz-text.mjs` 40 视图 240 段通过；`node tests/smoke.mjs --match data-viz` 10/10（画廊、工作台、改数据、数据表、9 种图表、表达实验室、真实数据、深链、glass 主题、返回链接）。
   - 视觉：圆角统一为卡片 20 / 控件 12 / 徽章与分段 999；画廊 20 个 ECharts mini 图；移动端无横向溢出。
+- 2026-11-18：data-viz 改为「看图表学说法」两页式（首页筛选 + 详情学习），内容 JSON 不变（20 个主题 / 40 个视图 / 223 条预先写好的例句）。
+  - 新增 `source/engine/src/goals.rs`：五个学习目标（上升下降 / 持平 / 峰值低谷 / 波动 / 比较）由 kind 自动映射；`index.json` 升到 v2，带 `goals`、`kind_goals`、`generic_kinds`、每个视图的 `goals` 和预览数据；校验器要求每个目标至少 3 个主题。
+  - 界面只显示 Basic / Advanced 两档：Basic 取 A2，Advanced 取 B1（B2 后备）；整图描述 Advanced 取 B2（B1 后备）；不显示 A2/B1/B2。
+  - 详情页：点任意图元出生成句/中文，预先写好的位置额外显示原句；上一处/下一处按预先写好的观察顺序走，没有同类例句时用自动特征；折叠区有整图 Basic/Advanced/IELTS/Business。
+  - 编辑：折线/柱/瀑布/斜率/散点/饼图可拖，堆叠/热力/流向用输入框；只改数值，图表与词句实时重算；改数据后预先写好的原句隐藏，还原恢复。
+  - 测试：`dv-engine validate` 通过；`dataviz-parity` 80 样本 1836 mark 0 差异；`dataviz-text` 40 视图 240 段通过；新增 `tests/dataviz-goals.mjs` 通过（20 主题 / 40 视图，目标覆盖 12 / 6 / 19 / 4 / 17）；新增 `tests/dataviz-ui.mjs` 41/41 通过（首页目标/领域/类型筛选、取消目标、卡片预览、详情点选、上一处/下一处、六种拖动 + 四种输入、三套主题、390 px 无横向溢出、无 console 错误）。
+  - 旧的四个入口、Tabs、语域/等级切换、练习框、整页数据表已删除；data-viz 仍不装配、不部署。
 
 ## 部署授权
 

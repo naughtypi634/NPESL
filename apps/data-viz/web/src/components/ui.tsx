@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 
 export function cn(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ');
@@ -63,34 +63,6 @@ export function Chip({
   );
 }
 
-export function Segmented({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <div className={cn('seg', className)}>{children}</div>;
-}
-
-export function SegButton({
-  active,
-  children,
-  className,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      className={cn('min-h-8 px-3 text-[12px] font-medium', className)}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function Card({
   children,
   className,
@@ -116,18 +88,6 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
     <input
       className={cn(
         'dv-field h-8 w-full px-2 text-[13px] outline-none',
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      className={cn(
-        'dv-field min-h-28 w-full resize-y p-3 text-[14px] leading-relaxed outline-none',
         className,
       )}
       {...props}

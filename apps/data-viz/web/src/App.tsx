@@ -2,20 +2,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Header } from './components/Header';
 import { Spinner } from './components/ui';
-import type { Route, Tab } from './data/types';
+import type { GoalId, Route } from './data/types';
 import { parseHash, routeHash } from './lib/router';
 import { RouteContext } from './lib/route-context';
-import { GallerySection } from './sections/Gallery';
-import { LabSection } from './sections/Lab';
-import { PlaygroundPicker, PlaygroundSection } from './sections/Playground';
-import { RealWorldSection } from './sections/RealWorld';
+import { Detail } from './sections/Detail';
+import { Home } from './sections/Home';
 import { useApp } from './store/app';
 
 interface DebugApi {
   snapshot: () => Record<string, unknown>;
-  select: (mark: string) => void;
-  setTab: (tab: Tab) => void;
+  selectMark: (mark: string) => void;
+  setGoal: (goal: GoalId | null) => void;
+  openTopic: (slug: string, view?: string) => void;
   open: (hash: string) => void;
+  reset: () => void;
 }
 
 export default function App() {
@@ -48,8 +48,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const canonical = routeHash(route);
+    if (window.location.hash !== canonical) {
+      window.history.replaceState(null, '', canonical);
+    }
+  }, [route]);
+
+  useEffect(() => {
     window.scrollTo(0, 0);
-  }, [route.section]);
+  }, [route.section, route.slug, route.view]);
 
   useEffect(() => {
     const api: DebugApi = {
@@ -58,19 +65,40 @@ export default function App() {
         slug: routeRef.current.slug ?? null,
         view: routeRef.current.view ?? null,
         mark: routeRef.current.mark ?? null,
-        tab: routeRef.current.tab ?? null,
-        family: routeRef.current.family ?? null,
+        goal: routeRef.current.goal ?? null,
         domain: routeRef.current.domain ?? null,
+        type: routeRef.current.type ?? null,
         theme: document.documentElement.getAttribute('data-theme'),
         cards: document.querySelectorAll('.dv-tile').length,
-        marks: document.querySelectorAll('[data-mark]').length,
-        edits: Object.keys(edits).length,
-        text: document.body.innerText.slice(0, 400),
+        edits: Object.keys(useApp.getState().edits).length,
+        text: document.body.innerText.slice(0, 500),
       }),
-      select: (mark) => go({ ...routeRef.current, mark, tab: 'observe' }, true),
-      setTab: (tab) => go({ ...routeRef.current, tab }, true),
+      selectMark: (mark) => {
+        if (routeRef.current.section !== 'detail') return;
+        go({ ...routeRef.current, mark }, true);
+      },
+      setGoal: (goal) => {
+        go(
+          {
+            section: 'home',
+            goal: goal ?? undefined,
+            domain: routeRef.current.domain,
+            type: routeRef.current.type,
+          },
+          true,
+        );
+      },
+      openTopic: (slug, view) => {
+        go({ section: 'detail', slug, view });
+      },
       open: (hash) => {
         window.location.hash = hash;
+      },
+      reset: () => {
+        const current = routeRef.current;
+        if (!current.slug || !current.view) return;
+        const key = `${current.slug}/${current.view}`;
+        useApp.getState().resetEdits(key);
       },
     };
     (window as unknown as { __dv?: DebugApi }).__dv = api;
@@ -83,15 +111,11 @@ export default function App() {
   if (galleryError) {
     content = <p className="py-16 text-sm text-[var(--danger)]">{galleryError}</p>;
   } else if (!gallery) {
-    content = <Spinner label="载入画廊…" />;
-  } else if (route.section === 'gallery') {
-    content = <GallerySection gallery={gallery} />;
-  } else if (route.section === 'play') {
-    content = route.slug ? <PlaygroundSection /> : <PlaygroundPicker gallery={gallery} />;
-  } else if (route.section === 'lab') {
-    content = <LabSection gallery={gallery} />;
+    content = <Spinner label="载入图表…" />;
+  } else if (route.section === 'detail' && route.slug) {
+    content = <Detail gallery={gallery} route={route} />;
   } else {
-    content = <RealWorldSection gallery={gallery} />;
+    content = <Home gallery={gallery} />;
   }
 
   return (
