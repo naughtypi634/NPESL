@@ -36,7 +36,8 @@ def run_check(name: str, argv: list[str], *, cwd: Path = ROOT,
     return result.returncode == 0
 
 
-def run_step(name: str, argv: list[str], *, cwd: Path = ROOT) -> None:
+def run_step(name: str, argv: list[str], *, cwd: Path = ROOT,
+             program: str | None = None) -> None:
     """Run a required build step; stop the pipeline if it fails."""
-    if not run_check(name, argv, cwd=cwd):
+    if not run_check(name, argv, cwd=cwd, program=program):
         raise SystemExit(f"\n构建中止：{name} 失败")

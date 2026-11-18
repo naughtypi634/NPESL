@@ -1,6 +1,6 @@
 // Parity check: browser feature engine (apps/data-viz/js/05-compute.js) against
-// the build-time engine (apps/data-viz/source/features.py), over every view in
-// content/data-viz.
+// the build-time engine (apps/data-viz/source/engine/src/features.rs), over
+// every view in content/data-viz.
 //
 //   node tests/dataviz-parity.mjs
 //
@@ -13,63 +13,19 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PY = join(ROOT, '.venv', 'Scripts', 'python.exe');
+const CARGO = process.env.CARGO || (process.platform === 'win32'
+  ? join(process.env.USERPROFILE || '', '.cargo', 'bin', 'cargo.exe')
+  : join(process.env.HOME || '', '.cargo', 'bin', 'cargo'));
+const TARGET = join(ROOT, 'build', 'rust', 'data-viz');
+const BIN = join(TARGET, 'release', process.platform === 'win32' ? 'dv-engine.exe' : 'dv-engine');
 
-const pyDump = String.raw`
-import copy, json, sys
-from pathlib import Path
-root = Path(sys.argv[1])
-sys.path.insert(0, str(root / "apps" / "data-viz" / "source"))
-from features import compute_view
-manifest = json.loads((root / "content" / "data-viz" / "manifest.json").read_text(encoding="utf-8"))
+execFileSync(CARGO, [
+  'build', '--release',
+  '--manifest-path', join(ROOT, 'apps', 'data-viz', 'source', 'engine', 'Cargo.toml'),
+  '--target-dir', TARGET,
+], { cwd: ROOT, stdio: 'pipe' });
 
-def bump(value, factor=1.13):
-    return round(float(value) * factor, 2)
-
-def mutate(view):
-    w = copy.deepcopy(view)
-    t = w["type"]
-    if t in ("line", "bar", "stacked"):
-        for s in w["series"]:
-            s["values"] = [bump(v) for v in s["values"]]
-    elif t == "pie":
-        for part in w["parts"]:
-            part["value"] = bump(part["value"])
-    elif t == "scatter":
-        for p in w["points"]:
-            p["x"] = round(float(p["x"]) * 1.07 + 0.5, 2)
-            p["y"] = round(float(p["y"]) * 0.93 - 0.5, 2)
-    elif t == "heatmap":
-        w["cells"] = [[round(float(v) * 1.11 + 1, 2) for v in row] for row in w["cells"]]
-    elif t == "sankey":
-        for link in w["links"]:
-            link["value"] = bump(link["value"])
-    elif t == "slope":
-        for entity in w["entities"]:
-            entity["values"] = [bump(v) for v in entity["values"]]
-    elif t == "waterfall":
-        w["start_value"] = bump(w["start_value"])
-        for step in w["steps"]:
-            step["value"] = bump(step["value"])
-    return w
-
-out = []
-for entry in manifest["topics"]:
-    topic = json.loads((root / "content" / "data-viz" / "topics" / (entry["id"] + ".json")).read_text(encoding="utf-8"))
-    for view in topic["views"]:
-        for variant, data in (("shipped", view), ("edited", mutate(view))):
-            out.append({
-                "topic": entry["id"],
-                "view": view["id"],
-                "type": view["type"],
-                "variant": variant,
-                "data": data,
-                "computed": compute_view(data),
-            })
-print(json.dumps(out, ensure_ascii=False))
-`;
-
-const raw = execFileSync(PY, ['-I', '-X', 'utf8', '-c', pyDump, ROOT], {
+const raw = execFileSync(BIN, ['parity-dump'], {
   cwd: ROOT,
   encoding: 'utf8',
   maxBuffer: 64 * 1024 * 1024,

@@ -68,7 +68,9 @@ const server = createServer(async (req, res) => {
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}`;
-const HAS_DATA_VIZ = await fetch(BASE + '/data-viz/').then((r) => r.ok).catch(() => false);
+const HAS_DATA_VIZ = await fetch(BASE + '/data-viz/', { redirect: 'manual' })
+  .then((r) => r.status === 200)
+  .catch(() => false);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

@@ -32,7 +32,7 @@
 | `apps/phenomena/` | 发音现象课，逐词音素标注 + 男女声 |
 | `apps/collocation/` | 短语搭配章节页（`source/` 构建器 + `audio/`），每章一条 sprite |
 | `apps/conversation/` | Conversation Starters 页面与 `audio/`（`source/` 构建器，内容源在 `content/conversation/`） |
-| `apps/data-viz/` | 数据图表英语单页应用：`source/` 校验与构建器、`js/` 源码、hashed 数据包 |
+| `apps/data-viz/` | 数据图表英语单页应用：`source/engine/`（Rust 校验与构建器）、`js/` 源码、hashed 数据包 |
 | `miniprogram/` | 微信小程序（原生）；数据与音频由 `tools/miniprogram/` 从已构建页面生成 |
 | `tools/` | 构建、校验脚本；`tools/README.md` 是脚本索引，`tools/paths.py` 是路径的唯一来源 |
 | `tools/audio_sprite.py` | 把逐条录音拼成每页/每课/每题一条（不改码率，音质不变） |
@@ -48,7 +48,7 @@ python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-需要联网的只有 TTS 合成（Azure / Edge）；已有音频会自动跳过。Node 只用于本地预览和无头浏览器自检，Python 构建不需要。
+需要联网的只有 TTS 合成（Azure / Edge）；已有音频会自动跳过。Node 只用于本地预览和无头浏览器自检，Python 构建不需要。data-viz 的构建器是 Rust，需要 cargo（https://rustup.rs）；`build_all.py` 会自动编译它。
 
 ## 构建
 
@@ -82,6 +82,11 @@ python -m venv .venv
 # Question Drill：先补语音，再拼 sprite 并重渲染页面
 .venv\Scripts\python.exe -I tools\drill\make_audio.py
 .venv\Scripts\python.exe -I tools\drill\assemble.py
+
+# 数据图表英语（Rust 引擎；build_all --only data-viz 会先编译）
+cargo build --release --manifest-path apps\data-viz\source\engine\Cargo.toml --target-dir build\rust\data-viz
+build\rust\data-viz\release\dv-engine.exe validate
+build\rust\data-viz\release\dv-engine.exe build
 
 # 清理构建垃圾（Edge 临时配置、日志、__pycache__）；--all 连部署暂存一起清
 .venv\Scripts\python.exe -I tools\clean_build.py

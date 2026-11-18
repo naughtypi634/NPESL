@@ -2,15 +2,16 @@
 
 内容源只有两处：`content/data-viz/library/<type>.json`（图表类型的语言库）和
 `content/data-viz/topics/<slug>.json`（主题数据与作者内容）。页面、数据包、sprite
-全部由 `apps/data-viz/source/build.py` 生成，不要手改 `apps/data-viz/` 下的产物。
+全部由 `apps/data-viz/source/engine/`（Rust）生成，不要手改 `apps/data-viz/` 下的产物。
 
 改完内容：
 
 ```powershell
-.venv\Scripts\python.exe -I apps\data-viz\source\validate.py
-.venv\Scripts\python.exe -I -X utf8 apps\data-viz\source\build.py
+cargo build --release --manifest-path apps\data-viz\source\engine\Cargo.toml --target-dir build\rust\data-viz
+build\rust\data-viz\release\dv-engine.exe validate
+build\rust\data-viz\release\dv-engine.exe build
 # 看某个视图生成出来的句子：
-.venv\Scripts\python.exe -I -X utf8 apps\data-viz\source\build.py --explain <slug>/<view>
+build\rust\data-viz\release\dv-engine.exe build --explain <slug>/<view>
 ```
 
 ## 硬规则
@@ -110,14 +111,14 @@
 - **构建生成**：每个 mark 的分类、槽位数值、词汇卡、句型填空、三种语境句、
   表格、tooltip、画廊小图。
 
-分类阈值在 `apps/data-viz/source/features.py`：线图/堆叠变化 3% / 10% / 25%
+分类阈值在 `apps/data-viz/source/engine/src/features.rs`：线图/堆叠变化 3% / 10% / 25%
 （份额数据用 0.5 / 1.5 / 3 个百分点），散点 |r| 0.2 / 0.4 / 0.7，离群点
 残差 > 2σ。改阈值只改这一个文件。
 
 ## 自检
 
-- 内容：`validate.py` 必须 0 问题。
-- 产物：`build.py`，再用 `audit_build.py --label before/--diff` 证明没碰别的应用。
+- 内容：`dv-engine validate` 必须 0 问题。
+- 产物：`dv-engine build`，再用 `audit_build.py --label before/--diff` 证明没碰别的应用。
 - 浏览器：`node tools/preview_site.mjs` 打开 `/data-viz/`，过一遍手机宽度、
   light/dark/glass、点读（有音频时）、表格和返回链接。
 
@@ -126,11 +127,11 @@
 工作表里的“编辑数据”允许读者改数值、类别名、系列名、分组和节点；图表、表格、提示、
 词汇、句型、描述与解读都按当前数据重算。为此浏览器端有两份运行时模块：
 
-- `apps/data-viz/js/05-compute.js`：`source/features.py` 的逐条移植（分类阈值、槽位、数字格式完全一致）。
+- `apps/data-viz/js/05-compute.js`：`source/engine/src/features.rs` 的逐条移植（分类阈值、槽位、数字格式完全一致）。
 - `apps/data-viz/js/06-text.js`：按当前特征从语言库的句型框架生成整图描述；作者写的
   `descriptions` / `overview_zh` 只在未改数据时显示，避免改完数据后留着旧数字。
 
-改了 `features.py` 或 `05-compute.js` 的任何一方，都要跑：
+改了 `engine/src/features.rs` 或 `05-compute.js` 的任何一方，都要跑：
 
 ```powershell
 node tests\dataviz-parity.mjs
