@@ -11,16 +11,6 @@ use crate::features::{self, Index};
 use crate::json::{self, Obj};
 use crate::validate;
 
-const JS_ORDER: [&str; 7] = [
-    "01-core.js",
-    "05-compute.js",
-    "06-text.js",
-    "02-renderers.js",
-    "07-editor.js",
-    "03-panel.js",
-    "04-app.js",
-];
-
 static SLOT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{([a-z_]+)\}").unwrap());
 
 fn fill(template: &str, slots: &Obj) -> String {
@@ -191,6 +181,7 @@ fn build_manifest_data(
             "order".to_string(),
             Value::Number(serde_json::Number::from(json::int_or(entry, "order", 0))),
         );
+        json::put(&mut card, "domain", json::text_or(topic, "domain", ""));
         json::put(&mut card, "title_en", json::text_or(topic, "title_en", ""));
         json::put(&mut card, "title_zh", json::text_or(topic, "title_zh", ""));
         json::put(&mut card, "blurb_zh", json::text_or(topic, "blurb_zh", ""));
@@ -286,8 +277,9 @@ pub fn run(root: &Path) -> i32 {
         }
     }
 
-    let lang_dir = app.join("lang");
-    let topic_dir = app.join("topics");
+    let data_dir = app.join("web").join("public").join("data");
+    let lang_dir = data_dir.join("lang");
+    let topic_dir = data_dir.join("topics");
     if let Err(error) = std::fs::create_dir_all(&lang_dir) {
         println!("{error}");
         return 1;
@@ -302,16 +294,10 @@ pub fn run(root: &Path) -> i32 {
     for (type_id, library) in &libraries {
         let text = json::compact(library);
         let hash = json::digest(&text);
-        let name = format!("{type_id}.{hash}.js");
+        let name = format!("{type_id}.{hash}.json");
         keep_lang.insert(name.clone());
-        lang_urls.insert(
-            type_id.clone(),
-            Value::String(format!("lang/{name}")),
-        );
-        let body = format!(
-            "window.DV_LANG=window.DV_LANG||{{}};window.DV_LANG[\"{type_id}\"]={text};\n"
-        );
-        if let Err(error) = json::write_text(&lang_dir.join(&name), &body) {
+        lang_urls.insert(type_id.clone(), Value::String(format!("lang/{name}")));
+        if let Err(error) = json::write_text(&lang_dir.join(&name), &text) {
             println!("{error}");
             return 1;
         }
@@ -319,7 +305,7 @@ pub fn run(root: &Path) -> i32 {
     if let Ok(entries) = std::fs::read_dir(&lang_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) != Some("js") {
+            if path.extension().and_then(|e| e.to_str()) != Some("json") {
                 continue;
             }
             let name = entry.file_name().to_string_lossy().to_string();
@@ -349,6 +335,7 @@ pub fn run(root: &Path) -> i32 {
                 order.get(slug).copied().unwrap_or(0),
             )),
         );
+        json::put(&mut shipped, "domain", json::text_or(topic, "domain", ""));
         json::put(&mut shipped, "title_en", json::text_or(topic, "title_en", ""));
         json::put(&mut shipped, "title_zh", json::text_or(topic, "title_zh", ""));
         json::put(&mut shipped, "blurb_zh", json::text_or(topic, "blurb_zh", ""));
@@ -359,13 +346,10 @@ pub fn run(root: &Path) -> i32 {
         shipped.insert("views".to_string(), Value::Array(views));
         let text = json::compact(&Value::Object(shipped));
         let hash = json::digest(&text);
-        let name = format!("{slug}.{hash}.js");
+        let name = format!("{slug}.{hash}.json");
         keep_topics.insert(name.clone());
         topic_urls.insert(slug.clone(), Value::String(format!("topics/{name}")));
-        let body = format!(
-            "window.DV_TOPICS=window.DV_TOPICS||{{}};window.DV_TOPICS[\"{slug}\"]={text};\n"
-        );
-        if let Err(error) = json::write_text(&topic_dir.join(&name), &body) {
+        if let Err(error) = json::write_text(&topic_dir.join(&name), &text) {
             println!("{error}");
             return 1;
         }
@@ -373,7 +357,7 @@ pub fn run(root: &Path) -> i32 {
     if let Ok(entries) = std::fs::read_dir(&topic_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) != Some("js") {
+            if path.extension().and_then(|e| e.to_str()) != Some("json") {
                 continue;
             }
             let name = entry.file_name().to_string_lossy().to_string();
@@ -388,81 +372,7 @@ pub fn run(root: &Path) -> i32 {
     bundles.insert("topics".to_string(), Value::Object(topic_urls));
     let gallery = build_manifest_data(&manifest, &topics, Value::Object(bundles));
     let payload = json::compact(&gallery);
-    let digest_gallery = json::digest(&payload);
-    if let Ok(entries) = std::fs::read_dir(&app) {
-        for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with("data.gallery.") && name.ends_with(".js") {
-                if name != format!("data.gallery.{digest_gallery}.js") {
-                    let _ = std::fs::remove_file(entry.path());
-                }
-            }
-        }
-    }
-    if let Err(error) = json::write_text(
-        &app.join(format!("data.gallery.{digest_gallery}.js")),
-        &format!("window.DV_GALLERY={payload};\n"),
-    ) {
-        println!("{error}");
-        return 1;
-    }
-
-    let css = match json::read_text(&app.join("style.css")) {
-        Ok(css) => css,
-        Err(error) => {
-            println!("{error}");
-            return 1;
-        }
-    };
-    let mut js = String::new();
-    for (i, name) in JS_ORDER.iter().enumerate() {
-        let source = match json::read_text(&app.join("js").join(name)) {
-            Ok(source) => source,
-            Err(error) => {
-                println!("{error}");
-                return 1;
-            }
-        };
-        if i > 0 {
-            js.push('\n');
-        }
-        js.push_str(&source);
-    }
-    let mut ordered_topics: Vec<&Obj> = topics.values().collect();
-    ordered_topics.sort_by_key(|topic| {
-        order.get(&json::text(topic, "id")).copied().unwrap_or(0)
-    });
-    let mut noscript = String::new();
-    for topic in ordered_topics {
-        noscript.push_str(&format!(
-            "<li><b lang=\"en\">{}</b> · {}</li>",
-            json::text_or(topic, "title_en", ""),
-            json::text_or(topic, "title_zh", "")
-        ));
-    }
-
-    let mut page = String::new();
-    page.push_str("<!doctype html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"utf-8\">\n");
-    page.push_str(
-        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n",
-    );
-    page.push_str("<title>数据图表英语 · Data Visualization Playground</title>\n");
-    page.push_str("<style>");
-    page.push_str(&css);
-    page.push_str("</style>\n</head>\n<body class=\"dv-app\">\n");
-    page.push_str("<main class=\"page\">\n<div id=\"app\" class=\"dv-shell\">\n");
-    page.push_str("<div class=\"dv-boot\">载入中…</div>\n</div>\n</main>\n");
-    page.push_str("<noscript><section class=\"dv-noscript\"><h2>主题</h2>");
-    page.push_str("<p>这个页面需要 JavaScript 才能看图表。</p><ul>");
-    page.push_str(&noscript);
-    page.push_str("</ul></section></noscript>\n");
-    page.push_str(&format!(
-        "<script src=\"data.gallery.{digest_gallery}.js\"></script>\n"
-    ));
-    page.push_str("<script>");
-    page.push_str(&js);
-    page.push_str("</script>\n</body>\n</html>\n");
-    if let Err(error) = json::write_text(&app.join("index.html"), &page) {
+    if let Err(error) = json::write_text(&data_dir.join("index.json"), &payload) {
         println!("{error}");
         return 1;
     }
@@ -484,10 +394,7 @@ pub fn run(root: &Path) -> i32 {
             .collect::<Vec<String>>()
             .join(", ")
     );
-    println!(
-        "gallery={digest_gallery}  html={} KB",
-        page.chars().count() / 1024
-    );
+    println!("数据包：{}", data_dir.display());
     0
 }
 

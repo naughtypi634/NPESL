@@ -1,16 +1,16 @@
-// Parity check: browser feature engine (apps/data-viz/js/05-compute.js) against
-// the build-time engine (apps/data-viz/source/engine/src/features.rs), over
-// every view in content/data-viz.
+// Parity check: browser feature engine (apps/data-viz/web/src/engine/05-compute.js)
+// against the build-time engine (apps/data-viz/source/engine/src/features.rs),
+// over every view in content/data-viz.
 //
 //   node tests/dataviz-parity.mjs
 //
 // Exit code 0 = identical kinds, marks, and slots for every mark.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import vm from 'node:vm';
+
+import { DV } from '../apps/data-viz/web/src/engine/index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CARGO = process.env.CARGO || (process.platform === 'win32'
@@ -31,15 +31,6 @@ const raw = execFileSync(BIN, ['parity-dump'], {
   maxBuffer: 64 * 1024 * 1024,
 });
 const fixtures = JSON.parse(raw);
-
-const context = {};
-context.window = context;
-vm.createContext(context);
-for (const file of ['01-core.js', '05-compute.js']) {
-  const code = readFileSync(join(ROOT, 'apps', 'data-viz', 'js', file), 'utf8');
-  vm.runInContext(code, context, { filename: file });
-}
-const DV = context.window.DV;
 
 const normalize = (value) => {
   if (Array.isArray(value)) return value.map(normalize);

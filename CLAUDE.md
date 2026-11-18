@@ -13,7 +13,7 @@
 | 改 app 内容 | 根 AGENTS §二/§三 → `apps/<app>/source/AUTHORING.md` 或 `content/collocation/README.md` |
 | 改构建脚本/加 app | 根 AGENTS §三 → `README.md` 构建节 → `tools/README.md` → `tools/build_all.py` 的 `ORDER` → `tools/paths.py` |
 | 改 Visual Vocabulary | `apps/visual-vocabulary/` 是手写源；新增 set 同改 `index.html` 与 `build_cloudflare_site.py` 的 VV 元组 |
-| 改 data-viz | 根 AGENTS §三 → `content/data-viz/` → `apps/data-viz/source/engine/`（Rust：`dv-engine validate` / `build`）；默认不部署 |
+| 改 data-viz | 根 AGENTS §三 → `content/data-viz/` → `apps/data-viz/web/`（React/TS）+ `apps/data-viz/source/engine/`（Rust 数据）；`build_all.py --only data-viz`；默认不部署 |
 | 改小程序 | `tools/miniprogram/build_data.py` 顶部说明（从已构建页面抽取） |
 | 部署 | 根 AGENTS §三 → `README.md` 部署节 → `docs/status.md` 的授权行 |
 

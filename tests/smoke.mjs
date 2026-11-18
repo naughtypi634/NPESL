@@ -1445,167 +1445,105 @@ const cases = [
   {
     name: 'data-viz-index', path: '/data-viz/',
     async run() {
-      const ready = await waitFor("!!document.querySelector('.dv-tile')", 8000);
+      const ready = await waitFor("document.querySelectorAll('.dv-tile').length > 0", 8000);
       if (!ready) return { ok: false, detail: '画廊没有卡片' };
-      const info = await evaluate(`(() => {
-        const snap = window.__dv && window.__dv.snapshot ? window.__dv.snapshot() : null;
-        return {
-          tiles: document.querySelectorAll('.dv-tile').length,
-          minis: document.querySelectorAll('.dv-tile svg').length,
-          snap,
-          text: document.body.innerText,
-        };
-      })()`);
-      const bad = /\d+\s*(个主题|种图表|条表达)|已学|完成|进度|打卡/.test(info.text);
-      const filtered = await evaluate(`(() => {
-        const chips = [...document.querySelectorAll('.dv-chips button')];
-        const pie = chips.find(b => b.textContent === '饼图');
+      const info = await evaluate(`(() => ({
+        tiles: document.querySelectorAll('.dv-tile').length,
+        minis: document.querySelectorAll('.dv-tile canvas').length,
+        snap: window.__dv && window.__dv.snapshot(),
+        bad: /\d+\s*(个主题|种图表|条表达)|已学|完成|进度|打卡/.test(document.body.innerText),
+      }))()`);
+      await evaluate(`(() => {
+        const pie = [...document.querySelectorAll('.chips button')].find((b) => b.textContent === '饼图');
         if (pie) pie.click();
-        const n = document.querySelectorAll('.dv-tile').length;
-        const all = chips.find(b => b.textContent === '全部');
-        if (all) all.click();
-        return { pie: n, all: document.querySelectorAll('.dv-tile').length };
       })()`);
+      await sleep(200);
+      const pie = await evaluate("document.querySelectorAll('.dv-tile').length");
+      await evaluate(`(() => {
+        const all = [...document.querySelectorAll('.chips button')].find((b) => b.textContent === '全部');
+        if (all) all.click();
+      })()`);
+      await sleep(200);
+      const all = await evaluate("document.querySelectorAll('.dv-tile').length");
       return {
-        ok: info.tiles === 20 && info.minis === 20 && info.snap && info.snap.mode === 'gallery' && !bad
-          && filtered.pie >= 2 && filtered.all === 20,
-        detail: `tiles=${info.tiles} minis=${info.minis} mode=${info.snap && info.snap.mode} bad=${bad} filter=${JSON.stringify(filtered)}`,
+        ok: info.tiles === 20 && info.minis === 20 && info.snap && info.snap.section === 'gallery'
+          && !info.bad && pie >= 2 && all === 20,
+        detail: `tiles=${info.tiles} minis=${info.minis} section=${info.snap && info.snap.section} bad=${info.bad} filter=${pie}/${all}`,
       };
     },
   },
   {
     name: 'data-viz-workspace', path: '/data-viz/',
     async run() {
-      await evaluate("location.hash = '#/online-shopping/share'");
-      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-      if (!ready) return { ok: false, detail: '工作台没有可点的数据标记' };
-      const before = await evaluate('window.__dv.snapshot()');
+      await evaluate("location.hash = '#/play/online-shopping/share'");
+      const ready = await waitFor("window.__dv && window.__dv.snapshot().slug === 'online-shopping' && document.querySelectorAll('canvas').length > 0", 8000);
+      if (!ready) return { ok: false, detail: '工作台没有渲染' };
       await evaluate("window.__dv.select('seg:online:0')");
-      await sleep(150);
-      const after = await evaluate('window.__dv.snapshot()');
-      const panel = await evaluate("document.querySelector('.dv-panel').innerText");
-      const hasPattern = await evaluate(`(() => {
-        const t = document.querySelector('#tab-patterns');
-        if (!t) return false;
-        t.click();
-        return true;
-      })()`);
-      await sleep(100);
-      const patternText = await evaluate("document.querySelector('.dv-panel').innerText");
+      await sleep(200);
+      const info = await evaluate(`(() => ({
+        snap: window.__dv.snapshot(),
+        panel: document.body.innerText,
+        canvases: document.querySelectorAll('canvas').length,
+      }))()`);
       return {
-        ok: before.mode === 'workspace' && after.mark === 'seg:online:0' && after.kind === 'rise_steady'
-          && /rise|increased/i.test(panel) && hasPattern && /Online|online/.test(patternText),
-        detail: `mode=${before.mode} mark=${after.mark} kind=${after.kind} hasPattern=${hasPattern} panel=${panel.replace(/\s+/g, ' ').slice(0, 220)} pat=${patternText.replace(/\s+/g, ' ').slice(0, 160)} body=${(await evaluate("document.querySelector('.dv-panel-body').innerHTML")).slice(0,180)} langs=${await evaluate('JSON.stringify(Object.keys(window.DV_LANG||{}))')}`,
+        ok: info.snap.mark === 'seg:online:0' && info.snap.tab === 'observe' && info.canvases > 0
+          && /increase|rose|上升|steady/i.test(info.panel),
+        detail: `mark=${info.snap.mark} tab=${info.snap.tab} canvas=${info.canvases}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-edit', path: '/data-viz/',
+    async run() {
+      await evaluate("location.hash = '#/play/online-shopping/share'");
+      const ready = await waitFor("window.__dv && window.__dv.snapshot().slug === 'online-shopping' && document.querySelectorAll('canvas').length > 0", 8000);
+      if (!ready) return { ok: false, detail: '没有图表' };
+      await evaluate("window.__dv.setTab('edit')");
+      await sleep(250);
+      const inputs = await evaluate("document.querySelectorAll('input[type=number]').length");
+      await evaluate(`(() => {
+        const input = document.querySelector('input[type=number]');
+        if (!input) return;
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        setter.call(input, '99');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      })()`);
+      await sleep(350);
+      const info = await evaluate(`(() => ({
+        edits: window.__dv.snapshot().edits,
+        value: Number(document.querySelector('input[type=number]').value),
+        canvases: document.querySelectorAll('canvas').length,
+      }))()`);
+      await evaluate(`(() => {
+        const reset = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('恢复原始数据'));
+        if (reset) reset.click();
+      })()`);
+      await sleep(300);
+      const after = await evaluate("window.__dv.snapshot().edits");
+      return {
+        ok: inputs > 0 && info.edits === 1 && info.value === 99 && info.canvases > 0 && after === 0,
+        detail: `inputs=${inputs} edits=${info.edits} value=${info.value} canvas=${info.canvases} reset=${after}`,
       };
     },
   },
   {
     name: 'data-viz-table', path: '/data-viz/',
     async run() {
-      await evaluate("location.hash = '#/rent-by-district/rent'");
-      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-      if (!ready) return { ok: false, detail: '租金图没有渲染' };
-      await evaluate('window.__dv.table()');
-      await sleep(100);
-      const info = await evaluate(`(() => {
-        const table = document.querySelector('.dv-table table');
-        return {
-          rows: table ? table.querySelectorAll('tbody tr').length : 0,
-          text: table ? table.innerText : '',
-          hidden: document.querySelector('.dv-figure').hidden,
-        };
-      })()`);
-      return {
-        ok: info.rows === 8 && /7,800/.test(info.text) && info.hidden,
-        detail: `rows=${info.rows} hidden=${info.hidden}`,
-      };
-    },
-  },
-
-  {
-    name: 'data-viz-describe', path: '/data-viz/',
-    async run() {
-      await evaluate("location.hash = '#/online-shopping/share'");
-      await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-      await evaluate("(() => { const el = document.querySelector('#tab-describe'); if (el) el.click(); })()");
-      await sleep(80);
-      await evaluate("window.__dv.select('seg:online:0')");
-      await evaluate("(() => { const el = document.querySelector('#tab-describe'); if (el) el.click(); })()");
-      await sleep(80);
-      const hiddenBefore = await evaluate("!document.querySelector('.dv-models')");
-      await evaluate('window.__dv.reveal()');
-      await sleep(100);
-      const model = await evaluate("(document.querySelector('.dv-model-en')||{}).textContent || ''");
-      await evaluate("window.__dv.setRegister('ielts')");
-      await sleep(100);
-      const ieltsModel = await evaluate("(document.querySelector('.dv-model-en')||{}).textContent || ''");
-      const note = await evaluate("document.querySelector('.dv-model-note') ? document.querySelector('.dv-model-note').textContent : ''");
-      const snap = await evaluate('window.__dv.snapshot()');
-      return {
-        ok: hiddenBefore && /Online|rose|share/i.test(model) && snap.register === 'ielts'
-          && ieltsModel !== model && /雅思|increased|rose|accounted/i.test(ieltsModel + note),
-        detail: `hidden=${hiddenBefore} reg=${snap.register} a2=${String(model).slice(0,40)} ielts=${String(ieltsModel).slice(0,60)}`,
-      };
-    },
-  },
-  {
-    name: 'data-viz-deeplink', path: '/data-viz/',
-    async run() {
-      await evaluate("location.hash = '#/food-delivery/value?mark=bar:value:4&tab=words&reg=business'");
-      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-      const diag = await evaluate(`(() => ({
-        hash: location.hash,
-        snap: window.__dv ? window.__dv.snapshot() : null,
-        topics: Object.keys(window.DV_TOPICS || {}),
-        langs: Object.keys(window.DV_LANG || {}),
-        body: document.body.innerText.slice(0, 120),
-        marks: document.querySelectorAll('.dv-chart [data-mark]').length
-      }))()`);
-      if (!ready) return { ok: false, detail: '深链没有渲染 ' + JSON.stringify(diag) };
-      const snap = await evaluate('window.__dv.snapshot()');
-      const text = await evaluate("document.querySelector('.dv-panel') ? document.querySelector('.dv-panel').innerText : 'NO PANEL'");
-      await evaluate("location.hash = '#/no-such-topic'");
-      await sleep(200);
-      const fallback = await evaluate('window.__dv.snapshot()');
-      return {
-        ok: snap.topic === 'food-delivery' && snap.view === 'value' && snap.mark === 'bar:value:4'
-          && snap.tab === 'words' && snap.register === 'business'
-          && /highest|54/.test(text) && fallback.mode === 'gallery',
-        detail: `topic=${snap.topic} view=${snap.view} mark=${snap.mark} tab=${snap.tab} reg=${snap.register} fallback=${fallback.mode} diag=${JSON.stringify(diag)}`,
-      };
-    },
-  },
-  {
-    name: 'data-viz-back', path: '/data-viz/',
-    async run() {
-      const boot = await evaluate('window.__dv.bootId');
-      await evaluate("location.hash = '#/rent-by-district/rent'");
-      await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-      await evaluate('history.back()');
-      await sleep(400);
-      const after = await evaluate('({ bootId: window.__dv && window.__dv.bootId, mode: window.__dv && window.__dv.snapshot().mode })');
-      return {
-        ok: after.bootId === boot && after.mode === 'gallery',
-        detail: `boot=${after.bootId === boot} mode=${after.mode}`,
-      };
-    },
-  },
-  {
-    name: 'data-viz-theme', path: '/data-viz/',
-    async run() {
-      await evaluate("localStorage.setItem('npesl-theme','glass'); location.hash = '#/coffee-shop/week'; location.reload()");
-      await sleep(900);
-      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+      await evaluate("location.hash = '#/play/metro-ridership/daily'");
+      const ready = await waitFor("window.__dv && window.__dv.snapshot().slug === 'metro-ridership' && document.querySelectorAll('canvas').length > 0", 8000);
+      if (!ready) return { ok: false, detail: '没有图表' };
+      await evaluate("window.__dv.setTab('table')");
+      await sleep(250);
       const info = await evaluate(`(() => ({
-        theme: document.documentElement.getAttribute('data-theme'),
-        marks: document.querySelectorAll('.dv-chart [data-mark]').length,
-        heat: document.querySelectorAll('.dv-cell').length
+        rows: document.querySelectorAll('.card table tbody tr').length,
+        cells: document.querySelectorAll('.card table td').length,
       }))()`);
-      return { ok: ready && info.theme === 'glass' && info.marks > 0 && info.heat > 0,
-        detail: `theme=${info.theme} marks=${info.marks} heat=${info.heat}` };
+      return {
+        ok: info.rows >= 2 && info.cells > 0,
+        detail: `rows=${info.rows} cells=${info.cells}`,
+      };
     },
   },
-
   {
     name: 'data-viz-types', path: '/data-viz/',
     async run() {
@@ -1622,17 +1560,13 @@ const cases = [
       ];
       const failures = [];
       for (const [topic, view, type] of cases) {
-        await evaluate(`location.hash = '#/${topic}/${view}'`);
-        const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
+        await evaluate(`location.hash = '#/play/${topic}/${view}'`);
+        const ready = await waitFor(`window.__dv && window.__dv.snapshot().slug === '${topic}' && window.__dv.snapshot().view === '${view}' && document.querySelectorAll('canvas').length > 0`, 8000);
         if (!ready) { failures.push(`${type}:no-chart`); continue; }
-        const mark = await evaluate("(document.querySelector('.dv-chart [data-mark]')||{}).getAttribute ? document.querySelector('.dv-chart [data-mark]').getAttribute('data-mark') : ''");
-        await evaluate(`window.__dv.select(${JSON.stringify(mark)})`);
-        await sleep(80);
+        await sleep(150);
         const snap = await evaluate('window.__dv.snapshot()');
-        const panel = await evaluate("(document.querySelector('.dv-panel')||{}).innerText || ''");
-        if (!mark || !snap.kind || snap.kind === 'null' || panel.length < 30) {
-          failures.push(`${type}:${snap.kind || 'no-kind'}:${panel.length}`);
-        }
+        const body = await evaluate('document.body.innerText.length');
+        if (!snap.mark || body < 120) failures.push(`${type}:${snap.mark}/${body}`);
       }
       return {
         ok: failures.length === 0,
@@ -1640,157 +1574,108 @@ const cases = [
       };
     },
   },
-
   {
-    name: 'data-viz-table-types', path: '/data-viz/',
+    name: 'data-viz-lab', path: '/data-viz/',
     async run() {
-      const cases = [
-        ['metro-ridership', 'daily'],
-        ['food-delivery', 'value'],
-        ['household-budget', 'shares'],
-        ['study-hours', 'hours'],
-        ['energy-mix', 'mix'],
-        ['coffee-shop', 'hours'],
-        ['package-delivery', 'flow'],
-        ['team-headcount', 'mix'],
-        ['electricity-bill', 'bill'],
-      ];
-      const failures = [];
-      for (const [topic, view] of cases) {
-        await evaluate(`location.hash = '#/${topic}/${view}'`);
-        const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-        if (!ready) { failures.push(`${topic}:no-chart`); continue; }
-        await evaluate('window.__dv.table()');
-        await sleep(80);
-        const info = await evaluate(`(() => {
-          const t = document.querySelector('.dv-table table');
-          const badge = document.querySelector('.dv-chart-head .badge');
-          return { rows: t ? t.querySelectorAll('tbody tr').length : 0,
-            badge: badge ? badge.textContent : '' };
-        })()`);
-        if (info.rows < 2 || !/模拟数据/.test(info.badge || '')) failures.push(`${topic}:${info.rows}`);
-        await evaluate('window.__dv.table()');
-      }
-      return { ok: failures.length === 0, detail: failures.length ? failures.join(' ') : '9 种图表表格齐全' };
-    },
-  },
-  {
-    name: 'data-viz-edit', path: '/data-viz/',
-    async run() {
-      await evaluate("location.hash = '#/online-shopping/share'");
-      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-      if (!ready) return { ok: false, detail: '没有图表' };
-      await evaluate('window.__dv.edit(true)');
-      await sleep(120);
-      const opened = await evaluate("!!document.querySelector('.dv-data') && !document.querySelector('.dv-data').hidden");
-      await evaluate("window.__dv.select('seg:online:0')");
-      await sleep(80);
+      await evaluate("location.hash = '#/lab'");
+      const ready = await waitFor("document.querySelectorAll('button.card').length > 0 && document.querySelectorAll('canvas').length > 0", 12000);
+      if (!ready) return { ok: false, detail: '表达实验室没有样例' };
+      const info = await evaluate(`(() => ({
+        families: [...document.querySelectorAll('.chips button')].map((b) => b.textContent),
+        samples: document.querySelectorAll('button.card').length,
+        body: document.body.innerText.slice(0, 400),
+      }))()`);
       await evaluate(`(() => {
-        const input = document.querySelector('.dv-data-num');
-        input.value = '99';
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+        const chip = [...document.querySelectorAll('.chips button')].find((b) => b.textContent === 'Remain Stable');
+        if (chip) chip.click();
       })()`);
-      await sleep(200);
+      await sleep(400);
+      const stable = await evaluate("document.body.innerText.includes('保持稳定')");
+      const before = await evaluate("document.querySelectorAll('[class*=\"well-fill\"]').length");
+      await evaluate(`(() => {
+        const reveal = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('看参考表达'));
+        if (reveal) reveal.click();
+      })()`);
+      await sleep(250);
+      const models = await evaluate(`(() => ({
+        blocks: document.querySelectorAll('[class*="well-fill"]').length,
+        collapse: [...document.querySelectorAll('button')].some((b) => b.textContent.includes('收起参考')),
+      }))()`);
+      return {
+        ok: info.families.length >= 5 && info.samples > 0 && stable && models.blocks > before && models.collapse,
+        detail: `families=${info.families.length} samples=${info.samples} stable=${stable} models=${models.blocks > before}/${models.collapse}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-realworld', path: '/data-viz/',
+    async run() {
+      await evaluate("location.hash = '#/data'");
+      const ready = await waitFor("document.querySelectorAll('.dv-tile').length === 20", 8000);
+      if (!ready) return { ok: false, detail: '真实数据没有卡片' };
+      await evaluate(`(() => {
+        const chip = [...document.querySelectorAll('.chips button')].find((b) => b.textContent.includes('Education'));
+        if (chip) chip.click();
+      })()`);
+      await sleep(250);
       const info = await evaluate(`(() => ({
-        snap: window.__dv.snapshot(),
-        value: window.__dv.data().series[0].values[0],
-        panel: document.querySelector('.dv-panel').innerText,
-        marks: document.querySelectorAll('.dv-chart [data-mark]').length
+        tiles: document.querySelectorAll('.dv-tile').length,
+        hash: location.hash,
+        domains: [...document.querySelectorAll('.chips button')].map((b) => b.textContent),
       }))()`);
-      await evaluate('window.__dv.undoData()');
-      await sleep(150);
-      const undone = await evaluate("window.__dv.snapshot().edited");
-      await evaluate('window.__dv.redoData()');
-      await sleep(150);
-      const redone = await evaluate('({ edited: window.__dv.snapshot().edited, value: window.__dv.data().series[0].values[0] })');
-      await evaluate('window.__dv.resetData()');
       return {
-        ok: opened && info.snap.edited && info.value === 99 && /99/.test(info.panel)
-          && info.marks > 0 && !undone && redone.edited && redone.value === 99,
-        detail: `open=${opened} v=${info.value} edited=${info.snap.edited} marks=${info.marks} undo=${!undone} redo=${redone.value}`,
+        ok: info.tiles === 2 && /domain=education/.test(info.hash) && info.domains.some((d) => d.includes('Business')),
+        detail: `tiles=${info.tiles} hash=${info.hash} domains=${info.domains.length}`,
       };
     },
   },
   {
-    name: 'data-viz-drag', path: '/data-viz/',
+    name: 'data-viz-deeplink', path: '/data-viz/',
     async run() {
-      await evaluate("location.hash = '#/food-delivery/value'");
-      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-      if (!ready) return { ok: false, detail: '没有图表' };
-      await evaluate("window.__dv.setMark('bar:value:4', 54321)");
-      await sleep(220);
+      await evaluate("location.hash = '#/play/food-delivery/value?mark=bar:value:4&tab=words'");
+      const ready = await waitFor("window.__dv && window.__dv.snapshot().slug === 'food-delivery' && document.querySelectorAll('canvas').length > 0", 8000);
+      if (!ready) return { ok: false, detail: '深链没有渲染' };
+      await sleep(250);
+      const snap = await evaluate('window.__dv.snapshot()');
+      const text = await evaluate('document.body.innerText');
+      await evaluate("location.hash = '#/play/no-such-topic'");
+      await sleep(500);
+      const missing = await evaluate("document.body.innerText.includes('数据加载失败') || document.body.innerText.includes('没有这个主题')");
+      return {
+        ok: snap.mark === 'bar:value:4' && snap.tab === 'words' && /词|word|percent|rise|highest/i.test(text) && missing,
+        detail: `mark=${snap.mark} tab=${snap.tab} missing=${missing}`,
+      };
+    },
+  },
+  {
+    name: 'data-viz-theme', path: '/data-viz/',
+    async run() {
+      await evaluate("localStorage.setItem('npesl-theme','glass'); location.hash = '#/play/coffee-shop/hours'; location.reload()");
+      await sleep(900);
+      const ready = await waitFor("document.querySelectorAll('canvas').length > 0", 8000);
       const info = await evaluate(`(() => ({
-        value: window.__dv.data().series[0].values[4],
-        mark: window.__dv.snapshot().mark,
-        panel: document.querySelector('.dv-panel').innerText,
-        marks: document.querySelectorAll('.dv-chart [data-mark]').length
+        theme: document.documentElement.getAttribute('data-theme'),
+        canvases: document.querySelectorAll('canvas').length,
+        cards: document.querySelectorAll('.card').length,
       }))()`);
-      await evaluate('window.__dv.resetData()');
+      await evaluate("localStorage.setItem('npesl-theme','light')");
       return {
-        ok: info.value === 54321 && info.mark === 'bar:value:4' && /54,321/.test(info.panel) && info.marks > 0,
-        detail: `v=${info.value} mark=${info.mark} marks=${info.marks}`,
+        ok: ready && info.theme === 'glass' && info.canvases > 0 && info.cards > 0,
+        detail: `theme=${info.theme} canvas=${info.canvases} cards=${info.cards}`,
       };
     },
   },
   {
-    name: 'data-viz-selection', path: '/data-viz/',
+    name: 'data-viz-back', path: '/data-viz/',
     async run() {
-      await evaluate("location.hash = '#/household-budget/flows'");
-      const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-      if (!ready) return { ok: false, detail: '没有图表' };
-      await evaluate("window.__dv.select('link:salary->commitments')");
-      await sleep(120);
-      const flow = await evaluate(`(() => ({
-        selected: document.querySelectorAll('.dv-chart .dv-mark.is-selected').length,
-        dim: getComputedStyle(document.querySelector('.dv-chart .dv-mark:not(.is-selected)')).opacity
-      }))()`);
-      await evaluate("location.hash = '#/study-hours/hours'");
-      await waitFor("window.__dv && window.__dv.snapshot().topic === 'study-hours' && !!document.querySelector('.dv-chart [data-mark]')", 8000);
-      await evaluate("window.__dv.select('grp:all')");
-      await sleep(120);
-      const scatter = await evaluate("document.querySelectorAll('.dv-chart .dv-dot.is-selected').length");
-      return {
-        ok: flow.selected >= 2 && Number(flow.dim) < 0.5 && scatter > 1,
-        detail: `flow=${flow.selected} dim=${flow.dim} dots=${scatter}`,
-      };
-    },
-  },
-  {
-    name: 'data-viz-editor-types', path: '/data-viz/',
-    async run() {
-      const cases = [
-        ['metro-ridership', 'daily'], ['food-delivery', 'value'], ['household-budget', 'shares'],
-        ['study-hours', 'hours'], ['energy-mix', 'mix'], ['coffee-shop', 'hours'],
-        ['package-delivery', 'flow'], ['team-headcount', 'mix'], ['electricity-bill', 'bill'],
-      ];
-      const failures = [];
-      for (const [topic, view] of cases) {
-        await evaluate(`location.hash = '#/${topic}/${view}'`);
-        const ready = await waitFor("!!document.querySelector('.dv-chart [data-mark]')", 8000);
-        if (!ready) { failures.push(`${topic}:no-chart`); continue; }
-        await evaluate('window.__dv.edit(true)');
-        await sleep(100);
-        const nums = await evaluate("document.querySelectorAll('.dv-data-num').length");
-        await evaluate(`(() => {
-          const input = document.querySelector('.dv-data-num');
-          if (!input) return;
-          const old = Number(input.value);
-          input.value = String((isFinite(old) ? old : 1) + 7);
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-        })()`);
-        await sleep(160);
-        const info = await evaluate(`(() => ({
-          marks: document.querySelectorAll('.dv-chart [data-mark]').length,
-          edited: window.__dv.snapshot().edited,
-          panel: document.querySelector('.dv-panel').innerText.length
-        }))()`);
-        if (!nums || info.marks < 1 || !info.edited || info.panel < 20) {
-          failures.push(`${topic}:${nums}/${info.marks}/${info.edited}/${info.panel}`);
-        }
-        await evaluate('window.__dv.resetData()');
-        await sleep(80);
-      }
-      return { ok: failures.length === 0, detail: failures.length ? failures.join(' ') : '9 种图表可改数据' };
+      const info = await evaluate(`(() => {
+        const back = document.querySelector('.npesl-back');
+        return {
+          href: back ? back.getAttribute('href') : null,
+          fab: !!document.querySelector('.npesl-theme-fab'),
+        };
+      })()`);
+      return { ok: !!info.href && info.fab, detail: `back=${info.href} theme=${info.fab}` };
     },
   },
 ];

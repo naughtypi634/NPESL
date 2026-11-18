@@ -1,11 +1,12 @@
-//! Build-time engine for the Data Visualization Playground.
+//! Build-time engine for the Data Visualization Gallery.
 //!
 //!     dv-engine validate [--topic <slug>] [--root <repo>]
 //!     dv-engine build [--explain <slug>[/<view>]] [--root <repo>]
 //!     dv-engine parity-dump [--root <repo>]
 //!
-//! The browser engine in `apps/data-viz/js/05-compute.js` must stay in step
-//! with `features.rs`; `node tests/dataviz-parity.mjs` compares them.
+//! The browser engine in `apps/data-viz/web/src/engine/05-compute.js` must
+//! stay in step with `features.rs`; `node tests/dataviz-parity.mjs` compares
+//! them.
 
 mod build;
 mod features;

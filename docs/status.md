@@ -10,7 +10,7 @@
 | 项 | 值 | 来源 / 说明 |
 |---|---|---|
 | 线上应用 | 7 个 | 入口页 `apps/site/index.html` 的链接：phonics / ipa / drill / conversation / phenomena / collocation / visual-vocabulary |
-| data-viz | 开发中，不部署 | `content/data-viz/` + `apps/data-viz/`；主站默认不装配，本地联调加 `build_cloudflare_site.py --with-data-viz`；`/data-viz/*` 线上 302 回首页 |
+| data-viz | 开发中，不部署 | `content/data-viz/` + `apps/data-viz/web/`（React + ECharts）+ `apps/data-viz/source/engine/`（Rust 数据）；主站默认不装配，本地联调加 `build_cloudflare_site.py --with-data-viz`；`/data-viz/*` 线上 302 回首页 |
 | Question Drill | 2,247 题 | `content/drill/questions.json`；`extra-questions.json` 另有 192 道补充题 |
 | 短语搭配 | 41 个主题 / 3,296 条 / 6 大类 | `content/collocation/themes.json` + 41 个主题 JSON |
 | Conversation Starters | 150 个故事 / 503 段 | `content/conversation/{A1,B1,ESLSE}/content.py`（每级 10 单元 × 5 故事） |
@@ -43,6 +43,10 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅作者合成时使用，不
   - 引擎：Python 与 Rust 在 80 个视图样本（原始 + 改数）上 `compute` 输出全等；`--explain` 输出逐行一致。
   - 测试：`node tests/dataviz-parity.mjs`（Rust 引擎 vs 浏览器 `05-compute.js`）80 样本 1836 mark，0 差异；`node tests/dataviz-text.mjs` 40 视图 240 段文本通过。
   - `build_all.py --only data-viz` 先 `cargo build --release`（target-dir `build/rust/data-viz`）再跑引擎；cargo 不在 PATH 时回退 `~/.cargo/bin`。
+- 2026-11-18：data-viz 前端改为 React + TypeScript + Vite + ECharts 四段式（`apps/data-viz/web/`）；Rust 引擎改为输出 JSON 数据包（`web/public/data/`），不再生成页面；旧的 vanilla JS 与 `index.html` 已删除。构建链是 `cargo → dv-engine build → npm run build → dist`，`build_cloudflare_site.py --with-data-viz` 复制 `dist`。
+  - 内容：20 个主题全部加 `domain`（business / technology / lifestyle / economy / education），`dv-engine validate` 拦截非法值。
+  - 测试：`node tests/dataviz-parity.mjs` 80 样本 1836 mark 0 差异；`node tests/dataviz-text.mjs` 40 视图 240 段通过；`node tests/smoke.mjs --match data-viz` 10/10（画廊、工作台、改数据、数据表、9 种图表、表达实验室、真实数据、深链、glass 主题、返回链接）。
+  - 视觉：圆角统一为卡片 20 / 控件 12 / 徽章与分段 999；画廊 20 个 ECharts mini 图；移动端无横向溢出。
 
 ## 部署授权
 

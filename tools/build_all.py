@@ -31,6 +31,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DV_ENGINE_DIR = ROOT / "apps" / "data-viz" / "source" / "engine"
 DV_TARGET = ROOT / "build" / "rust" / "data-viz"
 DV_BIN = DV_TARGET / "release" / ("dv-engine.exe" if os.name == "nt" else "dv-engine")
+DV_WEB = ROOT / "apps" / "data-viz" / "web"
 
 ORDER = ["ipa", "phonics", "phenomena", "collocation", "conversation", "drill",
          "data-viz", "site"]
@@ -44,6 +45,24 @@ def cargo_exe() -> str:
     if home.exists():
         return str(home)
     raise SystemExit("找不到 cargo：先装 Rust 工具链（https://rustup.rs），再重开终端。")
+
+
+def npm_exe() -> str:
+    exe = shutil.which("npm")
+    if exe:
+        return exe
+    raise SystemExit("找不到 npm：先装 Node.js，再重开终端。")
+
+
+def ensure_data_viz_deps() -> None:
+    if (DV_WEB / "node_modules").exists():
+        return
+    run_step(
+        "数据图表英语前端依赖",
+        ["ci", "--no-fund", "--no-audit"],
+        cwd=DV_WEB,
+        program=npm_exe(),
+    )
 
 
 def build_data_viz_engine() -> None:
@@ -82,6 +101,7 @@ def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple]]:
         "data-viz": [
             ("数据图表英语内容校验", ["validate"], str(DV_BIN)),
             ("数据图表英语页面", ["build"], str(DV_BIN)),
+            ("数据图表英语前端", ["--prefix", str(DV_WEB), "run", "build"], npm_exe()),
         ],
         "site": [
             ("站点装配", ["-I", "tools/build_cloudflare_site.py"]),
@@ -118,6 +138,7 @@ def main() -> int:
 
     if "data-viz" in names:
         build_data_viz_engine()
+        ensure_data_viz_deps()
     for name in names:
         for step in plan[name]:
             label, argv = step[0], step[1]

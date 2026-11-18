@@ -1,4 +1,4 @@
-// Generated-text sweep for the Data Visualization Playground.
+// Generated-text sweep for the Data Visualization Gallery.
 //
 //   node tests/dataviz-text.mjs
 //
@@ -10,17 +10,10 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import vm from 'node:vm';
+
+import { DV } from '../apps/data-viz/web/src/engine/index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const context = {};
-context.window = context;
-vm.createContext(context);
-for (const file of ['01-core.js', '05-compute.js', '06-text.js']) {
-  vm.runInContext(readFileSync(join(ROOT, 'apps', 'data-viz', 'js', file), 'utf8'),
-    context, { filename: file });
-}
-const DV = context.window.DV;
 const manifest = JSON.parse(readFileSync(join(ROOT, 'content/data-viz/manifest.json'), 'utf8'));
 const libraries = {};
 for (const file of readdirSync(join(ROOT, 'content/data-viz/library'))) {

@@ -17,6 +17,7 @@ pub static TYPES: [&str; 9] = [
 ];
 static REGISTERS: [&str; 3] = ["spoken", "neutral", "written"];
 static LEVELS: [&str; 3] = ["a2", "b1", "b2"];
+pub static DOMAINS: [&str; 5] = ["business", "technology", "lifestyle", "economy", "education"];
 
 static CJKS: LazyLock<Regex> =
     LazyLock::new(|| Regex::new("[㐀-鿿　-〿＀-￯]").unwrap());
@@ -726,6 +727,10 @@ pub fn validate_all(root: &Path, only_topic: Option<&str>) -> Vec<String> {
         }
         if topic.get("demo") != Some(&Value::Bool(true)) {
             problems.push(format!("topics/{slug}: 必须声明 demo: true"));
+        }
+        let domain = json::text(topic, "domain");
+        if !DOMAINS.contains(&domain.as_str()) {
+            problems.push(format!("topics/{slug}: domain 非法 {domain}"));
         }
         for key in ["title_en", "title_zh", "blurb_zh", "scene_zh"] {
             if !json::truthy(topic.get(key)) {

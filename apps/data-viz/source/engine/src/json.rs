@@ -108,12 +108,6 @@ pub fn digest(text: &str) -> String {
         .to_string()
 }
 
-pub fn read_text(path: &Path) -> std::io::Result<String> {
-    // Python text mode uses universal newlines.
-    let text = std::fs::read_to_string(path)?;
-    Ok(text.replace("\r\n", "\n").replace('\r', "\n"))
-}
-
 pub fn write_text(path: &Path, text: &str) -> std::io::Result<()> {
     // Python `write_text` translates newlines to the platform separator.
     if cfg!(windows) {

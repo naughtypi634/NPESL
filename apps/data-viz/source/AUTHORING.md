@@ -1,8 +1,10 @@
 # 数据图表英语 · 内容规范
 
 内容源只有两处：`content/data-viz/library/<type>.json`（图表类型的语言库）和
-`content/data-viz/topics/<slug>.json`（主题数据与作者内容）。页面、数据包、sprite
-全部由 `apps/data-viz/source/engine/`（Rust）生成，不要手改 `apps/data-viz/` 下的产物。
+`content/data-viz/topics/<slug>.json`（主题数据与作者内容）。数据包由
+`apps/data-viz/source/engine/`（Rust）生成，页面由 `apps/data-viz/web/`
+（React + TypeScript + Vite + ECharts）构建；`web/public/data/` 与 `dist/`
+都是产物，不要手改。
 
 改完内容：
 
@@ -10,9 +12,14 @@
 cargo build --release --manifest-path apps\data-viz\source\engine\Cargo.toml --target-dir build\rust\data-viz
 build\rust\data-viz\release\dv-engine.exe validate
 build\rust\data-viz\release\dv-engine.exe build
+npm --prefix apps\data-viz\web run build
 # 看某个视图生成出来的句子：
 build\rust\data-viz\release\dv-engine.exe build --explain <slug>/<view>
 ```
+
+页面分四段：图表画廊（按图表类型浏览）、互动实验室（改数据、切视图、实时重算）、
+英语表达（按上升/下降、持平、峰值、波动、比较分组练习）、真实数据（按 business /
+technology / lifestyle / economy / education 领域浏览）。
 
 ## 硬规则
 
@@ -38,6 +45,7 @@ build\rust\data-viz\release\dv-engine.exe build --explain <slug>/<view>
   "blurb_zh": "线上零售份额怎么爬升",
   "scene_zh": "一份全国零售样本（模拟数据）",
   "demo": true,
+  "domain": "economy",
   "views": [{
     "id": "share", "type": "line",
     "label_zh": "线上占比", "label_en": "Online share",
@@ -62,6 +70,11 @@ build\rust\data-viz\release\dv-engine.exe build --explain <slug>/<view>
   }]
 }
 ```
+
+### 主题字段
+
+`domain` 取 `business` / `technology` / `lifestyle` / `economy` / `education`，
+决定「真实数据」里的分组；缺了或写错校验器会拦。
 
 ### unit
 
@@ -118,20 +131,20 @@ build\rust\data-viz\release\dv-engine.exe build --explain <slug>/<view>
 ## 自检
 
 - 内容：`dv-engine validate` 必须 0 问题。
-- 产物：`dv-engine build`，再用 `audit_build.py --label before/--diff` 证明没碰别的应用。
-- 浏览器：`node tools/preview_site.mjs` 打开 `/data-viz/`，过一遍手机宽度、
-  light/dark/glass、点读（有音频时）、表格和返回链接。
+- 数据包：`dv-engine build`；页面：`npm --prefix apps/data-viz/web run build`。
+- 浏览器：`tools/build_cloudflare_site.py --with-data-viz` 后在暂存里过一遍手机宽度、
+  light/dark/glass、点标记、改数据、表格和返回链接；`node tests/smoke.mjs --match data-viz`。
 
 ## 页面里改数据
 
 工作表里的“编辑数据”允许读者改数值、类别名、系列名、分组和节点；图表、表格、提示、
 词汇、句型、描述与解读都按当前数据重算。为此浏览器端有两份运行时模块：
 
-- `apps/data-viz/js/05-compute.js`：`source/engine/src/features.rs` 的逐条移植（分类阈值、槽位、数字格式完全一致）。
-- `apps/data-viz/js/06-text.js`：按当前特征从语言库的句型框架生成整图描述；作者写的
+- `apps/data-viz/web/src/engine/05-compute.js`：`source/engine/src/features.rs` 的逐条移植（分类阈值、槽位、数字格式完全一致）。
+- `apps/data-viz/web/src/engine/06-text.js`：按当前特征从语言库的句型框架生成整图描述；作者写的
   `descriptions` / `overview_zh` 只在未改数据时显示，避免改完数据后留着旧数字。
 
-改了 `engine/src/features.rs` 或 `05-compute.js` 的任何一方，都要跑：
+改了 `engine/src/features.rs` 或 `web/src/engine/05-compute.js` 的任何一方，都要跑：
 
 ```powershell
 node tests\dataviz-parity.mjs
@@ -145,11 +158,10 @@ kind 与 slots 完全一致；第二条把每个视图的 A2/B1/B2/雅思/商务
 
 ## 视觉与交互（全站统一）
 
-- 所有表面都要有圆角：卡片/面板用 `--radius-card`，控件与图片用
-  `--radius-control`，徽章和分段控件用 999px。SVG 里的柱、热力格、桑基节点
-  用 `rx` 2–4；不要留直角矩形，包括画廊 mini 图。
-- 男女声切换如果以后加音频，统一用 `.seg`（药丸槽 + 30px 内嵌墨色药丸 +
-  喇叭图标），不要再造 `.voices` / `.voice-seg` 这类新样式。
+- 所有表面都要有圆角：卡片/面板用 `--radius-card`，控件与输入用
+  `--radius-control`，徽章和分段控件用 999px。ECharts 里的柱、饼块、热力格
+  用 `borderRadius` 2–6；不要留直角矩形，包括画廊 mini 图。
+- 分段控件统一用 `.seg`（药丸槽 + 内嵌墨色药丸），不要再造新样式。
 - 按钮的缓动/弹簧和页面平滑滚动由部署时注入的 `/theme.css` 统一提供；
-  `style.css` 不要覆盖 `transition: transform` 或 `scroll-behavior`。
+  `web/src/index.css` 不要覆盖 `transition: transform` 或 `scroll-behavior`。
 - 圆角只是外观，不改变图表读数和“只有相关、没有因果”的表述。

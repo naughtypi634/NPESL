@@ -164,7 +164,10 @@ def md_files(paths: list[str], scan_all: bool) -> list[Path]:
             if not p.is_absolute():
                 p = ROOT / p
             if p.is_dir():
-                out.extend(sorted(p.rglob("*.md")))
+                out.extend(sorted(
+                    f for f in p.rglob("*.md")
+                    if not any(s in f.as_posix() for s in SKIP_DIRS)
+                ))
             elif p.exists():
                 out.append(p)
             else:

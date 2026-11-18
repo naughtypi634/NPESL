@@ -266,15 +266,6 @@ def collocation_ignore(directory, names):
     return skip
 
 
-def data_viz_ignore(directory, names):
-    """脚本构建器和逐条录音母版不部署；页面带 hashed 数据包和 sprite。"""
-    skip = set(shutil.ignore_patterns("source", "js", "__pycache__", "*.py", "*.md")(
-        directory, names))
-    if Path(directory) == DATA_VIZ / "audio":
-        skip |= {"f", "m", "h2", "c"}
-    return skip
-
-
 def ipa_ignore(directory, names):
     """部署只要拼好的 sprite，不搬逐词母版。"""
     if Path(directory).name == "audio":
@@ -381,14 +372,15 @@ def main() -> int:
         drill_out, "index.html", lambda _: "drill/", site_back))
 
     # 数据图表英语：开发中，默认不进主站；本地联调加 --with-data-viz。
-    if args.with_data_viz and DATA_VIZ.exists():
+    data_viz_dist = DATA_VIZ / "dist"
+    if args.with_data_viz and (data_viz_dist / "index.html").exists():
         data_viz_out = OUT / "data-viz"
-        shutil.copytree(DATA_VIZ, data_viz_out, ignore=data_viz_ignore)
+        shutil.copytree(data_viz_dist, data_viz_out)
         finish_group(PageGroup(
             data_viz_out, "index.html", lambda _: "data-viz/", site_back))
         print("  数据图表英语：已包含")
     elif args.with_data_viz:
-        print("警告：数据图表英语目录不存在，未包含")
+        print("警告：数据图表英语 dist 不存在，先跑 build_all.py --only data-viz")
     else:
         print("  数据图表英语：开发中，未包含")
 
