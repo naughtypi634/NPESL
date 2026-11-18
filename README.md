@@ -120,15 +120,18 @@ npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npe
 ## 自检
 
 ```powershell
-# 一次跑完：音频引用、英式英语、七个线上应用的冒烟测试
+# 一次跑完：全站链接/资源、可见内容、内容校验、无头浏览器巡检与点读
 .venv\Scripts\python.exe -I tools\verify.py
+
+# 只跑静态层，不开浏览器
+.venv\Scripts\python.exe -I tools\verify.py --fast
 
 # 改构建脚本前后：拍快照，再比对（0 差异才算通过）
 .venv\Scripts\python.exe -I tools\verify.py --label before
 .venv\Scripts\python.exe -I tools\verify.py --diff before now
 ```
 
-单独跑某一项时仍可用原命令：`tools\audit_build.py`、`tools\check_assets.py`、`tools\check_bre.py`、`node tests\smoke.mjs`。
+单独跑某一项仍可用 `tools\audit_build.py`、`node tests\verify_runtime.mjs`；`check_bre.py` 是旧版 Markdown 单项扫描，不再参与交付门禁。
 
 ## 路径约定
 

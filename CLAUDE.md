@@ -23,8 +23,9 @@
 
 - `build_all.py --only <app>` 不重建 `build/cloudflare-site`；验证/部署写 `--only <app>,site`。
 - 主站当前只列七个应用；data-viz 默认不装配，本地联调才加 `tools/build_cloudflare_site.py --with-data-viz`。不要部署 data-viz。
-- `verify.py` 已给 `check_bre` 加 `--strict`；它只扫 Markdown，HTML/JSON 内容靠各 app validator。
-- `tests\smoke.mjs` 没有 `--help`，会直接开无头 Edge 跑全套并放音频；只单跑 `node tests\smoke.mjs --only <case>`。data-viz 用例在暂存没有该目录时自动跳过。
+- `verify.py` 现在验证四层：全站链接/资源、可见文本（英式英语 + 禁用文案）、内容 validator、无头浏览器全站巡检与点读。`--fast` 跳过浏览器层。
+- 英式英语的存量基线在 `tools/verify/british_baseline.json`；新增命中会失败，修掉内容后用 `--update-baseline` 收紧。旧 `check_bre.py` 只扫 Markdown，不再参与交付门禁。
+- `tests\verify_runtime.mjs` 没有 `--help`，会直接开无头 Edge 跑全套并放音频；只单跑 `node tests\verify_runtime.mjs --only <case>`。
 - `tools\drill\assemble.py` 默认会重写 `content/drill/questions.json`；改前先 `git status`。
 - `apps\collocation\source\build.py` 每次全量重建 sprite，不是增量。
 - 部署主站是用户已授权的动作（2026-10-31），自检通过后执行；音频站仅在音频变化时；两个 staging 不合并。
@@ -35,8 +36,8 @@
 ```powershell
 .venv\Scripts\python.exe -I tools\build_all.py --only <app>,site
 .venv\Scripts\python.exe -I tools\verify.py
-.venv\Scripts\python.exe -I tools\check_bre.py --strict apps content
-node tests\smoke.mjs --only <case>
+.venv\Scripts\python.exe -I tools\verify.py --fast
+node tests\verify_runtime.mjs --only <case>
 .venv\Scripts\python.exe -I tools\audit_build.py --label before
 .venv\Scripts\python.exe -I tools\audit_build.py --diff before now
 npx --yes wrangler@latest pages deploy build\cloudflare-site --project-name npesl --branch main
@@ -52,7 +53,7 @@ npx --yes wrangler@latest pages deploy build\cloudflare-audio --project-name npe
 
 ## 完成定义
 
-唯一清单在 `AGENTS.md` 第四节，不在本文件重复。核心：改源 → `build_all.py --only <app>,site` → `verify.py` 一次 → `check_bre.py --strict` → 人工过手机宽度/深浅主题/点读/返回 → 部署主站（音频有变才加音频站）→ 一次 commit。构建脚本改动先 `audit_build.py --label before`，改完重建再 `--diff before now`，0 差异或逐文件解释。没跑过的检查不得写成通过。
+唯一清单在 `AGENTS.md` 第四节，不在本文件重复。核心：改源 → `build_all.py --only <app>,site` → `verify.py` 一次 → 人工过手机宽度/深浅主题/点读/返回 → 部署主站（音频有变才加音频站）→ 一次 commit。构建脚本改动先 `audit_build.py --label before`，改完重建再 `--diff before now`，0 差异或逐文件解释。没跑过的检查不得写成通过。
 
 ## 写权限与并发
 

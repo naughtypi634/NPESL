@@ -14,7 +14,8 @@
 | 脚本 | 作用 |
 |---|---|
 | `build_all.py` | 按依赖顺序跑全部应用与站点装配；`--only`、`--skip-site`、`--refresh-ipa-audio` |
-| `verify.py` | 一次跑完产物比对、音频引用、英式英语、无头浏览器冒烟 |
+| `verify.py` | 四层自检：全站链接/资源、可见内容、内容 validator、无头浏览器全站巡检与点读；`--fast` 跳过浏览器；`--label/--diff` 追加产物快照 |
+| `verify/` | 新版 verify 的实现：`site.py` 全站引用、`content.py` 可见文本与英式英语基线、`rules.py` 规则表、`validators.py` 内容校验 |
 | `build_cloudflare_site.py` | 把七个线上应用装配成 `build/cloudflare-site/` 与 `build/cloudflare-audio/`；`--with-data-viz` 额外装配开发中的 data-viz |
 | `build_ipa_site.py` | 音标表页面 + 全部单词的男女两版录音；默认 `--tts azure`，`--skip-audio` 只用缓存 |
 | `apps/conversation/source/build_site.py` | Conversation Starters 页面与全部级别语音 |
@@ -22,10 +23,10 @@
 | `drill/assemble.py` | Question Drill 页面、题库脚本与 sprite；默认从 `questions.json` 重渲染 |
 | `clean_build.py` | 清 Edge 临时配置、日志、`__pycache__`；`--all` 连部署暂存；`--scratch` 清 build 顶层残留 |
 | `audit_build.py` | 产物 SHA-256 快照与比对（`--label` / `--diff`） |
-| `check_assets.py` | 检查页面引用的音频文件是否真的存在 |
-| `check_bre.py` | 英式英语扫描（只扫 Markdown） |
+| `check_bre.py` | 旧版 Markdown 英式英语扫描；新版 verify 扫构建页可见文本，不调用它 |
 | `preview_site.mjs` | 带 Range 的本地静态服务器 |
 | `edge.mjs` | 无头 Edge 助手；`node tools/edge.mjs` 清残留进程 |
+| `../tests/verify_runtime.mjs` | 新版运行时层：全站巡检 + 七应用点读/交互；`--only <case>` 单跑 |
 | `miniprogram/build_data.py` | 从已构建的 IPA / Phonics / Phenomena 页面抽小程序数据 |
 | `miniprogram/upload_audio.py` | 把小程序引用的音频按内容哈希传到微信云存储 |
 

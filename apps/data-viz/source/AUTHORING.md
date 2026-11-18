@@ -133,7 +133,8 @@ technology / lifestyle / economy / education 领域浏览）。
 - 内容：`dv-engine validate` 必须 0 问题。
 - 数据包：`dv-engine build`；页面：`npm --prefix apps/data-viz/web run build`。
 - 浏览器：`tools/build_cloudflare_site.py --with-data-viz` 后在暂存里过一遍手机宽度、
-  light/dark/glass、点标记、改数据、表格和返回链接；`node tests/smoke.mjs --match data-viz`。
+  light/dark/glass、点标记、改数据、表格和返回链接；`node tests/dataviz-parity.mjs`
+  与 `node tests/dataviz-text.mjs` 必须 0 差异。
 
 ## 页面里改数据
 

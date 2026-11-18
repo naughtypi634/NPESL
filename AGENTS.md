@@ -24,7 +24,7 @@ build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
 - Python 一律用本库 `.venv`。
 - **路径常量集中在 `tools/paths.py`**。要搬目录，只改它，然后重跑全部构建并用 `tools/audit_build.py --diff` 证明产物没变。
 - 站内链接是部署后的绝对路径（`/phonics/`、`/ipa/`、`/drill/`、`/conversation/`、`/phenomena/`、`/collocation/`），源目录不能直接当站点预览；预览走 `tools/build_cloudflare_site.py` 的暂存目录。
-- 对话各级（Beginner / Intermediate 与 ESLSE）的页面都指向独立音频站 `https://npesl-audio.pages.dev/audio/`，所有级别的 sprite 都在音频站，不要再给 ESLSE 单独开本地路径分支。`tools/check_assets.py` 按音频站校验。
+- 对话各级（Beginner / Intermediate 与 ESLSE）的页面都指向独立音频站 `https://npesl-audio.pages.dev/audio/`，所有级别的 sprite 都在音频站，不要再给 ESLSE 单独开本地路径分支。`tools/verify/` 按音频站校验。
 
 ## 二 · 内容标准
 
@@ -61,19 +61,20 @@ build/        cloudflare-site/ cloudflare-audio/ …（gitignore）
 ## 四 · 交付前自检
 
 ```powershell
-# 一次跑完：产物比对（可选）、音频引用、英式英语、无头浏览器冒烟
+# 一次跑完：全站链接/资源、可见内容、内容校验、运行时巡检与点读
 .venv\Scripts\python.exe -I tools\verify.py
+.venv\Scripts\python.exe -I tools\verify.py --fast          # 跳过浏览器层
 .venv\Scripts\python.exe -I tools\verify.py --label before
 .venv\Scripts\python.exe -I tools\verify.py --diff before now
 ```
 
-要求 **FIX = 0**；REVIEW 项逐条人工判断。`tests\smoke.mjs` 用无头 Edge 打开七个应用，确认无 console 错误、点读真的出声。页面还要在浏览器里过一遍：手机宽度、深浅主题、点读播放、返回链接。
+`verify.py` 的四层：①全站引用（每页的链接、图片、字体、音频、VV 词音频）；②可见内容（每个构建页的真实英文文本查英式拼写和禁用文案）；③内容校验（collocation / phonics / phenomena，`--with-data-viz` 时加 data-viz）；④运行时（一个无头 Edge 打开全部页面，查 console 错误、请求失败、空白页、手机横向溢出，再跑七类应用的点读与交互）。运行时层默认屏蔽图片下载，因为图片存在性已由静态层全量检查。**新增英式英语必须为 0**；存量记在 `tools/verify/british_baseline.json`，报告每次都显示，修掉后用 `--update-baseline` 收紧。页面仍要人工过一遍手机宽度、深浅主题、点读、返回。
 
-- **完成链（唯一清单）**：改源 → `build_all.py --only <app>,site` → `verify.py` 一次 → `check_bre.py --strict` → 人工过手机宽度/深浅主题/点读/返回 → 部署主站（音频有变才加音频站）→ 一次 commit main。构建脚本改动先 `audit_build.py --label before`，改完重建再 `--diff before now`，0 差异或逐文件解释。
+- **完成链（唯一清单）**：改源 → `build_all.py --only <app>,site` → `verify.py` 一次 → 人工过手机宽度/深浅主题/点读/返回 → 部署主站（音频有变才加音频站）→ 一次 commit main。构建脚本改动先 `audit_build.py --label before`，改完重建再 `--diff before now`，0 差异或逐文件解释。
 - **应用清单以 `tools/build_all.py` 的 `ORDER` 与 `apps/site/index.html` 为准**；数量与基线见 `docs/status.md`。data-viz 开发中，默认不装配、不部署。
 
 - **本地验证只开一个无头 Edge，跑完必须关**：多个检查合并进一个脚本、尽量复用同一个页面。统一用 `tools/edge.mjs` 的 `launchEdge()`，它在 Windows 上按 `--user-data-dir` 精确杀整棵树；残留用 `node tools/edge.mjs` 清。不要每步临时起一个浏览器不关——Edge 的浏览器进程会改挂父进程，`proc.kill()`、`taskkill /T` 都收不干净，profile 会一直锁着，进程越积越多把内存吃满。
-- **自检最多跑一遍，不要为等绿灯重跑**：`verify.py` 一次改动只跑一次。失败项先看是否与本次改动有关（`git status` 有没有碰那个应用）；无关的话用 `node tests\smoke.mjs --only <用例名>` 单跑一次判定是不是抖动，然后**停手**——把「单跑通过、整套受负载影响」写进交付说明即可。不要连跑整套去碰运气，冒烟每轮要开浏览器、放音频，最费时间也最费 token。只有失败项确实指向本次改动时才继续排查。
+- **自检最多跑一遍，不要为等绿灯重跑**：`verify.py` 一次改动只跑一次。失败项先看是否与本次改动有关（`git status` 有没有碰那个应用）；无关的话用 `node tests\verify_runtime.mjs --only <用例名>` 单跑一次判定是不是抖动，然后**停手**——把「单跑通过、整套受负载影响」写进交付说明即可。不要连跑整套去碰运气，运行时层每轮要开浏览器、放音频，最费时间也最费 token。只有失败项确实指向本次改动时才继续排查。
 
 ## 五 · Git
 
