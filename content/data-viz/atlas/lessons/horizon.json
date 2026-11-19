@@ -1,0 +1,162 @@
+{
+  "chart": "horizon",
+  "dataset": "service-requests",
+  "spec": {
+    "encoding": { "x": "week", "y": "change", "series": "service" },
+    "options": { "height": 420 }
+  },
+  "overview": {
+    "purpose_zh": "这张图把十五个服务、十周的同比变化压成十五条细行，用颜色深浅和分层显示涨跌幅度，适合一眼扫出谁在加速、谁在降温。",
+    "works_zh": [
+      "适合同时扫很多条时间序列",
+      "适合在很小的版面里看整体节奏",
+      "适合先找异常行，再去看细节"
+    ],
+    "uses_zh": [
+      "运维周会的流量回顾",
+      "产品健康度看板",
+      "营销活动后的服务监控"
+    ]
+  },
+  "understanding": {
+    "read_zh": "先在左侧找到要看的服务，再顺着它这一行从左往右看颜色：色带层数变多，表示同比涨幅扩大；层数变少，表示涨幅收窄。所有服务共用同一条时间轴，所以同一列的颜色可以直接对比。这张图适合扫，不适合读精确数值；要具体数字时，换折线图或看提示。",
+    "elements": [
+      { "name_en": "row", "name_zh": "细行", "note_zh": "每一行是一个服务，名称在左侧；行很薄，是为了在同样高度里放下更多服务。" },
+      { "name_en": "band", "name_zh": "色带", "note_zh": "数值被折进几层色带，层数越多表示变化幅度越大。" },
+      { "name_en": "baseline", "name_zh": "基线", "note_zh": "基线代表零变化；色带在基线之上是同比上涨，在基线之下是同比下降。" },
+      { "name_en": "week axis", "name_zh": "周轴", "note_zh": "横轴是十周，从 2026-05-04 到 2026-07-06，十五个服务共用。" }
+    ],
+    "look_for_zh": [
+      "整行色带由深变浅或由浅变深的方向。",
+      "同一周里哪些行明显更亮或更暗。",
+      "颜色突然换层的位置，那通常是变化的拐点。"
+    ]
+  },
+  "observations": [
+    { "en": "Checkout and coupons move in opposite directions: checkout peaks at 7.2 in the week of 2026-05-25 and slides to 1.2 by 2026-06-29, while coupons climb from 5.2 in that same week to 15.6 by the final week.", "zh": "checkout 和 coupons 走的是相反方向：checkout 在 2026-05-25 那一周达到 7.2，到 2026-06-29 降到 1.2；coupons 则从同一周的 5.2 一路升到最后一周的 15.6。" },
+    { "en": "All fifteen services stay above zero for the whole period, so falling rows mean slower growth, not fewer requests.", "zh": "十五个服务在整个时间段里都高于零，所以行往下走只表示涨得更慢，不代表请求量变少。" },
+    { "en": "Reviews-api finishes highest at 35.6, after dipping to 28 in early June.", "zh": "reviews-api 最后以 35.6 收在最高位，六月初曾降到 28。" },
+    { "en": "Inventory peaks at 31.6 and then eases to 25.6 by the final week.", "zh": "inventory 在 31.6 见顶，之后一路回落到最后一周的 25.6。" },
+    { "en": "Support and notifications dip in the middle weeks and recover by the end, finishing at 24.6 and 27.6.", "zh": "support 和 notifications 在中间几周回落，到最后又恢复，分别收在 24.6 和 27.6。" },
+    { "en": "The final week ranges from 2.6 for checkout to 35.6 for reviews-api, a spread too wide to compare without the color bands.", "zh": "最后一周从 checkout 的 2.6 一直到 reviews-api 的 35.6，跨度太大，没有色带很难直接比较。" }
+  ],
+  "describe": [
+    {
+      "group": "chart-intro",
+      "expression": "show",
+      "en": "The horizon chart shows year-over-year change in weekly requests for fifteen services over ten weeks.",
+      "zh": "这张地平线图展示十五个服务在十周里的每周请求量同比变化。",
+      "pattern": "The chart shows + metric + for + number of items + over + period",
+      "alternatives": [
+        "The chart tracks fifteen services week by week, all in the same percent unit.",
+        "This horizon view packs fifteen request series into one compact block."
+      ],
+      "note_zh": "开头必须点明单位是同比百分比，否则读者会把色带当成请求次数。"
+    },
+    {
+      "group": "trend-down",
+      "expression": "decline",
+      "en": "Checkout declines from 7.2 to 1.2 between late May and late June, while coupons rise from 5.2 in late May to 15.6 by the final week.",
+      "zh": "checkout 从五月下旬的 7.2 降到六月下旬的 1.2，与此同时 coupons 从五月下旬的 5.2 升到最后一周的 15.6。",
+      "pattern": "A + declines from + figure + to + figure + while + B + rises",
+      "alternatives": [
+        "Checkout loses momentum, falling from 7.2 to 1.2, as coupons climb from 5.2 to 15.6.",
+        "The two rows move in opposite directions: checkout down, coupons up."
+      ],
+      "note_zh": "decline 比 fall 正式，适合报告；但要记住这里下降的是涨幅，不是请求量本身。"
+    },
+    {
+      "group": "trend-up",
+      "expression": "climb",
+      "en": "Coupons climb from a low of 5.2 to 15.6 by the final week, one of the clearest upward lines in the chart.",
+      "zh": "coupons 从 5.2 的低点一路攀升到 15.6，收在最后一周，是整张图里最明显的上升行之一。",
+      "pattern": "X climbs from + low + to + high + by + period",
+      "alternatives": [
+        "Coupons rise from 5.2 in late May to 15.6 by the final week.",
+        "The coupons row gains momentum and ends at 15.6."
+      ],
+      "note_zh": "climb 暗示一步一步往上，和一行突然跳升不同；后面用 by the final week 说明终点。"
+    },
+    {
+      "group": "comparison",
+      "expression": "lower-than",
+      "en": "By the final week, checkout is far lower than coupons, at 2.6 against 15.6.",
+      "zh": "到最后一周，checkout 已经远低于 coupons，只有 2.6，而 coupons 是 15.6。",
+      "pattern": "A + be + far lower than + B, at + figure + against + figure",
+      "alternatives": [
+        "Checkout ends at 2.6, well below coupons at 15.6.",
+        "At the finish, coupons are far higher than checkout."
+      ],
+      "note_zh": "lower than 只比高低；差距大时加 far 或 well，符合最后一周两行拉开的事实。"
+    },
+    {
+      "group": "overall",
+      "expression": "overall",
+      "en": "Overall, every service still grows, but the speed varies widely, from 2.6 to 35.6 in the final week.",
+      "zh": "总体来看，每个服务都还在增长，但速度差别很大，最后一周从 2.6 到 35.6 都有。",
+      "pattern": "Overall, + main pattern + range",
+      "alternatives": [
+        "Overall, the chart shows growth everywhere, at very different speeds.",
+        "Overall, no service is shrinking; the story is momentum, not decline."
+      ],
+      "note_zh": "整体概括要先说方向一致、再说速度分散，避免把下行行误读成负增长。"
+    },
+    {
+      "group": "peaks",
+      "expression": "peak-at",
+      "en": "Inventory peaks at 31.6 in early June, then eases back to 25.6 by the final week.",
+      "zh": "inventory 在六月初达到 31.6 的峰值，之后回落到最后一周的 25.6。",
+      "pattern": "X peaks at + value + in + period + then eases to + value",
+      "alternatives": [
+        "Inventory reaches its high point at 31.6 before easing to 25.6.",
+        "The inventory row tops out at 31.6 and then loses momentum."
+      ],
+      "note_zh": "peak at 说的是数值最高，不代表涨幅最大；后面接 at + 数值、in + 时间。"
+    }
+  ],
+  "descriptions": {
+    "academic": {
+      "en": "The horizon chart tracks year-over-year change in weekly requests for fifteen services across ten weeks. Each service has its own thin row, and values are folded into color bands rather than printed as numbers. All series remain above the zero baseline, so the bands show how fast growth is, not whether traffic is rising. Checkout and coupons form the clearest contrast: checkout peaks at 7.2 in late May and falls to 1.2 by late June, while coupons rise from 5.2 in late May to 15.6 by the final week. Reviews-api finishes highest at 35.6, and inventory eases from 31.6 to 25.6.",
+      "zh": "这张地平线图跟踪十五个服务、十周的每周请求量同比变化。每个服务占一条细行，数值被折进色带，而不是直接印成数字。所有序列都保持在零基线之上，所以色带显示的是增长快慢，而不是请求量是否在上升。checkout 和 coupons 形成最清楚的对比：checkout 在五月下旬达到 7.2，到六月下旬降到 1.2；coupons 则从五月下旬的 5.2 升到最后一周的 15.6。reviews-api 以 35.6 收在最高位，inventory 则从 31.6 回落到 25.6。"
+    },
+    "business": {
+      "en": "The takeaway is simple: growth is slowing in checkout while coupons are gaining momentum, and those two rows should be read together. Checkout falls from 7.2 to 1.2 between late May and late June, while coupons climb from 5.2 in late May to 15.6 by the end. Nothing here is shrinking; every service stays above zero, so this is a speed problem, not a traffic problem. Reviews-api leads the pack at 35.6, and inventory cools from 31.6 to 25.6. Use this view to spot which service deserves a closer look, then open its own line chart before quoting exact percentages.",
+      "zh": "结论很简单：checkout 的增长在放缓，而 coupons 在加速，这两行要放在一起看。checkout 从五月下旬的 7.2 降到六月下旬的 1.2，coupons 则从 5.2 升到 15.6。这里没有谁在萎缩；每个服务都高于零，所以这是速度问题，不是流量问题。reviews-api 以 35.6 领先，inventory 从 31.6 降温到 25.6。用这张图找出需要细看的服务，再打开它自己的折线图，之后才引用精确百分比。"
+    },
+    "simple": {
+      "en": "This chart puts fifteen services on one screen. Each service gets a thin row, and color bands show how fast its weekly requests are growing compared with last year. All of them are still growing, so the question is speed, not direction. Checkout slows down: it goes from 7.2 to 1.2. Coupons do the opposite and rise from 5.2 to 15.6. Reviews-api finishes at 35.6, the highest row at the end. The chart is for scanning, not for reading exact numbers, so use it to find the interesting rows first.",
+      "zh": "这张图把十五个服务放在一个画面里。每个服务占一条细行，色带显示它的每周请求量比去年同期增长得多快。所有服务都还在增长，所以问题是速度，不是方向。checkout 在放缓：从 7.2 降到 1.2。coupons 正好相反，从 5.2 升到 15.6。reviews-api 收在 35.6，是最后一周最高的一行。这张图是用来扫的，不是用来读精确数字的，先用它找出值得关注的行。"
+    }
+  },
+  "language_notes": [
+    {
+      "title_en": "Percent change is not the number of requests",
+      "body_zh": "这一列是同比变化百分比，不是请求次数。读 7.2 的时候要说 7.2 percent above last year，不能读成 7.2 requests；方向看正负，大小看百分点。百分点和百分比在这里是一回事，因为单位本身就是百分比。",
+      "examples": [
+        "Checkout is 7.2 percent above last year in late May.",
+        "By late June, checkout is only 1.2 percent above last year."
+      ]
+    },
+    {
+      "title_en": "Slow down vs fall",
+      "body_zh": "行往下走不等于请求量下降，只说明涨幅收窄。用 slow down、ease、lose momentum 更准确；真的变少才用 fall 或 decline。说 slower growth 比说 a fall 更贴近这张图的数据。",
+      "examples": [
+        "Checkout slows from 7.2 to 1.2 but stays above zero.",
+        "Coupons gain momentum, rising from 5.2 to 15.6."
+      ]
+    },
+    {
+      "title_en": "move in opposite directions",
+      "body_zh": "两条线一上一下时，最自然的说法是 move in opposite directions；while 把两个分句并排，对比最清楚。不要用 on the contrary，那是纠正别人观点时用的，不是描述数据。",
+      "examples": [
+        "Checkout falls while coupons rise.",
+        "The two services move in opposite directions."
+      ]
+    }
+  ],
+  "related": {
+    "charts": ["line", "sparkline"],
+    "groups": ["trend-up", "trend-down", "comparison", "overall"],
+    "contexts": ["workplace-reports", "business-presentations", "sales-marketing"]
+  }
+}

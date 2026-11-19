@@ -1,0 +1,160 @@
+{
+  "chart": "beeswarm",
+  "dataset": "delivery-times",
+  "spec": {
+    "encoding": { "value": "minutes", "group": "city", "label": "order" },
+    "options": { "unit": " min", "height": 400 }
+  },
+  "overview": {
+    "purpose_zh": "把每一笔订单画成一个点，用点的左右位置看配送时长，用点挤在一起的形状看每个城市的时间是集中在某一段，还是散得很开。",
+    "works_zh": [
+      "城市之间比快慢，也比谁的时间更集中",
+      "找特别快或特别慢的单独订单",
+      "在平均值之外，确认大多数订单实际落在哪一段"
+    ],
+    "uses_zh": [
+      "配送运营周会上看各城市时效稳不稳",
+      "向商家解释为什么“平均 40 分钟”不等于每单都 40 分钟",
+      "判断某个城市的慢单是普遍现象还是个别情况"
+    ]
+  },
+  "understanding": {
+    "read_zh": "先看横轴，从左到右代表越来越慢；再看每一行是一个城市，行内每个点是一笔订单。点挤成一条密的带子，说明时间集中；带子拉得长，说明有快有慢；离开带子单独落在一边的点，是最值得单独查看的订单。",
+    "elements": [
+      { "name_en": "value axis", "name_zh": "数值轴", "note_zh": "横向的分钟刻度；越靠右，配送越慢。" },
+      { "name_en": "group row", "name_zh": "城市行", "note_zh": "每个城市占一行，上下排列，行和行之间不混在一起。" },
+      { "name_en": "dot", "name_zh": "订单点", "note_zh": "一个点就是一笔订单；时长相同的点会上下错开，避免叠在一起。" },
+      { "name_en": "median line", "name_zh": "中位数线", "note_zh": "每组点中间的那条短线标出该城市的中位数，一半订单比它快，一半比它慢。" }
+    ],
+    "look_for_zh": [
+      "哪一行的点整体最靠左，说明这个城市普遍更快",
+      "哪一行的点拉得最长，说明这个城市快慢差别最大",
+      "带子外面有没有孤立的点，那是最值得单独查看的订单"
+    ]
+  },
+  "observations": [
+    { "en": "Hangzhou's dots sit lowest and tightest: all 12 orders arrive between 22 and 52 minutes, a spread of 30 minutes.", "zh": "杭州的点最低也最紧：12 笔订单全部落在 22 到 52 分钟之间，跨度 30 分钟。" },
+    { "en": "Guangzhou has the longest tail: its slowest order takes 66 minutes, 8 minutes above the next slowest order in the same city.", "zh": "广州的尾巴最长：最慢一单用了 66 分钟，比同城第二慢的一单多 8 分钟。" },
+    { "en": "Guangzhou's fastest order takes 30 minutes, yet half of Hangzhou's orders arrive within 34 minutes.", "zh": "广州最快的一单要 30 分钟，而杭州有一半订单在 34 分钟内送达。" },
+    { "en": "Half of all orders arrive within 38 minutes; the dots to the right of that point form the slow half.", "zh": "全部订单里有一半在 38 分钟内送达；这个点右边的点就是慢的那一半。" }
+  ],
+  "describe": [
+    {
+      "group": "chart-intro",
+      "expression": "show",
+      "en": "The chart shows all 60 delivery orders as individual dots, with one row per city.",
+      "zh": "这张图把全部 60 笔外卖订单画成一个个点，每个城市占一行。",
+      "pattern": "The chart shows + what + as + unit",
+      "alternatives": [
+        "The chart displays 60 orders as dots grouped by city.",
+        "Each dot in the chart stands for one order."
+      ],
+      "note_zh": "开头先交代“一个点是什么”，读者才知道该看点的位置还是数量。"
+    },
+    {
+      "group": "distribution",
+      "expression": "distribution",
+      "en": "The distribution of delivery times is widest in Guangzhou, where the dots run from 30 to 66 minutes.",
+      "zh": "配送时长的分布以广州最分散，点从 30 分钟一直排到 66 分钟。",
+      "pattern": "the distribution of + noun + is widest in + group",
+      "alternatives": [
+        "Guangzhou has the widest distribution, from 30 to 66 minutes.",
+        "Delivery times in Guangzhou are spread across a wider range than in the other cities."
+      ],
+      "note_zh": "说 distribution 时要指出是哪个城市、摊开在什么范围。"
+    },
+    {
+      "group": "distribution",
+      "expression": "cluster",
+      "en": "Most dots cluster between 30 and 44 minutes, so the middle of every row is dense.",
+      "zh": "大多数点聚集在 30 到 44 分钟之间，所以每一行的中段都很密。",
+      "pattern": "cluster between + value + and + value",
+      "alternatives": [
+        "Orders cluster in the 30s and early 40s.",
+        "The dots bunch together between 30 and 44 minutes."
+      ],
+      "note_zh": "cluster 描述的是几个点挨在一起，不是单个数值。"
+    },
+    {
+      "group": "distribution",
+      "expression": "outlier",
+      "en": "Guangzhou's 66-minute order is a clear outlier: 8 minutes separate it from the next slowest order in the city.",
+      "zh": "广州那笔 66 分钟的订单是明显的离群值：它比同城第二慢的订单多出 8 分钟。",
+      "pattern": "a clear outlier + number of minutes above the next value",
+      "alternatives": [
+        "The 66-minute order in Guangzhou is the clearest outlier in the chart.",
+        "At 66 minutes, one Guangzhou order sits well beyond the rest."
+      ],
+      "note_zh": "outlier 要有“和其他点差得很远”的依据，最好把第二慢的值也说出来。"
+    },
+    {
+      "group": "comparison",
+      "expression": "lower-than",
+      "en": "Hangzhou's slowest order, at 52 minutes, is lower than Beijing's 61.",
+      "zh": "杭州最慢的一单是 52 分钟，低于北京的 61 分钟。",
+      "pattern": "A + be + lower than + B",
+      "alternatives": [
+        "Hangzhou tops out at 52 minutes, lower than Beijing's 61.",
+        "Beijing's slowest order is 61 minutes, higher than Hangzhou's 52."
+      ],
+      "note_zh": "比较端点时把两个数都写出来，读者不用回头去找。"
+    },
+    {
+      "group": "overall",
+      "expression": "what-stands-out",
+      "en": "What stands out is how tightly Hangzhou's 12 orders bunch together, from 22 to 52 minutes.",
+      "zh": "最突出的是杭州 12 笔订单挤得很紧，全部在 22 到 52 分钟之间。",
+      "pattern": "What stands out is + noun phrase",
+      "alternatives": [
+        "What stands out most is Hangzhou's narrow spread.",
+        "The most striking feature is how close together Hangzhou's orders sit."
+      ],
+      "note_zh": "口语汇报里 what stands out 很自然，学术写作换成 the most noticeable feature。"
+    }
+  ],
+  "descriptions": {
+    "academic": {
+      "en": "The beeswarm chart displays all 60 delivery orders as individual dots in five city rows. Most observations fall between 30 and 44 minutes, and the cities overlap heavily across that band. Hangzhou occupies the lowest and narrowest range, from 22 to 52 minutes, while Guangzhou extends furthest to the right and reaches 66 minutes. Beijing and Chengdu sit in between, with slow orders at 61 and 60 minutes respectively. Two orders finish below 25 minutes: Hangzhou's 22-minute order and Shanghai's 24-minute one.",
+      "zh": "蜂群图把全部 60 笔外卖订单画成一个个点，按城市分成五行。多数订单落在 30 到 44 分钟之间，各城市在这一段大量重叠。杭州的范围最低也最窄，从 22 到 52 分钟；广州向右伸得最远，最慢到 66 分钟。北京和成都居中，最慢的订单分别是 61 分钟和 60 分钟。还有两笔订单不到 25 分钟：杭州的 22 分钟和上海的 24 分钟。"
+    },
+    "business": {
+      "en": "Guangzhou is where our delivery promise is most at risk: its slowest order takes 66 minutes, 8 minutes beyond the next slowest order in the city. Hangzhou is the safest market, with every order between 22 and 52 minutes and a typical wait of 34 minutes. Most orders across all five cities land between 30 and 44 minutes, so a 45-minute promise covers most demand. The dots beyond 45 minutes are the ones customer service should review first.",
+      "zh": "广州是我们配送承诺风险最大的城市：最慢一单用了 66 分钟，比同城第二慢的一单多 8 分钟。杭州最稳，所有订单都在 22 到 52 分钟之间，典型等待时间是 34 分钟。五个城市合起来，大多数订单落在 30 到 44 分钟，所以 45 分钟的承诺能覆盖大部分需求。超过 45 分钟的那些点，应该让客服先逐单排查。"
+    },
+    "simple": {
+      "en": "Each dot is one order. Hangzhou's dots are the lowest and the closest together, from 22 to 52 minutes. Guangzhou's dots spread the furthest, and one order takes 66 minutes. Beijing, Shanghai and Chengdu sit in the middle. Half of all orders arrive within 38 minutes.",
+      "zh": "每个点是一笔订单。杭州的点最低也最集中，从 22 到 52 分钟。广州的点摊得最开，有一单用了 66 分钟。北京、上海和成都排在中间。全部订单里有一半在 38 分钟内送达。"
+    }
+  },
+  "language_notes": [
+    {
+      "title_en": "one dot per order",
+      "body_zh": "蜂群图最大的特点是一个点对应一笔订单。英文里说 one dot per order 或 each dot represents one order；不要说 one dot means one minute，点代表的是整笔订单，不是分钟。",
+      "examples": [
+        "Each dot represents one order.",
+        "The chart puts one dot per order, so 60 dots means 60 orders."
+      ]
+    },
+    {
+      "title_en": "range from ... to ... vs between ... and ...",
+      "body_zh": "说一个城市从最快到最慢，用 range from A to B，强调两端；只想说数值落在某个区间，用 between A and B。between 后面只能接 and，不能接 to。",
+      "examples": [
+        "Hangzhou's orders range from 22 to 52 minutes.",
+        "Hangzhou's orders sit between 22 and 52 minutes."
+      ]
+    },
+    {
+      "title_en": "outlier is not just the highest number",
+      "body_zh": "outlier 是明显远离其他数据的点，不一定是最大值。广州 66 分钟那一单同时是最大值和离群值；如果其他订单也都挤在 60 分钟左右，66 就只是最大值，不该叫 outlier。",
+      "examples": [
+        "Guangzhou's 66-minute order is a clear outlier.",
+        "The next slowest order is 58 minutes, so the gap is 8 minutes."
+      ]
+    }
+  ],
+  "related": {
+    "charts": ["ridgeline", "box", "histogram"],
+    "groups": ["distribution", "comparison", "overall"],
+    "contexts": ["everyday", "business-presentations"]
+  }
+}

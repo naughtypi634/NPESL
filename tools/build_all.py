@@ -18,9 +18,7 @@ there does hit the network.  See tools/README.md.
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -28,23 +26,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.cli import run_step, utf8_stdout  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-DV_ENGINE_DIR = ROOT / "apps" / "data-viz" / "source" / "engine"
-DV_TARGET = ROOT / "build" / "rust" / "data-viz"
-DV_BIN = DV_TARGET / "release" / ("dv-engine.exe" if os.name == "nt" else "dv-engine")
 DV_WEB = ROOT / "apps" / "data-viz" / "web"
 
 ORDER = ["ipa", "phonics", "phenomena", "collocation", "conversation", "drill",
          "data-viz", "site"]
-
-
-def cargo_exe() -> str:
-    exe = shutil.which("cargo")
-    if exe:
-        return exe
-    home = Path.home() / ".cargo" / "bin" / ("cargo.exe" if os.name == "nt" else "cargo")
-    if home.exists():
-        return str(home)
-    raise SystemExit("找不到 cargo：先装 Rust 工具链（https://rustup.rs），再重开终端。")
 
 
 def npm_exe() -> str:
@@ -62,15 +47,6 @@ def ensure_data_viz_deps() -> None:
         ["ci", "--no-fund", "--no-audit"],
         cwd=DV_WEB,
         program=npm_exe(),
-    )
-
-
-def build_data_viz_engine() -> None:
-    run_step(
-        "数据图表英语引擎编译",
-        ["build", "--release", "--manifest-path", str(DV_ENGINE_DIR / "Cargo.toml"),
-         "--target-dir", str(DV_TARGET)],
-        program=cargo_exe(),
     )
 
 
@@ -99,9 +75,7 @@ def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple]]:
             ("Question Drill 页面", ["-I", "tools/drill/assemble.py"]),
         ],
         "data-viz": [
-            ("数据图表英语内容校验", ["validate"], str(DV_BIN)),
-            ("数据图表英语页面", ["build"], str(DV_BIN)),
-            ("数据图表英语前端", ["--prefix", str(DV_WEB), "run", "build"], npm_exe()),
+            ("数据图表英语内容与页面", ["--prefix", str(DV_WEB), "run", "build"], npm_exe()),
         ],
         "site": [
             ("站点装配", ["-I", "tools/build_cloudflare_site.py"]),
@@ -137,7 +111,6 @@ def main() -> int:
         return 0
 
     if "data-viz" in names:
-        build_data_viz_engine()
         ensure_data_viz_deps()
     for name in names:
         for step in plan[name]:

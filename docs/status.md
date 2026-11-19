@@ -10,7 +10,7 @@
 | 项 | 值 | 来源 / 说明 |
 |---|---|---|
 | 线上应用 | 7 个 | 入口页 `apps/site/index.html` 的链接：phonics / ipa / drill / conversation / phenomena / collocation / visual-vocabulary |
-| data-viz | 已部署，隐藏入口 | 主站 `https://npesl.pages.dev/charts/` 直达；首页 `apps/site/index.html` 不列入入口。`content/data-viz/` + `apps/data-viz/web/`（React + ECharts）+ `apps/data-viz/source/engine/`（Rust 数据）；`/data-viz/*` 301 到 `/charts/*` |
+| data-viz | 已部署，隐藏入口 | 主站 `https://npesl.pages.dev/charts/` 直达；首页 `apps/site/index.html` 不列入入口。`content/data-viz/atlas/`（图表课 / 表达分类 / 模拟数据集 / 场景）+ `apps/data-viz/web/`（React + ztd-charts）；三个入口 Charts / Expressions / Real-world Contexts；`/data-viz/*` 301 到 `/charts/*` |
 | Question Drill | 2,247 题 | `content/drill/questions.json`；`extra-questions.json` 另有 192 道补充题 |
 | 短语搭配 | 41 个主题 / 3,296 条 / 6 大类 | `content/collocation/themes.json` + 41 个主题 JSON |
 | Conversation Starters | 150 个故事 / 503 段 | `content/conversation/{A1,B1,ESLSE}/content.py`（每级 10 单元 × 5 故事） |
@@ -35,6 +35,12 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
 - `tools/verify.py` 已于 2026-11-18 给 `check_bre` 加 `--strict`；`check_bre.py` 只扫 Markdown，HTML/JSON 内容靠各 app validator。
 - 2026-11-18：用 Claude Code 2.1.318 做无工具单轮测试，根 `CLAUDE.md` 的 `@AGENTS.md` 导入生效（模型能引用 `AGENTS.md` 首段）；新会话仍建议用 `/context all` 复核。
 - 2026-11-18：`check_bre.py --strict apps content` → FIX 0，REVIEW 3（`chips`×2、`surgery`×1，均为词义提示，人工判断）。
+- 2026-11-19：data-viz 重建为「数据英语表达图鉴」（Data Visualization × English Expression Atlas），三个入口 Charts / Expressions / Real-world Contexts；不再做题、不改数据、不判分。
+  - 内容：47 种 ztd 图表（9 大类）各一篇课；16 个语言功能分类共 174 条表达；35 个模拟数据集；7 个真实场景（雅思 / 商务演示 / 销售 / 财务 / 职场报告 / 教育 / 日常）。资料研究见 `docs/research-sources.md`。
+  - 内容闸门：`apps/data-viz/web/scripts/build-content.mjs` 校验英式英语、练习/问答式措辞、编造数字（只允许数据集值及其差值 / 占比 / 分组和）、失效交叉链接与图表 spec；`verify.py` 每次自动跑。
+  - 页面：React + TypeScript + Vite + ztd-charts 0.13.1，Light / Dark / Glass 三主题，部署在 `/charts/`；无计数、无进度、无已学标记；所有数据标 `Demo data · 模拟数据`。
+  - 验证：完整 `verify.py` 一次通过 —— 248 页 · 786 链接 · 2,785 资源 · 8,096 条音频引用 · 1,395 张 VV 图片；可见文本 78,819 词，英式英语存量 85、新增 0；collocation / phonics / phenomena / data-viz 四个 validator 通过；运行时 21/21，248/248 页。`node tests/dataviz-ui.mjs` 23/23（三入口、47 图目录、详情页五段、表达筛选、场景范文、三主题、390px 无横向溢出、无 console 错误）。
+  - 架构：Rust `dv-engine`、浏览器特征引擎 `05-compute.js`、`dataviz-parity/text/goals` 测试全部退役；旧 `content/data-viz/{manifest,library,topics}` 不再参与构建。
 - 2026-11-18 完整 `verify.py`（staging 定稿后跑一次）：音频引用 PASS（248 页，0 缺失）；英式英语 PASS；冒烟 27/33。
   - 5 个时序用例在整套并发负载下失败：`conversation-playall`、`conversation-zh`、`collocation-index`、`collocation-chunk-variants`、`collocation-noun-uses`。代表用例 `conversation-playall` 单跑 PASS；视觉层会话报告其余用例单跑通过。按规则不重跑整套，判定为负载抖动。
   - `data-viz-describe` 报 `TypeError: Cannot read properties of undefined (reading 'select')`。data-viz 未部署，`/data-viz/` 302 回首页；`tests/smoke.mjs` 的 `HAS_DATA_VIZ` 用 `fetch().ok` 判定，跟随 302 后误判为存在，导致 data-viz 用例在首页上运行。这是测试跳过判定问题，不是线上缺陷。2026-11-18 已修：改为 `redirect: 'manual'` 且只认 200。

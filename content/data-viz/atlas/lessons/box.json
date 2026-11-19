@@ -1,0 +1,188 @@
+{
+  "chart": "box",
+  "dataset": "delivery-times",
+  "spec": {
+    "encoding": { "group": "city", "value": "minutes" },
+    "options": { "variant": "box", "unit": " min", "height": 400 }
+  },
+  "overview": {
+    "purpose_zh": "用五个位置概括一组订单：最短、第一四分位数、中位数、第三四分位数、最长。箱体装的是中间一半订单，箱体越长说明等待越难预测。",
+    "works_zh": [
+      "几组数据一起看中位数和中间一半的范围",
+      "比较谁的箱体更长，也就是谁更不稳定",
+      "判断慢单是普遍现象，还是落在须线之外的个别点"
+    ],
+    "uses_zh": [
+      "给五个城市定配送时效目标时，看典型值和波动范围",
+      "客服排班前判断哪些城市需要更宽的预估时间",
+      "向管理层解释“中位数一样”不等于“体验一样”"
+    ]
+  },
+  "understanding": {
+    "read_zh": "先把一个城市的订单从小到大排好，箱线图用五个位置概括它们。箱体左边是第一四分位数，右边是第三四分位数，中间装的是中间一半订单；箱体里的竖线是中位数；两边的须伸到不算离群值的最快和最慢订单。须线外面如果还有订单，会单独画成圆点。",
+    "elements": [
+      { "name_en": "box", "name_zh": "箱体", "note_zh": "左右两边分别是第一和第三四分位数，箱体装的是中间一半订单。" },
+      { "name_en": "median line", "name_zh": "中位数线", "note_zh": "箱体里的竖线；一半订单比它快，一半比它慢。" },
+      { "name_en": "whisker", "name_zh": "须线", "note_zh": "从箱体伸到不算离群值的最快和最慢订单；这份数据里五组都伸到了端点。" },
+      { "name_en": "outlier dot", "name_zh": "离群点", "note_zh": "落在须线之外的订单会单独画成圆点；这张图里一个都没有。" },
+      { "name_en": "value axis", "name_zh": "数值轴", "note_zh": "横向的分钟刻度，越靠右越慢。" }
+    ],
+    "look_for_zh": [
+      "哪个城市的中位数最靠左，哪个城市的箱体最长",
+      "箱体上下两条边差多少，差得越多说明中间一半订单越分散",
+      "须线伸到哪里，须线之外有没有圆点"
+    ]
+  },
+  "observations": [
+    { "en": "Hangzhou has the lowest median, at 34 minutes, one minute below Shanghai's 35.", "zh": "杭州的中位数最低，为 34 分钟，比上海的 35 分钟低 1 分钟。" },
+    { "en": "Guangzhou has the widest middle half: its box runs from about 37 to 51 minutes, longer than any other city's.", "zh": "广州的中间一半最宽：箱体大约从 37 分钟拉到 51 分钟，比其他城市都长。" },
+    { "en": "The whiskers reach the slowest orders without marking any dots as outliers: Guangzhou's whisker stops at 66 minutes and Hangzhou's at 52.", "zh": "须线一直伸到最慢的订单，却没有把任何点标成离群值：广州的须线到 66 分钟，杭州的到 52 分钟。" },
+    { "en": "Beijing's median of 39 minutes is 4 minutes above Shanghai's 35.", "zh": "北京的中位数是 39 分钟，比上海的 35 分钟高 4 分钟。" },
+    { "en": "Hangzhou's whole box sits below 40 minutes, while Guangzhou's box starts around 37.", "zh": "杭州的整个箱体都在 40 分钟以下，而广州的箱体从 37 分钟左右才开始。" }
+  ],
+  "describe": [
+    {
+      "group": "chart-intro",
+      "expression": "measure",
+      "en": "The chart measures delivery time in minutes for five cities.",
+      "zh": "这张图用分钟衡量五个城市的配送时长。",
+      "pattern": "The chart measures + metric + in + unit",
+      "alternatives": [
+        "The chart measures delivery time in minutes.",
+        "Delivery time is measured in minutes for each city."
+      ],
+      "note_zh": "开头交代单位，读者才知道刻度上的一格是几分钟。"
+    },
+    {
+      "group": "distribution",
+      "expression": "quartile",
+      "en": "The box marks the quartiles: Guangzhou's middle half runs from about 37 to 51 minutes.",
+      "zh": "箱体标出四分位数：广州中间一半订单大约从 37 分钟到 51 分钟。",
+      "pattern": "the box marks the quartiles + middle half runs from ... to ...",
+      "alternatives": [
+        "The first and third quartiles form the ends of the box.",
+        "Half of Guangzhou's orders sit between about 37 and 51 minutes."
+      ],
+      "note_zh": "箱体的两条边就是第一和第三四分位数，中间夹着一半订单。"
+    },
+    {
+      "group": "distribution",
+      "expression": "median",
+      "en": "Hangzhou's median is 34 minutes, one minute below Shanghai's 35.",
+      "zh": "杭州的中位数是 34 分钟，比上海的 35 分钟低 1 分钟。",
+      "pattern": "the median is + number + number of units below + figure",
+      "alternatives": [
+        "The median order in Hangzhou takes 34 minutes.",
+        "Shanghai's median of 35 minutes is one minute above Hangzhou's 34."
+      ],
+      "note_zh": "中位数是排队站在正中间的那一单，不受最慢几单的拉扯。"
+    },
+    {
+      "group": "distribution",
+      "expression": "range",
+      "en": "Guangzhou's delivery times range from 30 to 66 minutes, a spread of 36 minutes.",
+      "zh": "广州的配送时长从 30 到 66 分钟不等，跨度 36 分钟。",
+      "pattern": "range from + low + to + high + a spread of + amount",
+      "alternatives": [
+        "Guangzhou's times run from 30 to 66 minutes.",
+        "The full range in Guangzhou covers 36 minutes."
+      ],
+      "note_zh": "range 只看两头，最大值减最小值就是极差。"
+    },
+    {
+      "group": "distribution",
+      "expression": "spread",
+      "en": "Guangzhou has the widest spread: its box is longer than the other four.",
+      "zh": "广州的离散程度最大：它的箱体比其他四个城市都长。",
+      "pattern": "A + has the widest spread + evidence",
+      "alternatives": [
+        "Guangzhou's spread is the widest of the five cities.",
+        "The box for Guangzhou is longer than any other city's box."
+      ],
+      "note_zh": "spread 是“摊得多开”的总称；在箱线图里，箱体长度就是中间一半订单的离散程度。"
+    },
+    {
+      "group": "comparison",
+      "expression": "lower-than",
+      "en": "Hangzhou's whole box sits below 40 minutes, lower than any other city's.",
+      "zh": "杭州的整个箱体都在 40 分钟以下，比其他任何城市都低。",
+      "pattern": "A + sit below + level + lower than + B",
+      "alternatives": [
+        "Hangzhou's box is lower than the other four boxes.",
+        "No other city's box sits entirely below 40 minutes."
+      ],
+      "note_zh": "比较整个箱体时用 lower than，比只比较中位数更全面。"
+    },
+    {
+      "group": "distribution",
+      "expression": "outlier",
+      "en": "No order sits beyond the whiskers, so no outlier dots appear; Guangzhou's 66 is slow but close enough to the rest.",
+      "zh": "没有订单落在须线之外，所以图里没有离群点；广州的 66 分钟虽然慢，但离其他订单还不够远。",
+      "pattern": "no + noun + beyond the whiskers + so no outlier dots",
+      "alternatives": [
+        "The chart shows no outliers: every order sits inside its whisker.",
+        "Guangzhou's 66-minute order stays inside the whisker, so it is not marked as an outlier."
+      ],
+      "note_zh": "最大值不等于离群值；须线之外的才单独标点。"
+    },
+    {
+      "group": "overall",
+      "expression": "overall",
+      "en": "Overall, the five boxes sit close together, and the main difference is how far each one stretches to the right.",
+      "zh": "总体来看，五个箱体挨得比较近，主要差别在于每个箱体向右伸出去多远。",
+      "pattern": "Overall, + main pattern",
+      "alternatives": [
+        "Overall, the cities differ more in spread than in typical speed.",
+        "The overall picture is similar medians with different box lengths."
+      ],
+      "note_zh": "先给一句整体判断，再落到具体城市，读起来更有层次。"
+    }
+  ],
+  "descriptions": {
+    "academic": {
+      "en": "The box plot summarizes each city's 12 orders with five numbers: the minimum, the first quartile, the median, the third quartile and the maximum. Hangzhou has the lowest median at 34 minutes, one minute below Shanghai's 35 and 5 below Beijing's 39. Guangzhou has the widest middle half, running from about 37 to 51 minutes, and its whisker reaches 66. No city shows separate outlier dots: every whisker reaches the slowest order in its group. Hangzhou's entire box lies below 40 minutes.",
+      "zh": "箱线图用五个数概括每个城市的 12 笔订单：最小值、第一四分位数、中位数、第三四分位数和最大值。杭州的中位数最低，为 34 分钟，比上海的 35 分钟低 1 分钟，比北京的 39 分钟低 5 分钟。广州的中间一半最宽，大约从 37 到 51 分钟，须线到 66 分钟。所有城市都没有单独的离群点：每组须线都伸到了最慢的订单。杭州的整个箱体都在 40 分钟以下。"
+    },
+    "business": {
+      "en": "If we quote one delivery time, Guangzhou is the city that will break it: its middle half runs from about 37 to 51 minutes, and its slowest order takes 66. Hangzhou is the safest: half of its orders arrive within 34 minutes and its box stays below 40. Shanghai and Beijing look similar in the middle, with medians of 35 and 39. The lesson for operations is to watch the width of each box, not just the median, because a wide box means unpredictable waits.",
+      "zh": "如果要统一承诺一个配送时间，广州最容易打破它：中间一半订单大约从 37 到 51 分钟，最慢一单要 66 分钟。杭州最稳：一半订单在 34 分钟内送达，整个箱体都在 40 分钟以下。上海和北京在中间部分很像，中位数分别是 35 和 39。运营上要盯的是箱体宽度，不只是中位数，因为箱体宽就意味着等待时间难预测。"
+    },
+    "simple": {
+      "en": "The box shows the middle half of each city's orders. Guangzhou's box is the longest, from about 37 to 51 minutes, so its waits are the least predictable. Hangzhou's box is the lowest; half of its orders arrive within 34 minutes. Beijing and Shanghai sit close together. The lines on each side reach the fastest and slowest orders, and no dots sit outside them.",
+      "zh": "箱体展示每个城市中间一半的订单。广州的箱体最长，大约从 37 到 51 分钟，所以它的等待时间最难预测。杭州的箱体最低，一半订单在 34 分钟内送达。北京和上海挨得很近。两边伸出去的线到达最快和最慢的订单，线外没有圆点。"
+    }
+  },
+  "language_notes": [
+    {
+      "title_en": "median vs average",
+      "body_zh": "中位数是排队站在正中间的那一单，平均值是所有订单加起来再除以笔数。北京的平均值约 41 分钟，但一半订单在 39 分钟内到达，说明少数慢单把平均值拉高了。报告里最好把两个数一起给。",
+      "examples": [
+        "Beijing's median order takes 39 minutes.",
+        "Its average is about 41 minutes because a few slow orders pull it up."
+      ]
+    },
+    {
+      "title_en": "box, whisker and outlier",
+      "body_zh": "箱体装中间一半订单，须线伸到不算离群值的最快和最慢订单，须线之外的才叫 outlier。写的时候要分开说：whisker reaches ...，outlier sits beyond ...，不要混成一句。",
+      "examples": [
+        "The box holds the middle half of the orders.",
+        "The whisker reaches the slowest order that is not an outlier.",
+        "Guangzhou's 66-minute order stays inside the whisker."
+      ]
+    },
+    {
+      "title_en": "quartiles split the data into four parts",
+      "body_zh": "四分位数把订单从小到大切成四段：第一四分位数以下是最快的四分之一，第三四分位数以上是最慢的四分之一，中间两段合起来就是箱体。所以箱体永远装着一半订单。",
+      "examples": [
+        "The first quartile marks the fastest quarter of orders.",
+        "The third quartile marks the slowest quarter.",
+        "The box always holds the middle half."
+      ]
+    }
+  ],
+  "related": {
+    "charts": ["beeswarm", "ridgeline", "histogram"],
+    "groups": ["distribution", "comparison", "overall"],
+    "contexts": ["business-presentations", "workplace-reports"]
+  }
+}

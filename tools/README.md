@@ -51,8 +51,8 @@
 | `drill/prune_audio.py` | 删除题库不再引用的音频 |
 | `drill/test_app.mjs` | Question Drill 单文件版的行为测试 |
 | `apps/collocation/source/validate.py` | 短语搭配内容校验（改内容后必须先跑） |
-| `apps/data-viz/source/engine/` | 数据图表英语 Rust 构建引擎：`dv-engine validate` / `build` / `parity-dump`；`build_all.py --only data-viz` 先 `cargo build --release` 再跑 |
-| `apps/data-viz/web/` | 数据图表英语 React + TypeScript + Vite + ECharts 前端；`npm run build` 输出 `../dist`，`build_all.py` 缺依赖时先 `npm ci` |
+| `apps/data-viz/web/scripts/build-content.mjs` | 数据图表英语内容校验与打包：`--check` 只校验，`--inspect <dataset>` 打印数据集；英式英语、练习措辞、编造数字、失效链接都会失败 |
+| `apps/data-viz/web/` | 数据图表英语 React + TypeScript + Vite + ztd-charts 前端；`npm run build` 先校验内容再 `tsc` + `vite build`，输出 `../dist`，`build_all.py` 缺依赖时先 `npm ci` |
 | `apps/phonics/source/validate.py` | 自然拼读结构校验 |
 | `apps/phenomena/source/validate.py` | 发音现象标注校验 |
 | `collocation/*.py` | 短语搭配内容流水线：手册导入、词条替换、频率打分、近义 / 反义报告 |

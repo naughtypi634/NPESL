@@ -1,403 +1,225 @@
-// Browser check for the "look at a chart, learn the phrasing" layout.
+// 数据英语表达图鉴：一次无头 Edge 跑完页面与交互巡检。
 //
-// One headless Edge, one Vite server, closed at the end. Start with:
 //   node tests/dataviz-ui.mjs
 //
-// It intentionally uses the real page: filters, card clicks, canvas pointer
-// events, edits and the reset button. Counts are never shown by the UI.
+// 前提：先构建页面（build_all.py --only data-viz,site 或 npm --prefix
+// apps/data-viz/web run build）。本脚本自己起静态服务器，把 dist 挂在
+// /charts/ 下，和线上路径一致。跑完一定关浏览器。
 
-import { spawn, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { launchEdge } from '../tools/edge.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = 5175;
-const BASE = `http://127.0.0.1:${PORT}/charts/`;
-const VITE = join(ROOT, 'apps', 'data-viz', 'web', 'node_modules', 'vite', 'bin', 'vite.js');
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const DIST = resolve(ROOT, 'apps/data-viz/dist');
+const PREFIX = '/charts/';
 
-if (!existsSync(VITE)) {
-  console.error('缺少 vite；先在 apps/data-viz/web 跑 npm ci');
-  process.exit(1);
-}
-
-const server = spawn(process.execPath, [VITE, '--host', '127.0.0.1', '--port', String(PORT)], {
-  cwd: join(ROOT, 'apps', 'data-viz', 'web'),
-  stdio: 'ignore',
-});
-const stopServer = () => {
-  if (process.platform === 'win32') {
-    spawnSync('taskkill', ['/PID', String(server.pid), '/T', '/F'], { stdio: 'ignore' });
-  } else {
-    server.kill();
-  }
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.png': 'image/png',
+  '.woff2': 'font/woff2',
 };
-process.on('exit', stopServer);
 
-let ready = false;
-for (let i = 0; i < 80; i += 1) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const server = createServer(async (req, res) => {
+  if (req.url === '/favicon.ico') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+  let rel = decodeURIComponent(req.url.split('?')[0]);
+  if (!rel.startsWith(PREFIX)) {
+    res.writeHead(404);
+    res.end('not found');
+    return;
+  }
+  rel = rel.slice(PREFIX.length);
+  if (rel === '' || rel.endsWith('/')) rel += 'index.html';
+  let buf;
   try {
-    const response = await fetch(BASE);
-    if (response.ok) {
-      ready = true;
-      break;
-    }
-  } catch {}
-  await sleep(250);
-}
-if (!ready) {
-  console.error('Vite 没有启动');
-  stopServer();
-  process.exit(1);
-}
+    buf = await readFile(join(DIST, rel));
+  } catch {
+    res.writeHead(404);
+    res.end('not found');
+    return;
+  }
+  res.writeHead(200, {
+    'content-type': MIME[extname(rel)] || 'application/octet-stream',
+    'content-length': buf.length,
+  });
+  res.end(buf);
+});
 
-const edge = await launchEdge({ name: 'dataviz-ui', url: 'about:blank' });
-const errors = [];
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const BASE = `http://127.0.0.1:${server.address().port}`;
+
+const edge = await launchEdge({ name: `edge-dataviz-${process.pid}`, url: 'about:blank' });
+const { send, evaluate } = edge;
+
+let pageErrors = [];
+const addError = (message) => {
+  if (/favicon\.ico/.test(message)) return;
+  if (pageErrors.length < 20) pageErrors.push(message);
+};
 edge.onEvent((msg) => {
   if (msg.method === 'Runtime.exceptionThrown') {
-    errors.push(msg.params.exceptionDetails?.exception?.description || msg.params.exceptionDetails?.text);
+    const d = msg.params.exceptionDetails;
+    addError(`JS ${d.text}: ${d.exception?.description || ''}`);
+  } else if (msg.method === 'Log.entryAdded' && msg.params.entry.level === 'error') {
+    addError(`console ${msg.params.entry.text}`);
+  } else if (msg.method === 'Network.responseReceived') {
+    const r = msg.params.response;
+    if (r.status >= 400 && r.url.startsWith(BASE)) addError(`HTTP ${r.status} ${r.url}`);
   }
-  if (msg.method === 'Runtime.consoleAPICalled' && msg.params.type === 'error') {
-    errors.push(msg.params.args?.map((arg) => arg.value ?? arg.description).join(' '));
-  }
-});
-await edge.send('Runtime.enable');
-await edge.send('Log.enable');
-await edge.send('Page.enable');
-await edge.send('Emulation.setDeviceMetricsOverride', {
-  width: 1280,
-  height: 1000,
-  deviceScaleFactor: 1,
-  mobile: false,
 });
 
-const checks = [];
-const check = (name, ok, detail = '') => {
-  checks.push({ name, ok, detail });
-  console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
-};
-const evaluate = (expression) => edge.evaluate(expression);
-const waitFor = async (expression, timeout = 12000) => {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    if (await evaluate(expression)) return true;
-    await sleep(120);
+await send('Runtime.enable');
+await send('Log.enable');
+await send('Page.enable');
+await send('Network.enable');
+await send('Emulation.setDeviceMetricsOverride', {
+  width: 1280,
+  height: 900, deviceScaleFactor: 1, mobile: false,
+});
+
+const waitFor = async (expression, timeout = 10000) => {
+  const end = Date.now() + timeout;
+  while (Date.now() < end) {
+    try {
+      if (await evaluate(expression)) return true;
+    } catch {}
+    await sleep(100);
   }
   return false;
 };
-const snapshot = () => evaluate('window.__dv.snapshot()');
-const body = () => evaluate('document.body.innerText');
-const mouse = (type, x, y, extra = {}) =>
-  edge.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1, ...extra });
-const drag = async (from, to) => {
-  await mouse('mousePressed', from.x, from.y, { buttons: 1 });
-  await mouse('mouseMoved', to.x, to.y, { buttons: 1 });
-  await mouse('mouseReleased', to.x, to.y);
-  await sleep(500);
-};
-const clickChip = (text) =>
-  evaluate(`(() => {
-    const el = [...document.querySelectorAll('button.chip')].find((node) => node.textContent.trim() === ${JSON.stringify(text)});
-    if (el) el.click();
-    return !!el;
-  })()`);
-const clickButton = (text) =>
-  evaluate(`(() => {
-    const el = [...document.querySelectorAll('button')].find((node) => node.textContent.trim() === ${JSON.stringify(text)});
-    if (el && !el.disabled) el.click();
-    return !!el;
-  })()`);
-const open = async (hash, slug, view) => {
-  await edge.send('Page.navigate', { url: `${BASE}${hash}` });
-  await waitFor(
-    `window.__dvView?.slug === ${JSON.stringify(slug)} && window.__dvView?.view === ${JSON.stringify(view)} && window.__dvChartView === ${JSON.stringify(view)}`,
+
+async function gotoHash(hash) {
+  await evaluate(`location.hash = ${JSON.stringify(hash)}`);
+  await sleep(120);
+}
+
+const results = [];
+function record(name, ok, detail) {
+  results.push({ name, ok, detail });
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(22)} ${detail}`);
+}
+
+// ---- 首页 ----------------------------------------------------------------
+
+pageErrors = [];
+await send('Page.navigate', { url: `${BASE}${PREFIX}` });
+const homeReady = await waitFor("document.querySelectorAll('.entry').length === 3");
+record('home entries', homeReady, 'three ways in rendered');
+record('home console', pageErrors.length === 0, pageErrors.join(' | ') || 'clean');
+
+// ---- 图表目录 ------------------------------------------------------------
+
+pageErrors = [];
+await gotoHash('#/charts');
+const chartsReady = await waitFor("document.querySelectorAll('.chart-card').length >= 47");
+const families = await evaluate("document.querySelectorAll('.family').length");
+record('chart catalog', chartsReady, `${await evaluate("document.querySelectorAll('.chart-card').length")} cards, ${families} families`);
+record('catalog console', pageErrors.length === 0, pageErrors.join(' | ') || 'clean');
+
+// ---- 图表详情 ------------------------------------------------------------
+
+pageErrors = [];
+await gotoHash('#/charts/line');
+const lineReady = await waitFor("!!document.querySelector('.chart-page') && !!document.querySelector('.figure-canvas svg')");
+const lineText = await evaluate('document.body.innerText');
+record('chart page', lineReady, 'line chart and lesson rendered');
+record('chart sections', ['How to read it', 'Key observations', 'How to describe it', 'Complete descriptions', 'Useful language notes'].every((s) => lineText.includes(s)), 'all five sections present');
+record('no quiz prompts', !/your turn|try to describe|what can you see|which one is|can you describe/i.test(lineText), 'no task-style prompt');
+record('chart console', pageErrors.length === 0, pageErrors.join(' | ') || 'clean');
+
+// ---- 全部图表页 ----------------------------------------------------------
+
+const chartIndex = await evaluate(
+  `fetch(${JSON.stringify(`${PREFIX}data/index.json`)}).then((r) => r.json()).then((d) => d.charts.map((c) => c.id))`,
+);
+const badCharts = [];
+for (const chartId of chartIndex) {
+  pageErrors = [];
+  await gotoHash(`#/charts/${chartId}`);
+  const ok = await waitFor(
+    "(!!document.querySelector('.figure-canvas svg') || !!document.querySelector('.figure-canvas canvas'))",
+    8000,
   );
-  await sleep(500);
-};
-const atPoint = (expression) =>
-  evaluate(`(() => {
-    const host = document.querySelector('main [role="img"]').getBoundingClientRect();
-    const p = (${expression});
-    return p ? { x: host.left + p[0], y: host.top + p[1] } : null;
-  })()`);
-const setNumberInput = async (delta) => {
-  const ok = await evaluate(`(() => {
-    const input = document.querySelector('input.dv-field');
-    if (!input) return false;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-    setter.call(input, String((Number(input.value) || 0) + ${delta}));
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    return true;
-  })()`);
-  await sleep(450);
-  return ok;
-};
-const resetCurrent = async () => {
-  await clickButton('还原');
-  await sleep(350);
-};
-
-// 1. Home and goal filter.
-await edge.send('Page.navigate', { url: BASE });
-await waitFor("document.querySelectorAll('.dv-tile').length === 20");
-check('首页有 20 张卡片', (await evaluate("document.querySelectorAll('.dv-tile').length")) === 20);
-await clickChip('波动');
-await sleep(450);
-const fluctuateCards = await evaluate("document.querySelectorAll('.dv-tile').length");
-const fluctuateTitles = await evaluate(
-  "[...document.querySelectorAll('.dv-tile')].map((node) => node.querySelector('span')?.textContent)",
-);
-check('「波动」筛出 4 张卡片', fluctuateCards === 4, `${fluctuateCards} 张`);
-check(
-  '「波动」卡片包含地铁/外卖/屏幕/健身房',
-  ['Metro Ridership', 'Food Delivery Orders', 'Screen Time', 'Gym Attendance'].every((title) =>
-    fluctuateTitles.includes(title),
-  ),
-);
-await clickChip('波动');
-await sleep(400);
-check('再点一次取消目标', (await evaluate("document.querySelectorAll('.dv-tile').length")) === 20);
-await clickChip('波动');
-await sleep(400);
-
-// 2. Card opens the matching view and preselects a fluctuation.
-await evaluate("document.querySelector('.dv-tile')?.click()");
-await waitFor("window.__dv?.snapshot().section === 'detail'");
-await waitFor('window.__dvView?.marks?.length > 0');
-await sleep(300);
-const fluctuateKind = await evaluate(`(() => {
-  const mark = window.__dv.snapshot().mark;
-  return window.__dvView.marks.find((entry) => entry.marks.includes(mark))?.kind ?? null;
-})()`);
-check('从「波动」进入直接选中波动', fluctuateKind === 'fluctuate', String(fluctuateKind));
-check('没写例句的位置标「自动生成」', (await body()).includes('自动生成'));
-
-// 3. Type filter preview + empty state.
-await edge.send('Page.navigate', { url: BASE });
-await waitFor("document.querySelectorAll('.dv-tile').length === 20");
-await evaluate(`(() => {
-  const select = document.querySelector('#dv-type');
-  select.value = 'line';
-  select.dispatchEvent(new Event('change', { bubbles: true }));
-})()`);
-await sleep(450);
-check('图表类型筛选出 9 张折线卡片', (await evaluate("document.querySelectorAll('.dv-tile').length")) === 9);
-check(
-  '卡片预览换成折线图',
-  (await evaluate("window.__dvChart?.getOption()?.series?.[0]?.type ?? null")) === 'line',
-);
-await clickChip('波动');
-await evaluate(`(() => {
-  const select = document.querySelector('#dv-type');
-  select.value = 'bar';
-  select.dispatchEvent(new Event('change', { bubbles: true }));
-})()`);
-await sleep(450);
-check('无结果时有空状态', (await evaluate("document.querySelectorAll('.dv-tile').length")) === 0);
-check('空状态提示可见', (await body()).includes('这一组条件还没有图'));
-await edge.send('Page.navigate', { url: BASE });
-await waitFor("document.querySelectorAll('.dv-tile').length === 20");
-await evaluate(`(() => {
-  const select = document.querySelector('#dv-domain');
-  select.value = 'education';
-  select.dispatchEvent(new Event('change', { bubbles: true }));
-})()`);
-await sleep(450);
-check('领域筛选出 2 张教育卡片', (await evaluate("document.querySelectorAll('.dv-tile').length")) === 2);
-
-// 4. Author sentence, Basic/Advanced, no forbidden labels.
-await open('#/t/metro-ridership/daily?goal=change', 'metro-ridership', 'daily');
-const authorText = await body();
-check('有 Basic 句型', authorText.toUpperCase().includes('BASIC'));
-check('有 Advanced 句型', authorText.toUpperCase().includes('ADVANCED'));
-check('预先写好的原句标「原句」', authorText.includes('原句'));
-check('页面不出现「作者」', !authorText.includes('作者'));
-check('页面不出现 A2/B1/B2', !/\bA2\b|\bB1\b|\bB2\b/.test(authorText));
-check('页面不显示计数语', !/(个主题|种图表|已学|完成|第\s*\d+\s*\/\s*\d+)/.test(authorText));
-check('整图说明可折叠', (await evaluate("!!document.querySelector('details') && (document.querySelector('details').open = true, document.querySelector('details').open)")));
-const markBeforeNav = (await snapshot()).mark;
-await clickButton('下一处');
-await sleep(350);
-const markAfterNext = (await snapshot()).mark;
-check('下一处能换一处', !!markAfterNext && markAfterNext !== markBeforeNav);
-await clickButton('上一处');
-await sleep(350);
-check('上一处能回到原处', (await snapshot()).mark === markBeforeNav);
-
-// 5. Auto mark label.
-await evaluate(`(() => {
-  const item = window.__dvView.marks.find((entry) => entry.auto === true && entry.marks.length);
-  if (item) window.__dv.selectMark(item.marks[0]);
-})()`);
-await sleep(300);
-check('自动生成的句子有标记', (await body()).includes('自动生成'));
-
-// 6. Editing hides the original, reset restores it.
-await evaluate(`(() => {
-  const item = window.__dvView.marks.find((entry) => entry.auto === false && entry.marks.length);
-  if (item) window.__dv.selectMark(item.marks[0]);
-})()`);
-await sleep(300);
-await clickChip('编辑数据');
-await setNumberInput(9);
-check('改数据后原句隐藏', (await body()).includes('原句是按原始数据写的'));
-await resetCurrent();
-check('还原后原句回来', (await body()).includes('原句'));
-
-// 7. View switcher.
-await clickChip('站点');
-await sleep(450);
-check('视图切换生效', (await snapshot()).view === 'stations');
-
-// 8. Drag every draggable family.
-const dragCases = [
-  {
-    name: '折线图',
-    hash: '#/t/metro-ridership/daily',
-    slug: 'metro-ridership',
-    view: 'daily',
-    point: `(() => {
-      const data = window.__dvView.data;
-      return window.__dvChart.convertToPixel({ seriesIndex: 0 }, [data.x.values[0], data.series[0].values[0]]);
-    })()`,
-    delta: { x: 0, y: 30 },
-  },
-  {
-    name: '柱状图',
-    hash: '#/t/metro-ridership/stations',
-    slug: 'metro-ridership',
-    view: 'stations',
-    point: `(() => {
-      const data = window.__dvView.data;
-      return window.__dvChart.convertToPixel({ seriesIndex: 0 }, [data.x.values[0], data.series[0].values[0]]);
-    })()`,
-    delta: { x: 0, y: 24 },
-  },
-  {
-    name: '瀑布图',
-    hash: '#/t/energy-mix/capacity',
-    slug: 'energy-mix',
-    view: 'capacity',
-    point: `(() => {
-      const data = window.__dvView.data;
-      const step = data.steps[0];
-      return window.__dvChart.convertToPixel({ seriesIndex: 1 }, [step.name_en, data.start_value + step.value]);
-    })()`,
-    delta: { x: 0, y: 24 },
-  },
-  {
-    name: '斜率图',
-    hash: '#/t/team-headcount/mix',
-    slug: 'team-headcount',
-    view: 'mix',
-    point: `(() => {
-      const data = window.__dvView.data;
-      return window.__dvChart.convertToPixel({ seriesIndex: 0 }, [data.periods[0].label_en, data.entities[0].values[0]]);
-    })()`,
-    delta: { x: 0, y: 20 },
-  },
-  {
-    name: '散点图',
-    hash: '#/t/commute-time/distance',
-    slug: 'commute-time',
-    view: 'distance',
-    point: `(() => {
-      const data = window.__dvView.data;
-      const point = data.points[0];
-      return window.__dvChart.convertToPixel({ seriesIndex: 0 }, [point.x, point.y]);
-    })()`,
-    delta: { x: 18, y: 18 },
-  },
-];
-
-for (const item of dragCases) {
-  await open(item.hash, item.slug, item.view);
-  const start = await atPoint(item.point);
-  if (!start) {
-    check(`${item.name}拖动`, false, '找不到坐标');
-    continue;
-  }
-  const before = (await snapshot()).edits;
-  await clickChip('编辑数据');
-  await drag(start, { x: start.x + item.delta.x, y: start.y + item.delta.y });
-  const after = (await snapshot()).edits;
-  check(`${item.name}拖动`, after > before, `${before} → ${after}`);
-  await resetCurrent();
+  if (!ok || pageErrors.length) badCharts.push(`${chartId}:${ok ? '' : 'no chart'}${pageErrors.length ? ` ${pageErrors[0]}` : ''}`);
 }
+record('all chart pages', badCharts.length === 0, badCharts.length ? badCharts.join(' | ') : `${chartIndex.length}/${chartIndex.length} rendered`);
 
-// 9. Pie drag.
-await open('#/t/household-budget/shares', 'household-budget', 'shares');
-const piePoints = await evaluate(`(() => {
-  const data = window.__dvView.data;
-  const host = document.querySelector('main [role="img"]').getBoundingClientRect();
-  const width = window.__dvChart.getWidth();
-  const height = window.__dvChart.getHeight();
-  const cx = host.left + width * 0.5, cy = host.top + height * 0.44;
-  const radius = Math.min(width, height) * 0.35 * 0.8;
-  const total = data.parts.reduce((sum, part) => sum + part.value, 0);
-  const angle = (data.parts[0].value / total) * 360 / 2;
-  const rad = (angle * Math.PI) / 180;
-  const targetRad = rad + 0.45;
-  return {
-    from: { x: cx + Math.sin(rad) * radius, y: cy - Math.cos(rad) * radius },
-    to: { x: cx + Math.sin(targetRad) * radius, y: cy - Math.cos(targetRad) * radius },
-  };
+// ---- 表达 ----------------------------------------------------------------
+
+pageErrors = [];
+await gotoHash('#/expressions');
+const groupsReady = await waitFor("document.querySelectorAll('.group-card').length >= 16");
+record('expression index', groupsReady, `${await evaluate("document.querySelectorAll('.group-card').length")} groups`);
+await gotoHash('#/expressions/trend-up');
+const groupReady = await waitFor("document.querySelectorAll('.expression').length >= 6");
+const groupCount = await evaluate("document.querySelectorAll('.expression').length");
+record('expression page', groupReady, `${groupCount} expressions rendered`);
+const filterWorks = await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.filter')].find((b) => b.textContent === 'Academic');
+  if (!button) return false;
+  button.click();
+  return true;
 })()`);
-const pieBefore = (await snapshot()).edits;
-await clickChip('编辑数据');
-await drag(piePoints.from, piePoints.to);
-check('饼图拖动', (await snapshot()).edits > pieBefore);
-await resetCurrent();
+await sleep(200);
+const visibleAfter = await evaluate("document.querySelectorAll('.expression').length");
+record('scene filter', filterWorks && visibleAfter > 0 && visibleAfter <= groupCount, `${visibleAfter} visible after Academic filter`);
+record('expression console', pageErrors.length === 0, pageErrors.join(' | ') || 'clean');
 
-// 10. Input-only families.
-const inputCases = [
-  ['堆叠图', '#/t/remote-work/split', 'remote-work', 'split', 'seg:'],
-  ['热力图', '#/t/coffee-shop/hours', 'coffee-shop', 'hours', 'cell:'],
-  ['流向图', '#/t/household-budget/flows', 'household-budget', 'flows', 'link:'],
-  ['饼图输入', '#/t/household-budget/shares', 'household-budget', 'shares', 'slice:'],
-];
-for (const [name, hash, slug, view, prefix] of inputCases) {
-  await open(hash, slug, view);
-  await evaluate(`(() => {
-    const item = window.__dvView.marks.find((entry) => entry.marks.some((mark) => mark.startsWith(${JSON.stringify(prefix)})));
-    if (item) window.__dv.selectMark(item.marks.find((mark) => mark.startsWith(${JSON.stringify(prefix)})));
-  })()`);
-  await sleep(300);
-  const before = (await snapshot()).edits;
-  await clickChip('编辑数据');
-  const changed = await setNumberInput(5);
-  check(`${name}输入`, changed && (await snapshot()).edits > before);
-  await resetCurrent();
-}
+// ---- 场景 ----------------------------------------------------------------
 
-// 11. Themes and phone width.
+pageErrors = [];
+await gotoHash('#/contexts');
+const contextsReady = await waitFor("document.querySelectorAll('.context-card').length >= 7");
+record('context index', contextsReady, `${await evaluate("document.querySelectorAll('.context-card').length")} contexts`);
+await gotoHash('#/contexts/ielts');
+const contextReady = await waitFor("!!document.querySelector('.worked') && !!document.querySelector('.worked .figure-canvas svg')");
+record('context page', contextReady, 'worked example chart rendered');
+const pitfallCount = await evaluate("document.querySelectorAll('.pitfalls li').length");
+record('context pitfalls', pitfallCount >= 2, `${pitfallCount} pitfalls`);
+record('context console', pageErrors.length === 0, pageErrors.join(' | ') || 'clean');
+
+// ---- 主题与窄屏 ----------------------------------------------------------
+
 for (const theme of ['dark', 'glass', 'light']) {
-  await evaluate(`document.documentElement.dataset.theme = ${JSON.stringify(theme)}`);
-  await sleep(250);
-  check(`${theme} 主题图表正常`, (await evaluate('!!window.__dvChart && window.__dvChart.getWidth() > 0')));
+  pageErrors = [];
+  await evaluate(`document.documentElement.setAttribute('data-theme', ${JSON.stringify(theme)})`);
+  await sleep(350);
+  const figure = await evaluate("!!document.querySelector('.figure-canvas svg')");
+  record(`theme ${theme}`, figure && pageErrors.length === 0, pageErrors.join(' | ') || 'chart still rendered');
 }
-await edge.send('Emulation.setDeviceMetricsOverride', {
-  width: 390,
-  height: 844,
-  deviceScaleFactor: 1,
-  mobile: true,
+
+await send('Emulation.setDeviceMetricsOverride', {
+  width: 390, height: 780, deviceScaleFactor: 2, mobile: true,
 });
-await sleep(400);
-check('手机宽度详情无横向溢出', !(await evaluate('document.documentElement.scrollWidth > window.innerWidth + 1')));
-await edge.send('Page.navigate', { url: BASE });
-await waitFor("document.querySelectorAll('.dv-tile').length > 0");
-await sleep(300);
-check('手机宽度首页无横向溢出', !(await evaluate('document.documentElement.scrollWidth > window.innerWidth + 1')));
-await edge.send('Emulation.clearDeviceMetricsOverride');
-check('Demo 标记仍在', (await body()).includes('Demo data · 模拟数据'));
+for (const [label, hash] of [['home', '#/'], ['chart', '#/charts/line'], ['expression', '#/expressions/trend-up'], ['context', '#/contexts/ielts']]) {
+  await gotoHash(hash);
+  await waitFor("document.readyState === 'complete'");
+  await sleep(350);
+  const expectFigure = label === 'chart' || label === 'context';
+  const overflow = await evaluate(`(() => ({
+    scroll: document.documentElement.scrollWidth,
+    inner: window.innerWidth,
+    figure: ${expectFigure} ? !!document.querySelector('.figure-canvas svg') : true,
+  }))()`);
+  record(`phone ${label}`, overflow.scroll <= overflow.inner + 2 && overflow.figure, `width ${overflow.scroll}/${overflow.inner}`);
+}
 
-check('没有 console / 运行时错误', errors.length === 0, errors.slice(0, 3).join(' | '));
-
+const failed = results.filter((result) => !result.ok);
 edge.close();
-stopServer();
-const failed = checks.filter((item) => !item.ok);
-console.log(`\n${checks.length - failed.length}/${checks.length} 项通过`);
-if (failed.length) process.exitCode = 1;
+server.close();
+console.log(`\n${failed.length ? 'FAILED' : 'PASSED'}  ${results.length - failed.length}/${results.length}`);
+process.exit(failed.length ? 1 : 0);

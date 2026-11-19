@@ -1,0 +1,173 @@
+{
+  "chart": "timeline",
+  "dataset": "project-timeline",
+  "spec": {
+    "encoding": { "label": "step", "start": "start", "end": "end", "status": "state" },
+    "options": { "unit": " min", "statusStrip": true, "height": 380 }
+  },
+  "overview": {
+    "purpose_zh": "这张图把一个项目从计划到上线的每一步画成一根横条，横条的起止位置就是这一步的开始和结束，用来看每一步占多久、前后怎么衔接，以及有多少时间其实在等。",
+    "works_zh": [
+      "适合看一个流程的排期和每一步的耗时",
+      "适合分清动手时间和等待时间各占多少",
+      "适合在复盘时指出流程卡在哪几步"
+    ],
+    "uses_zh": [
+      "项目复盘会的流程回顾",
+      "向经理解释进度为什么拖长",
+      "发布前的排期评审"
+    ]
+  },
+  "understanding": {
+    "read_zh": "先看横轴，它从 0 分钟走到 36 分钟；再看每一根横条，左端是开始时间，右端是结束时间，右端减左端就是这一步的耗时；最后看颜色，动手、等待和完成用不同颜色分开。八根横条首尾相接，说明这个流程没有重叠，也没有空档。",
+    "elements": [
+      { "name_en": "time axis", "name_zh": "时间轴", "note_zh": "横轴以分钟为单位，从 0 到 36，记录每一步发生在什么时间。" },
+      { "name_en": "bar", "name_zh": "横条", "note_zh": "一根横条就是一步，左端是开始，右端是结束，长度就是这一步花了多久。" },
+      { "name_en": "status color", "name_zh": "状态颜色", "note_zh": "Working 表示正在动手，Waiting 表示在等评审或等测试结果，Done 表示已经完成。" },
+      { "name_en": "status strip", "name_zh": "底部状态条", "note_zh": "图底部的细条把整段时间按状态铺开，能看出等待夹在流程的哪个位置。" }
+    ],
+    "look_for_zh": [
+      "横条之间有没有空隙：首尾相接说明没有空档，有空隙说明中间在等。",
+      "最长的那根横条是哪一步，它在 36 分钟里占了多少。",
+      "颜色在哪些位置从 Working 变成 Waiting，那些位置就是流程停下来等人的地方。"
+    ]
+  },
+  "observations": [
+    { "en": "The whole run takes 36 minutes, and the eight bars touch end to end, so no time is lost between steps.", "zh": "整段流程用了 36 分钟，八根横条首尾相接，步骤之间没有空档。" },
+    { "en": "Build is the longest step at 9 minutes, a quarter of the 36-minute run.", "zh": "Build 是最长的一步，用了 9 分钟，占 36 分钟总时长的四分之一。" },
+    { "en": "Review and Test are the only waiting steps, and together they account for 9 of the 36 minutes.", "zh": "Review 和 Test 是仅有的两个等待环节，加起来占 36 分钟里的 9 分钟。" },
+    { "en": "Working steps add up to 25 minutes, waiting takes 9, and the final launch takes 2, which completes the 36-minute total.", "zh": "动手的步骤合计 25 分钟，等待占 9 分钟，最后的发布用 2 分钟，正好凑成 36 分钟。" },
+    { "en": "The first draft-and-fix loop is the longest cluster: Draft takes 5 minutes, Review 3, and Revise 4, for 12 minutes in total.", "zh": "第一轮起草和修改是耗时最长的一段：Draft 用 5 分钟，Review 用 3 分钟，Revise 用 4 分钟，合计 12 分钟。" }
+  ],
+  "describe": [
+    {
+      "group": "chart-intro",
+      "expression": "show",
+      "en": "The timeline shows a single project from planning to launch, with one bar per step and time measured in minutes.",
+      "zh": "这张时间线图展示一个项目从计划到上线的全过程，每一步一根横条，时间以分钟计。",
+      "pattern": "The chart shows + what + with + unit",
+      "alternatives": [
+        "The chart tracks one project across eight steps from Plan to Launch.",
+        "This timeline lays out the project step by step on a 36-minute axis."
+      ],
+      "note_zh": "开头说清对象和单位；one bar per step 让读者马上知道横条代表什么。"
+    },
+    {
+      "group": "flow",
+      "expression": "step",
+      "en": "Plan is the first step, and it ends at minute 3, exactly where Draft begins.",
+      "zh": "Plan 是第一步，在第 3 分钟结束，Draft 正好从这一刻开始。",
+      "pattern": "X is the first step, and it ends at + time",
+      "alternatives": [
+        "The first step, Plan, runs from minute 0 to minute 3.",
+        "Plan takes the opening 3 minutes of the run."
+      ],
+      "note_zh": "step 指具体的一步；用 at + 分钟说结束点，用 from ... to ... 说整段。"
+    },
+    {
+      "group": "flow",
+      "expression": "move-on-to",
+      "en": "After Review, the team moved on to Revise at minute 11 and then to Build at minute 15.",
+      "zh": "评审之后，团队在第 11 分钟接着进入修改，第 15 分钟进入构建。",
+      "pattern": "move on to + next step / at + time",
+      "alternatives": [
+        "Review is followed by Revise, which starts at minute 11.",
+        "Once Review ends, the team moves straight on to Revise and then Build."
+      ],
+      "note_zh": "串流程时用 move on to，暗示上一环节已经结束；两个时间点把顺序钉住。"
+    },
+    {
+      "group": "numbers",
+      "expression": "between-and",
+      "en": "Step durations sit between 2 and 9 minutes, so no single bar dominates the schedule.",
+      "zh": "各步骤的耗时在 2 到 9 分钟之间，没有哪一根横条独占整个排期。",
+      "pattern": "sit between + number + and + number + unit",
+      "alternatives": [
+        "The steps last between 2 and 9 minutes each.",
+        "Durations range between 2 and 9 minutes."
+      ],
+      "note_zh": "between ... and ... 报区间，不要写成 between 2 to 9。"
+    },
+    {
+      "group": "comparison",
+      "expression": "slightly-more-than",
+      "en": "Test takes 6 minutes, slightly more than the 5 minutes spent on Draft.",
+      "zh": "Test 用了 6 分钟，比 Draft 的 5 分钟略长一点。",
+      "pattern": "A + takes + time, slightly more than + B",
+      "alternatives": [
+        "At 6 minutes, Test is slightly longer than the 5-minute Draft.",
+        "Draft takes 5 minutes; Test takes 6."
+      ],
+      "note_zh": "slightly more than 直接标出差距很小；比较时长用 longer 比 higher 自然，但结构仍然是 more than。"
+    },
+    {
+      "group": "overall",
+      "expression": "overall",
+      "en": "Overall, the schedule is a clean chain of working steps, interrupted twice by waiting.",
+      "zh": "总体来看，这份排期是一条干净的动手流程，中间被打断等待了两次。",
+      "pattern": "Overall, + main conclusion",
+      "alternatives": [
+        "Overall, the project runs continuously from minute 0 to minute 36.",
+        "Overall, most of the run is hands-on work, with two short waits."
+      ],
+      "note_zh": "整体概括要讲形状：首尾相接、有两次等待，而不是把八步再念一遍。"
+    },
+    {
+      "group": "flow",
+      "expression": "be-followed-by",
+      "en": "Draft is followed by a review, and the review is followed by a revision before the build starts.",
+      "zh": "草稿之后是评审，评审之后是修改，然后才开始构建。",
+      "pattern": "X is followed by Y / A, followed by B",
+      "alternatives": [
+        "The draft is followed by Review at minute 8 and Revise at minute 11.",
+        "After Draft comes Review, then Revise, then Build."
+      ],
+      "note_zh": "be followed by 强调先后次序，后面必须接名词；口语里 then 也可以，但结构更松。"
+    }
+  ],
+  "descriptions": {
+    "academic": {
+      "en": "The timeline records eight steps of one project across a total of 36 minutes, and every step begins exactly when the previous one ends. Five working periods occupy 25 minutes in total, beginning with Plan from minute 0 to minute 3 and ending with Fix from minute 30 to minute 34. Two waiting periods interrupt this sequence: Review lasts 3 minutes and Test lasts 6, giving 9 minutes of waiting overall. Build is the longest single step at 9 minutes, whereas Launch closes the project in 2 minutes. No gaps or overlaps appear between the bars.",
+      "zh": "这张时间线记录一个项目的八个步骤，总时长 36 分钟，每一步都在前一步结束时立刻开始。五个动手环节合计 25 分钟，从第 0 到第 3 分钟的 Plan 开始，到第 30 到第 34 分钟的 Fix 结束。中间有两段等待：Review 用 3 分钟，Test 用 6 分钟，等待共 9 分钟。Build 是最长的一步，用 9 分钟；Launch 用 2 分钟收尾。横条之间既没有空档也没有重叠。"
+    },
+    "business": {
+      "en": "The headline is that the project needs 36 minutes end to end, but only 25 of those minutes are hands-on work. Waiting for review and testing absorbs 9 minutes, a quarter of the run, and that is where a manager should look first. Build is the heaviest step at 9 minutes, so any schedule pressure lands there. The handoffs are clean: each step starts exactly when the previous one ends, and Launch needs only 2 minutes. If the team wants a faster release, testing cannot simply be cut; trimming the 9-minute build is the safer place to start.",
+      "zh": "最关键的结论是：项目从头到尾要 36 分钟，但真正动手的只有 25 分钟。等评审和等测试占了 9 分钟，是总时长的四分之一，管理者应该先看这里。Build 是最重的一步，用 9 分钟，任何排期压力都会落在它身上。各环节的交接很干净：每一步都在前一步结束时开始，Launch 只需要 2 分钟。团队想更快发布，不能简单砍掉测试；先压缩 9 分钟的 Build 更稳妥。"
+    },
+    "simple": {
+      "en": "The project takes 36 minutes from start to launch. It has eight steps, and each step starts when the one before it ends. Plan, Draft, Revise, Build, and Fix are hands-on work, and together they take 25 minutes. Review and Test are waiting time, and they add 9 minutes. Build is the longest step at 9 minutes. Launch is the shortest at 2 minutes. Nothing overlaps, so you can read the schedule from left to right like a story.",
+      "zh": "这个项目从开始到上线一共 36 分钟。它分八步，每一步都在前一步结束时开始。Plan、Draft、Revise、Build 和 Fix 是动手环节，合计 25 分钟。Review 和 Test 是等待时间，加起来 9 分钟。Build 最长，用 9 分钟；Launch 最短，用 2 分钟。各步骤没有重叠，所以可以像读故事一样从左往右看这份排期。"
+    }
+  },
+  "language_notes": [
+    {
+      "title_en": "take vs end at",
+      "body_zh": "时间线同时给出起点和终点，最容易混的是“花了多久”和“在第几分钟结束”。说耗时用 take + 时间段；说结束点用 end at + 时间点。两句都对，但不能拼成 end at 3 minutes to take 这样的混合结构。",
+      "examples": [
+        "Review ends at minute 11 and takes 3 minutes.",
+        "Build takes 9 minutes, from minute 15 to minute 24."
+      ]
+    },
+    {
+      "title_en": "Waiting is a noun here",
+      "body_zh": "Waiting 在这个句子里是不可数名词，作主语时动词用单数，后面常接 account for 或 take。想说“等了九分钟”，动词形式是 waited for nine minutes，介词用 for，不用 during。",
+      "examples": [
+        "Waiting accounts for 9 of the 36 minutes.",
+        "The team waited for 9 minutes in total."
+      ]
+    },
+    {
+      "title_en": "end to end vs end-to-end",
+      "body_zh": "作状语放在句尾时写 end to end，三个词分开；放在名词前面作形容词时才加连字符，写成 an end-to-end view。两种写法都常见，但连字符的位置不能乱放。",
+      "examples": [
+        "The project runs 36 minutes end to end.",
+        "The manager asked for an end-to-end view of the schedule."
+      ]
+    }
+  ],
+  "related": {
+    "charts": ["cohort", "line"],
+    "groups": ["flow", "numbers", "overall", "comparison"],
+    "contexts": ["workplace-reports", "business-presentations"]
+  }
+}

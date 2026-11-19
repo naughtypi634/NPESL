@@ -9,6 +9,7 @@ built an app directly.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -16,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON = sys.executable
-DV_BIN = ROOT / "build" / "rust" / "data-viz" / "release" / "dv-engine.exe"
+NODE = shutil.which("node")
 
 
 @dataclass
@@ -39,7 +40,7 @@ def _run(name: str, argv: list[str], cwd: Path = ROOT) -> ValidatorResult:
     lines = [ln.strip() for ln in output.splitlines() if ln.strip()]
     summary = lines[-1] if lines else ""
     for line in reversed(lines):
-        if any(word in line for word in ("problems", "问题", "通过", "lessons:")):
+        if any(word in line for word in ("problems", "问题", "通过", "lessons:", "content ok:")):
             summary = line
             break
     return ValidatorResult(name, proc.returncode == 0, summary[:200], output)
@@ -55,6 +56,11 @@ def run_all(with_data_viz: bool = False) -> list[ValidatorResult]:
                        "apps/phenomena/source/validate.py"]),
     ]
     results = [_run(name, argv) for name, argv in checks]
-    if with_data_viz and DV_BIN.is_file():
-        results.append(_run("data-viz", [str(DV_BIN), "validate"]))
+    if with_data_viz:
+        if NODE:
+            results.append(_run("data-viz", [
+                NODE, "apps/data-viz/web/scripts/build-content.mjs", "--check",
+            ]))
+        else:
+            results.append(ValidatorResult("data-viz", False, "找不到 node，无法校验 data-viz 内容"))
     return results

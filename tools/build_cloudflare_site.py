@@ -73,13 +73,16 @@ HEADERS = """/fonts/*
 /charts/assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-/charts/data/lang/*.json
-  Cache-Control: public, max-age=31536000, immutable
+/charts/data/*.json
+  Cache-Control: public, max-age=0, must-revalidate
 
-/charts/data/topics/*.json
-  Cache-Control: public, max-age=31536000, immutable
+/charts/data/charts/*.json
+  Cache-Control: public, max-age=0, must-revalidate
 
-/charts/data/index.json
+/charts/data/expressions/*.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/charts/data/contexts/*.json
   Cache-Control: public, max-age=0, must-revalidate
 
 /visual-vocabulary/*.webp

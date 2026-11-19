@@ -12,7 +12,7 @@
 | 短语搭配 Collocations（主题词表 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
 | Visual Vocabulary 图解词汇 | https://npesl.pages.dev/visual-vocabulary/ | `apps/visual-vocabulary/` |
 
-> 数据图表英语（Data Visualization Gallery）在 `content/data-viz/` + `apps/data-viz/`，已装配到主站 `/charts/`，但首页不列入入口。前端是 React + TypeScript + Vite + ECharts；构建站点时自动包含 `charts/`，直接访问 `https://npesl.pages.dev/charts/`。
+> 数据图表英语（Data Visualization × English Expression Atlas）在 `content/data-viz/atlas/` + `apps/data-viz/`，已装配到主站 `/charts/`，但首页不列入入口。页面有三个入口：Charts（按图表种类）、Expressions（按语言功能）、Real-world Contexts（按使用场景）；前端是 React + TypeScript + Vite + ztd-charts，直接访问 `https://npesl.pages.dev/charts/`。
 
 ## 目录
 
@@ -24,7 +24,7 @@
 | `content/conversation/` | Conversation Starters 分级 `content.py`、逐段中文翻译、发音标注 |
 | `content/drill/` | Question Drill 题库：`raw/` `reviewed/` `final/` 批次、`questions.json`、翻译与修订表 |
 | `content/collocation/` | 短语搭配：`themes.json` + 每个主题一个词条 JSON（内容源） |
-| `content/data-viz/` | 数据图表英语：`manifest.json`、9 个图表语言库、每主题一个 JSON |
+| `content/data-viz/atlas/` | 数据图表英语：图表课、表达分类、模拟数据集与场景（规范见 `apps/data-viz/source/AUTHORING.md`） |
 | `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Light / Dark / Glass） |
 | `apps/phonics/` | 自然拼读网页、`source/`（内容与构建器）、`audio/` |
 | `apps/ipa/` | 音标表网页（`index.html` + `audio/`） |
@@ -32,7 +32,7 @@
 | `apps/phenomena/` | 发音现象课，逐词音素标注 + 男女声 |
 | `apps/collocation/` | 短语搭配章节页（`source/` 构建器 + `audio/`），每章一条 sprite |
 | `apps/conversation/` | Conversation Starters 页面与 `audio/`（`source/` 构建器，内容源在 `content/conversation/`） |
-| `apps/data-viz/` | 数据图表英语单页应用：`web/`（React + TypeScript + Vite + ECharts 源）、`source/engine/`（Rust 数据构建器）、`dist/` 部署产物 |
+| `apps/data-viz/` | 数据图表英语图鉴：`web/`（React + TypeScript + Vite + ztd-charts 源）、`source/AUTHORING.md`（内容规范）、`dist/` 部署产物 |
 | `miniprogram/` | 微信小程序（原生）；数据与音频由 `tools/miniprogram/` 从已构建页面生成 |
 | `tools/` | 构建、校验脚本；`tools/README.md` 是脚本索引，`tools/paths.py` 是路径的唯一来源 |
 | `tools/audio_sprite.py` | 把逐条录音拼成每页/每课/每题一条（不改码率，音质不变） |
@@ -48,7 +48,7 @@ python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-需要联网的只有 TTS 合成（Azure / Edge）；已有音频会自动跳过。Node 只用于本地预览、无头浏览器自检和 data-viz 前端构建，其余 Python 构建不需要。data-viz 的构建器是 Rust，需要 cargo（https://rustup.rs）；`build_all.py` 会自动编译引擎并安装前端依赖。
+需要联网的只有 TTS 合成（Azure / Edge）；已有音频会自动跳过。Node 只用于本地预览、无头浏览器自检和 data-viz 前端构建，其余 Python 构建不需要。data-viz 前端用 npm 构建，`build_all.py` 缺依赖时会先 `npm ci`。
 
 ## 构建
 
@@ -83,10 +83,8 @@ python -m venv .venv
 .venv\Scripts\python.exe -I tools\drill\make_audio.py
 .venv\Scripts\python.exe -I tools\drill\assemble.py
 
-# 数据图表英语（Rust 数据引擎 + React 前端；build_all --only data-viz 会先编译）
-cargo build --release --manifest-path apps\data-viz\source\engine\Cargo.toml --target-dir build\rust\data-viz
-build\rust\data-viz\release\dv-engine.exe validate
-build\rust\data-viz\release\dv-engine.exe build
+# 数据图表英语（内容校验 + 前端构建；build_all --only data-viz 会先 npm ci）
+node apps\data-viz\web\scripts\build-content.mjs --check
 npm --prefix apps\data-viz\web run build
 
 # 清理构建垃圾（Edge 临时配置、日志、__pycache__）；--all 连部署暂存一起清

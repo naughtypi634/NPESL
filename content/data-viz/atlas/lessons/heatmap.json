@@ -1,0 +1,161 @@
+{
+  "chart": "heatmap",
+  "dataset": "heatmap-orders",
+  "spec": {
+    "encoding": { "x": "hour", "y": "day", "value": "orders" },
+    "options": { "height": 420 }
+  },
+  "overview": {
+    "purpose_zh": "这张图把一周的订单量摊在星期和小时的交叉格里：行是一天，列是一个小时，格子颜色越深，那个时段平均每小时接的单越多。它用颜色把一整周的节奏压缩成一张图。",
+    "works_zh": [
+      "适合先找出一天里最忙的几个小时，再横向比较一周里哪几天更忙。",
+      "适合看工作日和周末在同一个小时上的差别。",
+      "适合在排班、备货和客服人力安排前先看整体节奏。"
+    ],
+    "uses_zh": [
+      "外卖站点的骑手排班和厨房备餐。",
+      "门店或客服中心的高峰人力配置。",
+      "在周会上说明一周的忙闲分布。"
+    ]
+  },
+  "understanding": {
+    "read_zh": "先扫整张图，找出颜色最深的一两块区域，记住它们在哪些行、哪些列；再挑一行从左看到右，看同一天的颜色怎么随小时变深；最后上下比较几行，确认周末是不是整体更深。颜色只给出模式，具体数字要读每一格标出的值。",
+    "elements": [
+      { "name_en": "rows (days)", "name_zh": "行（星期）", "note_zh": "从上到下七天，一行就是一天。" },
+      { "name_en": "columns (hours)", "name_zh": "列（小时）", "note_zh": "从上午 8 点到晚上 10 点，一列一个小时。" },
+      { "name_en": "cells", "name_zh": "格子", "note_zh": "一行和一列的交叉就是一个时段，颜色深浅对应订单量。" },
+      { "name_en": "color scale", "name_zh": "色阶", "note_zh": "深色代表订单多，浅色代表订单少；色阶是连续的，适合看趋势，不适合精确比较。" }
+    ],
+    "look_for_zh": [
+      "哪两行的颜色整体最深。",
+      "同一行从上午到晚上颜色怎么变化。",
+      "有没有和周围明显不同的浅格，比如午饭时间。"
+    ]
+  },
+  "observations": [
+    { "en": "The darkest cells sit in the last hours of the evening: Saturday and Sunday reach 41 at 10pm, the highest value in the grid.", "zh": "最深的格子出现在晚上的最后几个小时：周六和周日晚上 10 点都达到 41 单，是全图最高值。" },
+    { "en": "Weekdays share one profile: Monday through Friday all reach 35 at 10pm, against 6 at 1pm.", "zh": "工作日是同一套节奏：周一到周五都在晚上 10 点达到 35 单，而下午 1 点只有 6 单。" },
+    { "en": "Saturday and Sunday are 6 orders darker than the weekdays at every hour, from 21 against 15 at 8am to 41 against 35 at 10pm.", "zh": "周六和周日每个小时都比工作日多 6 单，从上午 8 点的 21 对 15，到晚上 10 点的 41 对 35。" },
+    { "en": "Friday is busy in the evening but not different from the other weekdays: its 10pm cell is 35, the same as Monday's.", "zh": "周五晚上也很忙，但和其他工作日没有区别：晚上 10 点这一格是 35 单，和周一一样。" },
+    { "en": "Lunchtime is the lightest stretch: 12pm shows 10 on weekdays and 16 on Saturday and Sunday.", "zh": "午饭前后是最空的时段：中午 12 点工作日只有 10 单，周六和周日是 16 单。" }
+  ],
+  "describe": [
+    {
+      "group": "peaks",
+      "expression": "peak-at",
+      "en": "Orders peak at 41 at 10pm on Saturday and Sunday, the darkest cells on the chart.",
+      "zh": "订单在周六和周日晚上 10 点达到峰值 41 单，这是整张图最深的格子。",
+      "pattern": "peak at + value / peak in + period",
+      "alternatives": [
+        "Weekend orders reach their highest point of 41 in the final hour shown.",
+        "Saturday and Sunday evenings peak at 41 at 10pm."
+      ],
+      "note_zh": "peak at 后面跟数值，peak in 后面跟时间段；这张图有星期和小时两个维度，要说清楚是哪一行、哪一列。"
+    },
+    {
+      "group": "comparison",
+      "expression": "higher-than",
+      "en": "Weekend evenings are higher than weekday evenings at the same hour: 41 against 35 at 10pm.",
+      "zh": "同一小时上，周末晚上比工作日晚上更高：晚上 10 点是 41 对 35。",
+      "pattern": "A + be + higher than + B / higher than + figure",
+      "alternatives": [
+        "The weekend rows are consistently higher than the weekday pattern, hour by hour.",
+        "Saturday and Sunday run above Monday to Friday in every cell."
+      ],
+      "note_zh": "比较两行的同一列，比笼统说「周末更忙」更有说服力；差距不变时，点出一个小时就能代表整行。"
+    },
+    {
+      "group": "numbers",
+      "expression": "between-and",
+      "en": "Across the hours shown, weekday orders stay between 6 and 35, while weekend orders stay between 12 and 41.",
+      "zh": "在图上的这些小时里，工作日订单在 6 到 35 之间，周末订单在 12 到 41 之间。",
+      "pattern": "between + number + and + number",
+      "alternatives": [
+        "Weekday values range from 6 to 35.",
+        "Weekend values range from 12 to 41."
+      ],
+      "note_zh": "先给区间，再指出区间里的最高点，读者不用自己扫完整行。"
+    },
+    {
+      "group": "overall",
+      "expression": "most-noticeable-feature",
+      "en": "The most noticeable feature is the dark block on Saturday and Sunday after 7pm.",
+      "zh": "最引人注意的是周六和周日晚上 7 点以后的那块深色区域。",
+      "pattern": "The most noticeable feature is + noun phrase",
+      "alternatives": [
+        "What draws the eye first is the dark band across weekend evenings.",
+        "The strongest visual pattern is the weekend evening block."
+      ],
+      "note_zh": "这句话用来开场，后面要马上给支撑它的两个格子，否则只是形容。"
+    },
+    {
+      "group": "relationship",
+      "expression": "show-a-relationship",
+      "en": "The grid shows a relationship between the hour of the day and order volume: every row is darkest in its final hour.",
+      "zh": "这张图显示一天中的小时和订单量之间存在关系：每一行都是最后一个小时颜色最深。",
+      "pattern": "the chart shows a relationship between A and B",
+      "alternatives": [
+        "There is a clear relationship between time of day and orders.",
+        "Hour of day and order volume move together in every row."
+      ],
+      "note_zh": "relationship 比 correlation 宽，这里说的是模式，不是统计上的相关系数。"
+    },
+    {
+      "group": "distribution",
+      "expression": "concentration",
+      "en": "Orders show a clear concentration in the evening: after 4pm, every row stays above its own morning values.",
+      "zh": "订单明显集中在傍晚和晚上：下午 4 点以后，每一行的数值都高于它自己上午的数值。",
+      "pattern": "the concentration of + noun + in / around",
+      "alternatives": [
+        "The evening hours hold most of the dark cells.",
+        "Orders are concentrated between 7pm and 10pm, especially on the weekend."
+      ],
+      "note_zh": "concentration 要指出集中在哪一段；只说「很多订单」不算集中，只说「晚上」又不够具体。"
+    }
+  ],
+  "descriptions": {
+    "academic": {
+      "en": "The heatmap displays average hourly order volumes across seven days and fifteen hours, from 8am to 10pm. Weekdays follow one identical profile: orders fall to 6 at 1pm and rise to 35 at 10pm. Saturday and Sunday add 6 orders to every cell, which lifts the final hour to 41. The lightest values sit around midday, while the darkest cells are concentrated after 7pm, especially in the weekend rows. Because the color scale is continuous, the grid supports comparisons of pattern rather than precise readings; the printed values give the exact counts.",
+      "zh": "这张热力图显示七天里从上午 8 点到晚上 10 点的平均每小时订单量。工作日是同一套曲线：下午 1 点降到 6 单，晚上 10 点升到 35 单。周六和周日每一格都多 6 单，所以最后一个小时达到 41 单。最浅的数值出现在中午前后，最深的格子集中在晚上 7 点以后，周末两行尤其明显。色阶是连续的，适合比较模式而不是精确读数；具体数字看格子上标的值。"
+    },
+    "business": {
+      "en": "Evenings pay the bills. Orders are lightest around lunch, at 6 to 16, and highest at 10pm, at 35 on weekdays and 41 on the weekend. The weekend adds 6 orders in every single hour, so Saturday and Sunday need the deepest staffing at the end of the day. Friday looks exactly like the other weekdays here, which means extra Friday capacity would be wasted. Build the schedule around the evening block, and keep the midday shift lean.",
+      "zh": "晚上才是出单的时候。午饭前后最空，只有 6 到 16 单；晚上 10 点最忙，工作日 35 单，周末 41 单。周末每一个小时都多 6 单，所以周六周日最忙的是收尾时段，人手要往那里放。周五和其他工作日完全一样，单独给周五加人并不会有用。排班跟着晚上这块深色走，中午保持精简。"
+    },
+    "simple": {
+      "en": "Each square is one hour on one day. Dark squares mean more orders. Monday to Friday look the same: the quietest hour is 1pm with 6 orders, and the busiest is 10pm with 35. Saturday and Sunday are darker at every hour, and 10pm reaches 41. Lunch is a good time to catch up, because the phones are quiet.",
+      "zh": "每一格是一天里的一个小时。颜色越深，订单越多。周一到周五长得一样：最空的是下午 1 点的 6 单，最忙的是晚上 10 点的 35 单。周六和周日每个小时都更深，晚上 10 点能到 41 单。中午可以安排休息，因为那会儿最闲。"
+    }
+  },
+  "language_notes": [
+    {
+      "title_en": "Color shows the pattern, labels show the values",
+      "body_zh": "热力图的颜色是连续过渡的，相邻两格只差几单时，肉眼分不出来。颜色用来判断哪一块更深、深浅怎么过渡；要引用具体数字，就读格子上标的值，或者看悬停提示。写句子时把颜色结论和数字结论分开，不要只凭颜色去证明精确的差值。",
+      "examples": [
+        "The weekend evenings are clearly darker than the weekday evenings.",
+        "The 10pm cell reads 41 on Sunday and 35 on Monday."
+      ]
+    },
+    {
+      "title_en": "at 10pm vs in the evening",
+      "body_zh": "at 后面接具体的钟点，in 后面接一段时间。这张图有星期和小时两个维度，写的时候把两个都说清楚：on Sunday at 10pm。只说 in the evening，读者不知道你看的是哪一行。",
+      "examples": [
+        "Orders are highest on Sunday at 10pm.",
+        "Weekend evenings are busier than weekday mornings."
+      ]
+    },
+    {
+      "title_en": "Same as: when two rows match",
+      "body_zh": "这张图里每个工作日的数据完全一样，周五和周一没有任何差别。写比较时不要想当然地说 Friday is the busiest；先看数字，真的一样就用 the same as 或 identical to。",
+      "examples": [
+        "Friday's 10pm cell is the same as Monday's.",
+        "Friday is identical to the other weekdays in this dataset."
+      ]
+    }
+  ],
+  "related": {
+    "charts": ["scatter", "network", "parallel"],
+    "groups": ["relationship", "comparison", "peaks", "numbers"],
+    "contexts": ["business-presentations", "everyday"]
+  }
+}

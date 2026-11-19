@@ -64,8 +64,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/echarts') || id.includes('node_modules/zrender')) return 'echarts';
-          if (id.includes('node_modules/motion') || id.includes('node_modules/framer-motion')) return 'motion';
+          if (id.includes('node_modules/ztd-charts')) return 'ztd';
           if (id.includes('node_modules/react')) return 'react';
           return undefined;
         },

@@ -1,0 +1,174 @@
+{
+  "chart": "histogram",
+  "dataset": "delivery-times",
+  "spec": {
+    "encoding": { "value": "minutes" },
+    "options": { "bins": 12, "marks": ["p50", "p95"], "height": 400 }
+  },
+  "overview": {
+    "purpose_zh": "把全部 60 笔订单按时间分成一段一段，数每段里有多少笔，用柱子的高低看整体形状：峰在哪、右边拖多长、极少数慢单离大多数订单有多远。",
+    "works_zh": [
+      "一次看完全部订单的整体形状，而不是逐个城市比较",
+      "找最常见的时长区间，也就是最高的柱子",
+      "用 p50 和 p95 两条标记线区分“典型订单”和“少数慢单”"
+    ],
+    "uses_zh": [
+      "制定配送时效承诺前，确认大多数订单落在哪一段",
+      "向客服解释为什么平均值不能代表最慢的那批订单",
+      "监控整体配送表现是否出现长尾变长的情况"
+    ]
+  },
+  "understanding": {
+    "read_zh": "横轴是分钟，每一根柱子数的是落在这一段时间里的订单数量，不是时长本身。柱子高说明那一段订单多；右边孤零零的矮柱子说明少数订单特别慢。两条竖线是位置标记：p50 是正中间那一单的位置，p95 是只有少量订单会超过的位置。",
+    "elements": [
+      { "name_en": "x-axis", "name_zh": "时间轴", "note_zh": "横向的分钟刻度，从左到右越来越慢。" },
+      { "name_en": "bar", "name_zh": "柱子", "note_zh": "每根柱子覆盖一段时间，高度是落在这段里的订单数量。" },
+      { "name_en": "p50 mark", "name_zh": "p50 标记", "note_zh": "中位数位置：一半订单比它快，一半比它慢。" },
+      { "name_en": "p95 mark", "name_zh": "p95 标记", "note_zh": "只有少数订单超过的位置，用来盯长尾。" },
+      { "name_en": "right tail", "name_zh": "右侧长尾", "note_zh": "柱子一路变矮却拖得很远的那一段，代表少数特别慢的订单。" }
+    ],
+    "look_for_zh": [
+      "最高的柱子落在哪一段，也就是最常见的配送时长",
+      "右边比左边拖得长多少，长尾有多长",
+      "p50 和 p95 之间隔了多远，慢单比典型订单多花多少时间"
+    ]
+  },
+  "observations": [
+    { "en": "The tallest bar covers 35 to 39 minutes and counts 13 of the 60 orders.", "zh": "最高的柱子覆盖 35 到 39 分钟，装了 60 笔订单里的 13 笔。" },
+    { "en": "The shape is not symmetrical: it climbs quickly from 22 minutes and trails off to the right, with only 4 orders above 55 minutes.", "zh": "形状不对称：从 22 分钟快速爬升，然后向右拖出一条长尾，超过 55 分钟的只有 4 笔。" },
+    { "en": "The p50 mark sits at 38 minutes and the p95 mark just above 58, about 20 minutes further right.", "zh": "p50 标记在 38 分钟，p95 标记刚过 58 分钟，比 p50 靠右约 20 分钟。" },
+    { "en": "Only 3 of the 60 orders fall beyond the p95 mark.", "zh": "60 笔订单里只有 3 笔落在 p95 标记之外。" },
+    { "en": "Half of the orders arrive within 38 minutes; the slow half stretches out to 66.", "zh": "一半订单在 38 分钟内送达；慢的那一半一直拖到 66 分钟。" }
+  ],
+  "describe": [
+    {
+      "group": "chart-intro",
+      "expression": "show",
+      "en": "The chart shows the shape of all 60 delivery times in one view.",
+      "zh": "这张图一次展示全部 60 笔配送时长的整体形状。",
+      "pattern": "The chart shows + what + in one view",
+      "alternatives": [
+        "The chart shows how all 60 orders are spread across delivery times.",
+        "The histogram displays the shape of the full set of orders."
+      ],
+      "note_zh": "开头点明“看整体形状”，不要一上来就报某一根柱子。"
+    },
+    {
+      "group": "distribution",
+      "expression": "skewed-distribution",
+      "en": "Delivery times form a right-skewed distribution: the long tail runs toward the slowest orders.",
+      "zh": "配送时长呈右偏分布：长尾伸向最慢的那批订单。",
+      "pattern": "form a right-skewed distribution + tail direction",
+      "alternatives": [
+        "The distribution is skewed to the right.",
+        "The histogram leans right because of a few very slow orders."
+      ],
+      "note_zh": "右偏看尾巴的方向，不看最高的柱子偏在哪边。"
+    },
+    {
+      "group": "distribution",
+      "expression": "concentration",
+      "en": "The concentration is clearest between 35 and 39 minutes, where the tallest bar holds 13 orders.",
+      "zh": "集中程度最明显的是 35 到 39 分钟这一段，最高的柱子装了 13 笔订单。",
+      "pattern": "the concentration is clearest between + value + and + value + where + evidence",
+      "alternatives": [
+        "Orders concentrate between 35 and 39 minutes.",
+        "The densest part of the distribution sits between 35 and 39 minutes."
+      ],
+      "note_zh": "concentration 后面最好补一句柱子有多少笔订单，说明“集中”有多大。"
+    },
+    {
+      "group": "numbers",
+      "expression": "just-over",
+      "en": "The p95 mark sits just over 58 minutes, well to the right of the p50 mark.",
+      "zh": "p95 标记刚过 58 分钟，明显在 p50 标记的右边。",
+      "pattern": "just over + number",
+      "alternatives": [
+        "The p95 mark is just above 58 minutes.",
+        "Only a handful of orders pass the p95 mark just over 58 minutes."
+      ],
+      "note_zh": "just over 表示只多一点点，适合描述 p95 这类计算出来的位置。"
+    },
+    {
+      "group": "comparison",
+      "expression": "higher-than",
+      "en": "The p95 mark is about 20 minutes higher than the median.",
+      "zh": "p95 标记比中位数高约 20 分钟。",
+      "pattern": "A + be + number + higher than + B",
+      "alternatives": [
+        "The p95 mark sits roughly 20 minutes above the p50 mark.",
+        "Slow orders push the p95 mark about 20 minutes beyond the median."
+      ],
+      "note_zh": "两个标记之间的距离比两个数的绝对值更好懂。"
+    },
+    {
+      "group": "overall",
+      "expression": "overall",
+      "en": "Overall, most orders finish in the 30s and 40s, and only a handful stretch past an hour.",
+      "zh": "总体来看，大多数订单在 30 多分钟到 40 多分钟完成，只有少数拖过一小时。",
+      "pattern": "Overall, + main pattern",
+      "alternatives": [
+        "Overall, the bulk of orders sits between 30 and 45 minutes.",
+        "The overall picture is a strong peak between 35 and 39 minutes and a thin slow tail."
+      ],
+      "note_zh": "先给整体，再讲 p50 和 p95，顺序和读图一致。"
+    },
+    {
+      "group": "numbers",
+      "expression": "roughly",
+      "en": "Roughly half of the orders arrive within 38 minutes.",
+      "zh": "大约一半订单在 38 分钟内送达。",
+      "pattern": "roughly + half / number",
+      "alternatives": [
+        "About half of the orders arrive within 38 minutes.",
+        "The median order arrives at 38 minutes."
+      ],
+      "note_zh": "roughly 后面可以接 half，比写一个精确百分比更适合口头汇报。"
+    }
+  ],
+  "descriptions": {
+    "academic": {
+      "en": "The histogram groups all 60 delivery orders into equal time bands and counts the orders in each one. The tallest bar covers the 35 to 39 minute band and holds 13 orders. The distribution is single-peaked but clearly not symmetrical: it rises steeply from the minimum of 22 minutes and trails off to the right, where 4 orders take longer than 55 minutes. The p50 mark stands at 38 minutes, while the p95 mark sits just above 58, roughly 20 minutes further along the axis.",
+      "zh": "直方图把全部 60 笔订单分成等宽的时间段，数出每一段里的订单数量。最高的柱子覆盖 35 到 39 分钟，装了 13 笔订单。分布只有一个峰，但明显不对称：从最短的 22 分钟快速爬升，然后向右拖出长尾，有 4 笔超过 55 分钟。p50 标记在 38 分钟，p95 标记刚过 58 分钟，在轴上比 p50 靠右约 20 分钟。"
+    },
+    "business": {
+      "en": "The busiest band is 35 to 39 minutes, with 13 orders, so the center of the operation looks steady. The problem is the tail: 4 orders take longer than 55 minutes, and those are the ones customers remember. The p50 mark at 38 minutes describes a normal day, but the p95 mark just above 58 shows what a bad day looks like. Planning the courier roster around the p95 mark protects the promise better than planning around the average.",
+      "zh": "最忙的一段是 35 到 39 分钟，有 13 笔订单，说明运营的中段是稳的。问题在尾巴上：有 4 笔超过 55 分钟，而顾客记住的正是这几单。p50 的 38 分钟描述的是平常的一天，p95 的 58 分钟出头才显示糟糕的一天是什么样。按 p95 而不是平均值来排骑手班次，更能守住承诺。"
+    },
+    "simple": {
+      "en": "Each bar counts orders in a time band. The tallest bar is the 35 to 39 minute band, with 13 orders. Most orders arrive between 25 and 50 minutes. A few slow ones stretch the right side to 66 minutes. Half arrive within 38 minutes, and only 3 of the 60 orders take longer than the p95 mark just over 58.",
+      "zh": "每根柱子数的是某一段时间里的订单。最高的柱子是 35 到 39 分钟这一段，有 13 笔订单。大多数订单在 25 到 50 分钟之间到达。少数慢单把右边拖到 66 分钟。一半订单在 38 分钟内到达，60 笔里只有 3 笔超过 p95 标记，也就是 58 分钟出头。"
+    }
+  },
+  "language_notes": [
+    {
+      "title_en": "p50 and p95 are positions, not averages",
+      "body_zh": "p50 是中位数：把订单排好队，站在正中间的那一单。p95 是第 95 百分位：只有很少一部分订单比它慢。它们描述位置，不是把所有订单平均出来的结果，所以不要写成 the p95 average。",
+      "examples": [
+        "Half the orders arrive within 38 minutes.",
+        "Only 3 of the 60 orders sit beyond the p95 mark."
+      ]
+    },
+    {
+      "title_en": "bar height counts orders, not minutes",
+      "body_zh": "直方图的柱高是“这一段时间里有多少笔订单”，不是“多少分钟”。写的时候说 the bar counts 13 orders 或 the bar holds 13 orders，不要写成 the bar is 13 minutes tall。",
+      "examples": [
+        "The tallest bar counts 13 orders.",
+        "The bar covers 35 to 39 minutes."
+      ]
+    },
+    {
+      "title_en": "skewed to the right",
+      "body_zh": "右偏的意思是右边拖得长，不是山峰偏右。配送时长通常右偏：大多数订单集中在中段，少数特别慢的订单把右边拉长。中间高、两边低并不等于正态分布，这张图就明显不对称。",
+      "examples": [
+        "The distribution is skewed to the right: the tail runs toward 66 minutes.",
+        "The left side rises steeply from 22 minutes."
+      ]
+    }
+  ],
+  "related": {
+    "charts": ["beeswarm", "box", "ridgeline"],
+    "groups": ["distribution", "numbers", "comparison"],
+    "contexts": ["education", "ielts"]
+  }
+}

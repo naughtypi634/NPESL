@@ -1,185 +1,195 @@
-# 数据图表英语 · 内容规范
+# 数据英语表达图鉴 · 内容写作规范
 
-内容源只有两处：`content/data-viz/library/<type>.json`（图表类型的语言库）和
-`content/data-viz/topics/<slug>.json`（主题数据与预先写好的例句）。数据包由
-`apps/data-viz/source/engine/`（Rust）生成，页面由 `apps/data-viz/web/`
-（React + TypeScript + Vite + ECharts）构建；`web/public/data/` 与 `dist/`
-都是产物，不要手改。
+这是 `/charts/` 的内容源。页面与内容分开：`content/data-viz/atlas/` 是唯一来源，`apps/data-viz/web/` 只负责显示。
 
-改完内容：
+## 这个产品是什么
 
-```powershell
-cargo build --release --manifest-path apps\data-viz\source\engine\Cargo.toml --target-dir build\rust\data-viz
-build\rust\data-viz\release\dv-engine.exe validate
-build\rust\data-viz\release\dv-engine.exe build
-npm --prefix apps\data-viz\web run build
-# 看某个视图生成出来的句子：
-build\rust\data-viz\release\dv-engine.exe build --explain <slug>/<view>
+学习者打开一张图，直接看到：
+
+- 这张图在讲什么，怎么读；
+- 哪些数据值得注意（已经写好的结论，不是提问）；
+- 描述这张图可以用哪些词、句型和完整说法；
+- 同一组数据在雅思学术写作、商务汇报和简单英语里分别怎么说。
+
+**不是做题网站。** 不写 quiz、exercise、challenge、your turn、fill in the blanks、multiple choice，不要求学生输入、拖拽、改数据或回答任何问题。所有教学内容直接展示。
+
+## 目录
+
+```
+content/data-viz/atlas/
+  site.json          首页文案与三个入口
+  families.json      九个图表大类
+  chart-types.json   47 种图表：中文名、一句话说明、关联表达分类、数据集
+  datasets/          模拟数据（数字的唯一来源）
+  expressions/       16 个表达功能分类
+  lessons/           每种图表一篇（47 篇）
+  contexts/          七个真实场景
 ```
 
-页面只有两段：首页（按「我想学」的五个目标、领域、图表类型筛选卡片）和详情页
-（一张大图、右侧「这处变化怎么说」、底部编辑数据）。五个目标由
-`source/engine/src/goals.rs` 的 kind 映射自动算出，构建时写进
-`web/public/data/index.json` 的 `kind_goals`；内容里不需要给每张图手写目标标签。
+## 数字规则（构建会检查）
 
-## 硬规则
+课程里的英文句子只要出现阿拉伯数字，就必须能在该课数据集中找到，或者是能由数据集算出来的差值、变化率、占比、分组求和。否则构建失败。
 
-- 美式英语。`color` / `center` / `realize` / `traveling` / `apartment` / `subway` /
-  `takeout` / `on the weekend` / `different from`；`percent` 不加 s，英文句子里
-  写 `percent`，不写 `%`。
-- 数据是模拟数据，页面上永远保留 `Demo data · 模拟数据`。不写“根据统计”“真实调查”。
-- 散点只讲相关，不讲因果；`cause / leads to / results in / due to / because of`
-  在散点文本里会被校验器拦下。用 `is associated with / suggests / appears to`。
-- 不显示计数、进度、已学或完成标记；不加“N 个主题 / N 种图表”这类说明。
-- 例句要有具体画面：具体场景、具体数字、具体动作。
-- 中文只出现在 `zh` / `*_zh` 字段，英文只出现在 `en` 字段。
+写之前先看数据：
 
-## 主题文件
+```powershell
+node apps\data-viz\web\scripts\build-content.mjs --inspect quarterly-sales
+```
 
-每个主题 1–8 个视图（目前每个主题 2 个），每个视图 4–8 条预先写好的特征、5 段整图描述。
+不要写“大约一半”“超过三倍”这种和数字对不上的话。数字后面带单位时，单位要和 `unit_en` 一致：数据集以千美元为单位，就写 `420`、`$420K`，不要写 `$420,000`。
+
+## 英式英语与措辞
+
+构建会按 `tools/verify/rules.py` 的美式规则扫描全部英文：`colour`、`centre`、`analyse`、`programme`、`at the weekend` 等一律失败。例句要当代、具体、有画面，不写教科书套话。
+
+## 数据集 datasets/*.json
 
 ```json
 {
-  "id": "online-shopping",
-  "title_en": "Online Shopping Share",
-  "title_zh": "网购占比",
-  "blurb_zh": "线上零售份额怎么爬升",
-  "scene_zh": "一份全国零售样本（模拟数据）",
-  "demo": true,
-  "domain": "economy",
-  "views": [{
-    "id": "share", "type": "line",
-    "label_zh": "线上占比", "label_en": "Online share",
-    "subject": "Online shopping's share of retail spending",
-    "subtitle_en": "Share of retail spending that happens online.",
-    "unit": { "en": "percent", "short": "%", "decimals": 1, "kind": "percent", "points": true },
-    "x": { "label_en": "Year", "values": ["2019", "2020"] },
-    "series": [{ "id": "online", "name_en": "Online", "name_zh": "线上", "slot": 1, "values": [20.7, 24.9] }],
-    "features": [{
-      "id": "os-rise", "kind": "rise_steady",
-      "marks": ["seg:online:0"],
-      "examples": [{ "en": "Online's share rose from 20.7 percent in 2019 to 24.9 percent in 2020.", "zh": "……" }],
-      "note_zh": "为什么用这个词。",
-      "interpret_zh": "这张图能说明什么、不能说明什么。"
-    }],
-    "overview_zh": "整张图怎么读。",
-    "descriptions": {
-      "general": { "a2": "……", "b1": "……", "b2": "……" },
-      "ielts": "……",
-      "business": "……"
-    }
-  }]
+  "id": "quarterly-sales",
+  "title_en": "Quarterly sales by region",
+  "title_zh": "各地区季度销售额",
+  "unit_en": "thousand US dollars",
+  "unit_short": "K",
+  "decimals": 0,
+  "note_zh": "模拟数据：……",
+  "rows": [{ "quarter": "2024-Q1", "region": "East", "sales": 420 }]
 }
 ```
 
-### 主题字段
+行里的字段名要能直接用于 ztd-charts 的 `encoding`。密集数据可以用 `generate`（`daily`、`distribution`、`series_grid`、`us_states`、`heatmap_grid`），生成规则在 `scripts/build-content.mjs` 里，结果确定、不含随机数。
 
-`domain` 取 `business` / `technology` / `lifestyle` / `economy` / `education`，
-用于首页的领域筛选；缺了或写错校验器会拦。
+## 表达分类 expressions/*.json
 
-### unit
-
-- `kind: "percent"`：`fmtValue` 输出 `27.2 percent`；`points: true` 表示份额数据，
-  变化按百分点判断（避免 27%→30% 被说成“大幅增长”）。
-- `scale`：数据用万/千为单位时，句子会乘回真实数量。例如 `scale: 10000` 时
-  值 `1410` 读作 `14.1 million orders`（配 `million: true`）。
-- `decimals` 同时用于图表刻度和句子；percent 常用 1，人数常用 0。
-
-### marks
-
-| 类型 | 可点的 mark |
-|---|---|
-| line | `seg:<seriesId>:<i>`、`pt:<seriesId>:<i>` |
-| bar | `bar:<seriesId>:<i>` |
-| pie | `slice:<partId>` |
-| scatter | `pt:<pointId>`、`grp:<groupId>`、`all` |
-| stacked | `seg:<xIndex>:<seriesId>`、`stack:<xIndex>` |
-| heatmap | `cell:<rowId>:<colId>`、`row:<rowId>`、`col:<colId>` |
-| sankey | `link:<source>-><target>`、`node:<id>` |
-| slope | `line:<entityId>`、`pt:<entityId>:<periodIndex>` |
-| waterfall | `step:<stepId>`、`total:start`、`total:end` |
-
-每条预先写好的特征至少覆盖一个存在的 mark；一个特征可以覆盖多个相邻段（line 的
-`seg:...:0` + `seg:...:1`），构建会把 `from/to/period` 合成整段。
-
-## 语言库
-
-每个 kind 需要：`label_zh`、`requires`、≥3 个覆盖 spoken/neutral/written 的
-`words`、≥2 条 `patterns`（至少一条 A2，另至少一条 B1 或 B2）、`compare` 引用、
-`traps`、三条 `registers`。界面只显示 Basic / Advanced 两档：Basic 取 A2，
-Advanced 取 B1（没有 B1 时取 B2）；整图描述 Basic 取 `general.a2`，Advanced 取
-`general.b2`（没有 B2 时取 `general.b1`）。A2/B1/B2 字段本身不改。模板只能使用这些槽位：
-
-```
-{subject} {from} {to} {unit} {period} {from_period} {to_period} {pct} {pp}
-{delta} {gap} {peak} {peak_period} {share} {share_number} {category} {rank}
-{rank_before} {source} {target} {x} {y} {value} {row} {col} {entity}
-{series_name} {top_category} {top_value} {x_value} {y_value} {direction}
-{group} {start} {end} {signed} {total}
+```json
+{
+  "id": "trend-up",
+  "order": 3,
+  "name_en": "Upward trends",
+  "name_zh": "上升趋势",
+  "intro_zh": "……",
+  "intro_en": "……",
+  "expressions": [
+    {
+      "id": "increase",
+      "head": "increase",
+      "kind": "verb",
+      "meaning_zh": "上升；增长",
+      "pattern": "increase + adverb / a significant increase in + noun",
+      "cefr": "A2",
+      "register": "neutral",
+      "scenes": ["academic", "business", "everyday"],
+      "collocations": ["increase sharply", "a steady increase"],
+      "examples": [
+        { "en": "Sales increased sharply from 420 to 690.", "zh": "销售额从 420 大幅增长到 690。", "chart": "line" }
+      ],
+      "contrast_zh": "increase 最中性；jump、surge、soar 幅度更大，也更口语。"
+    }
+  ]
+}
 ```
 
-`registers` 必须是槽位模板，不能写死某个主题的实体（校验器会拦）。具体例句放
-`examples`。
+- `scenes` 只能取 `academic` / `business` / `everyday`。
+- `cefr` 取 A1/A2/B1/B2/C1；`register` 取 neutral/formal/informal。
+- 每条至少两个搭配、一个带中文的例句；`contrast_zh` 说明它和近义词的差别，不能只写“同义词”。
+- 例句里的 `chart` 必须是 47 种图表之一；带 `chart` 的例句，数字要能从那张图的数据集里找到。
 
-## 生成内容与预先写好内容的分工
+## 图表课 lessons/<图表 id>.json
 
-- **预先写好**：数据、每条特征的例句 / 备注 / 解读、整图五段描述、`overview_zh`。
-- **构建生成**：每个 mark 的分类、槽位数值、词汇卡、句型填空、三种语境句、
-  图表提示、画廊小图。没有预先写好例句的位置由页面按当前数据生成句子，并标
-  「自动生成」；预先写好的例句只是额外参考，不是每处都必须写。
+文件名就是 ztd 图表类型（`line.json`、`pie.json`、`barRace.json`……），必须覆盖全部 47 种。
 
-分类阈值在 `apps/data-viz/source/engine/src/features.rs`：线图/堆叠变化 3% / 10% / 25%
-（份额数据用 0.5 / 1.5 / 3 个百分点），散点 |r| 0.2 / 0.4 / 0.7，离群点
-残差 > 2σ。改阈值只改这一个文件。
+```json
+{
+  "chart": "line",
+  "dataset": "quarterly-sales",
+  "spec": {
+    "encoding": { "x": "quarter", "y": "sales", "series": "region" },
+    "options": { "highlight": "West", "height": 380 }
+  },
+  "overview": {
+    "purpose_zh": "这张图用来看……",
+    "works_zh": ["适合……", "适合……"],
+    "uses_zh": ["季度经营回顾", "……"]
+  },
+  "understanding": {
+    "read_zh": "先看……再看……",
+    "elements": [
+      { "name_en": "x-axis", "name_zh": "横轴", "note_zh": "……" }
+    ],
+    "look_for_zh": ["……", "……"]
+  },
+  "observations": [
+    { "en": "West grew from 190 to 415, the fastest of the four regions.", "zh": "西部从 190 增长到 415，是四个地区里最快的。" }
+  ],
+  "describe": [
+    {
+      "group": "trend-up",
+      "expression": "increase",
+      "en": "West increased steadily from 190 in 2024-Q1 to 415 in 2025-Q4.",
+      "zh": "西部从 2024 年一季度的 190 稳步增长到 2025 年四季度的 415。",
+      "pattern": "increase + adverb + from ... to ...",
+      "alternatives": ["West rose steadily from 190 to 415.", "There was a steady rise in West sales, from 190 to 415."],
+      "note_zh": "两个端点都要给，听的人才不用自己算。"
+    }
+  ],
+  "descriptions": {
+    "academic": { "en": "...", "zh": "..." },
+    "business": { "en": "...", "zh": "..." },
+    "simple": { "en": "...", "zh": "..." }
+  },
+  "language_notes": [
+    { "title_en": "increase by vs increase to", "body_zh": "……", "examples": ["Sales rose by 64.", "Sales rose to 690."] }
+  ],
+  "related": {
+    "charts": ["area"],
+    "groups": ["trend-up", "degree"],
+    "contexts": ["ielts", "business-presentations"]
+  }
+}
+```
 
-## 自检
+要求：
 
-- 内容：`dv-engine validate` 必须 0 问题。
-- 数据包：`dv-engine build`；页面：`npm --prefix apps/data-viz/web run build`。
-- 目标标签：`node tests/dataviz-goals.mjs`，检查五个目标每个至少 3 个主题、所有
-  kind 都有归属、每个主题的 `views[]` 和 `goals` 一致。
-- 浏览器：`node tests/dataviz-ui.mjs`（自己起 Vite、只开一个无头 Edge，跑完关闭），
-  过首页筛选、卡片预览、详情点选、上一处/下一处、每种图表的拖动/输入、三套主题和
-  390 px 宽度。也可以 `npm --prefix apps/data-viz/web run dev` 手工看。
-- 引擎一致性：`node tests/dataviz-parity.mjs`；文本质量：`node tests/dataviz-text.mjs`。
-- data-viz 随主站部署在 `/charts/`，首页不列入入口；部署主站会自动带上 `charts/`，旧 `/data-viz/*` 301 到 `/charts/*`。
+- `observations` 至少 3 条，是**直接给出的结论**，不是问题。
+- `describe` 至少 5 条，覆盖至少 3 个表达分类；`group` 必须是已有分类，`expression` 必须是该分类里已有的表达。
+- 三段完整描述：Academic / Business / Simple，每段至少 40 个英文词，中文翻译齐全。三段说同一组数据，语气和用词不同。
+- `language_notes` 至少 2 条，只讲这张图真正用得上的语法或搭配区别。
+- `related.charts` / `groups` / `contexts` 都要真实存在。
+- `spec.options` 里设置 `highlight`；图表高度建议 340–420。
 
-## 页面里改数据
+## 场景 contexts/<id>.json
 
-详情页底部有「编辑数据」开关，默认关着：
+```json
+{
+  "id": "ielts",
+  "order": 1,
+  "name_en": "IELTS Academic",
+  "name_zh": "雅思学术类写作 Task 1",
+  "intro_en": "…",
+  "intro_zh": "…",
+  "moves": [
+    { "name_en": "Open with what the chart shows", "name_zh": "开头点明图表内容", "examples": ["The chart shows…"] }
+  ],
+  "focus_groups": ["chart-intro", "overall"],
+  "charts": ["line", "bar", "pie"],
+  "worked": { "chart": "line", "en": "…", "zh": "…" },
+  "pitfalls_zh": ["…", "…"]
+}
+```
 
-- 折线、柱状、瀑布、斜率、散点可以拖动数据点；饼图按住一块边缘沿圆周拖，其他块
-  按比例补足；其余图表（堆叠、热力、流向）用选中位置下方的数值输入框改。
-- 只改数值，不改系列名、类目名、节点名、周期名。改完图表、生成句、句型里的数字
-  一起更新。
-- 预先写好的 `examples` 按原始数据写，改数据后隐藏；右侧改用当前数据生成的句子。
-  点「还原」恢复原始数据和原句。
-- 编辑状态按「主题/视图」保存在内存里，切换视图或离开再回来仍在，刷新页面丢失。
+`worked.en` 至少 50 词；`charts` 至少 3 个且真实存在；`focus_groups` 至少 3 个。
 
-为此浏览器端有两份运行时模块：
-
-- `apps/data-viz/web/src/engine/05-compute.js`：`source/engine/src/features.rs` 的逐条移植（分类阈值、槽位、数字格式完全一致）。
-- `apps/data-viz/web/src/engine/06-text.js`：按当前特征从语言库的句型框架生成整图描述；预先写好的
-  `descriptions` / `overview_zh` 只在未改数据时显示，避免改完数据后留着旧数字。
-
-改了 `engine/src/features.rs` 或 `web/src/engine/05-compute.js` 的任何一方，都要跑：
+## 构建与检查
 
 ```powershell
-node tests\dataviz-parity.mjs
-node tests\dataviz-text.mjs
+node apps\data-viz\web\scripts\build-content.mjs --check
+node apps\data-viz\web\scripts\build-content.mjs
+.venv\Scripts\python.exe -I tools\build_all.py --only data-viz,site
+.venv\Scripts\python.exe -I tools\verify.py --fast
 ```
 
-第一条同时比较原始数据和改过数值的数据（每个视图两份样本），要求所有 mark 的
-kind 与 slots 完全一致；第二条把每个视图的 A2/B1/B2/雅思/商务和中文总结都生成
-一遍，拦截空槽位、双空格、百分号、基数词排名和散点因果措辞。不一致时先修引擎，
-不要改测试。
+只看数据集：
 
-## 视觉与交互（全站统一）
-
-- 所有表面都要有圆角：卡片/面板用 `--radius-card`，控件与输入用
-  `--radius-control`，徽章和分段控件用 999px。ECharts 里的柱、饼块、热力格
-  用 `borderRadius` 2–6；不要留直角矩形，包括画廊 mini 图。
-- 分段控件统一用 `.seg`（药丸槽 + 内嵌墨色药丸），不要再造新样式。
-- 按钮的缓动/弹簧和页面平滑滚动由部署时注入的 `/theme.css` 统一提供；
-  `web/src/index.css` 不要覆盖 `transition: transform` 或 `scroll-behavior`。
-- 圆角只是外观，不改变图表读数和“只有相关、没有因果”的表述。
+```powershell
+node apps\data-viz\web\scripts\build-content.mjs --inspect delivery-times
+```
