@@ -193,3 +193,17 @@ node apps\data-viz\web\scripts\build-content.mjs
 ```powershell
 node apps\data-viz\web\scripts\build-content.mjs --inspect delivery-times
 ```
+
+## 实时分析与数据编辑
+
+图表详情页现在可以改数据。注意职责划分：
+
+- **内容源（本目录）** 仍然保存人工编写的课程、观察、表达和完整范文。这些是“原始示例数据”的版本，不要在内容里写会随用户编辑变化的数字。
+- **实时分析** 在 `apps/data-viz/web/src/atlas/live/`，按图表类型分派适配器，从当前行数据计算极值、排名、占比、趋势、分布、相关、流程、地图、KPI 等事实，再生成 Academic / Business / Everyday 三段英文和对应中文。它不调用外部服务，也不修改内容文件。
+- 用户修改数据后：图表重新渲染、高亮跟着新的排名/极值走、Live English 与三段完整描述从同一份计算结果更新；原始课程内容保留在 “Original sample data” 下并明确标注，避免把旧结论当成当前事实。
+- 编辑只发生在页面状态里；`Restore original` 和 `Undo` 可以回到原始数据，内容源与构建产物不会被写回。
+- 新增图表类型时，除了本文件要求的课程内容，还要在 `live/index.ts` 里给它指定适配器（或复用同类适配器），并跑 `node tests/dataviz-analysis.mjs` 与 `node tests/dataviz-live.mjs`。
+
+## 缩略预览
+
+`scripts/build-content.mjs` 在构建时用 ztd 自己的 `renderSpecToSVG` 为每种图表生成浅色/深色两张静态 SVG，放在 `public/data/previews/`，目录页只加载 `<img loading="lazy">`。不要手改这些 SVG；改图表 spec 或数据后重新构建即可。

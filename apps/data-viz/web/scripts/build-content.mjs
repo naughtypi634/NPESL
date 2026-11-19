@@ -19,6 +19,12 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { CHARTS, getChartDef, validateSpec } from 'ztd-charts/spec';
+import { registerMap, renderSpecToSVG } from 'ztd-charts/server';
+import { world } from 'ztd-charts/geo/world';
+import { usStates } from 'ztd-charts/geo/us-states';
+
+registerMap(world);
+registerMap(usStates);
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../../../..');
@@ -677,6 +683,86 @@ walkStrings(
 
 // ---- 输出 -----------------------------------------------------------------
 
+
+// ---- 静态预览图 -----------------------------------------------------------
+// 47 张缩略图在构建期用 ztd 自己的渲染器生成 SVG：画廊不需要同时挂 47 个
+// 实时图表，滚动时也不用逐张请求完整课程 JSON。详情页仍然用实时 Chart。
+
+const previewMap = new Map();
+
+function previewOptions(chartId, source) {
+  const options = { ...(source ?? {}) };
+  delete options.height;
+  delete options.width;
+  delete options.marks;
+  delete options.referenceLines;
+  delete options.annotations;
+  options.showLabels = false;
+  options.tooltip = false;
+  options.animate = false;
+  if (chartId === 'pie') options.labelMode = 'none';
+  if (chartId === 'donut') {
+    options.centerValue = null;
+    delete options.centerLabel;
+    options.legend = 'none';
+  }
+  if (chartId === 'waffle') {
+    options.summary = false;
+    delete options.summaryLabel;
+    delete options.summaryNote;
+  }
+  if (chartId === 'treemap') options.labelMode = 'none';
+  if (chartId === 'heatmap') {
+    options.showValues = false;
+    options.legend = false;
+  }
+  if (chartId === 'tileMap' || chartId === 'choropleth') {
+    delete options.labels;
+    options.legend = false;
+  }
+  if (chartId === 'funnel') options.showRates = false;
+  if (chartId === 'parallel') delete options.dimensionLabels;
+  if (chartId === 'sparkTable') options.header = false;
+  if (chartId === 'barRace') {
+    options.autoplay = false;
+    options.stepMs = 100;
+  }
+  return options;
+}
+
+async function renderPreviews() {
+  const dir = join(publicData, 'previews');
+  await mkdir(dir, { recursive: true });
+  for (const [id, lesson] of lessons) {
+    const dataset = datasets.get(lesson.dataset);
+    if (!dataset) continue;
+    const options = previewOptions(id, lesson.spec.options);
+    const variants = {};
+    for (const theme of ['light', 'dark']) {
+      const spec = {
+        type: id,
+        data: dataset.rows,
+        encoding: lesson.spec.encoding,
+        options,
+        theme,
+      };
+      try {
+        const svg = renderSpecToSVG(spec, { width: 360, height: 200 });
+        const name = `${id}-${theme}.svg`;
+        await writeFile(join(dir, name), svg, 'utf8');
+        variants[theme] = `data/previews/${name}`;
+      } catch (error) {
+        fail(`previews/${id}-${theme}.svg: ${error.message}`);
+      }
+    }
+    if (variants.light && variants.dark) previewMap.set(id, variants);
+  }
+}
+
+if (!checkOnly && !inspectId) {
+  await renderPreviews();
+}
+
 if (inspectId) {
   const dataset = datasets.get(inspectId);
   if (!dataset) {
@@ -719,6 +805,7 @@ if (!checkOnly) {
         name_zh: entry.name_zh,
         what_zh: entry.what_zh,
         focus: entry.focus,
+        preview: previewMap.get(entry.id) ?? null,
       };
     });
 
@@ -773,6 +860,7 @@ if (!checkOnly) {
         title_zh: dataset.title_zh,
         unit_en: dataset.unit_en,
         unit_short: dataset.unit_short ?? '',
+        decimals: dataset.decimals ?? 0,
         note_zh: dataset.note_zh,
       },
       spec,
@@ -819,6 +907,7 @@ if (!checkOnly) {
           title_zh: workedDataset.title_zh,
           unit_en: workedDataset.unit_en,
           unit_short: workedDataset.unit_short ?? '',
+          decimals: workedDataset.decimals ?? 0,
           note_zh: workedDataset.note_zh,
         },
         spec: workedSpec,

@@ -35,6 +35,12 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
 - `tools/verify.py` 已于 2026-11-18 给 `check_bre` 加 `--strict`；`check_bre.py` 只扫 Markdown，HTML/JSON 内容靠各 app validator。
 - 2026-11-18：用 Claude Code 2.1.318 做无工具单轮测试，根 `CLAUDE.md` 的 `@AGENTS.md` 导入生效（模型能引用 `AGENTS.md` 首段）；新会话仍建议用 `/context all` 复核。
 - 2026-11-18：`check_bre.py --strict apps content` → FIX 0，REVIEW 3（`chips`×2、`surgery`×1，均为词义提示，人工判断）。
+- 2026-11-19（迭代二）：data-viz 增加真实缩略预览、双栏学习布局与可编辑数据。
+  - 预览：构建期用 ztd `renderSpecToSVG` 生成 47 种图表 × 浅/深两套静态 SVG；目录页用 `<img loading="lazy">`，不再同时挂 47 个实时图表；详情页仍用实时 Chart。首屏只预加载 React，ztd 图表包延迟到详情页。
+  - 布局：桌面粘性图表 + 右侧内容 + 粘性章节导航（84px 偏移），移动端单列、横向滑动导航；编辑区在右栏内展开，不遮盖图表。
+  - 实时联动：`src/atlas/live/` 按 47 种图表类型计算极值、排名、占比、趋势、分布、相关、流程、地图、KPI 等；改动数据时图表高亮、Live English、三段完整描述和中文同步更新；原始课程内容保留并标为原始示例。支持撤销、恢复原始数据、空值/零值/负值。
+  - 测试：`verify.py` 248 页 21/21 PASS，data-viz 内容 `content ok: 47 charts, 174 expressions, 7 contexts, 35 datasets`；`node tests/dataviz-live.mjs` 13/13（47 预览、47 图表改数据/重置、撤销、三主题预览、双栏/粘性/导航、手机编辑器）；`node tests/dataviz-ui.mjs` 24/24；`node tests/dataviz-analysis.mjs` 47/47（原始/全零/全相等/负值/整体改动，无 NaN/Infinity）。
+  - 研究：`docs/research-dataviz-playground.md`；没有新增依赖。
 - 2026-11-19：data-viz 重建为「数据英语表达图鉴」（Data Visualization × English Expression Atlas），三个入口 Charts / Expressions / Real-world Contexts；不再做题、不改数据、不判分。
   - 内容：47 种 ztd 图表（9 大类）各一篇课；16 个语言功能分类共 174 条表达；35 个模拟数据集；7 个真实场景（雅思 / 商务演示 / 销售 / 财务 / 职场报告 / 教育 / 日常）。资料研究见 `docs/research-sources.md`。
   - 内容闸门：`apps/data-viz/web/scripts/build-content.mjs` 校验英式英语、练习/问答式措辞、编造数字（只允许数据集值及其差值 / 占比 / 分组和）、失效交叉链接与图表 spec；`verify.py` 每次自动跑。

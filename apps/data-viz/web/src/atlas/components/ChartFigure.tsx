@@ -9,7 +9,7 @@ import { useTheme } from '../use-theme';
 registerMap(world);
 registerMap(usStates);
 
-// 墨绿玻璃主题下，图表强调色跟着站点的薄荷青绿走。
+// Keep the chart palette aligned with the site's three themes.
 const glass: Partial<ChartTheme> = {
   name: 'glass',
   bg: '#0e1418',
@@ -23,15 +23,43 @@ const glass: Partial<ChartTheme> = {
   line2: 'rgba(238, 243, 244, 0.08)',
 };
 
-export function SpecFigure({ spec, dataset }: { spec: ChartSpec; dataset: DatasetMeta }) {
+function ThemedChart({ spec, height, className }: { spec: ChartSpec; height?: number; className?: string }) {
   const theme = useTheme();
   const base = theme === 'light' ? 'light' : 'dark';
   return (
+    <ThemeProvider base={base} theme={theme === 'glass' ? glass : undefined} locale="en-US">
+      <Chart spec={spec} height={height} animate={false} className={className} />
+    </ThemeProvider>
+  );
+}
+
+export function ChartPreview({
+  spec,
+  height = 124,
+}: {
+  spec: ChartSpec;
+  height?: number;
+}) {
+  return (
+    <div className="chart-thumb">
+      <ThemedChart spec={spec} height={height} className="chart-thumb-render" />
+    </div>
+  );
+}
+
+export function SpecFigure({
+  spec,
+  dataset,
+  height,
+}: {
+  spec: ChartSpec;
+  dataset: DatasetMeta;
+  height?: number;
+}) {
+  return (
     <figure className="figure">
       <div className="figure-canvas">
-        <ThemeProvider base={base} theme={theme === 'glass' ? glass : undefined} locale="en-US">
-          <Chart spec={spec} />
-        </ThemeProvider>
+        <ThemedChart spec={spec} height={height} />
       </div>
       <figcaption className="figure-caption">
         <div className="figure-title">
@@ -49,6 +77,14 @@ export function SpecFigure({ spec, dataset }: { spec: ChartSpec; dataset: Datase
   );
 }
 
-export function ChartFigure({ lesson }: { lesson: ChartLesson }) {
-  return <SpecFigure spec={lesson.spec} dataset={lesson.dataset} />;
+export function ChartFigure({
+  lesson,
+  spec,
+  height,
+}: {
+  lesson: ChartLesson;
+  spec?: ChartSpec;
+  height?: number;
+}) {
+  return <SpecFigure spec={spec ?? lesson.spec} dataset={lesson.dataset} height={height} />;
 }

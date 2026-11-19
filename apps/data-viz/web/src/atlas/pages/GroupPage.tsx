@@ -130,7 +130,7 @@ export function GroupPage({ index, id }: { index: AtlasIndex; id: string }) {
       </div>
 
       {group.charts.length ? (
-        <Section kicker="In use" title="Charts that practise this" titleEn="See the language on real charts">
+        <Section kicker="In use" title="Charts that practice this" titleEn="See the language on real charts">
           <div className="chip-row">
             {group.charts.map((item) => (
               <A key={item.chart} href={`#/charts/${item.chart}`} className="chip">

@@ -12,7 +12,7 @@
 | 短语搭配 Collocations（主题词表 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
 | Visual Vocabulary 图解词汇 | https://npesl.pages.dev/visual-vocabulary/ | `apps/visual-vocabulary/` |
 
-> 数据图表英语（Data Visualization × English Expression Atlas）在 `content/data-viz/atlas/` + `apps/data-viz/`，已装配到主站 `/charts/`，但首页不列入入口。页面有三个入口：Charts（按图表种类）、Expressions（按语言功能）、Real-world Contexts（按使用场景）；前端是 React + TypeScript + Vite + ztd-charts，直接访问 `https://npesl.pages.dev/charts/`。
+> 数据图表英语（Data Visualization × English Expression Atlas）在 `content/data-viz/atlas/` + `apps/data-viz/`，已装配到主站 `/charts/`，但首页不列入入口。页面有三个入口：Charts（按图表种类，带真实缩略预览）、Expressions（按语言功能）、Real-world Contexts（按使用场景）；详情页可直接改数据，图表、英文和中文随数据实时更新。前端是 React + TypeScript + Vite + ztd-charts，直接访问 `https://npesl.pages.dev/charts/`。
 
 ## 目录
 
@@ -83,9 +83,14 @@ python -m venv .venv
 .venv\Scripts\python.exe -I tools\drill\make_audio.py
 .venv\Scripts\python.exe -I tools\drill\assemble.py
 
-# 数据图表英语（内容校验 + 前端构建；build_all --only data-viz 会先 npm ci）
+# 数据图表英语（内容校验 + 前端构建 + 静态预览；build_all --only data-viz 会先 npm ci）
 node apps\data-viz\web\scripts\build-content.mjs --check
 npm --prefix apps\data-viz\web run build
+
+# 数据图表英语专项测试（先构建 dist）
+node tests\dataviz-analysis.mjs
+node tests\dataviz-live.mjs
+node tests\dataviz-ui.mjs
 
 # 清理构建垃圾（Edge 临时配置、日志、__pycache__）；--all 连部署暂存一起清
 .venv\Scripts\python.exe -I tools\clean_build.py

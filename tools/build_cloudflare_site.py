@@ -85,6 +85,9 @@ HEADERS = """/fonts/*
 /charts/data/contexts/*.json
   Cache-Control: public, max-age=0, must-revalidate
 
+/charts/data/previews/*.svg
+  Cache-Control: public, max-age=0, must-revalidate
+
 /visual-vocabulary/*.webp
   Cache-Control: public, max-age=604800
 

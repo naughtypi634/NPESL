@@ -50,9 +50,11 @@
 | `drill/tag_chips.py` | 打 `chip` 并把 `topup/` 合并进题库 |
 | `drill/prune_audio.py` | 删除题库不再引用的音频 |
 | `drill/test_app.mjs` | Question Drill 单文件版的行为测试 |
+| `tests/dataviz-analysis.mjs` | 47 种图表的分析鲁棒性：原始、全零、全相等、负值、整体改动，检查无 NaN/Infinity/空分析 |
+| `tests/dataviz-live.mjs` | 一次无头 Edge：47 张预览、47 种图表改数据联动与重置、撤销、主题预览、双栏/粘性/导航、手机编辑器 |
 | `apps/collocation/source/validate.py` | 短语搭配内容校验（改内容后必须先跑） |
-| `apps/data-viz/web/scripts/build-content.mjs` | 数据图表英语内容校验与打包：`--check` 只校验，`--inspect <dataset>` 打印数据集；英式英语、练习措辞、编造数字、失效链接都会失败 |
-| `apps/data-viz/web/` | 数据图表英语 React + TypeScript + Vite + ztd-charts 前端；`npm run build` 先校验内容再 `tsc` + `vite build`，输出 `../dist`，`build_all.py` 缺依赖时先 `npm ci` |
+| `apps/data-viz/web/scripts/build-content.mjs` | 数据图表英语内容校验与打包：`--check` 只校验，`--inspect <dataset>` 打印数据集；同时生成 47 种图表的浅/深色静态预览 SVG；英式英语、练习措辞、编造数字、失效链接都会失败 |
+| `apps/data-viz/web/` | 数据图表英语 React + TypeScript + Vite + ztd-charts 前端；`npm run build` 先校验内容、生成预览再 `tsc` + `vite build`，输出 `../dist`，`build_all.py` 缺依赖时先 `npm ci` |
 | `apps/phonics/source/validate.py` | 自然拼读结构校验 |
 | `apps/phenomena/source/validate.py` | 发音现象标注校验 |
 | `collocation/*.py` | 短语搭配内容流水线：手册导入、词条替换、频率打分、近义 / 反义报告 |

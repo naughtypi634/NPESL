@@ -1,5 +1,38 @@
-import type { AtlasIndex } from '../types';
+import type { AtlasIndex, ChartSummary } from '../types';
+import { useTheme } from '../use-theme';
 import { A, Arrow, FamilyGlyph, PageHead } from '../components/chrome';
+
+function ChartCard({ chart, familyName }: { chart: ChartSummary; familyName: string }) {
+  const theme = useTheme();
+  const preview = chart.preview;
+  const src = preview ? (theme === 'light' ? preview.light : preview.dark) : null;
+
+  return (
+    <A href={`#/charts/${chart.id}`} className="chart-card">
+      <div className="chart-card-preview">
+        {src ? (
+          <img
+            src={`${import.meta.env.BASE_URL}${src}`}
+            alt=""
+            width={360}
+            height={200}
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <div className="chart-preview-placeholder">Preview unavailable</div>
+        )}
+      </div>
+      <div className="chart-card-copy">
+        <span className="chart-card-family">{familyName}</span>
+        <span className="chart-card-en">{chart.name_en}</span>
+        <span className="chart-card-zh">{chart.name_zh}</span>
+        <span className="chart-card-what">{chart.what_zh}</span>
+      </div>
+      <Arrow />
+    </A>
+  );
+}
 
 export function Charts({ index }: { index: AtlasIndex }) {
   const families = [...index.families].sort((a, b) => a.order - b.order);
@@ -10,7 +43,7 @@ export function Charts({ index }: { index: AtlasIndex }) {
         eyebrow="Charts"
         title="Browse by chart"
         titleZh="看图表"
-        lede="先选一种图表，再看它适合什么数据、怎么读，以及描述它可以用的英语。"
+        lede="先看图形预览，再选一种图表。进入详情后，可以直接改数据、观察图表变化，并学习对应的英语表达。"
       />
 
       <nav className="family-jump" aria-label="Chart families">
@@ -41,12 +74,7 @@ export function Charts({ index }: { index: AtlasIndex }) {
             </header>
             <div className="chart-grid">
               {own.map((chart) => (
-                <A key={chart.id} href={`#/charts/${chart.id}`} className="chart-card">
-                  <span className="chart-card-en">{chart.name_en}</span>
-                  <span className="chart-card-zh">{chart.name_zh}</span>
-                  <span className="chart-card-what">{chart.what_zh}</span>
-                  <Arrow />
-                </A>
+                <ChartCard key={chart.id} chart={chart} familyName={family.name_en} />
               ))}
             </div>
           </section>

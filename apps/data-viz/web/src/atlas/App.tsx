@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
 import { loadIndex } from './loader';
 import { Home } from './pages/Home';
 import { Charts } from './pages/Charts';
-import { ChartPage } from './pages/ChartPage';
 import { Expressions } from './pages/Expressions';
 import { GroupPage } from './pages/GroupPage';
 import { Contexts } from './pages/Contexts';
-import { ContextPage } from './pages/ContextPage';
+
+// 图表详情和场景详情才需要 ztd-charts；目录页只加载静态预览图。
+const ChartPage = lazy(() => import('./pages/ChartPage').then((module) => ({ default: module.ChartPage })));
+const ContextPage = lazy(() => import('./pages/ContextPage').then((module) => ({ default: module.ContextPage })));
 import type { AtlasIndex } from './types';
 import { A } from './components/chrome';
 
@@ -135,7 +137,9 @@ export default function App() {
           ))}
         </nav>
       </header>
-      <main id="main">{main}</main>
+      <main id="main">
+        <Suspense fallback={<div className="state"><p>Loading the chart…</p></div>}>{main}</Suspense>
+      </main>
       <footer className="foot">
         <span>{index?.site.title_en ?? 'Data Visualization × English Expression Atlas'}</span>
         <span className="foot-note">{index?.site.footer_note ?? 'Demo data · 模拟数据'}</span>

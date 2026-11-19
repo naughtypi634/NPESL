@@ -38,6 +38,7 @@ export interface ChartSummary {
   name_zh: string;
   what_zh: string;
   focus: string[];
+  preview: { light: string; dark: string } | null;
 }
 
 export interface GroupSummary {
@@ -99,6 +100,7 @@ export interface DatasetMeta {
   title_zh: string;
   unit_en: string;
   unit_short: string;
+  decimals: number;
   note_zh: string;
 }
 
