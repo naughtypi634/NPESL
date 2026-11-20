@@ -1,0 +1,277 @@
+/*
+ * Visual Vocabulary 共用层：听音找图、页尾翻页、场景视图。
+ *
+ * 只放各主题页共享的组件。颜色一律走 theme.css 的 token，不写字面色，
+ * 这样 light / dark / glass 三套主题都不用再分叉。
+ */
+
+/* ---- 页头右侧的操作区 ------------------------------------------------ */
+
+.vv-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 999px;
+  background-color: var(--well-fill);
+  color: var(--muted);
+  box-shadow:
+    inset 0 1px 2px var(--well-shade),
+    inset 0 -1px 0 var(--well-rim);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.vv-btn:hover { color: var(--fg); }
+
+.vv-btn[hidden] { display: none; }
+
+.vv-btn:focus-visible {
+  outline: 2px solid var(--focus-line);
+  outline-offset: 2px;
+}
+
+.vv-btn[aria-pressed="true"] {
+  background-color: var(--blue);
+  color: var(--on-blue);
+  box-shadow:
+    inset 0 1px 0 var(--well-rim),
+    0 1px 2px var(--pane-contact);
+}
+
+.vv-btn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.vv-status {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 3.4em;
+  text-align: right;
+}
+
+.vv-status[hidden] { display: none; }
+
+/* ---- 听音找图的对错反馈 ---------------------------------------------- */
+
+body.vv-quizzing .card { cursor: pointer; }
+
+.vv-quizzing .card.vv-ok {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+  border-radius: var(--radius-control);
+}
+
+.vv-quizzing .card.vv-bad {
+  outline: 2px solid var(--danger);
+  outline-offset: 3px;
+  border-radius: var(--radius-control);
+  animation: vv-shake 0.32s ease;
+}
+
+@keyframes vv-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vv-quizzing .card.vv-bad { animation: none; }
+}
+
+/* ---- 页尾翻页 -------------------------------------------------------- */
+
+.vv-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  max-width: 1180px;
+  margin: 64px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule);
+}
+
+.vv-pager a {
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: none;
+  padding: 8px 0;
+}
+
+.vv-pager a:hover { color: var(--fg); }
+
+.vv-pager a:focus-visible {
+  outline: 2px solid var(--focus-line);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.vv-pager .vv-pager-home {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.vv-pager .vv-pager-next { margin-left: auto; }
+
+/* ---- 场景视图 -------------------------------------------------------- */
+
+.vv-scene-card {
+  max-width: 1180px;
+  margin: 0 auto;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--pane);
+  box-shadow: var(--shadow-card);
+}
+
+.vv-scene {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: var(--pane-solid);
+  touch-action: manipulation;
+}
+
+.vv-scene::-webkit-scrollbar { display: none; }
+
+.vv-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 8 / 5;
+}
+
+.vv-wall {
+  position: absolute;
+  inset: 0 0 34% 0;
+  background: color-mix(in srgb, var(--pane-solid) 92%, var(--fg) 8%);
+}
+
+.vv-floor {
+  position: absolute;
+  inset: 66% 0 0 0;
+  background: color-mix(in srgb, var(--pane-solid) 76%, var(--fg) 24%);
+}
+
+.vv-floor-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 64.5%;
+  height: 1.5%;
+  background: color-mix(in srgb, var(--pane-solid) 64%, var(--fg) 36%);
+}
+
+.vv-obj {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 8px 8px var(--pane-shade));
+  transition: transform 0.18s ease;
+}
+
+.vv-obj img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-control);
+}
+
+.vv-obj:hover { transform: translateY(-2px); }
+
+.vv-obj:focus-visible {
+  outline: 2px solid var(--focus-line);
+  outline-offset: 3px;
+  border-radius: var(--radius-control);
+}
+
+/* 选中用贴着物件外形的光晕，而不是一圈方框：图片是透明底，
+   drop-shadow 会沿着实际轮廓走。 */
+.vv-obj[aria-pressed="true"] {
+  filter:
+    drop-shadow(0 8px 8px var(--pane-shade))
+    drop-shadow(0 0 5px var(--blue))
+    drop-shadow(0 0 5px var(--blue));
+  transform: translateY(-2px) scale(1.03);
+}
+
+.vv-readout {
+  display: flex;
+  align-items: center;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+  min-height: 58px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--rule);
+}
+
+.vv-readout .vv-en { font-weight: 700; font-size: 19px; }
+
+.vv-readout .vv-zh { color: var(--muted); font-size: 14px; }
+
+.vv-readout .vv-hint { color: var(--muted); font-size: 14px; }
+
+.vv-readout .vv-replay { margin-left: auto; }
+
+.vv-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 1180px;
+  margin: 18px auto 0;
+}
+
+.vv-words button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.vv-words button:hover {
+  color: var(--fg);
+  border-color: var(--muted);
+}
+
+.vv-words button[aria-pressed="true"] {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--on-blue);
+}
+
+/* 手机上整张场景图放不下时，物体会缩到 30px 以下、点不准。
+   窄屏把舞台固定成 620px，卡片里横向滑动，物件仍是能点的尺寸。 */
+@media (max-width: 700px) {
+  .vv-stage { width: 620px; }
+  .vv-pager { margin-top: 44px; }
+  .vv-readout .vv-en { font-size: 17px; }
+}
