@@ -26,6 +26,10 @@
   /* 路径规则和主题页一致：有分音色的用 audio/<voice>/<slug>.mp3，
      只有单音源的用 audio/<slug>.mp3。 */
   function audioUrl(card, voice) {
+    /* 借用别的词库（冰箱区借超市的食物词）：给一个音频根目录，按同样的
+       <root>/<voice>/<slug>.mp3 规则拼。 */
+    var root = card.getAttribute('data-audio-root');
+    if (root) return root + '/' + voice + '/' + card.getAttribute('data-vv-word') + '.mp3';
     var slug = card.getAttribute('data-audio-' + voice);
     if (slug) return 'audio/' + voice + '/' + slug + '.mp3';
     slug = card.getAttribute('data-audio');
@@ -157,7 +161,7 @@
      点图任意位置时取最近的点，距离太远就当没点中，墙面、窗子这些空白处不会乱出词。 */
   function initScene(root) {
     var stage = root.querySelector('.vv-stage');
-    var mark = root.querySelector('[data-vv-mark]');
+    var outlines = [].slice.call(root.querySelectorAll('.vv-outline'));
     var en = document.querySelector('[data-vv-en]');
     var zh = document.querySelector('[data-vv-zh]');
     var hint = document.querySelector('[data-vv-hint]');
@@ -189,17 +193,21 @@
       return { x: parseFloat(chip.dataset.x), y: parseFloat(chip.dataset.y) };
     }
 
+    /* state: '' 收起、'on' 悬停预览、'sel' 选中后常亮。
+       每个物件有自己的轮廓层，亮哪一层由词条决定。 */
+    function light(chip, state) {
+      var live = !!chip && (state === 'on' || state === 'sel');
+      outlines.forEach(function (o) {
+        o.classList.toggle('on', live && o.dataset.vvOutline === chip.dataset.vvWord);
+      });
+    }
+
     function select(chip) {
       current = chip;
       chips.forEach(function (c) {
         c.setAttribute('aria-pressed', c === chip ? 'true' : 'false');
       });
-      var p = point(chip);
-      if (mark && isFinite(p.x) && isFinite(p.y)) {
-        mark.style.left = p.x + '%';
-        mark.style.top = p.y + '%';
-        mark.classList.add('on');
-      }
+      light(chip, 'sel');
       if (en) { en.textContent = chip.dataset.en || chip.textContent; en.hidden = false; }
       if (zh) { zh.textContent = chip.dataset.zh || ''; zh.hidden = false; }
       if (hint) hint.hidden = true;
@@ -220,25 +228,43 @@
       chip.addEventListener('click', function () { select(chip); });
     });
 
+    /* 取离指针最近的物件；太远就当没点到，墙面、窗子不会乱出词。 */
+    function pick(e) {
+      var r = stage.getBoundingClientRect();
+      if (!r.width) return null;
+      var px = (e.clientX - r.left) / r.width * 100;
+      var py = (e.clientY - r.top) / r.height * 100;
+      var aspect = r.height / r.width;
+      var best = null;
+      var bestD = Infinity;
+      chips.forEach(function (chip) {
+        var p = point(chip);
+        if (!isFinite(p.x) || !isFinite(p.y)) return;
+        var dx = p.x - px;
+        var dy = (p.y - py) * aspect;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        if (d < bestD) { bestD = d; best = chip; }
+      });
+      return best && bestD <= REACH ? best : null;
+    }
+
     if (stage) {
       stage.addEventListener('click', function (e) {
-        var r = stage.getBoundingClientRect();
-        if (!r.width) return;
-        var px = (e.clientX - r.left) / r.width * 100;
-        var py = (e.clientY - r.top) / r.height * 100;
-        var aspect = r.height / r.width;
-        var best = null;
-        var bestD = Infinity;
-        chips.forEach(function (chip) {
-          var p = point(chip);
-          if (!isFinite(p.x) || !isFinite(p.y)) return;
-          var dx = p.x - px;
-          var dy = (p.y - py) * aspect;
-          var d = Math.sqrt(dx * dx + dy * dy);
-          if (d < bestD) { bestD = d; best = chip; }
-        });
-        if (best && bestD <= REACH) select(best);
+        var hit = pick(e);
+        if (hit) select(hit);
       });
+
+      /* 有鼠标的设备才做悬停预览：靠近哪件，哪件就亮。 */
+      if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+        stage.addEventListener('pointermove', function (e) {
+          var hit = pick(e);
+          if (hit) light(hit, 'on');
+          else light(current, current ? 'sel' : '');
+        });
+        stage.addEventListener('pointerleave', function () {
+          light(current, current ? 'sel' : '');
+        });
+      }
     }
 
     if (replay) {

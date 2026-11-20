@@ -165,26 +165,35 @@ body.vv-quizzing .card { cursor: pointer; }
   display: block;
 }
 
-/* 选中的物件只标一个随画面缩放的圆环，不铺色块：
-   底图是照片级的，盖上去的东西越少越好看。 */
-.vv-mark {
+/* 每个物件一张轮廓图（PNG 的 alpha 就是贴着物件外沿的一圈线），
+   当作 CSS 遮罩、用主题色填出来。所以亮的是物件自己的边，不是方框。
+   悬停套上、点中留住，出现带一点弹簧。 */
+.vv-outline {
   position: absolute;
-  width: 5%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--blue) 65%, transparent),
-    0 6px 16px -6px var(--pane-shade);
-  transform: translate(-50%, -50%) scale(0.6);
-  opacity: 0;
+  background-color: var(--blue);
+  transform: translate(-50%, -50%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
   pointer-events: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
+  opacity: 0;
+  scale: 0.94;
+  transition:
+    opacity 0.14s ease,
+    scale 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.vv-mark.on {
+.vv-outline.on {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+  scale: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vv-outline {
+    transition: opacity 0.14s ease;
+    scale: 1;
+  }
 }
 
 .vv-readout {
