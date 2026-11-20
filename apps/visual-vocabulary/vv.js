@@ -153,8 +153,11 @@
 
   /* ---- 场景视图 ------------------------------------------------------ */
 
+  /* 场景页：每个词在图上有一个人工标好的中心点（data-x / data-y，百分比）。
+     点图任意位置时取最近的点，距离太远就当没点中，墙面、窗子这些空白处不会乱出词。 */
   function initScene(root) {
-    var objs = [].slice.call(root.querySelectorAll('.vv-obj'));
+    var stage = root.querySelector('.vv-stage');
+    var mark = root.querySelector('[data-vv-mark]');
     var en = document.querySelector('[data-vv-en]');
     var zh = document.querySelector('[data-vv-zh]');
     var hint = document.querySelector('[data-vv-hint]');
@@ -165,6 +168,8 @@
     var stored = storedVoice();
     if (stored) voice = stored;
     var audio = null;
+    var current = null;
+    var REACH = 14; /* 命中半径，按画面宽度的百分比算 */
 
     function paintVoice() {
       voiceBtns.forEach(function (b) {
@@ -172,26 +177,34 @@
       });
     }
 
-    function speak(obj) {
-      var url = audioUrl(obj, voice);
+    function speak(chip) {
+      var url = audioUrl(chip, voice);
       if (audio) audio.pause();
       if (!url) return;
       audio = new Audio(url);
       audio.play().catch(function () {});
     }
 
-    function select(obj) {
-      objs.forEach(function (o) {
-        o.setAttribute('aria-pressed', o === obj ? 'true' : 'false');
-      });
+    function point(chip) {
+      return { x: parseFloat(chip.dataset.x), y: parseFloat(chip.dataset.y) };
+    }
+
+    function select(chip) {
+      current = chip;
       chips.forEach(function (c) {
-        c.setAttribute('aria-pressed', c.dataset.vvWord === obj.dataset.slug ? 'true' : 'false');
+        c.setAttribute('aria-pressed', c === chip ? 'true' : 'false');
       });
-      if (en) { en.textContent = obj.dataset.en || ''; en.hidden = false; }
-      if (zh) { zh.textContent = obj.dataset.zh || ''; zh.hidden = false; }
+      var p = point(chip);
+      if (mark && isFinite(p.x) && isFinite(p.y)) {
+        mark.style.left = p.x + '%';
+        mark.style.top = p.y + '%';
+        mark.classList.add('on');
+      }
+      if (en) { en.textContent = chip.dataset.en || chip.textContent; en.hidden = false; }
+      if (zh) { zh.textContent = chip.dataset.zh || ''; zh.hidden = false; }
       if (hint) hint.hidden = true;
       if (replay) replay.hidden = false;
-      speak(obj);
+      speak(chip);
     }
 
     voiceBtns.forEach(function (b) {
@@ -203,25 +216,34 @@
     });
     paintVoice();
 
-    objs.forEach(function (obj) {
-      obj.addEventListener('click', function () { select(obj); });
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () { select(chip); });
     });
 
-    chips.forEach(function (chip) {
-      chip.addEventListener('click', function () {
-        var obj = objs.filter(function (o) {
-          return o.dataset.slug === chip.dataset.vvWord;
-        })[0];
-        if (obj) select(obj);
+    if (stage) {
+      stage.addEventListener('click', function (e) {
+        var r = stage.getBoundingClientRect();
+        if (!r.width) return;
+        var px = (e.clientX - r.left) / r.width * 100;
+        var py = (e.clientY - r.top) / r.height * 100;
+        var aspect = r.height / r.width;
+        var best = null;
+        var bestD = Infinity;
+        chips.forEach(function (chip) {
+          var p = point(chip);
+          if (!isFinite(p.x) || !isFinite(p.y)) return;
+          var dx = p.x - px;
+          var dy = (p.y - py) * aspect;
+          var d = Math.sqrt(dx * dx + dy * dy);
+          if (d < bestD) { bestD = d; best = chip; }
+        });
+        if (best && bestD <= REACH) select(best);
       });
-    });
+    }
 
     if (replay) {
       replay.addEventListener('click', function () {
-        var active = objs.filter(function (o) {
-          return o.getAttribute('aria-pressed') === 'true';
-        })[0];
-        if (active) speak(active);
+        if (current) speak(current);
       });
     }
   }

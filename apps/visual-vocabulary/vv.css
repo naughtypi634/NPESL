@@ -146,15 +146,9 @@ body.vv-quizzing .card { cursor: pointer; }
 
 .vv-scene {
   width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
   background: var(--pane-solid);
   touch-action: manipulation;
 }
-
-.vv-scene::-webkit-scrollbar { display: none; }
 
 .vv-stage {
   position: relative;
@@ -162,62 +156,35 @@ body.vv-quizzing .card { cursor: pointer; }
   aspect-ratio: 8 / 5;
 }
 
-.vv-wall {
+.vv-scene-img {
   position: absolute;
-  inset: 0 0 34% 0;
-  background: color-mix(in srgb, var(--pane-solid) 92%, var(--fg) 8%);
-}
-
-.vv-floor {
-  position: absolute;
-  inset: 66% 0 0 0;
-  background: color-mix(in srgb, var(--pane-solid) 76%, var(--fg) 24%);
-}
-
-.vv-floor-edge {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 64.5%;
-  height: 1.5%;
-  background: color-mix(in srgb, var(--pane-solid) 64%, var(--fg) 36%);
-}
-
-.vv-obj {
-  position: absolute;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  filter: drop-shadow(0 8px 8px var(--pane-shade));
-  transition: transform 0.18s ease;
-}
-
-.vv-obj img {
-  display: block;
+  inset: 0;
   width: 100%;
-  height: auto;
-  border-radius: var(--radius-control);
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.vv-obj:hover { transform: translateY(-2px); }
-
-.vv-obj:focus-visible {
-  outline: 2px solid var(--focus-line);
-  outline-offset: 3px;
-  border-radius: var(--radius-control);
+/* 选中的物件只标一个随画面缩放的圆环，不铺色块：
+   底图是照片级的，盖上去的东西越少越好看。 */
+.vv-mark {
+  position: absolute;
+  width: 5%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--blue) 65%, transparent),
+    0 6px 16px -6px var(--pane-shade);
+  transform: translate(-50%, -50%) scale(0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
-/* 选中用贴着物件外形的光晕，而不是一圈方框：图片是透明底，
-   drop-shadow 会沿着实际轮廓走。 */
-.vv-obj[aria-pressed="true"] {
-  filter:
-    drop-shadow(0 8px 8px var(--pane-shade))
-    drop-shadow(0 0 5px var(--blue))
-    drop-shadow(0 0 5px var(--blue));
-  transform: translateY(-2px) scale(1.03);
+.vv-mark.on {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .vv-readout {
@@ -268,10 +235,7 @@ body.vv-quizzing .card { cursor: pointer; }
   color: var(--on-blue);
 }
 
-/* 手机上整张场景图放不下时，物体会缩到 30px 以下、点不准。
-   窄屏把舞台固定成 620px，卡片里横向滑动，物件仍是能点的尺寸。 */
 @media (max-width: 700px) {
-  .vv-stage { width: 620px; }
   .vv-pager { margin-top: 44px; }
   .vv-readout .vv-en { font-size: 17px; }
 }
