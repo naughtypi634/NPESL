@@ -161,6 +161,7 @@
      点图任意位置时取最近的点，距离太远就当没点中，墙面、窗子这些空白处不会乱出词。 */
   function initScene(root) {
     var stage = root.querySelector('.vv-stage');
+    var lift = root.querySelector('[data-vv-lift]');
     var dots = [].slice.call(root.querySelectorAll('.vv-dot'));
     var en = document.querySelector('[data-vv-en]');
     var zh = document.querySelector('[data-vv-zh]');
@@ -195,11 +196,53 @@
 
     /* state: '' 收起、'on' 悬停预览、'sel' 选中后常亮。
        每个物件自己的点放大，其余保持原样。 */
+    /* 物件从画面里“浮起来”：同一张图放大一点、只露物件轮廓、加一层投影，
+       背景原样不动。没有轮廓图（少数抠不干净的物件）就只放大白点。 */
     function light(chip, state) {
       var live = !!chip && (state === 'on' || state === 'sel');
       dots.forEach(function (d) {
         d.classList.toggle('on', live && d.dataset.vvDot === chip.dataset.vvWord);
       });
+      if (!lift) return;
+      var mask = live ? chip.getAttribute('data-mask') : null;
+      if (!mask) { lift.classList.remove('on'); return; }
+      var url = 'url("' + mask + '")';
+      lift.style.maskImage = url;
+      lift.style.webkitMaskImage = url;
+      lift.style.transformOrigin = chip.dataset.x + '% ' + chip.dataset.y + '%';
+      lift.classList.add('on');
+    }
+
+    /* 轮廓图只在第一次交互之后才开始取，避免首屏多出一串请求。 */
+    var masksWarmed = false;
+    function warmMasks() {
+      if (masksWarmed) return;
+      masksWarmed = true;
+      chips.forEach(function (c, i) {
+        var m = c.getAttribute('data-mask');
+        if (!m) return;
+        window.setTimeout(function () { var img = new Image(); img.src = m; }, i * 120);
+      });
+    }
+    if (stage) {
+      stage.addEventListener('pointerdown', warmMasks, { passive: true });
+      stage.addEventListener('pointermove', warmMasks, { passive: true });
+    }
+
+    /* 音频：空闲时把本页所有词先取回来，点的时候不再等网络。 */
+    function warmAudio() {
+      chips.forEach(function (c) {
+        var url = audioUrl(c, voice);
+        if (!url) return;
+        var a = new Audio();
+        a.preload = 'auto';
+        a.src = url;
+      });
+    }
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(warmAudio, { timeout: 2500 });
+    } else {
+      window.setTimeout(warmAudio, 1200);
     }
 
     function select(chip) {
