@@ -209,7 +209,6 @@
       var url = 'url("' + mask + '")';
       lift.style.maskImage = url;
       lift.style.webkitMaskImage = url;
-      lift.style.transformOrigin = chip.dataset.x + '% ' + chip.dataset.y + '%';
       lift.classList.add('on');
     }
 
