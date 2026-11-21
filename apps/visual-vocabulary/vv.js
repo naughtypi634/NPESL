@@ -161,12 +161,12 @@
      点图任意位置时取最近的点，距离太远就当没点中，墙面、窗子这些空白处不会乱出词。 */
   function initScene(root) {
     var stage = root.querySelector('.vv-stage');
-    var outlines = [].slice.call(root.querySelectorAll('.vv-outline'));
+    var dots = [].slice.call(root.querySelectorAll('.vv-dot'));
     var en = document.querySelector('[data-vv-en]');
     var zh = document.querySelector('[data-vv-zh]');
     var hint = document.querySelector('[data-vv-hint]');
     var replay = document.querySelector('[data-vv-replay]');
-    var chips = [].slice.call(document.querySelectorAll('[data-vv-word]'));
+    var chips = [].slice.call(document.querySelectorAll('.vv-words [data-vv-word]'));
     var voiceBtns = [].slice.call(document.querySelectorAll('[data-voice]'));
     var voice = pressedVoice();
     var stored = storedVoice();
@@ -194,11 +194,11 @@
     }
 
     /* state: '' 收起、'on' 悬停预览、'sel' 选中后常亮。
-       每个物件有自己的轮廓层，亮哪一层由词条决定。 */
+       每个物件自己的点放大，其余保持原样。 */
     function light(chip, state) {
       var live = !!chip && (state === 'on' || state === 'sel');
-      outlines.forEach(function (o) {
-        o.classList.toggle('on', live && o.dataset.vvOutline === chip.dataset.vvWord);
+      dots.forEach(function (d) {
+        d.classList.toggle('on', live && d.dataset.vvDot === chip.dataset.vvWord);
       });
     }
 
@@ -274,11 +274,44 @@
     }
   }
 
+  /* 场景页的两种看法：场景里点，或者一排卡片集中看。 */
+  function initViewToggle() {
+    var buttons = [].slice.call(document.querySelectorAll('[data-vv-view]'));
+    if (!buttons.length) return;
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var view = b.dataset.vvView;
+        buttons.forEach(function (x) {
+          x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+        });
+        document.body.classList.toggle('vv-cards-view', view === 'cards');
+        if (view === 'cards') window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  }
+
+  function initCards() {
+    var cards = [].slice.call(document.querySelectorAll('.vv-card'));
+    if (!cards.length) return;
+    cards.forEach(function (card) {
+      card.addEventListener('click', function () {
+        var voice = pressedVoice();
+        var url = audioUrl(card, voice);
+        if (!url) return;
+        var audio = new Audio(url);
+        audio.play().catch(function () {});
+        cards.forEach(function (c) { c.classList.toggle('on', c === card); });
+      });
+    });
+  }
+
   function ready() {
     var quizBtn = document.querySelector('[data-vv-quiz]');
     if (quizBtn) initQuiz(quizBtn);
     var scene = document.querySelector('[data-vv-scene]');
     if (scene) initScene(scene);
+    initViewToggle();
+    initCards();
   }
 
   if (document.readyState === 'loading') {

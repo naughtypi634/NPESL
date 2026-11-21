@@ -165,35 +165,87 @@ body.vv-quizzing .card { cursor: pointer; }
   display: block;
 }
 
-/* 每个物件一张轮廓图（PNG 的 alpha 就是贴着物件外沿的一圈线），
-   当作 CSS 遮罩、用主题色填出来。所以亮的是物件自己的边，不是方框。
-   悬停套上、点中留住，出现带一点弹簧。 */
-.vv-outline {
+/* 每个物件一个淡白点：安静，但一眼看得出哪里能点。
+   悬停/点中时点放大变亮，带一点弹簧。 */
+.vv-dot {
   position: absolute;
-  background-color: var(--blue);
-  transform: translate(-50%, -50%);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.30),
+    0 1px 4px rgba(0, 0, 0, 0.40);
   pointer-events: none;
-  opacity: 0;
-  scale: 0.94;
+  opacity: 0.72;
+  transform: translate(-50%, -50%) scale(1);
   transition:
-    opacity 0.14s ease,
-    scale 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.16s ease;
 }
 
-.vv-outline.on {
+.vv-dot.on {
   opacity: 1;
-  scale: 1;
+  transform: translate(-50%, -50%) scale(1.9);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vv-outline {
-    transition: opacity 0.14s ease;
-    scale: 1;
-  }
+  .vv-dot { transition: opacity 0.16s ease; }
+}
+
+/* ---- 卡片视图 -------------------------------------------------------- */
+
+.vv-cards { display: none; }
+
+.vv-cards-view .vv-scene-card { display: none; }
+.vv-cards-view .vv-words { display: none; }
+.vv-cards-view .vv-cards {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.vv-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 10px 11px;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--pane);
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.vv-card:hover { transform: translateY(-2px); }
+.vv-card:focus-visible { outline: 2px solid var(--focus-line); outline-offset: 2px; }
+.vv-card.on { outline: 2px solid var(--blue); outline-offset: 2px; }
+.vv-card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+  display: block;
+}
+.vv-card .en { margin-top: 7px; font-weight: 700; font-size: 14px; line-height: 1.25; }
+.vv-card .zh { color: var(--muted); font-size: 12px; }
+
+@media (max-width: 900px) {
+  .vv-cards-view .vv-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  .vv-cards-view .vv-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .vv-card { padding: 8px 6px 9px; }
+  .vv-card .en { font-size: 12px; }
+}
+@media (max-width: 460px) {
+  .vv-cards-view .vv-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .vv-readout {
