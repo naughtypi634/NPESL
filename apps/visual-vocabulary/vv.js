@@ -9,6 +9,51 @@
   'use strict';
 
   var VOICE_KEY = 'vv-voice';
+  var STYLE_KEY = 'vv-style';
+
+  function storedStyle() {
+    try {
+      var v = localStorage.getItem(STYLE_KEY);
+      if (v) return v;
+    } catch (e) {}
+    return null;
+  }
+
+  /* 画风：同一页可能有 1–3 种场景画法。
+     切换时换大图、换每件物件的轮廓遮罩、换主题页缩略图。 */
+  function initStyles() {
+    var btns = [].slice.call(document.querySelectorAll('[data-vv-style]'));
+    if (!btns.length) return;
+    var available = btns.map(function (b) { return b.dataset.vvStyle; });
+    var stored = storedStyle();
+    var style = available.indexOf(stored) >= 0 ? stored : available[0];
+
+    function paint(s) {
+      btns.forEach(function (b) {
+        b.setAttribute('aria-pressed', b.dataset.vvStyle === s ? 'true' : 'false');
+      });
+    }
+
+    function apply(s) {
+      style = s;
+      document.querySelectorAll('[data-src-' + s + ']').forEach(function (img) {
+        var url = img.getAttribute('data-src-' + s);
+        if (url && img.getAttribute('src') !== url) img.setAttribute('src', url);
+      });
+      document.querySelectorAll('[data-mask-' + s + ']').forEach(function (chip) {
+        var mask = chip.getAttribute('data-mask-' + s);
+        if (mask) chip.setAttribute('data-mask', mask);
+      });
+      paint(s);
+      try { localStorage.setItem(STYLE_KEY, s); } catch (e) {}
+      document.dispatchEvent(new CustomEvent('vv-style', { detail: s }));
+    }
+
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () { apply(b.dataset.vvStyle); });
+    });
+    apply(style);
+  }
 
   function pressedVoice() {
     var btn = document.querySelector('[data-voice][aria-pressed="true"]');
@@ -194,6 +239,19 @@
       return { x: parseFloat(chip.dataset.x), y: parseFloat(chip.dataset.y) };
     }
 
+    /* 每个物件在页面上带一个范围框（data-box，百分比四边）。
+       点进框里就算点中这件；框套框时取面积最小的那件，
+       所以台面上的碗优先于台面本身。 */
+    function boxOf(chip) {
+      var raw = chip.getAttribute('data-box');
+      if (!raw) return null;
+      var v = raw.split(',').map(parseFloat);
+      if (v.length !== 4 || !isFinite(v[0]) || !isFinite(v[1])
+          || !isFinite(v[2]) || !isFinite(v[3])) return null;
+      if (v[0] >= v[2] || v[1] >= v[3]) return null;
+      return v;
+    }
+
     /* state: '' 收起、'on' 悬停预览、'sel' 选中后常亮。
        每个物件自己的点放大，其余保持原样。 */
     /* 物件从画面里“浮起来”：同一张图放大一点、只露物件轮廓、加一层投影，
@@ -227,6 +285,13 @@
       stage.addEventListener('pointerdown', warmMasks, { passive: true });
       stage.addEventListener('pointermove', warmMasks, { passive: true });
     }
+
+    /* 换画风后轮廓图也换了：重新预热，并保持当前选中的高亮。 */
+    document.addEventListener('vv-style', function () {
+      masksWarmed = false;
+      light(current, current ? 'sel' : '');
+      if (stage) warmMasks();
+    });
 
     /* 音频：空闲时把本页所有词先取回来，点的时候不再等网络。 */
     function warmAudio() {
@@ -270,12 +335,25 @@
       chip.addEventListener('click', function () { select(chip); });
     });
 
-    /* 取离指针最近的物件；太远就当没点到，墙面、窗子不会乱出词。 */
+    /* 取点中的物件：先看落在哪个范围框里（取最小的），
+       都不在框里再退回「最近点 + 14%」；空白处不响应。 */
     function pick(e) {
       var r = stage.getBoundingClientRect();
       if (!r.width) return null;
       var px = (e.clientX - r.left) / r.width * 100;
       var py = (e.clientY - r.top) / r.height * 100;
+
+      var inBox = null;
+      var inBoxArea = Infinity;
+      chips.forEach(function (chip) {
+        var b = boxOf(chip);
+        if (!b) return;
+        if (px < b[0] || px > b[2] || py < b[1] || py > b[3]) return;
+        var area = (b[2] - b[0]) * (b[3] - b[1]);
+        if (area < inBoxArea) { inBoxArea = area; inBox = chip; }
+      });
+      if (inBox) return inBox;
+
       var aspect = r.height / r.width;
       var best = null;
       var bestD = Infinity;
@@ -332,28 +410,69 @@
     });
   }
 
+  /* 主题页的词卡：点一下出声，同时把这一张标出来。
+     听音找图开启时由上面的捕获阶段接管，这里不会重复触发。 */
   function initCards() {
+    var cards = [].slice.call(document.querySelectorAll('.card[data-slug]'));
+    if (!cards.length) return;
+    function play(card) {
+      var voice = pressedVoice();
+      var url = audioUrl(card, voice);
+      if (url) {
+        var audio = new Audio(url);
+        audio.play().catch(function () {});
+      }
+      cards.forEach(function (c) { c.classList.toggle('playing', c === card); });
+    }
+    cards.forEach(function (card) {
+      card.addEventListener('click', function () { play(card); });
+      card.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        play(card);
+      });
+    });
+    var btns = [].slice.call(document.querySelectorAll('[data-voice]'));
+    if (btns.length) {
+      function paint(v) {
+        btns.forEach(function (b) {
+          b.setAttribute('aria-pressed', b.dataset.voice === v ? 'true' : 'false');
+        });
+      }
+      btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+          var v = b.dataset.voice;
+          try { localStorage.setItem(VOICE_KEY, v); } catch (e) {}
+          paint(v);
+        });
+      });
+      var saved = storedVoice();
+      paint(saved || pressedVoice());
+    }
+  }
+
+  /* 场景页和主题页的卡片视图：点一张放大看，再点一次出声。 */
+  function initSceneCards() {
     var cards = [].slice.call(document.querySelectorAll('.vv-card'));
     if (!cards.length) return;
     cards.forEach(function (card) {
       card.addEventListener('click', function () {
-        var voice = pressedVoice();
-        var url = audioUrl(card, voice);
-        if (!url) return;
-        var audio = new Audio(url);
-        audio.play().catch(function () {});
+        var url = audioUrl(card, pressedVoice());
+        if (url) new Audio(url).play().catch(function () {});
         cards.forEach(function (c) { c.classList.toggle('on', c === card); });
       });
     });
   }
 
   function ready() {
+    initStyles();
     var quizBtn = document.querySelector('[data-vv-quiz]');
     if (quizBtn) initQuiz(quizBtn);
     var scene = document.querySelector('[data-vv-scene]');
     if (scene) initScene(scene);
     initViewToggle();
     initCards();
+    initSceneCards();
   }
 
   if (document.readyState === 'loading') {

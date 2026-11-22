@@ -12,7 +12,7 @@
 |---|---|
 | 改 app 内容 | 根 AGENTS §二/§三 → `apps/<app>/source/AUTHORING.md` 或 `content/collocation/README.md` |
 | 改构建脚本/加 app | 根 AGENTS §三 → `README.md` 构建节 → `tools/README.md` → `tools/build_all.py` 的 `ORDER` → `tools/paths.py` |
-| 改 Visual Vocabulary | `apps/visual-vocabulary/` 是手写源；新增 set 同改 `index.html` 与 `build_cloudflare_site.py` 的 VV 元组 |
+| 改 Visual Vocabulary | 根 AGENTS §二/§三 → `content/visual-vocabulary/`（`topics.json` 主题表、`scenes/*.json` 坐标与画风、`sets/*.json` 词卡）→ `tools/vv/README.md`；页面由 `tools/vv/build_pages.py`、`build_topic_pages.py` 生成，不要手改 |
 | 改 data-viz | 根 AGENTS §三 → `apps/data-viz/source/AUTHORING.md` → `content/data-viz/atlas/`（datasets / expressions / lessons / contexts）→ `apps/data-viz/web/`（React/TS + ztd-charts）；`node apps/data-viz/web/scripts/build-content.mjs --check`；`build_all.py --only data-viz,site`；主站 `/charts/` 直达，首页不列入 |
 | 改小程序 | `tools/miniprogram/build_data.py` 顶部说明（从已构建页面抽取） |
 | 部署 | 根 AGENTS §三 → `README.md` 部署节 → `docs/status.md` 的授权行 |

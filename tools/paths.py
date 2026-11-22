@@ -32,6 +32,7 @@ PHONETICS_PDF = CONTENT / "phonetics" / "Pronunciation音标表.pdf"
 CONVERSATION_CONTENT = CONTENT / "conversation"
 DRILL_CONTENT = CONTENT / "drill"
 COLLOCATION_CONTENT = CONTENT / "collocation"
+VV_CONTENT = CONTENT / "visual-vocabulary"
 DATA_VIZ_CONTENT = CONTENT / "data-viz"
 
 # ---- 应用 ----

@@ -54,6 +54,8 @@ def run_all(with_data_viz: bool = False) -> list[ValidatorResult]:
                      "apps/phonics/source/validate.py"]),
         ("phenomena", [PYTHON, "-I", "-X", "utf8",
                        "apps/phenomena/source/validate.py"]),
+        ("visual-vocabulary", [PYTHON, "-I", "-X", "utf8",
+                               "tools/vv/validate.py"]),
     ]
     results = [_run(name, argv) for name, argv in checks]
     if with_data_viz:

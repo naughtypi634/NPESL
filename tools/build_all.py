@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DV_WEB = ROOT / "apps" / "data-viz" / "web"
 
 ORDER = ["ipa", "phonics", "phenomena", "collocation", "conversation", "drill",
-         "data-viz", "site"]
+         "visual-vocabulary", "data-viz", "site"]
 
 
 def npm_exe() -> str:
@@ -73,6 +73,11 @@ def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple]]:
         "drill": [
             ("Question Drill 语音", ["-I", "tools/drill/make_audio.py"]),
             ("Question Drill 页面", ["-I", "tools/drill/assemble.py"]),
+        ],
+        "visual-vocabulary": [
+            ("图解词汇场景页", ["-I", "tools/vv/build_pages.py"]),
+            ("图解词汇主题页", ["-I", "tools/vv/build_topic_pages.py"]),
+            ("图解词汇烹饪动作", ["-I", "tools/vv/build_actions_page.py"]),
         ],
         "data-viz": [
             ("数据图表英语内容与页面", ["--prefix", str(DV_WEB), "run", "build"], npm_exe()),

@@ -10,7 +10,7 @@
 | Conversation Starters Beginner / Intermediate / ESLSE | https://npesl.pages.dev/conversation/ | `content/conversation/` → `apps/conversation/` |
 | 常见发音现象 | https://npesl.pages.dev/phenomena/ | `apps/phenomena/` |
 | 短语搭配 Collocations（主题词表 + 卡片近义替换） | https://npesl.pages.dev/collocation/ | `content/collocation/` → `apps/collocation/` |
-| Visual Vocabulary 图解词汇 | https://npesl.pages.dev/visual-vocabulary/ | `apps/visual-vocabulary/` |
+| Visual Vocabulary 图解词汇 | https://npesl.pages.dev/visual-vocabulary/ | `content/visual-vocabulary/` → `apps/visual-vocabulary/` |
 
 > 数据图表英语（Data Visualization × English Expression Atlas）在 `content/data-viz/atlas/` + `apps/data-viz/`，已装配到主站 `/charts/`，但首页不列入入口。页面有三个入口：Charts（按图表种类，带真实缩略预览）、Expressions（按语言功能）、Real-world Contexts（按使用场景）；详情页可直接改数据，图表、英文和中文随数据实时更新。前端是 React + TypeScript + Vite + ztd-charts，直接访问 `https://npesl.pages.dev/charts/`。
 
@@ -25,6 +25,7 @@
 | `content/drill/` | Question Drill 题库：`raw/` `reviewed/` `final/` 批次、`questions.json`、翻译与修订表 |
 | `content/collocation/` | 短语搭配：`themes.json` + 每个主题一个词条 JSON（内容源） |
 | `content/data-viz/atlas/` | 数据图表英语：图表课、表达分类、模拟数据集与场景（规范见 `apps/data-viz/source/AUTHORING.md`） |
+| `content/visual-vocabulary/` | 图解词汇：主题表 `topics.json`、场景坐标与画风 `scenes/`、词卡分组 `sets/`（管线见 `tools/vv/README.md`） |
 | `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Light / Dark / Glass） |
 | `apps/phonics/` | 自然拼读网页、`source/`（内容与构建器）、`audio/` |
 | `apps/ipa/` | 音标表网页（`index.html` + `audio/`） |

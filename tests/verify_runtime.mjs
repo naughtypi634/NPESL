@@ -721,6 +721,46 @@ async function probeOverlay() {
   return { ok: opaque, detail: `sheetOpaque=${opaque}` };
 }
 
+async function probeVisualVocabularyScene() {
+  await goto('/visual-vocabulary/home/room-study.html');
+  const target = await evaluate(`(() => {
+    const chips = [...document.querySelectorAll('.vv-words [data-box]')];
+    if (!chips.length) return null;
+    const boxes = chips.map(c => ({
+      slug: c.dataset.vvWord,
+      b: c.dataset.box.split(',').map(Number),
+    }));
+    const me = boxes[0];
+    // 找一个只落在这件物件框里的点（避开套在里面的小物件）
+    for (const fx of [0.5, 0.25, 0.75, 0.15, 0.85]) {
+      for (const fy of [0.5, 0.25, 0.75, 0.15, 0.85]) {
+        const x = me.b[0] + (me.b[2] - me.b[0]) * fx;
+        const y = me.b[1] + (me.b[3] - me.b[1]) * fy;
+        const clash = boxes.some(o => o !== me
+          && x >= o.b[0] && x <= o.b[2] && y >= o.b[1] && y <= o.b[3]);
+        if (!clash) return { word: me.slug, x, y };
+      }
+    }
+    return { word: me.slug, x: (me.b[0] + me.b[2]) / 2, y: (me.b[1] + me.b[3]) / 2 };
+  })()`);
+  if (!target) return { ok: false, detail: '没有带范围框的词条' };
+
+  const hit = await evaluate(`(() => {
+    const stage = document.querySelector('.vv-stage');
+    const r = stage.getBoundingClientRect();
+    const x = r.left + r.width * ${target.x} / 100;
+    const y = r.top + r.height * ${target.y} / 100;
+    stage.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
+    const en = document.querySelector('[data-vv-en]');
+    return { text: en ? en.textContent : '', hidden: en ? en.hidden : true };
+  })()`);
+  const played = await started(8000);
+  return {
+    ok: hit.text === target.word && played,
+    detail: `${target.word} @${target.x.toFixed(0)},${target.y.toFixed(0)} -> ${hit.text} audio=${played}`,
+  };
+}
+
 if (!SKIP_PLAYBACK) {
   await probe('phonics', probePhonics);
   await probe('phonics-all', probePhonicsPlayAll);
@@ -741,6 +781,7 @@ if (!SKIP_PLAYBACK) {
   await probe('phenomena', probePhenomena);
   await probe('phenomena-all', probePhenomenaPlayAll);
   await probe('vv', probeVisualVocabulary);
+  await probe('vv-scene', probeVisualVocabularyScene);
   await probe('themes', probeThemes);
 }
 

@@ -323,10 +323,54 @@ class SiteAudit:
                     self.report.fail(rel, "VV", f"图片未懒加载: {src}")
             if _resolve(page, src, self.site) is None:
                 self.report.fail(rel, "VV", f"图片不存在: {src}")
+            for style in ("flat", "clay", "ink"):
+                alt = re.search(rf'data-src-{style}="([^"]+)"', tag)
+                if alt and _resolve(page, alt.group(1), self.site) is None:
+                    self.report.fail(rel, "VV", f"{style} 场景图不存在: {alt.group(1)}")
         for voice in ("h2", "c"):
             for slug in re.findall(rf'data-audio-{voice}="([^"]+)"', text):
                 self._check_audio(
                     rel, "VV", page.parent / "audio" / voice / f"{slug}.mp3")
+
+        # 跨套借用的录音：路径相对当前页面解析
+        for tag in re.findall(r'<button\b[^>]*data-audio-root="[^"]+"[^>]*>', text):
+            root = re.search(r'data-audio-root="([^"]+)"', tag).group(1)
+            slug = re.search(r'data-vv-word="([^"]+)"', tag)
+            if not slug:
+                continue
+            for voice in ("h2", "c"):
+                p = (page.parent / root / voice / f"{slug.group(1)}.mp3").resolve()
+                if not p.is_file():
+                    self.report.fail(rel, "VV", f"借用录音不存在: {p.name}")
+
+        if 'class="vv-stage"' not in text:
+            return
+
+        # 场景页：点、词条、框、遮罩必须一一对应
+        dots = set(re.findall(r'data-vv-dot="([^"]+)"', text))
+        chips = {}
+        for tag in re.findall(r'<button\b[^>]*data-vv-word="[^"]+"[^>]*data-x="[^"]+"[^>]*>', text):
+            slug = re.search(r'data-vv-word="([^"]+)"', tag).group(1)
+            chips[slug] = tag
+        if dots != set(chips):
+            missing = sorted(dots - set(chips)) or sorted(set(chips) - dots)
+            self.report.fail(rel, "VV", f"白点与词条不匹配: {', '.join(missing[:5])}")
+
+        for slug, tag in chips.items():
+            box = re.search(r'data-box="([^"]+)"', tag)
+            if not box:
+                self.report.fail(rel, "VV", f"{slug} 缺范围框")
+            else:
+                try:
+                    x0, y0, x1, y1 = [float(v) for v in box.group(1).split(",")]
+                    if not (0 <= x0 < x1 <= 100 and 0 <= y0 < y1 <= 100):
+                        raise ValueError
+                except ValueError:
+                    self.report.fail(rel, "VV", f"{slug} 范围框无效: {box.group(1)}")
+            masks = re.findall(r'data-mask(?:-[a-z]+)?="([^"]+)"', tag)
+            for mask in masks:
+                if _resolve(page, mask, self.site) is None:
+                    self.report.fail(rel, "VV", f"{slug} 遮罩不存在: {mask}")
 
     # --------------------------------------------------------------- drill
     def check_drill(self) -> None:

@@ -27,6 +27,9 @@
 | `preview_site.mjs` | 带 Range 的本地静态服务器 |
 | `edge.mjs` | 无头 Edge 助手；`node tools/edge.mjs` 清残留进程 |
 | `../tests/verify_runtime.mjs` | 新版运行时层：全站巡检 + 七应用点读/交互；`--only <case>` 单跑 |
+| `vv/build_pages.py` | 图解词汇场景页：读 `content/visual-vocabulary/scenes/*.json`，写 `apps/visual-vocabulary/<dir>/*.html`；`--check` 只报告过期页 |
+| `vv/build_set_pages.py` | 图解词汇主题页：读 `content/visual-vocabulary/sets/*.json`，替换各套 `<main>`；`--check` 只报告过期页 |
+| `vv/build_actions_page.py` | 图解词汇烹饪动作页：读 `content/visual-vocabulary/actions.json`，补 512px 动作图 |
 | `miniprogram/build_data.py` | 从已构建的 IPA / Phonics / Phenomena 页面抽小程序数据 |
 | `miniprogram/upload_audio.py` | 把小程序引用的音频按内容哈希传到微信云存储 |
 
@@ -76,6 +79,14 @@
 | `apps/phenomena/source/audition_rate.py` | 不同语速试听 |
 | `apps/phonics/source/check_sounds.py` | 用 cmudict 检查音素 |
 | `apps/phonics/source/build_single.py` | 生成单文件版 HTML（tracked，但不在全量构建里） |
+| `vv/gen_scene.py` | 图解词汇场景底图：Qwen-Image 2.1（本机 ComfyUI），1536×960 |
+| `vv/upscale.py` | RealESRGAN 4× 超分到 3072×1920 |
+| `vv/masks.py` | 按 `mbox` 框抠物件轮廓（BiRefNet），输出整幅遮罩 |
+| `vv/gen_i2i.py` | 局部 img2img 重渲染，用于往已有场景里补物件 |
+| `vv/gen_cutout.py` | 单物件词卡图：生成 + 抠底 → 640×640 WebP |
+| `vv/gen_card_image.py` | 补齐整套词卡图（读 `sets/*.json` 的 `prompt` / `reuse`） |
+| `vv/gen_audio.py` | 补齐词卡与动作的男女两版录音（本机 Qwen3-TTS） |
+| `vv/gen_actions.py` | 27 个烹饪动作图 |
 
 ## 关于「pull 下来就能构建」
 
