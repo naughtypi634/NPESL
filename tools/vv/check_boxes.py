@@ -23,8 +23,9 @@ WORK = ROOT / "build" / "vv-work"
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--page", required=True)
-    ap.add_argument("--style", default="", choices=["", "flat", "clay", "ink"])
+    ap.add_argument("--style", default="", choices=["", "flat", "clay", "ink", "pixar", "iso-flat", "iso-pixar", "iso-illust"])
     ap.add_argument("--grid", action="store_true", help="叠 10% 网格，便于读坐标")
+    ap.add_argument("--no-boxes", action="store_true", help="只画网格，不画旧框")
     args = ap.parse_args()
 
     spec = json.loads((VV_CONTENT / "scenes" / f"{args.page}.json").read_text(encoding="utf-8"))
@@ -42,6 +43,12 @@ def main() -> int:
         for i in range(1, 10):
             draw.line([(w * i / 10, 0), (w * i / 10, h)], fill=(120, 160, 255), width=1)
             draw.line([(0, h * i / 10), (w, h * i / 10)], fill=(120, 160, 255), width=1)
+    if args.no_boxes:
+        out = WORK / "qa" / f"{args.page}{'.' + args.style if args.style else ''}.grid.png"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        im.save(out)
+        print(out)
+        return 0
     for word in spec["words"]:
         x0, y0, x1, y1 = word["box"]
         box = [x0 / 100 * w, y0 / 100 * h, x1 / 100 * w, y1 / 100 * h]

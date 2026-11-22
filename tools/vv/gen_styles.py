@@ -19,6 +19,7 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import VV_CONTENT  # noqa: E402
 from restyle import STYLES, clean_prompt  # noqa: E402
 

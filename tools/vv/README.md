@@ -34,12 +34,12 @@
 
 顺序：生成 → 超分 → 遮罩 → 导出。工作文件都在 `build/vv-work/`（gitignore）。
 
-**画风**：全站统一用线描（`ink`）。坐标先在写实图上标好，再用线描图核对；
-遮罩直接从线描图抠，发光才贴合物件：
+**画风**：全站统一用皮克斯 3D 动画风（`pixar`）。以 `flat` 母版重绘，
+构图与坐标一致；遮罩直接从皮克斯图抠，发光才贴合物件：
 
 ```powershell
-.venv\Scripts\python.exe -I toolsvestyle.py --all --styles ink --denoise 0.82 --steps 24 --width 1344 --height 840
-.venv\Scripts\python.exe -I toolsv\masks.py --all --source-style ink
+.venv\Scripts\python.exe -I tools\vv\restyle.py --all --styles pixar --denoise 0.88 --source-style flat --steps 26 --width 1344 --height 840
+.venv\Scripts\python.exe -I tools\vv\masks.py --all --source-style pixar
 ```
 
 单物件词卡与录音：

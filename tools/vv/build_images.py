@@ -94,7 +94,7 @@ def main() -> int:
     ap.add_argument("specs", nargs="*", help="content JSON 路径")
     ap.add_argument("--all", action="store_true", help="导出全部场景")
     ap.add_argument("--source", help="原图路径（默认 build/vv-work/out/<zone>/up.png）")
-    ap.add_argument("--style", default="", choices=["", "flat", "clay", "ink"],
+    ap.add_argument("--style", default="", choices=["", "flat", "clay", "ink", "pixar", "iso-flat", "iso-pixar", "iso-illust"],
                     help="导出某种画风（原图取 build/vv-work/style/<style>/）")
     args = ap.parse_args()
 

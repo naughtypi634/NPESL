@@ -223,6 +223,32 @@ def topic_bar(topics: list[dict], up: str, active: str) -> str:
     return "".join(out)
 
 
+STYLES = [("iso-flat", "扁平"), ("iso-pixar", "皮克斯"), ("iso-illust", "插画")]
+
+
+def topic_styles(topic: dict) -> list[str]:
+    common: list[str] | None = None
+    for item in topic.get("scenes", []):
+        if not isinstance(item, str):
+            continue
+        spec = load(VV_CONTENT / "scenes" / f"{item}.json")
+        styles = set(spec.get("styles", []))
+        common = styles if common is None else (common & styles)
+    return [s for s, _ in STYLES if s in (common or set())]
+
+
+def tools_block(topic: dict) -> str:
+    styles = topic_styles(topic)
+    if len(styles) < 2:
+        return TOOLS
+    btns = "".join(
+        f'<button type="button" data-vv-style="{s}" aria-pressed="false">{label}</button>'
+        for s, label in STYLES if s in styles)
+    seg = '    <div class="seg" role="group" aria-label="画风">' + btns + "</div>" + chr(10)
+    return TOOLS.replace('  <div class="vv-tools">' + chr(10),
+                         '  <div class="vv-tools">' + chr(10) + seg, 1)
+
+
 def scene_tiles(topic: dict, up: str) -> str:
     tiles = []
     for item in topic.get("scenes", []):
@@ -234,6 +260,9 @@ def scene_tiles(topic: dict, up: str) -> str:
             img = f"{img}?v={ver}"
             en, zh = spec["title"], spec["title_zh"]
             extra = ""
+            for style, path in (spec.get("thumbs") or {}).items():
+                extra += f' data-src-{style}="{esc(path)}"'
+
         else:
             href, img = item["file"], item["img"]
             en, zh = item["en"], item["zh"]
@@ -302,7 +331,7 @@ def render_topic(topic: dict, topics: list[dict]) -> tuple[Path, str]:
         up="../",
         bar=topic_bar(topics, "../", topic["id"]),
         h1_en=esc(topic["en"]), h1_zh=esc(topic["zh"]),
-        tools=TOOLS, v=asset_version(),
+        tools=tools_block(topic), v=asset_version(),
         scenes=scene_tiles(topic, "../"),
         body=card_body(data, "../", topic["id"]),
     )

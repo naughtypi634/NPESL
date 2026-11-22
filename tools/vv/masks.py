@@ -212,9 +212,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--page", action="append", default=[])
     ap.add_argument("--all", action="store_true")
-    ap.add_argument("--style", default="", choices=["", "flat", "clay", "ink"])
+    ap.add_argument("--style", default="", choices=["", "flat", "clay", "ink", "pixar", "iso-flat", "iso-pixar", "iso-illust"])
     ap.add_argument("--source-style", default="",
-                    choices=["", "flat", "clay", "ink"],
+                    choices=["", "flat", "clay", "ink", "pixar", "iso-flat", "iso-pixar", "iso-illust"],
                     help="从某种画风的图抠遮罩，但仍写成默认遮罩（三画风共用）")
     ap.add_argument("--no-write", action="store_true", help="只生成遮罩，不改 content JSON")
     args = ap.parse_args()

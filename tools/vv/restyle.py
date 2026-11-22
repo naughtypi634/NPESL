@@ -53,6 +53,25 @@ STYLES = {
             "flat muted color fills, no gradients, slight paper texture, each object "
             "clearly separated with a readable silhouette, no people, no text, "
             "no letters, no logo"),
+    "iso-flat": ("isometric flat vector illustration seen from 25 degrees above, "
+                 "bold clean geometric shapes, solid flat color fills, no gradients, "
+                 "crisp edges, soft pastel palette, every object fully visible, "
+                 "no people, no text, no letters, no logo"),
+    "iso-pixar": ("isometric Pixar 3D cartoon render seen from 25 degrees above, "
+                  "rounded chunky toy-like forms, glossy matte materials, warm "
+                  "cinematic lighting, bright saturated colors, every object fully "
+                  "visible, keep the exact same layout and object positions as "
+                  "the reference image, no people, no text, no letters, no logo"),
+    "iso-illust": ("isometric storybook illustration seen from 25 degrees above, "
+                   "soft hand-painted shading, gentle outlines, warm muted palette, "
+                   "every object fully visible, keep the exact same layout and "
+                   "object positions as the reference image, no people, no text, no letters, "
+                   "no logo"),
+    "pixar": ("Disney Pixar 3D cartoon movie still, exaggerated cartoon "
+              "proportions, big rounded chunky shapes, glossy toy-like plastic "
+              "and soft felt materials, bright saturated candy colors, playful "
+              "cartoon lighting, simple clean background, no people, no text, "
+              "no letters, no logo"),
 }
 
 
@@ -122,7 +141,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--page", action="append", default=[])
     ap.add_argument("--all", action="store_true")
-    ap.add_argument("--styles", default="flat,clay,ink")
+    ap.add_argument("--styles", default="pixar")
     ap.add_argument("--denoise", default="0.62",
                     help="重画幅度，可给多个：0.62,0.78,0.9")
     ap.add_argument("--seed", type=int, default=20261122)

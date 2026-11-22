@@ -23,7 +23,7 @@ TILE_W = 760
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--style", required=True, choices=["flat", "clay", "ink"])
+    ap.add_argument("--style", required=True, choices=["flat", "clay", "ink", "pixar", "iso-flat", "iso-pixar", "iso-illust"])
     ap.add_argument("--topic", default="")
     ap.add_argument("--cols", type=int, default=2)
     args = ap.parse_args()
