@@ -71,6 +71,22 @@ def export(spec: dict, source: Path, style: str = "") -> None:
         print(f"  {page}: {names['']}")
 
 
+def photo_source(spec: dict) -> Path | None:
+    """写实原图：out/<zone>/up.png → seed*.png → v3 seed → 现有导出。"""
+    zone = spec["zone"]
+    roots = [WORK / "out", Path(__file__).resolve().parents[2] / "build" / "vv-scene" / "out"]
+    for root in roots:
+        for folder in (root / zone, root / "v2" / zone, root / "v3" / zone):
+            up = folder / "up.png"
+            if up.exists():
+                return up
+            seeds = sorted(folder.glob("seed*.png"))
+            if seeds:
+                return seeds[0]
+    current = VISUAL_VOCAB_APP / spec["dir"] / spec.get("image", "")
+    return current if spec.get("image") and current.exists() else None
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -97,13 +113,10 @@ def main() -> int:
         elif args.source:
             source = Path(args.source)
         else:
-            source = WORK / "out" / spec["zone"] / "up.png"
-        if not source.exists():
-            alt = sorted(source.parent.glob("seed*.png"))
-            if not alt:
-                print(f"跳过 {spec['page']}：没有原图 {source}")
-                continue
-            source = alt[0]
+            source = photo_source(spec)
+        if source is None or not source.exists():
+            print(f"跳过 {spec['page']}：没有原图")
+            continue
         export(spec, source, args.style)
         path.write_text(json.dumps(spec, ensure_ascii=False, indent=1) + "\n",
                         encoding="utf-8")

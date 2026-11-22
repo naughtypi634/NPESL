@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -24,6 +25,22 @@ def referenced() -> set[str]:
         text = page.read_text(encoding="utf-8")
         for url in REF.findall(text):
             names.add(url.split("/")[-1])
+    # content JSON 里登记的写实原图 / 缩略图 / 遮罩也保留（重画时的基准）
+    for spec_path in (Path(__file__).resolve().parents[2] / "content"
+                      / "visual-vocabulary" / "scenes").glob("*.json"):
+        spec = json.loads(spec_path.read_text(encoding="utf-8"))
+        for value in (spec.get("image"), spec.get("thumb")):
+            if value:
+                names.add(value.split("/")[-1])
+        for group in ("images", "thumbs"):
+            for value in (spec.get(group) or {}).values():
+                names.add(value.split("/")[-1])
+        for word in spec.get("words", []):
+            for key in ("mask",):
+                if word.get(key):
+                    names.add(word[key].split("/")[-1])
+            for value in (word.get("masks") or {}).values():
+                names.add(value.split("/")[-1])
     return names
 
 

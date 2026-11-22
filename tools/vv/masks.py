@@ -123,8 +123,11 @@ def scene_path(spec: dict, style: str) -> Path:
     return VISUAL_VOCAB_APP / spec["dir"] / spec["image"]
 
 
-def run(spec: dict, style: str) -> None:
-    scene_path_ = scene_path(spec, style)
+def run(spec: dict, style: str, source_style: str = "") -> None:
+    if source_style:
+        scene_path_ = WORK / "style" / source_style / f'{spec["page"]}.png'
+    else:
+        scene_path_ = scene_path(spec, style)
     if not scene_path_.exists():
         print("  跳过（没有图）", spec["page"], style)
         return
@@ -210,6 +213,9 @@ def main() -> int:
     ap.add_argument("--page", action="append", default=[])
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--style", default="", choices=["", "flat", "clay", "ink"])
+    ap.add_argument("--source-style", default="",
+                    choices=["", "flat", "clay", "ink"],
+                    help="从某种画风的图抠遮罩，但仍写成默认遮罩（三画风共用）")
     ap.add_argument("--no-write", action="store_true", help="只生成遮罩，不改 content JSON")
     args = ap.parse_args()
 
@@ -222,7 +228,7 @@ def main() -> int:
 
     for path in paths:
         spec = json.loads(path.read_text(encoding="utf-8"))
-        run(spec, args.style)
+        run(spec, args.style, args.source_style)
         if not args.no_write:
             path.write_text(json.dumps(spec, ensure_ascii=False, indent=1) + "\n",
                             encoding="utf-8")

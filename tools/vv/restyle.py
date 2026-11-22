@@ -101,7 +101,11 @@ def clean_prompt(text: str) -> str:
     return " ".join(text.split()).strip(" ,")
 
 
-def source_image(spec: dict) -> Path | None:
+def source_image(spec: dict, source_style: str = "") -> Path | None:
+    if source_style:
+        p = WORK / "style" / source_style / f'{spec["page"]}.png'
+        if p.exists():
+            return p
     up = WORK / "out" / spec["zone"] / "up.png"
     if up.exists():
         return up
@@ -127,6 +131,8 @@ def main() -> int:
     ap.add_argument("--height", type=int, default=H)
     ap.add_argument("--skip-existing", action="store_true",
                     help="已有该画风的成品就跳过（断点续跑）")
+    ap.add_argument("--source-style", default="",
+                    help="以某种画风为母版再重绘（保证多画风共用同一构图）")
     args = ap.parse_args()
 
     denoises = [float(v) for v in str(args.denoise).split(",") if v.strip()]
@@ -149,7 +155,7 @@ def main() -> int:
     jobs = []
     for path in paths:
         spec = json.loads(path.read_text(encoding="utf-8"))
-        src = source_image(spec)
+        src = source_image(spec, args.source_style)
         if not src:
             print("跳过（没有原图）", spec["page"])
             continue

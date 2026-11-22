@@ -34,6 +34,15 @@
 
 顺序：生成 → 超分 → 遮罩 → 导出。工作文件都在 `build/vv-work/`（gitignore）。
 
+**画风**：三种画风（`flat` 扁平 / `clay` 柔光 / `ink` 线描）共用一套坐标。
+先由写实图重绘出 `flat`，再用 `flat` 作母版生成 `clay`、`ink`，
+所以三张图构图一致，热点和遮罩只需要一套：
+
+```powershell
+.venv\Scripts\python.exe -I tools\vv\restyle.py --all --styles flat --denoise 0.9
+.venv\Scripts\python.exe -I tools\vv\restyle.py --all --styles clay,ink --denoise 0.9 --source-style flat --steps 24 --width 1344 --height 840
+```
+
 ```powershell
 # 1. 场景底图（提示词写进命令，或存成文本用 --prompt-file）
 .venv\Scripts\python.exe -I tools\vv\gen_scene.py --prompt-file p.txt --out build\vv-work\out\study --seeds 2
