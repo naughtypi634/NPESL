@@ -20,6 +20,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from paths import VV_CONTENT, VISUAL_VOCAB_APP  # noqa: E402
 
 
+_HASH_CACHE: dict[str, str] = {}
+
+
+def file_version(path: Path) -> str:
+    key = str(path)
+    if key not in _HASH_CACHE:
+        _HASH_CACHE[key] = hashlib.sha1(path.read_bytes()).hexdigest()[:8] if path.exists() else "0"
+    return _HASH_CACHE[key]
+
+
 def asset_version() -> str:
     digest = hashlib.sha1()
     for name in ("vv.css", "vv.js"):
@@ -220,6 +230,8 @@ def scene_tiles(topic: dict, up: str) -> str:
             spec = load(VV_CONTENT / "scenes" / f"{item}.json")
             href = f'{item}.html'
             img = spec["thumb"]
+            ver = file_version(VISUAL_VOCAB_APP / spec["dir"] / spec["thumb"])
+            img = f"{img}?v={ver}"
             en, zh = spec["title"], spec["title_zh"]
             extra = ""
         else:

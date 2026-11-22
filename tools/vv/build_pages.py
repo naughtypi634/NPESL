@@ -21,6 +21,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from paths import VV_CONTENT, VISUAL_VOCAB_APP  # noqa: E402
 
 
+_HASH_CACHE: dict[str, str] = {}
+
+
+def file_version(path: Path) -> str:
+    """给没有内容哈希的图片加 ?v=，避免浏览器拿旧缓存。"""
+    key = str(path)
+    if key not in _HASH_CACHE:
+        _HASH_CACHE[key] = hashlib.sha1(path.read_bytes()).hexdigest()[:8] if path.exists() else "0"
+    return _HASH_CACHE[key]
+
+
 def asset_version() -> str:
     """共用 css/js 的内容哈希，写进 URL 让浏览器换新。"""
     digest = hashlib.sha1()
@@ -176,7 +187,8 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
 
         mask = ""
         if w.get("mask"):
-            mask = f' data-mask="{w["mask"]}"'
+            mask_path = VISUAL_VOCAB_APP / spec["dir"] / w["mask"]
+            mask = f' data-mask="{w["mask"]}?v={file_version(mask_path)}"'
 
         box = ""
         if w.get("box"):
