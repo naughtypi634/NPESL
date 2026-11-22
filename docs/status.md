@@ -2,7 +2,7 @@
 
 本文件是 NPESL 唯一允许写计数、日期、门禁基线和一次性授权的地方。它不是规范；规范见根 `AGENTS.md` 与 `README.md`。
 
-- last_verified: 2026-11-22
+- last_verified: 2026-11-23
 - 维护方式：计数或门禁基线变化时更新本文件；规范文件不写会变的数字。
 
 ## 应用与内容计数
@@ -17,7 +17,7 @@
 | Phonics | 48 课 | `apps/phonics/source/content/` |
 | IPA | 40 音标 × 10 词 × 男女两版 | `apps/ipa/` |
 | Phenomena | 30 章 | `apps/phenomena/` |
-| Visual Vocabulary | 7 主题 / 36 场景 / 292 热点 / 线描画风 | `content/visual-vocabulary/` → `tools/vv/` → `apps/visual-vocabulary/` |
+| Visual Vocabulary | 7 主题 / 36 场景 / 287 热点 / 等距扁平（线上） | `content/visual-vocabulary/` → `tools/vv/` → `apps/visual-vocabulary/` |
 
 ## 语音后端
 
@@ -37,7 +37,7 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
   - 主题 7 个：厨房 / 家居 / 服装 / 食物 / 身体部位 / 美妆与护肤 / 出行；场景 36 个、热点 292 个、词卡 7 套。`home` 的 227 张词卡拆成厨房 60 张 + 家居 167 张，`home/index.html` 下线。
   - 交互：命中改为按物件范围框（重叠取面积最小的），点物件任意位置都能选中；模拟命中率 54% → 96%。卡片视图恢复（上一轮改发光时误删的样式）。
   - 层级：每个主题只有一张落地页（场景缩略图 + 分组词卡），所有页面顶部有七个主题的直达条；去掉跨主题的线性翻页，场景页只保留「返回主题 + 同主题前后」。
-  - 画风只保留线描（`ink`）：全站场景统一使用线描重绘版，页头不再有画风切换。遮罩直接从线描图重抠（`masks.py --source-style ink`），悬停发光与画面物件对齐；只剩 4 个热点没有轮廓图。
+  - 场景按「等距、俯视 25°」从零重建（提示词生成，不再从旧写实图重绘），37 个未画出物件的词条从该场景的热点里移除，词卡表不变。线上使用**等距扁平**（`iso-flat`），坐标与遮罩都按新构图重标；只剩 2 个热点没有轮廓图。另两套候选画风（等距皮克斯 3D、等距插画）已各生成 36 张，构图不同，需选定后单独标注坐标才能上线。对照图在 `build/vv-work/qa/gallery-*.jpg`。
   - 内容源迁入 `content/visual-vocabulary/`（`topics.json`、`scenes/*.json`、`sets/*.json`、`actions.json`），页面由 `tools/vv/` 生成并接入 `build_all.py` 的 `visual-vocabulary` 步骤。
   - 校验：`tools/vv/validate.py` 进 verify 内容层（坐标 / 范围框 / 遮罩 / 录音 / 主题归属）；`tests/verify_runtime.mjs` 新增 `vv-scene` 用例（点物件框边缘能选中并出声）。
   - 补齐内衣场景里已画出但没标的 `boxer shorts`。
