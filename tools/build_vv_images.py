@@ -40,7 +40,9 @@ IMG_RE = re.compile(r"<img\b(?![^>]*\bloading=)", re.IGNORECASE)
 
 
 def source_images() -> list[Path]:
-    return sorted(VISUAL_VOCAB_APP.rglob("*.webp"))
+    """只要 640×640 的词卡图；场景大图（assets/scenes）自己带尺寸，不进这条管线。"""
+    return sorted(p for p in VISUAL_VOCAB_APP.rglob("*.webp")
+                  if "assets/scenes" not in p.as_posix())
 
 
 def _render(src: Path, dst: Path) -> None:
