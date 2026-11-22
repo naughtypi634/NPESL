@@ -9,51 +9,6 @@
   'use strict';
 
   var VOICE_KEY = 'vv-voice';
-  var STYLE_KEY = 'vv-style';
-
-  function storedStyle() {
-    try {
-      var v = localStorage.getItem(STYLE_KEY);
-      if (v) return v;
-    } catch (e) {}
-    return null;
-  }
-
-  /* 画风：同一页可能有 1–3 种场景画法。
-     切换时换大图、换每件物件的轮廓遮罩、换主题页缩略图。 */
-  function initStyles() {
-    var btns = [].slice.call(document.querySelectorAll('[data-vv-style]'));
-    if (!btns.length) return;
-    var available = btns.map(function (b) { return b.dataset.vvStyle; });
-    var stored = storedStyle();
-    var style = available.indexOf(stored) >= 0 ? stored : available[0];
-
-    function paint(s) {
-      btns.forEach(function (b) {
-        b.setAttribute('aria-pressed', b.dataset.vvStyle === s ? 'true' : 'false');
-      });
-    }
-
-    function apply(s) {
-      style = s;
-      document.querySelectorAll('[data-src-' + s + ']').forEach(function (img) {
-        var url = img.getAttribute('data-src-' + s);
-        if (url && img.getAttribute('src') !== url) img.setAttribute('src', url);
-      });
-      document.querySelectorAll('[data-mask-' + s + ']').forEach(function (chip) {
-        var mask = chip.getAttribute('data-mask-' + s);
-        if (mask) chip.setAttribute('data-mask', mask);
-      });
-      paint(s);
-      try { localStorage.setItem(STYLE_KEY, s); } catch (e) {}
-      document.dispatchEvent(new CustomEvent('vv-style', { detail: s }));
-    }
-
-    btns.forEach(function (b) {
-      b.addEventListener('click', function () { apply(b.dataset.vvStyle); });
-    });
-    apply(style);
-  }
 
   function pressedVoice() {
     var btn = document.querySelector('[data-voice][aria-pressed="true"]');
@@ -286,13 +241,6 @@
       stage.addEventListener('pointermove', warmMasks, { passive: true });
     }
 
-    /* 换画风后轮廓图也换了：重新预热，并保持当前选中的高亮。 */
-    document.addEventListener('vv-style', function () {
-      masksWarmed = false;
-      light(current, current ? 'sel' : '');
-      if (stage) warmMasks();
-    });
-
     /* 音频：空闲时把本页所有词先取回来，点的时候不再等网络。 */
     function warmAudio() {
       chips.forEach(function (c) {
@@ -465,7 +413,6 @@
   }
 
   function ready() {
-    initStyles();
     var quizBtn = document.querySelector('[data-vv-quiz]');
     if (quizBtn) initQuiz(quizBtn);
     var scene = document.querySelector('[data-vv-scene]');

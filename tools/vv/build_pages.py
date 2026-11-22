@@ -79,7 +79,6 @@ main {{ max-width: 1180px; margin: 0 auto; }}
   <h1>{title} <span>{title_zh}</span></h1>
   <div class="vv-tools">
     <div class="seg" role="group" aria-label="视图"><button type="button" data-vv-view="scene" aria-pressed="true">场景</button><button type="button" data-vv-view="cards" aria-pressed="false">卡片</button></div>
-    <div class="seg" role="group" aria-label="画风">{style_btns}</div>
     <div class="seg" role="group" aria-label="音色"><span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span><button type="button" data-voice="h2" aria-pressed="true">女声</button><button type="button" data-voice="c" aria-pressed="false">男声</button></div>
   </div>
 </header>
@@ -87,7 +86,7 @@ main {{ max-width: 1180px; margin: 0 auto; }}
 <div class="vv-scene-card">
   <div class="vv-scene" data-vv-scene>
     <div class="vv-stage">
-      <img class="vv-scene-img" alt="" width="{w}" height="{h}" src="{img}"{srcset} loading="lazy" fetchpriority="high" decoding="async">
+      <img class="vv-scene-img" alt="" width="{w}" height="{h}" src="{img}" loading="lazy" fetchpriority="high" decoding="async">
       <span class="vv-lift" data-vv-lift aria-hidden="true"></span>
 {dots}
     </div>
@@ -121,23 +120,13 @@ main {{ max-width: 1180px; margin: 0 auto; }}
 
 DOT = '      <span class="vv-dot" data-vv-dot="{slug}" style="left:{cx}%;top:{cy}%"></span>'
 CHIP = ('  <button type="button" data-vv-word="{slug}" data-en="{en}" data-zh="{zh}" '
-        'data-x="{cx}" data-y="{cy}"{box}{mask}{masks}{audio} aria-pressed="false">{en}</button>')
+        'data-x="{cx}" data-y="{cy}"{box}{mask}{audio} aria-pressed="false">{en}</button>')
 CARD = ('  <button type="button" class="vv-card" data-vv-word="{slug}"'
         '{audio}><img loading="lazy" decoding="async" alt="" '
         'src="{img}"><span class="en">{en}</span>'
         '<span class="zh">{zh}</span></button>')
 
 W, H = 2400, 1500
-STYLE_LABEL = {"flat": "扁平", "clay": "柔光", "ink": "线描"}
-STYLE_ORDER = ["flat", "clay", "ink"]
-
-
-def style_buttons(spec: dict) -> str:
-    styles = [s for s in STYLE_ORDER if s in spec.get("styles", [])]
-    return "".join(
-        f'<button type="button" data-vv-style="{s}" aria-pressed="false">'
-        f'{STYLE_LABEL[s]}</button>' for s in styles)
-
 
 def audio_attrs(word: dict) -> str:
     root = word.get("audio_root")
@@ -189,10 +178,6 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
         if w.get("mask"):
             mask = f' data-mask="{w["mask"]}"'
 
-        masks = ""
-        for style, path in (w.get("masks") or {}).items():
-            masks += f' data-mask-{style}="{path}"'
-
         box = ""
         if w.get("box"):
             x0, y0, x1, y1 = (round(float(v), 2) for v in w["box"])
@@ -200,7 +185,7 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
 
         audio = audio_attrs(w)
         chips.append(CHIP.format(slug=w["slug"], en=w["en"], zh=w["zh"],
-                                 cx=cx, cy=cy, box=box, mask=mask, masks=masks,
+                                 cx=cx, cy=cy, box=box, mask=mask,
                                  audio=audio))
 
         img = w.get("img") or f'assets/{spec["dir"]}/color/{w["slug"]}.webp'
@@ -227,8 +212,8 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
         else spec["image"]
 
     return PAGE.format(
-        title=spec["title"], title_zh=spec["title_zh"], img=default_img,
-        w=W, h=H, srcset=srcset, style_btns=style_buttons(spec), v=asset_version(),
+        title=spec["title"], title_zh=spec["title_zh"], img=spec["image"],
+        w=W, h=H, v=asset_version(),
         bar=topic_bar(topics, topic["id"]),
         dots="\n".join(dots), chips="\n".join(chips), cards="\n".join(cards),
         prev_href=prev_href, prev_label=prev_label,

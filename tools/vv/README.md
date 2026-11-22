@@ -34,27 +34,12 @@
 
 顺序：生成 → 超分 → 遮罩 → 导出。工作文件都在 `build/vv-work/`（gitignore）。
 
-**画风**：三种画风（`flat` 扁平 / `clay` 柔光 / `ink` 线描）共用一套坐标。
-先由写实图重绘出 `flat`，再用 `flat` 作母版生成 `clay`、`ink`，
-所以三张图构图一致，热点和遮罩只需要一套：
+**画风**：全站统一用线描（`ink`）。坐标先在写实图上标好，再用线描图核对；
+遮罩直接从线描图抠，发光才贴合物件：
 
 ```powershell
-.venv\Scripts\python.exe -I tools\vv\restyle.py --all --styles flat --denoise 0.9
-.venv\Scripts\python.exe -I tools\vv\restyle.py --all --styles clay,ink --denoise 0.9 --source-style flat --steps 24 --width 1344 --height 840
-```
-
-```powershell
-# 1. 场景底图（提示词写进命令，或存成文本用 --prompt-file）
-.venv\Scripts\python.exe -I tools\vv\gen_scene.py --prompt-file p.txt --out build\vv-work\out\study --seeds 2
-
-# 2. 超分到 3072×1920
-.venv\Scripts\python.exe -I tools\vv\upscale.py --image build\vv-work\out\study\seedXXX.png --out build\vv-work\out\study\up.png
-
-# 3. 物件遮罩（读 scenes/*.json 的 box）
-.venv\Scripts\python.exe -I tools\vv\masks.py --spec content\visual-vocabulary\scenes\room-study.json
-
-# 4. 导出 2400×1500 / 960 缩略图（见 build_images.py，重画时用）
-.venv\Scripts\python.exe -I tools\vv\build_images.py content\visual-vocabulary\scenes\room-study.json
+.venv\Scripts\python.exe -I toolsvestyle.py --all --styles ink --denoise 0.82 --steps 24 --width 1344 --height 840
+.venv\Scripts\python.exe -I toolsv\masks.py --all --source-style ink
 ```
 
 单物件词卡与录音：
