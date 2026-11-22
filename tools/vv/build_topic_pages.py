@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import sys
@@ -17,6 +18,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from paths import VV_CONTENT, VISUAL_VOCAB_APP  # noqa: E402
+
+
+def asset_version() -> str:
+    digest = hashlib.sha1()
+    for name in ("vv.css", "vv.js"):
+        p = VISUAL_VOCAB_APP / name
+        if p.exists():
+            digest.update(p.read_bytes())
+    return digest.hexdigest()[:10]
 
 TOOLS = """  <div class="vv-tools">
     <div class="seg" role="group" aria-label="音色"><span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span><button type="button" data-voice="h2" aria-pressed="true">女声</button><button type="button" data-voice="c" aria-pressed="false">男声</button></div>
@@ -127,7 +137,7 @@ PAGE = """<!doctype html>
 <style>
 {css}
 </style>
-<link rel="stylesheet" href="{up}vv.css">
+<link rel="stylesheet" href="{up}vv.css?v={v}">
 </head>
 <body>
 <nav class="vv-topics" aria-label="主题">{bar}</nav>
@@ -139,7 +149,7 @@ PAGE = """<!doctype html>
 {scenes}{body}
 </main>
 <footer class="vv-foot"><a href="{up}">‹ 全部主题</a></footer>
-<script src="{up}vv.js" defer></script>
+<script src="{up}vv.js?v={v}" defer></script>
 </body>
 </html>
 """
@@ -307,7 +317,7 @@ def render_topic(topic: dict, topics: list[dict]) -> tuple[Path, str]:
         up="../",
         bar=topic_bar(topics, "../", topic["id"]),
         h1_en=esc(topic["en"]), h1_zh=esc(topic["zh"]),
-        tools=tools_block(topic),
+        tools=tools_block(topic), v=asset_version(),
         scenes=scene_tiles(topic, "../"),
         body=card_body(data, "../", topic["id"]),
     )

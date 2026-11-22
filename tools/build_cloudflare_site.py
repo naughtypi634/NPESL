@@ -89,7 +89,22 @@ HEADERS = """/fonts/*
   Cache-Control: public, max-age=0, must-revalidate
 
 /visual-vocabulary/*.webp
-  Cache-Control: public, max-age=604800
+  Cache-Control: public, max-age=2592000
+
+/visual-vocabulary/*.jpg
+  Cache-Control: public, max-age=2592000
+
+/visual-vocabulary/*.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/visual-vocabulary/*.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/theme.css
+  Cache-Control: public, max-age=86400
+
+/theme.js
+  Cache-Control: public, max-age=86400
 
 /drill/audio/*
   Cache-Control: public, max-age=31536000, immutable

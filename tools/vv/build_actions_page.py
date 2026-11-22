@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -73,7 +74,7 @@ h2:first-of-type {{ margin-top: 0; }}
   h2 {{ margin: 24px 0 10px; }}
 }}
 </style>
-<link rel="stylesheet" href="../vv.css">
+<link rel="stylesheet" href="../vv.css?v={v}">
 </head>
 <body class="vv-cards-view">
 <nav class="vv-topics" aria-label="主题">{bar}</nav>
@@ -91,7 +92,7 @@ h2:first-of-type {{ margin-top: 0; }}
   <a class="vv-pager-home" href="../">全部主题</a>
   <a class="vv-pager-next" href="rooms.html">Rooms 房间 ›</a>
 </nav>
-<script src="../vv.js" defer></script>
+<script src="../vv.js?v={v}" defer></script>
 </body>
 </html>
 """
@@ -100,6 +101,15 @@ CARD = ('  <button type="button" class="vv-card" data-vv-word="{slug}" '
         'data-audio-h2="{slug}" data-audio-c="{slug}">'
         '<img loading="lazy" decoding="async" alt="" src="assets/actions/{file}">'
         '<span class="en">{en}</span><span class="zh">{zh}</span></button>')
+
+
+def asset_version() -> str:
+    digest = hashlib.sha1()
+    for name in ("vv.css", "vv.js"):
+        p = VISUAL_VOCAB_APP / name
+        if p.exists():
+            digest.update(p.read_bytes())
+    return digest.hexdigest()[:10]
 
 
 def topic_bar() -> str:
@@ -149,7 +159,8 @@ def main() -> int:
         blocks.append('</div>')
 
     (APP / "kitchen-actions.html").write_text(
-        PAGE.format(sections="\n".join(blocks), bar=topic_bar()),
+        PAGE.format(sections="\n".join(blocks), bar=topic_bar(),
+                    v=asset_version()),
         encoding="utf-8", newline="")
     print("kitchen-actions.html:", sum(len(v) for v in buckets.values()), "个动作")
     return 0

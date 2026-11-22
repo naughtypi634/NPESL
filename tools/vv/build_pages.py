@@ -12,12 +12,23 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from paths import VV_CONTENT, VISUAL_VOCAB_APP  # noqa: E402
+
+
+def asset_version() -> str:
+    """共用 css/js 的内容哈希，写进 URL 让浏览器换新。"""
+    digest = hashlib.sha1()
+    for name in ("vv.css", "vv.js"):
+        p = VISUAL_VOCAB_APP / name
+        if p.exists():
+            digest.update(p.read_bytes())
+    return digest.hexdigest()[:10]
 
 PAGE = """<!doctype html>
 <html lang="en">
@@ -60,7 +71,7 @@ main {{ max-width: 1180px; margin: 0 auto; }}
   header {{ padding-top: 22px; align-items: flex-start; }}
 }}
 </style>
-<link rel="stylesheet" href="../vv.css">
+<link rel="stylesheet" href="../vv.css?v={v}">
 </head>
 <body>
 <nav class="vv-topics" aria-label="主题">{bar}</nav>
@@ -103,7 +114,7 @@ main {{ max-width: 1180px; margin: 0 auto; }}
   <a class="vv-pager-home" href="{home_href}">{home_label}</a>
   <a class="vv-pager-next" href="{next_href}">{next_label}</a>
 </nav>
-<script src="../vv.js" defer></script>
+<script src="../vv.js?v={v}" defer></script>
 </body>
 </html>
 """
@@ -217,7 +228,7 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
 
     return PAGE.format(
         title=spec["title"], title_zh=spec["title_zh"], img=default_img,
-        w=W, h=H, srcset=srcset, style_btns=style_buttons(spec),
+        w=W, h=H, srcset=srcset, style_btns=style_buttons(spec), v=asset_version(),
         bar=topic_bar(topics, topic["id"]),
         dots="\n".join(dots), chips="\n".join(chips), cards="\n".join(cards),
         prev_href=prev_href, prev_label=prev_label,
