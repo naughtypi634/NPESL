@@ -152,4 +152,9 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
   - 主站：`npx wrangler pages deploy build/cloudflare-site --project-name npesl --branch main`，部署 id `faa3bc44`（https://faa3bc44.npesl.pages.dev，正式地址 https://npesl.pages.dev）。本次增量上传 293 个文件。
   - 音频站未部署：母版零改动，sprite 内容与文件名与原来一致。
   - 线上核对：`/theme.css` 已是 coss 令牌 + Inter；`/ipa/` 改为外链 theme.css、无内嵌残留；`/phenomena/` 入口脚本 `main-CCjWMkxy.js` 200；7 个入口全部 200。
+- 2026-11-23：**清理 79 项待提交改动并再次发布**。
+  - 构建：`build_all.py --only ipa,phonics,phenomena,visual-vocabulary,data-viz,site` 全部 PASS；`verify.py` 22/22、286/286 页通过，英式英语新增 0。
+  - 音标表源文件中删掉的 7 个 /ər/ 例词已恢复：构建要求与 PDF 内嵌录音逐词对齐（40 组 × 10 词），删词后无法通过且没有配套新录音。
+  - data-viz 新增的 `charts/ lesson/ engine/ content/data-viz/{datasets,lessons,phrases}` 目前未被入口引用，不影响线上 `/charts/`。
+  - 主站：部署 id `87540102`（https://87540102.npesl.pages.dev），增量上传 77 个文件；音频母版零改动，音频站未部署。
 

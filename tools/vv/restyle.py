@@ -57,6 +57,17 @@ STYLES = {
                  "vivid flat color fills (never grey or monochrome), no gradients, "
                  "crisp edges, soft pastel palette, every object fully visible, "
                  "no people, no text, no letters, no logo"),
+    "real": ("photorealistic still-life photograph, true-to-life materials such "
+             "as wood, ceramic, brushed stainless steel and cotton fabric, soft "
+             "daylight from the left, gentle realistic shadows, subtle ambient "
+             "occlusion, restrained unified color palette, matte surfaces with no "
+             "plastic shine, accurate proportions and fine details, no people, "
+             "no text, no letters, no logo"),
+    "ghibli": ("Studio Ghibli style hand-painted animation film still, soft "
+               "gouache and watercolor textures, visible brush strokes, warm "
+               "sunlight, lush natural colors, gentle ink outlines, detailed "
+               "hand-painted background, matte surfaces with no plastic shine, "
+               "no people, no text, no letters, no logo"),
     "iso-pixar": ("isometric Pixar 3D animation render, soft rounded forms with "
                   "real-world proportions and correct mechanical details, warm "
                   "cinematic lighting, muted pastel palette, consistent parallel "

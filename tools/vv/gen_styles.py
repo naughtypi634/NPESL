@@ -79,6 +79,8 @@ def main() -> int:
     ap.add_argument("--width", type=int, default=1344)
     ap.add_argument("--height", type=int, default=840)
     ap.add_argument("--steps", type=int, default=26)
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="已有该画风的成品就跳过（断点续跑）")
     args = ap.parse_args()
 
     styles = [s.strip() for s in args.styles.split(",") if s.strip()]
@@ -99,6 +101,10 @@ def main() -> int:
         spec = json.loads(path.read_text(encoding="utf-8"))
         base = clean_prompt(spec.get("prompt", ""))
         for style in styles:
+            dest = WORK / "style" / style / f"{spec['page']}.png"
+            if args.skip_existing and dest.exists():
+                print("skipped", spec["page"], style, flush=True)
+                continue
             prompt = f"{STYLES[style]}, {base}"
             prefix = f"{SUBFOLDER}/{style}/{spec['page']}"
             body = {"prompt": graph(prompt, args.seed, prefix,
