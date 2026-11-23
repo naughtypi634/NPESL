@@ -7,8 +7,8 @@
 <link rel="icon" type="image/png" sizes="512x512" href="../npesl-icon.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="preconnect" href="https://npesl-audio.pages.dev" crossorigin>
-<script>try{var t=localStorage.getItem('npesl-theme');document.documentElement.setAttribute('data-theme',t&&['light','dark','glass'].indexOf(t)>-1?t:'light');if(localStorage.getItem('npesl-marks')==='off')document.documentElement.classList.add('marks-off');var z=JSON.parse(localStorage.getItem('npesl-zh')||'{}');if(z.vocab===false)document.documentElement.classList.add('zh-hide-vocab');if(z.body===false)document.documentElement.classList.add('zh-hide-body');if(z.comp===false)document.documentElement.classList.add('zh-hide-comp');if(z.conv===false)document.documentElement.classList.add('zh-hide-conv');}catch(e){document.documentElement.setAttribute('data-theme','light');}</script>
-<link rel="preload" href="/fonts/geist-latin-v5.woff2" as="font" type="font/woff2" crossorigin>
+<script>try{var t=localStorage.getItem('npesl-theme');document.documentElement.setAttribute('data-theme',t&&['light','dark'].indexOf(t)>-1?t:'light');if(localStorage.getItem('npesl-marks')==='off')document.documentElement.classList.add('marks-off');var z=JSON.parse(localStorage.getItem('npesl-zh')||'{}');if(z.vocab===false)document.documentElement.classList.add('zh-hide-vocab');if(z.body===false)document.documentElement.classList.add('zh-hide-body');if(z.comp===false)document.documentElement.classList.add('zh-hide-comp');if(z.conv===false)document.documentElement.classList.add('zh-hide-conv');}catch(e){document.documentElement.setAttribute('data-theme','light');}</script>
+<link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../theme.css">
 <style>
 :root {
@@ -189,9 +189,10 @@ a { color:inherit; }
   var AUDIO_BASE = "https://npesl-audio.pages.dev/audio/";
   var VOICE_DIR = { f: 'h2', m: 'c' };
   var SPEED_KEY = 'npesl-speed';
-  var SPEED_MIN = 0.7;
-  var SPEED_MAX = 1.5;
-  var SPEED_DEFAULT = 0.9;
+  var SPEED_STEPS = [0.75, 1, 1.25];
+  var SPEED_MIN = 0.75;
+  var SPEED_MAX = 1.25;
+  var SPEED_DEFAULT = 1;
   var speed = SPEED_DEFAULT;
   try {
     var savedSpeed = parseFloat(localStorage.getItem(SPEED_KEY));
@@ -357,8 +358,12 @@ a { color:inherit; }
 
   function clampSpeed(value) {
     var n = Number(value);
-    if (!isFinite(n)) n = SPEED_DEFAULT;
-    return Math.max(SPEED_MIN, Math.min(SPEED_MAX, Math.round(n * 100) / 100));
+    if (!isFinite(n)) return SPEED_DEFAULT;
+    var best = SPEED_DEFAULT;
+    for (var i = 0; i < SPEED_STEPS.length; i++) {
+      if (Math.abs(SPEED_STEPS[i] - n) < Math.abs(best - n)) best = SPEED_STEPS[i];
+    }
+    return best;
   }
 
   function updateDockSpeed() {
@@ -380,11 +385,12 @@ a { color:inherit; }
     speed = n;
     activeSpeed = n;
     player.playbackRate = n;
-    var label = document.querySelector('[data-speed-label]');
-    if (label) label.textContent = speedLabel(n);
     updateDockSpeed();
-    var input = document.querySelector('[data-speed-input]');
-    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    var buttons = document.querySelectorAll('[data-speed-set]');
+    for (var i = 0; i < buttons.length; i++) {
+      var value = parseFloat(buttons[i].getAttribute('data-speed-set'));
+      buttons[i].setAttribute('aria-pressed', Math.abs(value - n) < 0.001 ? 'true' : 'false');
+    }
     if (save) {
       try { localStorage.setItem(SPEED_KEY, String(n)); } catch (e) {}
     }
@@ -1035,17 +1041,10 @@ a { color:inherit; }
     });
   }
 
-  var speedInput = document.querySelector('[data-speed-input]');
-  if (speedInput) {
-    speedInput.value = speed;
-    speedInput.addEventListener('input', function () {
-      setSpeed(parseFloat(speedInput.value), true);
-    });
-  }
-  var speedReset = document.querySelector('[data-speed-reset]');
-  if (speedReset) {
-    speedReset.addEventListener('click', function () {
-      setSpeed(SPEED_DEFAULT, true);
+  var speedButtons = document.querySelectorAll('[data-speed-set]');
+  for (var sb = 0; sb < speedButtons.length; sb++) {
+    speedButtons[sb].addEventListener('click', function (event) {
+      setSpeed(parseFloat(event.currentTarget.getAttribute('data-speed-set')), true);
     });
   }
   setSpeed(speed, false);

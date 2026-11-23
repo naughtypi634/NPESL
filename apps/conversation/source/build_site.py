@@ -1099,24 +1099,25 @@ html[data-theme="dark"] {
 .seg button[aria-pressed="true"] { background:var(--bg); color:var(--fg); }
 .seg button:focus-visible { outline:2px solid var(--blue); outline-offset:1px; }
 .toolbar-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.speed {
-  display:flex; align-items:center; gap:8px; padding:4px 10px;
-  color:var(--muted); font-size:13px; font-weight:600; white-space:nowrap;
-}
-.speed input[type="range"] {
-  width:104px; height:20px; margin:0; accent-color:var(--blue); cursor:pointer;
-}
-.speed output {
-  min-width:36px; color:var(--fg); font-variant-numeric:tabular-nums;
-}
-.speed-reset {
-  border:0; background:transparent; color:var(--blue);
-  font:inherit; font-size:12px; font-weight:600; padding:6px 10px;
-  border-radius:999px; cursor:pointer;
-}
-.speed-reset:hover { background:var(--blue-tint); }
-.speed-reset:focus-visible { outline:2px solid var(--blue); outline-offset:1px; }
 .speed-group { display:flex; align-items:center; gap:6px; }
+.speed-btn {
+  display:inline-flex; align-items:center; gap:5px;
+  height:32px; padding:0 10px;
+  border:1px solid var(--rule); border-radius:10px;
+  background:var(--surface); color:var(--fg);
+  font:inherit; font-size:12.5px; font-weight:500; line-height:1;
+  white-space:nowrap; cursor:pointer;
+}
+.speed-btn:hover { background:var(--blue-tint); }
+.speed-btn[aria-pressed="true"] {
+  border-color:var(--primary); background:var(--primary); color:var(--primary-foreground);
+}
+.speed-btn:focus-visible { outline:2px solid var(--ring); outline-offset:1px; }
+.speed-ico { width:12px; height:12px; flex:none; fill:currentColor; }
+.speed-ico .stroke {
+  fill:none; stroke:currentColor; stroke-width:2.2;
+  stroke-linecap:round; stroke-linejoin:round;
+}
 .play-all {
   display:inline-flex; align-items:center; gap:7px;
   border:1px solid transparent; background:var(--blue); color:var(--on-blue);
@@ -1410,9 +1411,10 @@ PLAY_JS = """
   var AUDIO_BASE = "__AUDIO_BASE__";
   var VOICE_DIR = { f: 'h2', m: 'c' };
   var SPEED_KEY = 'npesl-speed';
-  var SPEED_MIN = 0.7;
-  var SPEED_MAX = 1.5;
-  var SPEED_DEFAULT = 0.9;
+  var SPEED_STEPS = [0.75, 1, 1.25];
+  var SPEED_MIN = 0.75;
+  var SPEED_MAX = 1.25;
+  var SPEED_DEFAULT = 1;
   var speed = SPEED_DEFAULT;
   try {
     var savedSpeed = parseFloat(localStorage.getItem(SPEED_KEY));
@@ -1578,8 +1580,12 @@ PLAY_JS = """
 
   function clampSpeed(value) {
     var n = Number(value);
-    if (!isFinite(n)) n = SPEED_DEFAULT;
-    return Math.max(SPEED_MIN, Math.min(SPEED_MAX, Math.round(n * 100) / 100));
+    if (!isFinite(n)) return SPEED_DEFAULT;
+    var best = SPEED_DEFAULT;
+    for (var i = 0; i < SPEED_STEPS.length; i++) {
+      if (Math.abs(SPEED_STEPS[i] - n) < Math.abs(best - n)) best = SPEED_STEPS[i];
+    }
+    return best;
   }
 
   function updateDockSpeed() {
@@ -1601,11 +1607,12 @@ PLAY_JS = """
     speed = n;
     activeSpeed = n;
     player.playbackRate = n;
-    var label = document.querySelector('[data-speed-label]');
-    if (label) label.textContent = speedLabel(n);
     updateDockSpeed();
-    var input = document.querySelector('[data-speed-input]');
-    if (input && Math.abs(parseFloat(input.value) - n) > 0.001) input.value = n;
+    var buttons = document.querySelectorAll('[data-speed-set]');
+    for (var i = 0; i < buttons.length; i++) {
+      var value = parseFloat(buttons[i].getAttribute('data-speed-set'));
+      buttons[i].setAttribute('aria-pressed', Math.abs(value - n) < 0.001 ? 'true' : 'false');
+    }
     if (save) {
       try { localStorage.setItem(SPEED_KEY, String(n)); } catch (e) {}
     }
@@ -2256,17 +2263,10 @@ PLAY_JS = """
     });
   }
 
-  var speedInput = document.querySelector('[data-speed-input]');
-  if (speedInput) {
-    speedInput.value = speed;
-    speedInput.addEventListener('input', function () {
-      setSpeed(parseFloat(speedInput.value), true);
-    });
-  }
-  var speedReset = document.querySelector('[data-speed-reset]');
-  if (speedReset) {
-    speedReset.addEventListener('click', function () {
-      setSpeed(SPEED_DEFAULT, true);
+  var speedButtons = document.querySelectorAll('[data-speed-set]');
+  for (var sb = 0; sb < speedButtons.length; sb++) {
+    speedButtons[sb].addEventListener('click', function (event) {
+      setSpeed(parseFloat(event.currentTarget.getAttribute('data-speed-set')), true);
     });
   }
   setSpeed(speed, false);
@@ -2685,13 +2685,21 @@ def toolbar_html() -> str:
         '<button type="button" data-voice="f" aria-pressed="true">女声</button>'
         '<button type="button" data-voice="m" aria-pressed="false">男声</button>'
         '</div>'
-        '<div class="speed-group">'
-        '<label class="speed">语速'
-        '<input type="range" min="0.7" max="1.5" step="0.05" value="0.9" '
-        'data-speed-input aria-label="语速">'
-        '<output data-speed-label>0.9×</output></label>'
-        '<button type="button" class="speed-reset" data-speed-reset '
-        'aria-label="恢复默认语速">恢复</button>'
+        '<div class="speed-group" role="group" aria-label="语速">'
+        '<button type="button" class="speed-btn" data-speed-set="0.75" '
+        'aria-pressed="false" aria-label="慢速 0.75×">'
+        '<svg class="speed-ico" viewBox="0 0 12 12" aria-hidden="true"><rect x="4.5" y="4" width="3" height="8" rx="1"/></svg>'
+        '<span>慢速</span></button>'
+        '<button type="button" class="speed-btn" data-speed-set="1" '
+        'aria-pressed="true" aria-label="恢复常速 1×">'
+        '<svg class="speed-ico" viewBox="0 0 24 24" aria-hidden="true">'
+        '<path class="stroke" d="M3.5 12a8.5 8.5 0 1 0 2.8-6.3"/>'
+        '<path class="stroke" d="M3.5 4.5v5h5"/></svg>'
+        '<span>恢复</span></button>'
+        '<button type="button" class="speed-btn" data-speed-set="1.25" '
+        'aria-pressed="false" aria-label="快速 1.25×">'
+        '<svg class="speed-ico" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="4" width="3" height="8" rx="1"/><rect x="8" y="1" width="3" height="11" rx="1"/></svg>'
+        '<span>快速</span></button>'
         '</div>'
         '<div class="toolbar-right">'
         '<button type="button" class="play-all" data-play-all '
@@ -2730,25 +2738,17 @@ def toolbar_html() -> str:
         '<div class="kp-speed-wrap">'
         '<button type="button" class="kp-speed" data-kp-speed '
         'aria-haspopup="menu" aria-expanded="false" aria-label="语速">'
-        '<span data-kp-speed-label>0.9×</span>'
+        '<span data-kp-speed-label>1×</span>'
         '<svg class="kp-caret" viewBox="0 0 24 24" aria-hidden="true">'
         '<path d="M6 9l6 6 6-6"/></svg></button>'
         '<div class="kp-speed-menu" data-kp-speed-menu role="menu" '
         'aria-label="选择本句语速" hidden>'
         '<button type="button" role="menuitemradio" aria-checked="false" '
-        'data-kp-rate="0.7">0.7×</button>'
-        '<button type="button" role="menuitemradio" aria-checked="false" '
-        'data-kp-rate="0.8">0.8×</button>'
+        'data-kp-rate="0.75">慢速 0.75×</button>'
         '<button type="button" role="menuitemradio" aria-checked="true" '
-        'data-kp-rate="0.9">0.9×</button>'
+        'data-kp-rate="1">恢复 1×</button>'
         '<button type="button" role="menuitemradio" aria-checked="false" '
-        'data-kp-rate="1.0">1.0×</button>'
-        '<button type="button" role="menuitemradio" aria-checked="false" '
-        'data-kp-rate="1.1">1.1×</button>'
-        '<button type="button" role="menuitemradio" aria-checked="false" '
-        'data-kp-rate="1.25">1.25×</button>'
-        '<button type="button" role="menuitemradio" aria-checked="false" '
-        'data-kp-rate="1.5">1.5×</button>'
+        'data-kp-rate="1.25">快速 1.25×</button>'
         '</div>'
         '</div>'
         '<button type="button" class="kp-close" data-kp-close '

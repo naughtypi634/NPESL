@@ -52,8 +52,6 @@ AUDIO_DIR = OUT_DIR / "audio"
 OUT_PAGE = OUT_DIR / "index.html"
 
 SITE_DIR = SITE_APP
-THEME_CSS = SITE_DIR / "theme.css"
-THEME_JS = SITE_DIR / "theme.js"
 
 MALE_VOICES = {"andrew", "brian", "christopher", "eric", "guy"}
 FEMALE_VOICES = {"ava", "emma", "aria", "jenny", "michelle"}
@@ -489,9 +487,9 @@ def build_page(
 
     page = TEMPLATE.replace("<!--SECTIONS-->", "\n".join(sections))
     page = page.replace("<!--NAV-->", nav)
-    page = page.replace("<!--THEME_BOOT-->", theme_boot())
-    page = page.replace("<!--THEME_CSS-->", THEME_CSS.read_text(encoding="utf-8"))
-    page = page.replace("<!--THEME_JS-->", THEME_JS.read_text(encoding="utf-8"))
+    # 主题用全站那一份外链，不再内嵌：以后改 theme.css 只要重新装配站点，
+    # 不用再单独重建音标页。
+    page = page.replace("<!--THEME_BOOT-->", theme_boot("/theme.css"))
     return page
 
 
@@ -684,10 +682,6 @@ TEMPLATE = """<!doctype html>
     .ipa { font-size:1.75rem; }
     .word { font-size:18px; padding:8px 6px; }
   }
-</style>
-<!-- npesl-theme-inline -->
-<style>
-<!--THEME_CSS-->
 </style>
 </head>
 <body>
@@ -1153,9 +1147,7 @@ TEMPLATE = """<!doctype html>
   }
 })();
 </script>
-<script>
-<!--THEME_JS-->
-</script>
+<script src="/theme.js" defer></script>
 </body>
 </html>
 """

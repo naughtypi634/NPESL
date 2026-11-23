@@ -2,10 +2,13 @@
 # -*- coding: utf-8 -*-
 """把 IPA / Phonics / Phenomena 三个网页应用抽成小程序可用的数据。
 
-数据源是**已经构建好的页面**（`apps/ipa/index.html`、`apps/phonics/lessons/*.html`、
-`apps/phenomena/*.html`）：逐词的起止时间只存在于这些页面里，直接读页面比重新
-推导时间轴可靠。改内容仍然改源（`content/`、`apps/*/source/content/`），重跑网页
-构建，再跑本脚本。
+数据源是**已经构建好的页面**（`apps/ipa/index.html`、`apps/phonics/lessons/*.html`）
+和发音现象的 JSON（`apps/phenomena/web/src/generated/phenomena.json`）：逐词的
+起止时间只存在于这些产物里，直接读比重新推导时间轴可靠。改内容仍然改源
+（`content/`、`apps/*/source/content/`），重跑网页构建，再跑本脚本。
+
+发音现象已经是 React 应用，页面里没有数据了，所以读它构建时产出的 JSON ——
+那份 JSON 里的段落结构和小程序要的 `[[文本, 读音或 0], …]` 是同一个形状。
 
 输出：`miniprogram/data/{ipa,phonics,phenomena}.js`（分包各自只打包自己那份）。
 音频不复制，只记相对路径（`ipa/xxx.mp3`），由 `upload_audio.py` 传到云存储。
@@ -52,14 +55,6 @@ ROW_RE = re.compile(
     r'<p class="zh">(?P<zh>.*?)</p></div>',
     re.S,
 )
-LINE_RE = re.compile(
-    r'<button class="line" type="button" data-start-f="(?P<sf>[^"]*)" data-end-f="(?P<ef>[^"]*)"'
-    r' data-start-m="(?P<sm>[^"]*)" data-end-m="(?P<em>[^"]*)"[^>]*>'
-    r'<span class="txt">(?P<text>.*?)</span><span class="zh">(?P<zh>.*?)</span></button>',
-    re.S,
-)
-TARGET_RE = re.compile(r'<div class="target">(?P<body>.*?)</div>', re.S)
-RUBY_RE = re.compile(r"<ruby>(.*?)<rt>(.*?)</rt></ruby>", re.S)
 SOUND_RE = re.compile(r'<span class="sound">(.*?)</span>', re.S)
 TAG_RE = re.compile(r"<[^>]+>")
 
@@ -110,22 +105,6 @@ def rich(markup: str, hl_tag: str) -> list:
     if tail:
         parts.append([tail, 0])
     return trim_parts(parts) or [["", 0]]
-
-
-def ruby_parts(markup: str) -> list:
-    """`<ruby>Your<rt>yer</rt></ruby> stop` -> [[文本, 读音或 0], ...]。"""
-    parts: list = []
-    pos = 0
-    for m in RUBY_RE.finditer(markup):
-        before = inline(markup[pos:m.start()])
-        if before:
-            parts.append([before, 0])
-        parts.append([inline(m.group(1)), inline(m.group(2))])
-        pos = m.end()
-    tail = inline(markup[pos:])
-    if tail:
-        parts.append([tail, 0])
-    return trim_parts(parts)
 
 
 def audio_name(path: str) -> str:
@@ -285,97 +264,83 @@ NUM_ZH = {
 }
 
 
-def build_phenomena() -> dict:
-    chapters = []
-    for path in sorted(paths.PHENOMENA_APP.glob("[0-9][0-9]-*.html")):
-        page = path.read_text(encoding="utf-8")
-        num = int(path.name.split("-", 1)[0])
-        head = page.split("<header>", 1)[1].split("</header>", 1)[0]
-        kind = unescape(re.search(r'<p class="num">(.*?)</p>', head, re.S).group(1)) if '<p class="num">' in head else ""
-        title_en = unescape(re.search(r"<h1>(.*?)</h1>", head, re.S).group(1))
-        title_zh = unescape(re.search(r'<p class="title-zh">(.*?)</p>', head, re.S).group(1))
+def phenomena_source() -> dict:
+    """发音现象的网页构建产物：30 课、段落、每个可播放项的起止时间。"""
+    path = paths.PHENOMENA_DATA
+    if not path.is_file():
+        raise SystemExit(
+            f"缺少 {path}；先跑 "
+            ".venv/Scripts/python.exe -I apps/phenomena/source/build.py")
+    return json.loads(path.read_text(encoding="utf-8"))
 
+
+def build_phenomena() -> dict:
+    """直接读 React 应用的那份 JSON，不再解析页面。
+
+    段落形状 `[[文本, 读音或 0], …]` 与小程序现用的完全一致；
+    sprite 只留文件名，由 upload_audio.py 传到云存储。
+    """
+    source = phenomena_source()
+    chapters = []
+    for lesson in source["lessons"]:
         targets = []
-        tblock = page.split('class="targets"', 1)[1].split("</section>", 1)[0] if 'class="targets"' in page else ""
-        for ti, t in enumerate(TARGET_RE.finditer(tblock)):
-            body = t.group("body")
-            pair = re.search(
-                r'<span class="w">(.*?)</span><span class="arrow">.*?</span><span class="s">(.*?)</span>',
-                body,
-                re.S,
-            )
-            pill = re.search(
-                r'<button class="pill"[^>]*?data-start-f="([^"]*)"[^>]*?data-end-f="([^"]*)"'
-                r'[^>]*?data-start-m="([^"]*)"[^>]*?data-end-m="([^"]*)"[^>]*>(.*?)</button>',
-                body,
-                re.S,
-            )
-            if not pair or not pill:
+        for index, target in enumerate(lesson.get("targets", [])):
+            if "seg" not in target or "span" not in target:
                 continue
-            demo = pill.group(5)
-            demo = re.sub(r'<span class="play">.*?</span>', "", demo, flags=re.S)
-            targets.append(
-                {
-                    "i": ti,
-                    "written": unescape(pair.group(1)),
-                    "spoken": unescape(pair.group(2)),
-                    "demo": ruby_parts(demo),
-                    "f": [float(pill.group(1)), float(pill.group(2))],
-                    "m": [float(pill.group(3)), float(pill.group(4))],
-                }
-            )
+            item = {
+                "i": index,
+                "written": target["written"],
+                "spoken": target["spoken"],
+                "demo": target["seg"],
+            }
+            for voice in ("f", "m"):
+                span = target["span"].get(voice)
+                if span:
+                    item[voice] = span
+            targets.append(item)
 
         lines = []
-        for li, l in enumerate(LINE_RE.finditer(page)):
-            lines.append(
-                {
-                    "i": li,
-                    "t": ruby_parts(l.group("text")),
-                    "zh": unescape(l.group("zh")),
-                    "f": [float(l.group("sf")), float(l.group("ef"))],
-                    "m": [float(l.group("sm")), float(l.group("em"))],
-                }
-            )
+        for index, line in enumerate(lesson["lines"]):
+            item = {"i": index, "t": line["seg"], "zh": line["zh"]}
+            for voice in ("f", "m"):
+                span = line["span"].get(voice)
+                if span:
+                    item[voice] = span
+            lines.append(item)
+
         chapters.append(
             {
-                "num": num,
-                "kind": kind,
-                "en": title_en,
-                "zh": title_zh,
-                "sprite": sprite_map(page, "spriteMap"),
+                "num": lesson["num"],
+                "kind": lesson["category"],
+                "en": lesson["title_en"],
+                "zh": lesson["title_zh"],
+                "sprite": {
+                    voice: audio_name(rel)
+                    for voice, rel in lesson["sprites"].items()
+                },
                 "targets": targets,
                 "lines": lines,
             }
         )
-    return {"groups": phenomena_groups(), "chapters": chapters}
+    return {"groups": phenomena_groups(source), "chapters": chapters}
 
 
-INDEX_ROW_RE = re.compile(
-    r'<a class="row" href="(?P<num>\d+)-[^"]*">'
-    r'<span class="title"><span class="en">(?P<en>.*?)</span><span class="zh">(?P<zh>.*?)</span></span>'
-    r'(?:<span class="tag">(?P<tag>.*?)</span>)?',
-    re.S,
-)
-
-
-def phenomena_groups() -> list:
-    """索引页的分类（弱读 / 缩合 / 吞音 / 变音 / 省略）与顺序以网页为准。"""
-    page = (paths.PHENOMENA_APP / "index.html").read_text(encoding="utf-8")
+def phenomena_groups(source: dict) -> list:
+    """分类顺序以 build.py 的 CATEGORIES 为准；行尾的 tag 是弱读形式。"""
     groups = []
-    parts = re.split(r'<section class="group" data-cat="([^"]+)">', page)
-    for i in range(1, len(parts), 2):
-        title, body = unescape(parts[i]), parts[i + 1]
-        chapters = []
-        for row in INDEX_ROW_RE.finditer(body):
-            item = {
-                "num": int(row.group("num")),
-                "en": unescape(row.group("en")),
-                "zh": unescape(row.group("zh")),
+    for category in source["categories"]:
+        rows = [
+            {
+                "num": lesson["num"],
+                "en": lesson["title_en"],
+                "zh": lesson["title_zh"],
+                "tag": " / ".join(t["spoken"] for t in lesson.get("targets", [])),
             }
-            if row.group("tag"):
-                item["tag"] = unescape(row.group("tag"))
-            chapters.append(item)
-        groups.append({"title": title, "chapters": chapters})
+            for lesson in source["lessons"]
+            if lesson["category"] == category
+        ]
+        if rows:
+            groups.append({"title": category, "chapters": rows})
     return groups
 
 

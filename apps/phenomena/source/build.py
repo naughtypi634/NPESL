@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Build the common pronunciation phenomena (常见发音现象 AmE) course pages.
+"""Build the common pronunciation phenomena (常见发音现象 AmE) audio + data.
 
 Each dialogue line gets one clip per voice. Lessons whose `tts` is "qwen" are
 synthesized locally from the spoken respellings (yer, wanna, gotta), because
@@ -7,12 +7,17 @@ Qwen has no phoneme input; "kokoro" instead injects the lesson's IPA into a
 phoneme string for exact weak forms; "cosyvoice" runs CosyVoice 3 from the
 same respellings, with CMU tokens for the few it misreads. Clips are
 content-addressed, so re-running only synthesizes what is new.
+
+This script no longer writes HTML. The pages are a React app in `../web`;
+this script's job is the audio sprite plus one JSON file
+(`web/src/generated/phenomena.json`) holding the lessons, the ruby segments
+and every line's (start, end) offset inside its sprite. The mini program
+reads the same JSON instead of scraping the generated pages.
 """
 
 import argparse
 import asyncio
 import hashlib
-import html
 import json
 import os
 import pathlib
@@ -32,6 +37,11 @@ ROOT = pathlib.Path(__file__).parent
 BASE = ROOT.parent
 CONTENT = ROOT / "content"
 AUDIO_DIR = BASE / "audio"
+# 页面是 ../web 的 React 应用；这份 JSON 是它唯一的内容输入，也供小程序读取。
+DATA_OUT = BASE / "web" / "src" / "generated" / "phenomena.json"
+
+# 目录页的分组顺序。这是唯一来源：网页和小程序都按这个顺序排。
+CATEGORIES = ["弱读", "缩合", "吞音", "变音", "省略"]
 
 sys.path.insert(0, str(BASE.parents[1] / "tools"))
 import audio_sprite  # noqa: E402
@@ -441,23 +451,28 @@ async def ensure_clips(lessons, voices):
     return failed
 
 
-def marks_html(display):
-    out = []
-    for part in re.split(r"(\[[^\]]*\])", display):
-        if part.startswith("[") and part.endswith("]"):
-            original, spoken, _ = mark_parts(part)
-            out.append(
-                f"<ruby>{html.escape(original)}<rt>{html.escape(spoken)}</rt></ruby>"
-            )
-        elif part:
-            out.append(html.escape(part))
-    return "".join(out)
+def segments(display):
+    """`[Your|yer|jər] stop` -> [["Your", "yer"], [" stop", 0]].
 
-
-def clip_attrs(clips, prefix=""):
-    return " ".join(
-        f'data-{key}="{value}"' for key, value in clips.items() if value
-    )
+    Same shape the mini program already stores (`ruby_parts` in
+    tools/miniprogram/build_data.py): `[文本, 读音或 0]`. Whitespace is
+    collapsed but spaces between parts are kept — only the two ends of the
+    whole sentence are trimmed, or `tea [or|'r] coffee` would lose its gaps.
+    The IPA side of a mark is dropped here; it is there for TTS, not for
+    reading.
+    """
+    parts = []
+    for piece in re.split(r"(\[[^\]]*\])", display):
+        if piece.startswith("[") and piece.endswith("]"):
+            written, spoken, _ = mark_parts(piece)
+            parts.append([re.sub(r"\s+", " ", written),
+                          re.sub(r"\s+", " ", spoken)])
+        elif piece:
+            parts.append([re.sub(r"\s+", " ", piece), 0])
+    if parts:
+        parts[0][0] = parts[0][0].lstrip()
+        parts[-1][0] = parts[-1][0].rstrip()
+    return [part for part in parts if part[0]]
 
 
 class ClipPlan:
@@ -478,17 +493,14 @@ class ClipCursor:
         self.spans = spans
         self.index = 0
 
-    def attrs(self, clips):
+    def take(self):
         item = self.spans[self.index] if self.index < len(self.spans) else {}
         self.index += 1
-        parts = []
-        for voice, span in item.items():
-            if span:
-                parts.append(
-                    f'data-start-{voice}="{span[0]:.3f}" '
-                    f'data-end-{voice}="{span[1]:.3f}"'
-                )
-        return " ".join(parts)
+        return {
+            voice: [round(span[0], 3), round(span[1], 3)]
+            for voice, span in item.items()
+            if span
+        }
 
 
 def build_sprites(plan: ClipPlan) -> tuple[ClipCursor, dict]:
@@ -542,245 +554,84 @@ def text_clips(lesson, text):
     return {f"clip-{voice}": clip_rel(text, voice, RATE) for voice in VOICES}
 
 
-def build_targets(lesson, audio):
-    cards = []
+def target_clips(lesson, target):
+    """录音清单 for a target's demo sentence, or None when it has none."""
+    demo = target.get("demo") or {}
+    text = (demo.get("say") or "").strip() or demo.get("text")
+    if not text:
+        return None
+    backend = backend_for(lesson)
+    display = demo.get("display") or text
+    if backend == "azure":
+        body = annotated_body(lesson, display)
+        return {
+            f"clip-{voice}": clip_rel(body, voice, RATE, body_variant(body))
+            for voice in VOICES
+        }
+    if backend == "kokoro":
+        return kokoro_clips(lesson, display)
+    if backend == "qwen":
+        return qwen_clips(lesson, display)
+    if backend == "cosyvoice":
+        return cosyvoice_clips(lesson, display)
+    return text_clips(lesson, text)
+
+
+def lesson_record(lesson):
+    """One lesson as the JSON the React app and the mini program both read.
+
+    Two passes, exactly like the old HTML build: first register which clips
+    each playable element needs (in render order), then hand out the
+    (start, end) offsets the sprite builder produced for that same order.
+    """
+    plan = ClipPlan()
+    targets = []
     for target in lesson.get("targets", []):
-        parts = [
-            '<span class="pair">'
-            f'<span class="w">{html.escape(target["written"])}</span>'
-            '<span class="arrow">→</span>'
-            f'<span class="s">{html.escape(target["spoken"])}</span>'
-            "</span>"
-        ]
         demo = target.get("demo") or {}
         text = (demo.get("say") or "").strip() or demo.get("text")
-        if text:
-            backend = backend_for(lesson)
-            display = demo.get("display") or text
-            if backend == "azure":
-                body = annotated_body(lesson, display)
-                variant = body_variant(body)
-                clips = {
-                    f"clip-{voice}": clip_rel(body, voice, RATE, variant) for voice in VOICES
-                }
-            elif backend == "kokoro":
-                clips = kokoro_clips(lesson, display)
-            elif backend == "qwen":
-                clips = qwen_clips(lesson, display)
-            elif backend == "cosyvoice":
-                clips = cosyvoice_clips(lesson, display)
-            else:
-                clips = text_clips(lesson, text)
-            parts.append(
-                f'<button class="pill" type="button" {audio.attrs(clips)}>'
-                f'<span class="play">▶</span>{marks_html(demo.get("display") or text)}</button>'
-            )
-        cards.append(f'<div class="target">{"".join(parts)}</div>')
-    return "\n      ".join(cards)
+        clips = target_clips(lesson, target)
+        if clips:
+            plan.attrs(clips)
+        record = {"written": target["written"], "spoken": target["spoken"]}
+        if clips:
+            record["seg"] = segments(demo.get("display") or text)
+        targets.append(record)
 
-
-def build_lines(lesson, audio):
-    rows = []
+    lines = []
     for line in lesson["lines"]:
-        clips = line_clips(lesson, line)
-        rows.append(
-            f'<button class="line" type="button" {audio.attrs(clips)}>'
-            f'<span class="txt">{marks_html(line["display"])}</span>'
-            f'<span class="zh">{html.escape(line["zh"])}</span>'
-            "</button>"
-        )
-    return "\n      ".join(rows)
+        plan.attrs(line_clips(lesson, line))
+        lines.append({"seg": segments(line["display"]), "zh": line["zh"]})
+
+    cursor, sprites = build_sprites(plan)
+    for record in targets:
+        if "seg" in record:
+            record["span"] = cursor.take()
+    for record in lines:
+        record["span"] = cursor.take()
+
+    return {
+        "num": lesson["num"],
+        "slug": f"{lesson['num']:02d}-{slug(lesson['title_en'])}",
+        "title_en": lesson["title_en"],
+        "title_zh": lesson["title_zh"],
+        "category": lesson.get("category", ""),
+        "sprites": sprites,
+        "targets": targets,
+        "lines": lines,
+    }
 
 
-def build_page(lesson, total):
-    template = (ROOT / "template.html").read_text(encoding="utf-8")
-    page = template
-    page = page.replace("__NUM__", f"{lesson['num']:02d}")
-    page = page.replace("__TITLE_EN__", html.escape(lesson["title_en"]))
-    page = page.replace("__CATEGORY__", html.escape(lesson.get("category", "")))
-    page = page.replace("__TITLE_ZH__", html.escape(lesson["title_zh"]))
-    plan = ClipPlan()
-    build_targets(lesson, plan)
-    build_lines(lesson, plan)
-    audio, sprites = build_sprites(plan)
-    page = page.replace("<!--TARGETS-->", build_targets(lesson, audio))
-    page = page.replace("<!--LINES-->", build_lines(lesson, audio))
-    page = page.replace(
-        "<!--SPRITES-->",
-        '<script id="spriteMap" type="application/json">'
-        + json.dumps(sprites, separators=(",", ":")) + "</script>",
-    )
-    page = page.replace("__LESSON_COUNT__", str(total))
-    name = f"{lesson['num']:02d}-{slug(lesson['title_en'])}.html"
-    out = BASE / name
-    out.write_text(page, encoding="utf-8")
-    print(f"built {name} ({out.stat().st_size / 1024:.0f} KB)")
-    return name
-
-
-INDEX_STYLE = """
-  :root {
-    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
-    --surface:#f5f5f7;
-    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
-    --on-accent:var(--on-blue, #ffffff);
-    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
-      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-    color-scheme:light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#000000; --fg:#f5f5f7; --muted:#98989d; --rule:#2c2c2e;
-      --surface:#1c1c1e;
-      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
-      color-scheme:dark; }
-  }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
-    -webkit-font-smoothing:antialiased; }
-  .page { max-width:760px; margin:0 auto;
-    padding:clamp(40px,7vh,72px) 24px 96px; }
-  h1 { margin:0; font-size:clamp(2rem,6vw,2.8rem); font-weight:700;
-    letter-spacing:-0.03em; line-height:1.08; }
-  .sub { margin:10px 0 0; color:var(--muted); font-size:16px; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:26px; }
-  .chips button { appearance:none; font:inherit; font-size:14px; padding:7px 15px;
-    border:1px solid var(--rule); border-radius:999px; background:transparent;
-    color:var(--fg); cursor:pointer; }
-  .chips button:hover { background:var(--surface); }
-  .chips button[aria-pressed="true"] { background:var(--accent);
-    border-color:var(--accent); color:var(--on-accent); }
-  .group h2 { margin:28px 0 4px; font-size:14px; font-weight:600;
-    color:var(--muted); letter-spacing:0.04em; }
-  .group .list { margin-top:0; }
-  .list { display:flex; flex-direction:column; gap:16px; margin-top:36px;
-    border-top:0; }
-  .row { display:flex; align-items:baseline; gap:16px; padding:16px 18px;
-    border:1px solid var(--rule); border-radius:var(--radius-card, 24px);
-    background:var(--bg); text-decoration:none; color:inherit;
-    transition:background-color .15s ease, box-shadow .15s ease,
-      transform .15s ease; }
-  .row:hover { background:var(--surface); transform:translateY(-1px);
-    box-shadow:var(--shadow-card, 0 1px 2px rgba(0, 0, 0, 0.05),
-      0 8px 24px rgba(0, 0, 0, 0.06)); }
-  .row:active { transform:scale(0.995); }
-  .num { width:26px; flex:none; color:var(--muted); font-size:13px;
-    font-variant-numeric:tabular-nums; }
-  .title { flex:1; min-width:0; }
-  .en { display:block; font-size:18px; font-weight:600; letter-spacing:-0.01em; }
-  .zh { display:block; margin-top:2px; font-size:15px; color:var(--muted); }
-  .tag { flex:0 1 auto; min-width:0; max-width:44%; text-align:right;
-    font-size:14px; color:var(--accent); font-weight:600;
-    font-variant-numeric:tabular-nums; overflow-wrap:anywhere; line-height:1.35; }
-  @media (max-width:560px) {
-    .tag { display:none; }
-    .row { gap:12px; padding:16px 14px; }
-  }
-"""
-
-
-CATEGORIES = ["弱读", "缩合", "吞音", "变音", "省略"]
-
-
-def build_index(lessons):
-    groups = []
-    for category in CATEGORIES:
-        rows = []
-        for lesson in lessons:
-            if lesson.get("category") != category:
-                continue
-            name = f"{lesson['num']:02d}-{slug(lesson['title_en'])}"
-            tag = " / ".join(target["spoken"] for target in lesson.get("targets", []))
-            rows.append(
-                f'<a class="row" href="{name}">'
-                f'<span class="title"><span class="en">{html.escape(lesson["title_en"])}</span>'
-                f'<span class="zh">{html.escape(lesson["title_zh"])}</span></span>'
-                f'<span class="tag">{html.escape(tag)}</span></a>'
-            )
-        if rows:
-            groups.append(
-                f'<section class="group" data-cat="{category}">'
-                f"<h2>{category}</h2>"
-                f'<div class="list">{"".join(rows)}</div></section>'
-            )
-    chips = ['<button type="button" data-cat="all" aria-pressed="true">全部</button>']
-    for category in CATEGORIES:
-        if any(lesson.get("category") == category for lesson in lessons):
-            chips.append(
-                f'<button type="button" data-cat="{category}" aria-pressed="false">'
-                f"{category}</button>"
-            )
-    page = (
-        "<!doctype html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"utf-8\">\n"
-        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-        "<title>常见发音现象(AmE)</title>\n"
-        f"<style>{INDEX_STYLE}</style>\n</head>\n<body>\n<div class=\"page\">\n"
-        "<h1>常见发音现象(AmE)</h1>\n"
-        f'<div class="chips">{"".join(chips)}</div>\n'
-        f'{"".join(groups)}\n</div>\n'
-        "<script>\n"
-        "(function(){\n"
-        "  /* 页面的隐式状态都收进转移表：只允许表里列出的转移，非法事件返回\n"
-        "     false，界面不会停在半路。运行时快照见 window.__phenomena.snapshot()。 */\n"
-        "  function createMachine(name, initial, table) {\n"
-        "    var state = initial;\n"
-        "    var listeners = [];\n"
-        "    return {\n"
-        "      name: name,\n"
-        "      get state() { return state; },\n"
-        "      can: function (event) {\n"
-        "        return !!(table[state] && table[state][event]);\n"
-        "      },\n"
-        "      send: function (event, payload) {\n"
-        "        var row = table[state];\n"
-        "        var next = row && row[event];\n"
-        "        var target = typeof next === 'function' ? next(payload) : next;\n"
-        "        if (target == null) return false;   // 当前状态不允许，或被守卫拦下\n"
-        "        state = target;\n"
-        "        for (var i = 0; i < listeners.length; i++) {\n"
-        "          listeners[i](state, event, payload);\n"
-        "        }\n"
-        "        return true;\n"
-        "      },\n"
-        "      on: function (fn) { listeners.push(fn); }\n"
-        "    };\n"
-        "  }\n"
-        "\n"
-        "  var CHIP_KEY='rs-cat';\n"
-        "  var chips=[].slice.call(document.querySelectorAll('.chips button'));\n"
-        "  var groups=[].slice.call(document.querySelectorAll('.group'));\n"
-        "  var known={};\n"
-        "  chips.forEach(function(chip){ known[chip.getAttribute('data-cat')]=true; });\n"
-        "\n"
-        "  /* 筛选：all 或某个分类。保存的分类在内容改版后可能已经不存在，\n"
-        "     这时退回 all，不会出现「分组全隐藏、chip 全灭」的悬空状态。 */\n"
-        "  var table={};\n"
-        "  Object.keys(known).forEach(function(cat){\n"
-        "    table[cat]={ select:function(next){ return known[next] ? next : null; } };\n"
-        "  });\n"
-        "  var filter=createMachine('filter','all',table);\n"
-        "  filter.on(function(state){\n"
-        "    document.body.setAttribute('data-filter',state);\n"
-        "    groups.forEach(function(group){\n"
-        "      group.style.display=(state==='all'||group.getAttribute('data-cat')===state)?'':'none';\n"
-        "    });\n"
-        "    chips.forEach(function(chip){\n"
-        "      chip.setAttribute('aria-pressed',chip.getAttribute('data-cat')===state?'true':'false');\n"
-        "    });\n"
-        "    try{localStorage.setItem(CHIP_KEY,state);}catch(e){}\n"
-        "  });\n"
-        "  chips.forEach(function(chip){\n"
-        "    chip.addEventListener('click',function(){ filter.send('select',chip.getAttribute('data-cat')); });\n"
-        "  });\n"
-        "  var saved='all';try{saved=localStorage.getItem(CHIP_KEY)||'all';}catch(e){}\n"
-        "  filter.send('select', known[saved] ? saved : 'all');\n"
-        "  window.__phenomena=Object.freeze({\n"
-        "    snapshot:function(){ return { page:'index', filter: filter.state }; }\n"
-        "  });\n"
-        "})();\n"
-        "</script>\n</body>\n</html>\n"
-    )
-    (BASE / "index.html").write_text(page, encoding="utf-8")
-    print(f"built index.html ({len(lessons)} lessons)")
+def write_data(lessons):
+    """Write web/src/generated/phenomena.json — the app's only content input."""
+    payload = {
+        "categories": CATEGORIES,
+        "lessons": [lesson_record(lesson) for lesson in lessons],
+    }
+    DATA_OUT.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    DATA_OUT.write_text(text, encoding="utf-8")
+    print(f"wrote phenomena.json ({len(lessons)} lessons, {len(text) / 1024:.0f} KB)")
+    return DATA_OUT
 
 
 async def main():
@@ -789,7 +640,6 @@ async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", type=int, nargs="*", help="lesson numbers")
     parser.add_argument("--skip-audio", action="store_true")
-    parser.add_argument("--index-only", action="store_true")
     parser.add_argument("--voices", default="f,m", help="要合成的音色：f,m")
     parser.add_argument("--tts", choices=["azure", "edge", "kokoro", "qwen", "cosyvoice"],
                         default="", help="覆盖 content 的 tts 字段，试听另一音源")
@@ -798,7 +648,7 @@ async def main():
     BACKEND = args.tts
 
     # 全量构建时先清掉旧的 sprite，避免改过的章节留下无人引用的文件。
-    if not args.only and not args.index_only:
+    if not args.only:
         sprites_dir = AUDIO_DIR / "sprites"
         if sprites_dir.exists():
             shutil.rmtree(sprites_dir)
@@ -810,15 +660,12 @@ async def main():
         return 1
 
     lessons = load_lessons(set(args.only) if args.only else None)
-    if args.index_only:
-        build_index(load_lessons())
-        return 0
 
     failed = []
     if not args.skip_audio:
         failed = await ensure_clips(lessons, voices)
 
-    built = 0
+    ready = []
     for lesson in lessons:
         missing = [
             rel for rel, *_ in lesson_jobs(lesson) if not (AUDIO_DIR / rel).exists()
@@ -826,11 +673,11 @@ async def main():
         if missing:
             print(f"skip lesson {lesson['num']:02d}: {len(missing)} clips missing")
             continue
-        build_page(lesson, len(lessons))
-        built += 1
+        ready.append(lesson)
 
-    if not args.only and built == len(lessons):
-        build_index(load_lessons())
+    write_data(ready)
+    if args.only:
+        print("注意：--only 只写了这几课的 JSON；页面需要全量构建才有 30 章。")
     return 1 if failed else 0
 
 

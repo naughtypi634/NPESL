@@ -59,6 +59,10 @@ DRILL_BANK_JSON = DRILL_CONTENT / "questions.json"
 DRILL_CHIPS_JSON = DRILL_CONTENT / "chips.json"
 DRILL_TOPUP = DRILL_CONTENT / "topup"
 
+# 发音现象：页面是 React 应用（apps/phenomena/web → dist），
+# 这份 JSON 由 apps/phenomena/source/build.py 产出，是小程序和网页的共同数据源。
+PHENOMENA_DATA = APPS / "phenomena" / "web" / "src" / "generated" / "phenomena.json"
+
 # ---- 公开地址 ----
 SITE_URL = "https://npesl.pages.dev"
 AUDIO_URL = "https://npesl-audio.pages.dev"

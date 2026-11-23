@@ -60,6 +60,8 @@
 | `apps/data-viz/web/` | 数据图表英语 React + TypeScript + Vite + ztd-charts 前端；`npm run build` 先校验内容、生成预览再 `tsc` + `vite build`，输出 `../dist`，`build_all.py` 缺依赖时先 `npm ci` |
 | `apps/phonics/source/validate.py` | 自然拼读结构校验 |
 | `apps/phenomena/source/validate.py` | 发音现象标注校验 |
+| `apps/phenomena/source/build.py` | 发音现象音频与数据：合成/复用逐条录音、拼每章两条 sprite，产出 `web/src/generated/phenomena.json`（不再生成 HTML） |
+| `apps/phenomena/web/` | 发音现象 React + TypeScript + Vite + Tailwind v4 + coss 组件源码（复制在 `src/components/ui/`，不是 npm 包）前端；`npm run build` 先按 JSON 生成 31 个入口 HTML，再 `tsc` + `vite build`，输出 `../dist`；`build_all.py` 缺依赖时先 `npm ci`。coss 组件新装：`npx shadcn@latest add @coss/<name>`（注册表在 `components.json`） |
 | `collocation/*.py` | 短语搭配内容流水线：手册导入、词条替换、频率打分、近义 / 反义报告 |
 | `stress_coverage.py` / `stress_report.py` | 逻辑重音覆盖率报告与审核页 |
 | `translate_conversation_zh.py` | 生成 Conversation 中文翻译 |

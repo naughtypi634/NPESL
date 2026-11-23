@@ -12,7 +12,7 @@ const repo = resolve(here, '../../..');
 const BASE = '/charts/';
 const themeCss = resolve(repo, 'apps/site/theme.css').replaceAll('\\', '/');
 const themeJs = resolve(repo, 'apps/site/theme.js').replaceAll('\\', '/');
-const themeBoot = `<script>try{var t=localStorage.getItem('npesl-theme');document.documentElement.setAttribute('data-theme',t&&['light','dark','glass'].indexOf(t)>-1?t:'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}</script>`;
+const themeBoot = `<script>try{var t=localStorage.getItem('npesl-theme');if(t==='glass')t='dark';document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}</script>`;
 
 export default defineConfig({
   base: BASE,

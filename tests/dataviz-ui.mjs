@@ -194,7 +194,7 @@ record('context console', pageErrors.length === 0, pageErrors.join(' | ') || 'cl
 
 // ---- 主题与窄屏 ----------------------------------------------------------
 
-for (const theme of ['dark', 'glass', 'light']) {
+for (const theme of ['dark', 'light']) {
   pageErrors = [];
   await evaluate(`document.documentElement.setAttribute('data-theme', ${JSON.stringify(theme)})`);
   await sleep(350);

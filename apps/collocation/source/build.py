@@ -403,6 +403,20 @@ INDEX_STYLE = """
   .card .playbtn .bars i:nth-child(3) { height:5px; }
   .card .playbtn.on .play svg { display:none; }
   .card .playbtn.on .play .bars { display:inline-flex; }
+  /* 播放中三根竖条起伏，像一段在走的波形 */
+  @keyframes say-wave {
+    0%, 100% { transform:scaleY(0.4); }
+    50% { transform:scaleY(1); }
+  }
+  .card .playbtn.on .play .bars i {
+    transform-origin:bottom;
+    animation:say-wave 0.8s ease-in-out infinite;
+  }
+  .card .playbtn.on .play .bars i:nth-child(2) { animation-delay:0.16s; }
+  .card .playbtn.on .play .bars i:nth-child(3) { animation-delay:0.32s; }
+  @media (prefers-reduced-motion: reduce) {
+    .card .playbtn.on .play .bars i { animation:none; }
+  }
   .card .say-unit:has(.playbtn.on) .w {
     background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
   .card .say-unit:has(.playbtn.on) .txt { color:var(--accent); }

@@ -27,6 +27,7 @@ from lib.cli import run_step, utf8_stdout  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 DV_WEB = ROOT / "apps" / "data-viz" / "web"
+PHEN_WEB = ROOT / "apps" / "phenomena" / "web"
 
 ORDER = ["ipa", "phonics", "phenomena", "collocation", "conversation", "drill",
          "visual-vocabulary", "data-viz", "site"]
@@ -39,15 +40,23 @@ def npm_exe() -> str:
     raise SystemExit("找不到 npm：先装 Node.js，再重开终端。")
 
 
-def ensure_data_viz_deps() -> None:
-    if (DV_WEB / "node_modules").exists():
+def ensure_node_deps(app: Path, label: str) -> None:
+    if (app / "node_modules").exists():
         return
     run_step(
-        "数据图表英语前端依赖",
+        label,
         ["ci", "--no-fund", "--no-audit"],
-        cwd=DV_WEB,
+        cwd=app,
         program=npm_exe(),
     )
+
+
+def ensure_data_viz_deps() -> None:
+    ensure_node_deps(DV_WEB, "数据图表英语前端依赖")
+
+
+def ensure_phenomena_deps() -> None:
+    ensure_node_deps(PHEN_WEB, "发音现象前端依赖")
 
 
 def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple]]:
@@ -60,7 +69,8 @@ def steps(refresh_ipa_audio: bool) -> dict[str, list[tuple]]:
             ("自然拼读", ["-I", "-X", "utf8", "apps/phonics/source/build.py"]),
         ],
         "phenomena": [
-            ("发音现象", ["-I", "-X", "utf8", "apps/phenomena/source/build.py"]),
+            ("发音现象音频与数据", ["-I", "-X", "utf8", "apps/phenomena/source/build.py"]),
+            ("发音现象页面", ["--prefix", str(PHEN_WEB), "run", "build"], npm_exe()),
         ],
         "collocation": [
             ("短语搭配内容校验", ["-I", "apps/collocation/source/validate.py"]),
@@ -117,6 +127,8 @@ def main() -> int:
 
     if "data-viz" in names:
         ensure_data_viz_deps()
+    if "phenomena" in names:
+        ensure_phenomena_deps()
     for name in names:
         for step in plan[name]:
             label, argv = step[0], step[1]

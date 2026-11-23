@@ -1,251 +1,226 @@
 /*
- * NPESL 主题层：Solid Glass。
+ * NPESL 视觉层：coss ui。
  *
- * 材质取自 https://github.com/deeplethe/solid-glass（MIT）。要点只有四条：
+ * 材质取自 https://coss.com/ui（MIT），要点只有四条：
  *
- *   1. 质感在边缘。顶部一条高光线、内侧一条更淡的线、外圈一圈发丝线、
- *      底下一层投影；正面是平的，不做渐变。
- *   2. 中性灰、厚重，不透明到能压住背后的字，只在近处看得出是玻璃。
- *   3. 厚度就是深度：panel（最薄）< 卡片 < 浮层（最厚）。
- *   4. 只用一个状态：悬停、选中、展开都是同一块薄薄的清玻璃。
+ *   1. 平。没有模糊、没有渐变、没有光晕；深度只靠一条 1px 淡边、
+ *      里面 1px 亮线（浅色在顶边、深色在底边）和一个几乎看不见的小投影。
+ *   2. 单色。整站只有黑白灰；彩色只留给成功 / 警告 / 错误这类状态。
+ *   3. 圆角 10px 到 16px，密度比过去紧一档（只紧控件，不缩正文）。
+ *   4. 按下不缩放，只变底色。
  *
- * 三套主题：light / dark 是烟灰玻璃的两种光；glass 是同一套材质换墨绿底，
- * 薄荷青绿做强调色。没存过选择、也没写 data-theme 的页面用 light。
+ * 两套主题：light / dark。没存过选择、也没写 data-theme 的页面用 light；
+ * 旧缓存里的 glass 按 dark 渲染，不会白屏。
  *
  * 本文件在每页自己的样式之后加载，html[data-theme] 的选择器优先级高于
  * 各页的 :root，所以只改这里就能换掉整站的表面。新主题要同时加进
  * tools/themes.py 的 THEME_IDS 和 theme.js 的菜单。
+ *
+ * 变量名分两层：--background / --card / --primary 这套是 coss 的规范名；
+ * 下面「旧名 → 别名」一节把各应用一直在用的 --bg / --fg / --surface /
+ * --blue 指向它们，所以应用页面的样式一行都不用改。
  */
 
-/* ---- 字体：Geist 自托管，中文走系统字体 ----------------------------
+/* ---- 字体：Inter 自托管，中文走系统字体 ----------------------------
  *
- * 以前从 Google Fonts 拉 Geist + Noto Sans SC：渲染阻塞 CSS 93 KB，
- * 还要额外下 9 个字体文件，国内经常连不上。Geist 是可变字体，一个
- * latin 文件覆盖 100–900；中文交给 PingFang / 微软雅黑 / 系统 Noto。
+ * Inter 是 coss 的原配；latin / latin-ext 两个可变字体文件覆盖 100–900。
+ * 中文交给 PingFang / 微软雅黑 / 系统 Noto，不再额外下载。
  */
 
 @font-face {
-  font-family: "Geist";
+  font-family: "Inter";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/geist-latin-v5.woff2") format("woff2");
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
     U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
     U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: "Geist";
+  font-family: "Inter";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/geist-latin-ext-v5.woff2") format("woff2");
+  src: url("/fonts/inter-latin-ext-wght-normal.woff2") format("woff2");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
     U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
     U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F,
     U+A720-A7FF;
 }
 
-/* ---- 与主题无关的尺度与字体 ---------------------------------------- */
+/* ---- 与主题无关的尺度 ------------------------------------------------ */
 
 html[data-theme] {
-  --radius: 14px;
-  --radius-card: 20px;
-  --radius-control: 12px;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --radius-chip: 6px;
   --radius-pill: 999px;
-  --font: "Geist", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+  --font: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
     system-ui, sans-serif;
-  --shadow-card: 0 1px 2px var(--pane-contact),
-    0 12px 32px -14px var(--pane-shade);
-  --pane-blur: blur(26px) saturate(180%);
-  --ctrl-blur: blur(14px);
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
-/* ---- Light：烟灰玻璃，浅灰底 ---------------------------------------- */
+/* ---- Light：白底近黑字 ---------------------------------------------- */
 
 html[data-theme="light"],
 html:not([data-theme]) {
   color-scheme: light;
-  --bg: #e4e6eb;
-  --fg: #0d0d0d;
-  --muted: #5b5b5b;
-  --rule: rgba(59, 66, 83, 0.12);
-  --rail: rgba(59, 66, 83, 0.08);
-  --icon: #3f3f46;
 
-  --surface: rgba(255, 255, 255, 0.7);
-  --surface-strong: rgba(255, 255, 255, 0.9);
+  --background: #ffffff;
+  --foreground: #262626;
+  --card: #ffffff;
+  --card-foreground: #262626;
+  --popover: #ffffff;
+  --popover-foreground: #262626;
+  --primary: #262626;
+  --primary-foreground: #fafafa;
+  --secondary: rgba(0, 0, 0, 0.04);
+  --secondary-foreground: #262626;
+  --muted-surface: rgba(0, 0, 0, 0.04);
+  --muted-foreground: #686868;
+  --accent-surface: rgba(0, 0, 0, 0.04);
+  --surface-hover: rgba(0, 0, 0, 0.08);
+  --surface-press: rgba(0, 0, 0, 0.12);
+  --accent-foreground: #262626;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.1);
+  --ring: #a3a3a3;
+  --destructive: #ef4444;
+  --destructive-foreground: #b91c1c;
+  --info: #3b82f6;
+  --info-foreground: #1d4ed8;
+  --success: #10b981;
+  --success-foreground: #047857;
+  --warning: #f59e0b;
+  --warning-foreground: #b45309;
+  --chart-1: #ea580c;
+  --chart-2: #0d9488;
+  --chart-3: #164e63;
+  --chart-4: #fbbf24;
+  --chart-5: #f59e0b;
 
-  /* 墨色：填充按钮、选中的 chip 都是同一块实心玻璃 */
-  --blue: #161616;
-  --blue-hover: #000000;
-  --blue-tint: rgba(22, 22, 22, 0.07);
-  --on-blue: #fafafa;
-  --danger: #b3261e;
-
-  /* 厚度：card 与 panel 的正面 */
-  --pane: rgba(247, 248, 251, 0.62);
-  --pane-solid: #eff0f3;
-  --pane-hover: rgba(247, 248, 251, 0.8);
-  --popover: #fafbfd;
-
-  /* 边缘：高光、内线、发丝线、接触投影、落影 */
-  --pane-rim: rgba(255, 255, 255, 0.9);
-  --pane-inner: rgba(255, 255, 255, 0.35);
-  --pane-edge: rgba(59, 66, 83, 0.1);
-  --pane-shade: rgba(31, 45, 76, 0.28);
-  --pane-contact: rgba(27, 33, 48, 0.06);
-
-  /* 清玻璃控件与输入框 */
-  --ctrl-fill: rgba(255, 255, 255, 0.56);
-  --ctrl-rim: rgba(255, 255, 255, 0.8);
-  --field-fill: rgba(255, 255, 255, 0.62);
-
-  /* 凹槽：分段控件的槽 */
-  --well-fill: rgba(41, 46, 56, 0.07);
-  --well-shade: rgba(31, 45, 76, 0.12);
-  --well-rim: rgba(255, 255, 255, 0.85);
-
-  /* 那一个状态 */
-  --state-fill: rgba(41, 46, 56, 0.09);
-  --state-rim: rgba(255, 255, 255, 0.85);
-
-  /* 实心玻璃的边缘 */
-  --ink-rim: rgba(255, 255, 255, 0.3);
-  --ink-under: rgba(0, 0, 0, 0.45);
-
-  --focus-line: rgba(20, 20, 20, 0.5);
-
-  /* 三束很淡的光：薄荷、白、薄荷，压在灰底上 */
-  --bg-art: radial-gradient(62rem 42rem at 8% -8%,
-      rgba(46, 177, 132, 0.09), transparent 62%),
-    radial-gradient(54rem 38rem at 96% 2rem,
-      rgba(255, 255, 255, 0.42), transparent 60%),
-    radial-gradient(64rem 46rem at 50% 112%,
-      rgba(46, 177, 132, 0.05), transparent 62%);
+  /* 浅色：亮线在顶边 */
+  --hairline: inset 0 1px 0 rgba(0, 0, 0, 0.04);
+  --shadow-card: var(--hairline), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-popover: var(--hairline), 0 10px 38px -12px rgba(0, 0, 0, 0.18),
+    0 2px 8px -2px rgba(0, 0, 0, 0.08);
+  --shadow-primary: inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 1px 2px rgba(38, 38, 38, 0.24);
 }
 
-/* ---- Dark：同一块玻璃，夜里 ------------------------------------------ */
+/* ---- Dark：近黑底近白字 -------------------------------------------- */
 
-html[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #0d0d0d;
-  --fg: #fafafa;
-  --muted: #a4a4a4;
-  --rule: rgba(255, 255, 255, 0.09);
-  --rail: rgba(255, 255, 255, 0.06);
-  --icon: #c9c9c9;
-
-  --surface: rgba(255, 255, 255, 0.12);
-  --surface-strong: rgba(255, 255, 255, 0.18);
-
-  --blue: #ebebeb;
-  --blue-hover: #ffffff;
-  --blue-tint: rgba(235, 235, 235, 0.1);
-  --on-blue: #121212;
-  --danger: #ff6b5f;
-
-  --pane: rgba(48, 48, 48, 0.46);
-  --pane-solid: #1e1e1e;
-  --pane-hover: rgba(58, 58, 58, 0.62);
-  --popover: #1e1e1e;
-
-  --pane-rim: rgba(255, 255, 255, 0.16);
-  --pane-inner: rgba(255, 255, 255, 0.04);
-  --pane-edge: rgba(255, 255, 255, 0.07);
-  --pane-shade: rgba(0, 0, 0, 0.6);
-  --pane-contact: rgba(0, 0, 0, 0.1);
-
-  --ctrl-fill: rgba(255, 255, 255, 0.07);
-  --ctrl-rim: rgba(255, 255, 255, 0.11);
-  --field-fill: rgba(255, 255, 255, 0.06);
-
-  --well-fill: rgba(255, 255, 255, 0.04);
-  --well-shade: rgba(0, 0, 0, 0.4);
-  --well-rim: rgba(255, 255, 255, 0.07);
-
-  --state-fill: rgba(255, 255, 255, 0.12);
-  --state-rim: rgba(255, 255, 255, 0.11);
-
-  --ink-rim: rgba(255, 255, 255, 1);
-  --ink-under: rgba(0, 0, 0, 0.22);
-
-  --focus-line: rgba(255, 255, 255, 0.4);
-
-  /* 深色页上没有环境光：玻璃读的是厚度，不是天色 */
-  --bg-art: none;
-  --pane-blur: blur(26px);
-}
-
-/* ---- Glass：同一套材质，墨绿底 --------------------------------------- */
-
+html[data-theme="dark"],
 html[data-theme="glass"] {
   color-scheme: dark;
-  --bg: #0e1418;
-  --fg: #eef3f4;
-  --muted: #a3b0b6;
-  --rule: rgba(238, 243, 244, 0.12);
-  --rail: rgba(238, 243, 244, 0.08);
-  --icon: #a3b0b6;
 
-  --surface: rgba(34, 46, 52, 0.72);
-  --surface-strong: rgba(46, 60, 67, 0.86);
+  --background: #141414;
+  --foreground: #f5f5f5;
+  --card: #191919;
+  --card-foreground: #f5f5f5;
+  --popover: #1d1d1d;
+  --popover-foreground: #f5f5f5;
+  --primary: #f5f5f5;
+  --primary-foreground: #262626;
+  --secondary: rgba(255, 255, 255, 0.04);
+  --secondary-foreground: #f5f5f5;
+  --muted-surface: rgba(255, 255, 255, 0.04);
+  --muted-foreground: #818181;
+  --accent-surface: rgba(255, 255, 255, 0.04);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --surface-press: rgba(255, 255, 255, 0.14);
+  --accent-foreground: #f5f5f5;
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #737373;
+  --destructive: #f87171;
+  --destructive-foreground: #f87171;
+  --info: #3b82f6;
+  --info-foreground: #60a5fa;
+  --success: #10b981;
+  --success-foreground: #34d399;
+  --warning: #f59e0b;
+  --warning-foreground: #fbbf24;
+  --chart-1: #1d4ed8;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
+  --chart-4: #a855f7;
+  --chart-5: #f43f5e;
 
-  --blue: #5cc8b6;
-  --blue-hover: #8bdccd;
-  --blue-tint: rgba(92, 200, 182, 0.14);
-  --on-blue: #08211c;
-  --danger: #f08a7f;
+  /* 深色：亮线在底边 */
+  --hairline: inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-card: var(--hairline), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-popover: var(--hairline), 0 12px 44px -12px rgba(0, 0, 0, 0.7),
+    0 2px 8px -2px rgba(0, 0, 0, 0.45);
+  --shadow-primary: inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 1px 2px rgba(0, 0, 0, 0.35);
+}
 
-  --pane: rgba(24, 34, 39, 0.76);
-  --pane-solid: #162025;
-  --pane-hover: rgba(32, 44, 50, 0.86);
-  --popover: #111920;
+/* ---- 旧名 → 别名：各应用一直在用的那套变量 --------------------------
+ *
+ * 新写的样式请直接用 --background / --card / --primary 这一套；
+ * 这里只是让 8 个应用和图表页的现有样式继续生效。
+ */
 
-  --pane-rim: rgba(238, 243, 244, 0.16);
-  --pane-inner: rgba(238, 243, 244, 0.04);
-  --pane-edge: rgba(238, 243, 244, 0.1);
-  --pane-shade: rgba(0, 0, 0, 0.65);
-  --pane-contact: rgba(0, 0, 0, 0.18);
-
-  --ctrl-fill: rgba(24, 34, 39, 0.55);
-  --ctrl-rim: rgba(238, 243, 244, 0.12);
-  --field-fill: rgba(24, 34, 39, 0.55);
-
-  --well-fill: rgba(0, 0, 0, 0.18);
-  --well-shade: rgba(0, 0, 0, 0.35);
-  --well-rim: rgba(238, 243, 244, 0.07);
-
-  --state-fill: rgba(238, 243, 244, 0.1);
-  --state-rim: rgba(238, 243, 244, 0.12);
-
-  --ink-rim: rgba(255, 255, 255, 0.35);
-  --ink-under: rgba(0, 0, 0, 0.3);
-
-  --focus-line: rgba(238, 243, 244, 0.5);
-  --pane-blur: blur(26px) saturate(130%);
-
-  --bg-art: radial-gradient(920px 560px at 92% -8%,
-      rgba(240, 169, 132, 0.14), transparent 62%),
-    radial-gradient(760px 520px at -12% 16%,
-      rgba(127, 214, 194, 0.12), transparent 58%),
-    radial-gradient(760px 540px at 58% 108%,
-      rgba(183, 169, 227, 0.14), transparent 62%);
+html[data-theme] {
+  --bg: var(--background);
+  --fg: var(--foreground);
+  /* 旧的 --muted 是「次要文字色」，语义与 coss 的 --muted（浅色底）相反，
+   * 所以 coss 的浅底叫 --muted-surface，不动旧名。 */
+  --muted: var(--muted-foreground);
+  --rule: var(--border);
+  --rail: var(--muted-surface);
+  --icon: var(--muted-foreground);
+  --surface: var(--card);
+  --surface-strong: var(--muted-surface);
+  --blue: var(--primary);
+  --blue-hover: color-mix(in srgb, var(--primary) 90%, transparent);
+  --blue-tint: var(--accent-surface);
+  --on-blue: var(--primary-foreground);
+  --danger: var(--destructive-foreground);
+  --pane: var(--card);
+  --pane-solid: var(--card);
+  --pane-hover: var(--accent-surface);
+  --pane-rim: transparent;
+  --pane-inner: transparent;
+  --pane-edge: var(--border);
+  --pane-shade: transparent;
+  --pane-contact: transparent;
+  --ctrl-fill: var(--card);
+  --ctrl-rim: transparent;
+  --field-fill: var(--card);
+  --well-fill: var(--muted-surface);
+  --well-shade: transparent;
+  --well-rim: transparent;
+  --state-fill: var(--accent-surface);
+  --state-rim: transparent;
+  --ink-rim: rgba(255, 255, 255, 0.16);
+  --ink-under: transparent;
+  --focus-line: var(--ring);
+  --bg-art: none;
+  --pane-blur: none;
+  --ctrl-blur: none;
 }
 
 /* ---- 页面本身 -------------------------------------------------------- */
 
 html[data-theme] {
-  background-color: var(--bg);
+  background-color: var(--background);
 }
 
 html[data-theme] body {
-  background-color: var(--bg);
-  background-image: var(--bg-art);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  color: var(--fg);
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -253,29 +228,38 @@ html[data-theme] body {
   text-rendering: optimizeLegibility;
 }
 
-/* 键盘焦点用一条线，不用光圈。 */
+/* 焦点：coss 是 2px 环 + 1px 间距。用 outline 实现，不会顶掉元素自己的投影。 */
 html[data-theme] :is(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--focus-line);
-  outline-offset: 2px;
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
 }
 
-/* ---- 卡片：一块烟灰玻璃 ----------------------------------------------
- *
- * 边框让位给内阴影：高光、内线和发丝线都画在元素自己的边缘上，
- * 留着 border 会在外面多出一圈。
- */
+/* ---- 卡片：一张纸加一条细边 ------------------------------------------ */
 
-html[data-theme] :is(.content-card, .card, .row, .prow, .empty, .target) {
-  border-width: 0;
-  background-color: var(--pane);
-  /* 这些表面底下是平铺的页面，模糊看不出区别，却要给几十行各开一层
-   * 合成层；模糊只留给真正盖在内容上的浮层。 */
-  box-shadow:
-    inset 0 1px 0 var(--pane-rim),
-    inset 0 0 0 1px var(--pane-inner),
-    0 0 0 1px var(--pane-edge),
-    0 1px 2px var(--pane-contact),
-    0 12px 32px -14px var(--pane-shade);
+html[data-theme] :where(.content-card, .card, .row, .prow, .empty, .target,
+    .vv-scene-card, .note, .note-card) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+/* 指针底下的面只提亮一档，颜色不变。 */
+html[data-theme] :where(.row, .prow, .card[href], .empty):hover {
+  background-color: var(--accent-surface);
+}
+
+/* 短语搭配一页三千行：用圆角卡片，但不加投影 —— 几千层投影在手机上就是卡顿。 */
+html[data-theme] .prow {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background-color: var(--card);
+  box-shadow: none;
+  padding: 12px 14px;
+}
+
+html[data-theme] .prow:hover {
+  background-color: var(--accent-surface);
 }
 
 /* 阅读正文的行贴着页面排，不做卡片。 */
@@ -283,118 +267,97 @@ html[data-theme] .passage .row {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
+}
+
+/* ---- 浮层：不透明、不模糊，只加一层柔和的落影 ------------------------ */
+
+html[data-theme] :where(.browserSheet, .kplayer, .npesl-theme-menu,
+    .kp-speed-menu) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background-color: var(--popover);
+  box-shadow: var(--shadow-popover);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 
-/* 指针底下的玻璃厚一点，颜色不变。 */
-html[data-theme] :is(.row, .prow, .card[href]):hover {
-  background-color: var(--pane-hover);
-}
-
-/* 短语搭配一页三千行，投影收小：几千层落影在手机上就是卡顿。 */
-html[data-theme] .prow {
-  box-shadow:
-    inset 0 1px 0 var(--pane-rim),
-    inset 0 0 0 1px var(--pane-inner),
-    0 0 0 1px var(--pane-edge),
-    0 1px 2px var(--pane-contact);
-}
-
-/* 按下去就落到页面上：底下的影子收掉。 */
-html[data-theme] :is(.row, .prow, .card[href]):active {
-  box-shadow:
-    inset 0 1px 0 var(--pane-rim),
-    inset 0 0 0 1px var(--pane-inner),
-    0 0 0 1px var(--pane-edge),
-    0 1px 1px var(--pane-contact);
-}
-
-/* ---- 浮层：最厚的一块玻璃 -------------------------------------------- */
-
-html[data-theme] :is(.browserSheet, .kplayer, .npesl-theme-menu,
-    .kp-speed-menu) {
-  border-width: 0;
-  background-color: var(--popover);
-  -webkit-backdrop-filter: var(--pane-blur);
-  backdrop-filter: var(--pane-blur);
-  box-shadow:
-    inset 0 1px 0 var(--pane-rim),
-    inset 0 -1px 0 var(--pane-inner),
-    0 0 0 1px var(--pane-edge),
-    0 24px 60px -18px var(--pane-shade),
-    0 6px 16px -6px var(--pane-contact);
-}
-
-/* 吸顶条（音标页的工具栏、短语搭配的页头）：铺页面同一层固定的光，
- * 和背景严丝合缝，滚动时不出现一条平色带。 */
+/* 吸顶条：铺页面同一层底色，滚动时不出现一条平色带。 */
 html[data-theme] :is(.toolbar, .sp-context) {
-  background-color: var(--bg);
-  background-image: var(--bg-art);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: var(--background);
+  background-image: none;
 }
 
-/* ---- 小控件：一块清玻璃 ---------------------------------------------- */
+/* ---- 小控件：白底细边 ------------------------------------------------- */
 
-html[data-theme] :is(.chip, .pill, .level, .tabs a, .catBtn, .chips button,
+html[data-theme] :where(.chip, .pill, .level, .tabs a, .catBtn, .chips button,
+    .chips a, .level1 button, .browseBtn, .browserClose,
+    .pager-btn, .speaker, .zh-toggle, .npesl-back, .npesl-theme-fab,
+    .hint, .ghost, .scene, .vv-btn, .speed-reset, .kp-close, .marks-toggle,
+    .speed-btn) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  /* 静止底色要比卡片深一档：和卡片同色时按钮会「融进」卡片，看不出能点。
+     卡片是白 / #191919，控件是 4% 的浅灰，两层就分得开。 */
+  background-color: var(--muted-surface);
+  box-shadow: none;
+  font-weight: 500;
+}
+
+html[data-theme] :where(.chip, .pill, .level, .tabs a, .catBtn, .chips button,
     .chips a, .level1 button, .browseBtn, .browserClose, .playBtn,
     .pager-btn, .speaker, .zh-toggle, .npesl-back, .npesl-theme-fab,
-    .hint, .badge) {
-  border-width: 0;
-  background-color: var(--ctrl-fill);
-  box-shadow:
-    inset 0 1px 0 var(--ctrl-rim),
-    0 0 0 1px var(--pane-edge),
-    0 1px 2px var(--pane-contact);
+    .hint, .ghost, .scene, .vv-btn, .speed-reset, .kp-close, .speed-btn):hover {
+  background-color: var(--surface-hover);
 }
 
-/* 输入框也是一块清玻璃，只是用来写字。 */
-html[data-theme] .searchField {
-  border-width: 0;
-  background-color: var(--field-fill);
-  box-shadow:
-    inset 0 1px 0 var(--ctrl-rim),
-    0 0 0 1px var(--pane-edge);
+/* 徽章是 coss 的 6px 小方角，不是药丸。 */
+html[data-theme] :where(.badge) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+  background-color: var(--card);
+  color: var(--muted-foreground);
+  font-weight: 500;
 }
 
-/* 徽章是圆角小玻璃，不要露直角。 */
-html[data-theme] .badge {
-  border-radius: 999px;
+/* 输入框：边框就是 --input，聚焦时换环。 */
+html[data-theme] :where(.searchField) {
+  border: 1px solid var(--input);
+  border-radius: var(--radius-control);
+  background-color: var(--card);
+  box-shadow: none;
 }
 
-/* 滑杆本体透明，只留原生轨道，避免一块白色直角底。 */
-html[data-theme] input[type="range"] {
+html[data-theme] :where(.searchField):focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 24%, transparent);
+}
+
+/* 滑杆本体透明，只留原生轨道。 */
+html[data-theme] input[type=range] {
   background-color: transparent;
   border-radius: 999px;
+  accent-color: var(--primary);
 }
 
-/* 分段控件的槽是刻出来的一道凹槽：上唇有影子，下唇有光。 */
-html[data-theme] :is(.seg, .voice, .voice-seg, .speed) {
-  border-width: 0;
-  border-radius: 999px;
-  background-color: var(--well-fill);
-  box-shadow:
-    inset 0 1px 2px var(--well-shade),
-    inset 0 -1px 0 var(--well-rim);
+/* ---- 分段控件：浅灰槽 + 白色浮块（coss 的做法，不是药丸） ------------ */
+
+html[data-theme] :where(.seg, .voice, .voice-seg) {
+  border: 0;
+  border-radius: var(--radius-lg);
+  background-color: var(--muted-surface);
+  box-shadow: none;
 }
 
-/* 男女声切换全站统一为 Conversation Starters 的分段控件：药丸形的槽，
- * 3px 内边距，30px 高的药丸按钮；选中的那块由下面的“选中”规则给墨色。
- * 各页自己的 .seg 只保留布局位置，尺寸和材质都在这里，不要再分叉。
- */
 html[data-theme] .seg {
   display: inline-flex;
   align-items: center;
   flex: none;
   height: auto;
-  padding: 3px;
+  padding: 2px;
   border: 0;
-  border-radius: 999px;
-  background-color: var(--well-fill);
-  box-shadow:
-    inset 0 1px 2px var(--well-shade),
-    inset 0 -1px 0 var(--well-rim);
+  border-radius: var(--radius-lg);
+  background-color: var(--muted-surface);
+  box-shadow: none;
   overflow: visible;
   vertical-align: middle;
 }
@@ -404,7 +367,7 @@ html[data-theme] .seg .voice-ico {
   align-items: center;
   flex: none;
   padding: 0 2px 0 10px;
-  color: var(--muted);
+  color: var(--muted-foreground);
   opacity: 0.55;
 }
 
@@ -420,14 +383,14 @@ html[data-theme] .seg button {
   align-items: center;
   justify-content: center;
   height: 30px;
-  padding: 0 15px;
+  padding: 0 14px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--muted);
+  color: var(--muted-foreground);
   font: inherit;
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1;
   letter-spacing: 0;
   white-space: nowrap;
@@ -439,19 +402,15 @@ html[data-theme] .seg button + button {
 }
 
 html[data-theme] .seg button:not([aria-pressed="true"]):hover {
-  color: var(--fg);
+  color: var(--foreground);
 }
 
 html[data-theme] .seg button:focus-visible {
-  outline: 2px solid var(--focus-line);
-  outline-offset: 2px;
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
 }
 
-/* ---- 选中：一块实心玻璃 ----------------------------------------------
- *
- * 分段的槽、筛选 chip、级别页签都一样：选中的那块直接给墨色，
- * 顶上一线光、底下一线暗影，和主按钮是同一种玻璃。
- */
+/* ---- 选中：一块近黑（深色下近白）的实心面 ---------------------------- */
 
 html[data-theme] :is(
     .tabs a[aria-current="true"],
@@ -465,31 +424,108 @@ html[data-theme] :is(
     .seg button[aria-pressed="true"],
     .pill[aria-pressed="true"]
   ) {
-  border-width: 0;
-  background-color: var(--blue);
-  color: var(--on-blue);
-  box-shadow:
-    inset 0 1px 0 var(--ink-rim),
-    inset 0 -1px 0 var(--ink-under),
-    0 1px 2px var(--pane-contact),
-    0 8px 18px -9px var(--pane-shade);
+  border-color: var(--primary);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-primary);
+  font-weight: 500;
 }
 
-/* 主按钮：最实的一块玻璃，立在页面上。 */
+/* 主按钮：整站最实的一块。圆角跟其余控件一致，不再用药丸。 */
 html[data-theme] :is(.primary, .play-all, .kp-toggle) {
-  border-width: 0;
-  box-shadow:
-    inset 0 1px 0 var(--ink-rim),
-    inset 0 -1px 0 var(--ink-under),
-    0 1px 2px var(--pane-contact),
-    0 8px 18px -9px var(--pane-shade);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-control);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-primary);
 }
 
 html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
-  box-shadow:
-    inset 0 1px 0 var(--ink-rim),
-    inset 0 -1px 0 var(--ink-under),
-    0 1px 1px var(--pane-contact);
+  background-color: color-mix(in srgb, var(--primary) 90%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+/* ---- 还没被共享类覆盖到的应用内元素 ---------------------------------- */
+
+/* 章节标题、分组标题、说明行：统一成 coss 的灰阶。 */
+html[data-theme] :is(.sec-head, .group h2, .group-head, .title-zh, .zh-title) {
+  color: var(--muted-foreground);
+}
+
+/* 列表行（phenomena 的对话行、phonics 的短句、drill 的题目行）：只给圆角。 */
+html[data-theme] :where(.line, .sentence, .questionList li) {
+  border-radius: var(--radius-control);
+}
+
+/* 卡片里的内容块保持朴素：它们没有内边距，加边框会让文字贴边。
+   只给真正需要成块的两三个加圆角，不加边框。 */
+html[data-theme] :where(.ex-unit, .variants, .uses, .sense,
+    .mini-card, .version) {
+  border-radius: var(--radius-control);
+}
+
+html[data-theme] :where(.opp-btn) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background-color: var(--card);
+}
+
+/* 播放件（Drill 的 女声/男声 等）和音标词完全同一套观感：
+   无边框、8px 圆角、浅底，悬停与按下逐档加深，播放中反色。 */
+html[data-theme] :where(.playBtn) {
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--muted-surface);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+html[data-theme] :where(.playBtn):hover {
+  background-color: var(--surface-hover);
+}
+
+html[data-theme] :where(.playBtn):active {
+  background-color: var(--surface-press);
+}
+
+html[data-theme] :where(.playBtn).is-playing {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* 音标词卡里的词要看得出来能点：浅底 + 8px 圆角，同时把两列的行距拉开，
+   否则上下两行的色块会粘成一整片（原来的行距是 0）。 */
+html[data-theme] .words {
+  row-gap: 6px;
+}
+
+html[data-theme] :where(.word) {
+  border-radius: var(--radius-md);
+  background-color: var(--muted-surface);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+html[data-theme] :where(.word):hover {
+  background-color: var(--surface-hover);
+}
+
+html[data-theme] :where(.word):active {
+  background-color: var(--surface-press);
+}
+
+/* 正在播的那一个直接反色：一眼看得出刚点的是它 */
+html[data-theme] :where(.word).playing {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* 四种读音标注是全站唯一保留彩色的地方：它们带信息（连读 / 吞音 / 变音 /
+ * 弱读），砍成灰就读不出来了。颜色取 coss 自己的语义色，深浅两套自动跟随；
+ * 字形上本来还有粗细和点线下划线，颜色只是辅助线索。 */
+html[data-theme] {
+  --pron-link: var(--info-foreground);
+  --pron-elide: var(--success-foreground);
+  --pron-change: var(--warning-foreground);
+  --pron-sg: var(--muted-foreground);
 }
 
 /* ---- 返回链接与主题开关 ---------------------------------------------- */
@@ -502,9 +538,9 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
   align-items: center;
   gap: 6px;
   margin: 0 0 20px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  color: var(--fg);
+  padding: 6px 12px 6px 10px;
+  border-radius: var(--radius-control);
+  color: var(--foreground);
   font-size: 14px;
   font-weight: 500;
   line-height: 1.2;
@@ -518,8 +554,8 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
 }
 
 .npesl-back:focus-visible {
-  outline: 2px solid var(--focus-line);
-  outline-offset: 3px;
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .npesl-theme {
@@ -527,7 +563,7 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
   right: max(16px, env(safe-area-inset-right, 0px));
   bottom: max(16px, env(safe-area-inset-bottom, 0px));
   z-index: 9999;
-  font-family: var(--font, "Geist", system-ui, "PingFang SC",
+  font-family: var(--font, "Inter", system-ui, "PingFang SC",
     "Microsoft YaHei", sans-serif);
 }
 
@@ -535,26 +571,25 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border-radius: 50%;
-  color: var(--fg);
+  color: var(--foreground);
   cursor: pointer;
 }
 
-.npesl-theme-fab:active { transform: scale(0.96); }
-.npesl-theme-fab:focus-visible { outline: 2px solid var(--focus-line); outline-offset: 3px; }
-.npesl-theme-fab svg { width: 21px; height: 21px; display: block; }
+.npesl-theme-fab:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.npesl-theme-fab svg { width: 18px; height: 18px; display: block; }
 
 .npesl-theme-menu {
   position: absolute;
   right: 0;
-  bottom: 54px;
+  bottom: 50px;
   display: none;
-  min-width: 158px;
-  padding: 6px;
-  border-radius: 16px;
+  min-width: 152px;
+  padding: 4px;
+  border-radius: var(--radius-xl);
 }
 
 .npesl-theme-menu[data-open="true"] { display: block; }
@@ -564,53 +599,88 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--fg);
+  color: var(--foreground);
   font-size: 14px;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
 }
 
-.npesl-theme-option:hover { background: var(--state-fill); }
-.npesl-theme-option:focus-visible { outline: 2px solid var(--focus-line); outline-offset: -2px; }
+.npesl-theme-option:hover { background: var(--accent-surface); }
+.npesl-theme-option:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 
 .npesl-theme-swatch {
   flex: none;
   width: 16px;
   height: 16px;
-  border: 1px solid var(--pane-edge);
+  border: 1px solid var(--border);
   border-radius: 50%;
 }
 
-.npesl-theme-swatch[data-swatch="light"] { background: #e4e6eb; }
-.npesl-theme-swatch[data-swatch="dark"] { background: #0d0d0d; }
-.npesl-theme-swatch[data-swatch="glass"] {
-  background: linear-gradient(135deg, #f0a984 0 14%, #0e1418 14% 52%,
-    #5cc8b6 52% 70%, #172126 70%);
-}
+.npesl-theme-swatch[data-swatch="light"] { background: #ffffff; }
+.npesl-theme-swatch[data-swatch="dark"] { background: #141414; }
 
 .npesl-theme-check {
   margin-left: auto;
-  color: var(--blue);
+  color: var(--muted-foreground);
   font-size: 14px;
   opacity: 0;
 }
 
 .npesl-theme-option[aria-checked="true"] .npesl-theme-check { opacity: 1; }
 
-/* ---- 交互：全站平滑滚动，按钮按下回弹 --------------------------------
+/* ---- 按下不缩放：压住各应用自己的 :active 规则 ----------------------
  *
- * 按下时快速缩到 96%，松开走一条轻微过冲的曲线回到原位，读起来像弹簧。
- * 只需要“缓动”的地方（底色、文字、阴影）仍用 0.18s ease，不跟着弹。
- * 尊重系统的减少动态偏好：开了 reduce 就完全不缩放、不滚动动画。
+ * 主题层不再提供按压缩放，但各应用的样式里还留着 scale()。逐个改应用
+ * 不如在这里统一关掉，圆角、间距这些布局不受影响。
+ */
+
+html[data-theme] :is(.primary, .playBtn, .row, .prow, .pager-btn, .chip,
+    .pill, .card, .browseBtn, .level1 button, .catBtn):active {
+  transform: none;
+}
+
+html[data-theme] .playbtn:active .play {
+  transform: none;
+}
+
+/* 播放中一定是「深底浅字」：把文字与图标锁成同一个颜色，
+ * 免得任何一层自己写了颜色，在某个主题下看不见。 */
+html[data-theme] :is(.playBtn, .playbtn, .speaker, .word, .pill, .kp-toggle):
+    is(.is-playing, .on, [aria-pressed="true"]) {
+  color: var(--primary-foreground);
+}
+
+/* ---- 光学对齐 --------------------------------------------------------
  *
- * 卡片容器不缩放：卡里有播放按钮，整张卡一缩，按钮会在按下与松开之间
- * 挪走，点击就落不到按钮上了。整张卡可点的 .card[href] 仍保留回弹，
- * 它本身就是点击目标。
+ * 几何居中不等于看起来居中。
+ */
+
+/* 行内 SVG 默认按基线排，旁边会多出一条基线间隙；改成块级按盒子对齐。 */
+html[data-theme] :where(button, a) > svg {
+  display: block;
+  flex: none;
+}
+
+/* 播放三角的重心偏左，几何居中看着偏右；往左收 1px 才看着正中。 */
+html[data-theme] :where(.play-all, .primary, .playBtn, .playbtn) :where(#icoPlay, .play > svg) {
+  margin-left: 1px;
+}
+
+/* 图标 + 文字并排的按钮：按字形高度对齐，别按行盒。 */
+html[data-theme] :where(.play-all, .playBtn, .browseBtn, .pager-btn,
+    .npesl-back, .speed, .chip) {
+  line-height: 1;
+}
+
+/* ---- 交互：只变底色，不缩放 ------------------------------------------
+ *
+ * coss 没有按下动画。去掉缩放也顺带修掉了老问题：卡片里的播放按钮
+ * 不会在按下与松开之间从指尖底下挪走。
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -618,39 +688,13 @@ html[data-theme] :is(.primary, .play-all, .kp-toggle):active {
       .tabs a, .chips a, .dv-tile, .dv-wall-link, .dv-step,
       .dv-views a, .dv-topic-item, .npesl-back):not(:disabled) {
     transition:
-      transform 0.3s cubic-bezier(0.34, 1.28, 0.64, 1),
-      background-color 0.18s ease,
-      border-color 0.18s ease,
-      color 0.18s ease,
-      box-shadow 0.18s ease;
-  }
-
-  html[data-theme] body :is(button, [role="button"], .card[href], .row, .prow,
-      .tabs a, .chips a, .dv-tile, .npesl-back):not(:disabled):active {
-    transform: scale(0.96);
-    transition-duration: 0.1s;
-  }
-
-  /* 句子里可以点的词、整句和小播放按钮不是“按钮”，按下去只变色，
-     不缩放；否则一行文字会跟着抖，小播放件也会从指尖底下移走。 */
-  html[data-theme] body :is(button, [role="button"]):is(
-      .s, .vocab-s, .chunk, .word, .title-s, .line, .playbtn):not(:disabled):active {
-    transform: none;
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
   }
 }
 
 @media print {
   .npesl-theme { display: none !important; }
-}
-
-/* 系统要求减少透明时，去掉模糊，让玻璃变实。 */
-@media (prefers-reduced-transparency: reduce) {
-  html[data-theme] :is(.content-card, .card, .row, .prow, .empty, .target,
-      .browserSheet, .kplayer, .npesl-theme-menu, .kp-speed-menu) {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-  html[data-theme] :is(.content-card, .card, .row, .prow, .empty, .target) {
-    background-color: var(--pane-solid);
-  }
 }

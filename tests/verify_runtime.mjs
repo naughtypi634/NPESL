@@ -627,7 +627,7 @@ async function probeThemes() {
   const pages = ['/', '/conversation/a1/01-01-family.html', '/collocation/', '/drill/'];
   const broken = [];
   for (const page of pages) {
-    for (const theme of ['light', 'dark', 'glass']) {
+    for (const theme of ['light', 'dark']) {
       await evaluate(`localStorage.setItem('npesl-theme', ${JSON.stringify(theme)})`);
       await goto(page);
       const info = await evaluate(`({
@@ -640,7 +640,7 @@ async function probeThemes() {
     }
   }
   await evaluate("localStorage.setItem('npesl-theme','light')");
-  return { ok: broken.length === 0, detail: broken.join(' ') || '4 页 × 3 主题' };
+  return { ok: broken.length === 0, detail: broken.join(' ') || '4 页 × 2 主题' };
 }
 
 async function probePhonicsPlayAll() {

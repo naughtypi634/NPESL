@@ -1,0 +1,589 @@
+/*
+ * 常见发音现象的样式层 —— coss ui 的视觉语言。
+ *
+ * 与其余应用的 Solid Glass 层是两套东西：这里没有模糊、没有渐变、没有光晕，
+ * 只有「一条 1px 淡边 + 里面 1px 亮线 + 几乎看不见的小投影」。
+ *
+ * 令牌值必须和 apps/site/theme.css 的 :root / [data-theme="dark"] 保持一致 ——
+ * 那一份是全站的规范值，这里只是本应用自带一份（本页不加载 theme.css，
+ * 否则玻璃层的材质规则会盖掉 coss）。改配色时两边一起改。
+ *
+ * 只引 Tailwind 的主题与工具两层，不引 preflight —— 会打乱下面这份手写基线。
+ * coss 组件用的是 Tailwind 工具类，所以这两层必须在。
+ */
+
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@source "../**/*.{ts,tsx}";
+
+/* coss 默认按 .dark 出深色工具类；本站用 data-theme。 */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* 工具名 → 本站令牌：真源只有下面 :root / [data-theme="dark"] 一份。 */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--surface-muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--surface-accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+  --font-sans: var(--font);
+  --font-heading: var(--font);
+  --font-mono: var(--font-mono);
+}
+
+:root {
+  color-scheme: light;
+  --radius: 10px;
+
+  --background: #ffffff;
+  --foreground: #262626;
+  --card: #ffffff;
+  --card-foreground: #262626;
+  --popover: #ffffff;
+  --popover-foreground: #262626;
+  --primary: #262626;
+  --primary-foreground: #fafafa;
+  --secondary: rgba(0, 0, 0, 0.04);
+  --secondary-foreground: #262626;
+  --surface-muted: rgba(0, 0, 0, 0.04);
+  --surface-accent: rgba(0, 0, 0, 0.04);
+  --accent-foreground: #262626;
+  --muted-foreground: #686868; /* neutral-500 90% + black */
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.1);
+  --ring: #a3a3a3;
+  --destructive: #ef4444;
+  --destructive-foreground: #b91c1c;
+
+  /* 浅色下亮线在顶边，深色下在底边 —— coss 就是这么分的。 */
+  --hairline: inset 0 1px 0 rgba(0, 0, 0, 0.04);
+  --shadow-card: var(--hairline), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-popover: var(--hairline), 0 10px 38px -12px rgba(0, 0, 0, 0.18),
+    0 2px 8px -2px rgba(0, 0, 0, 0.08);
+
+  --font: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #141414; /* neutral-950 96% + white */
+  --foreground: #f5f5f5;
+  --card: #191919; /* background 98% + white */
+  --card-foreground: #f5f5f5;
+  --popover: #1d1d1d; /* background 96% + white */
+  --popover-foreground: #f5f5f5;
+  --primary: #f5f5f5;
+  --primary-foreground: #262626;
+  --secondary: rgba(255, 255, 255, 0.04);
+  --secondary-foreground: #f5f5f5;
+  --surface-muted: rgba(255, 255, 255, 0.04);
+  --surface-accent: rgba(255, 255, 255, 0.04);
+  --accent-foreground: #f5f5f5;
+  --muted-foreground: #818181; /* neutral-500 90% + white */
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #737373;
+  --destructive: #f87171;
+  --destructive-foreground: #f87171;
+
+  --hairline: inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-card: var(--hairline), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-popover: var(--hairline), 0 12px 44px -12px rgba(0, 0, 0, 0.7),
+    0 2px 8px -2px rgba(0, 0, 0, 0.45);
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    box-sizing: border-box;
+    border: 0 solid;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  p,
+  ul,
+  ol,
+  figure {
+    margin: 0;
+  }
+
+  ul,
+  ol {
+    padding: 0;
+    list-style: none;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    background-color: transparent;
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px 112px;
+    padding-inline: max(20px, env(safe-area-inset-left, 0px))
+      max(20px, env(safe-area-inset-right, 0px));
+  }
+
+  /* 站点装配插进来的返回链接：这里没有 theme.css，所以自带一份样式。 */
+  .npesl-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 24px;
+    padding: 6px 12px 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--card);
+    box-shadow: var(--shadow-card);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .npesl-back:hover {
+    background-color: var(--surface-accent);
+  }
+
+  .npesl-back svg {
+    width: 14px;
+    height: 14px;
+    flex: none;
+  }
+
+  /* ---------------------------------------------------------------- 目录页 */
+  .index-head h1 {
+    font-size: clamp(26px, 6vw, 32px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+    margin-bottom: 8px;
+  }
+
+  .chip {
+    appearance: none;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--card);
+    box-shadow: var(--shadow-card);
+    color: var(--foreground);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .chip:hover {
+    background-color: var(--surface-accent);
+  }
+
+  .chip[aria-pressed="true"] {
+    border-color: var(--primary);
+    background-color: var(--primary);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    color: var(--primary-foreground);
+  }
+
+  .group {
+    margin-top: 32px;
+  }
+
+  .group h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+  }
+
+  .list {
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .row:hover {
+    background-color: var(--surface-accent);
+  }
+
+  .row .title {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .row .en {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .row .zh {
+    font-size: 13px;
+    color: var(--muted-foreground);
+  }
+
+  .row .tag {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 46%;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.6;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---------------------------------------------------------------- 章节页 */
+  .ch-head .cat {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--muted-foreground);
+  }
+
+  .ch-head h1 {
+    margin-top: 8px;
+    font-size: clamp(26px, 6.4vw, 34px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+  }
+
+  .ch-head .zh-title {
+    margin-top: 6px;
+    font-size: 15px;
+    color: var(--muted-foreground);
+  }
+
+  .targets {
+    margin-top: 24px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .target {
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2xl);
+    background-color: var(--card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .pair {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 16px;
+  }
+
+  .pair .w {
+    color: var(--muted-foreground);
+  }
+
+  .pair .arrow {
+    color: var(--muted-foreground);
+  }
+
+  .pair .s {
+    padding: 1px 7px;
+    border-radius: 6px;
+    background-color: var(--surface-muted);
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  /* 示范句按钮：整块可点，文字左对齐，长句子允许折行。 */
+  .pill {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--input);
+    border-radius: var(--radius);
+    background-color: var(--background);
+    text-align: left;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .pill:hover {
+    background-color: var(--surface-accent);
+  }
+
+  .pill .play {
+    margin-right: 6px;
+    color: var(--muted-foreground);
+    font-size: 0.7em;
+  }
+
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 10px 0;
+    background-color: var(--background);
+    box-shadow: inset 0 -1px 0 var(--border);
+  }
+
+  /* 三档语速：慢速 / 恢复 / 快速，图标 + 文字，和其余带音频的应用一致。 */
+  .speed {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .speed-ico {
+    width: 12px;
+    height: 12px;
+    flex: none;
+    fill: currentColor;
+  }
+
+  .speed-ico .stroke {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dialogue {
+    margin-top: 16px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .line {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--card);
+    text-align: left;
+  }
+
+  .line:hover {
+    background-color: var(--surface-accent);
+  }
+
+  .line.playing {
+    border-color: var(--ring);
+    background-color: var(--surface-accent);
+  }
+
+  .line .txt {
+    display: block;
+    font-size: 19px;
+    line-height: 1.6;
+  }
+
+  .line .zh {
+    display: block;
+    margin-top: 5px;
+    color: var(--muted-foreground);
+    font-size: 14px;
+  }
+
+  [data-zh="off"] .line .zh {
+    display: none;
+  }
+
+  /* 弱读提示放在字下面（旧页面也是 under）。 */
+  ruby {
+    ruby-position: under;
+    -webkit-ruby-position: after;
+  }
+
+  rt {
+    font-size: 0.62em;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+
+  .status {
+    position: fixed;
+    left: 50%;
+    bottom: max(24px, env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--popover);
+    box-shadow: var(--shadow-popover);
+    color: var(--foreground);
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease;
+  }
+
+  .status.show {
+    opacity: 1;
+  }
+
+  .empty {
+    margin-top: 40px;
+    color: var(--muted-foreground);
+    font-size: 15px;
+  }
+
+  .theme-fab {
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background-color: var(--card);
+    box-shadow: var(--shadow-card);
+    color: var(--foreground);
+  }
+
+  .theme-fab:hover {
+    background-color: var(--surface-accent);
+  }
+
+  .theme-fab svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  @media (max-width: 420px) {
+    .toolbar {
+      gap: 8px;
+    }
+
+    .pair {
+      font-size: 15px;
+    }
+
+    .pair .s {
+      font-size: 16px;
+    }
+  }
+}

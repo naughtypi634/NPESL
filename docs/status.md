@@ -110,3 +110,41 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
   - 小程序数据源改为读同一份 JSON（`tools/miniprogram/build_data.py`），30 章 / 360 行不变。
   - 新增自托管字体 `apps/site/fonts/inter-latin*-wght-normal.woff2`（OFL），只被试点引用，`theme.css` 未改。
   - **未部署**：用户要求先看效果再决定。
+
+- 2026-11-23：**全站换成 coss 外观层**（不重写页面，只换主题层）。
+  - `apps/site/theme.css` 重写：coss 令牌（浅色 `#ffffff`/`#262626`，深色 `#141414`/`#f5f5f5`）+ 平材质（1px 边、内嵌 1px 亮线、极小投影）；模糊、渐变、极光、五层玻璃阴影、按压缩放全部删除。旧变量名（`--bg --fg --surface --blue --pane-*` 等）保留为别名，8 个应用与图表页的样式一行未改。
+  - 主题从 3 套减到 2 套（light / dark）。`glass` 下线：存过它的按深色渲染。同步改了 `tools/themes.py`、`apps/site/theme.js`、`apps/site/index.html`、`apps/data-viz/web/vite.config.ts`、`tests/verify_runtime.mjs`、`tests/dataviz-ui.mjs`。
+  - 字体 Geist → Inter（`apps/site/fonts/inter-latin*-wght-normal.woff2`，OFL）；`theme.css` 只留 2 个 `@font-face`。
+  - 彩色只保留两处：Conversation 的四种读音标注（`--pron-*` 映射到 coss 的 info/success/warning/次要灰），以及首页的 `npesl-icon.png` 图标本身。
+  - `/phenomena/*` 仍不注入主题层（React 试点自带 coss 令牌）；`tools/verify/` 的字体检查、`build_cloudflare_site.py` 的字体存在性检查都改成 Inter。
+  - `theme.css` / `theme.js` 缓存从 1 天改成 `max-age=0, must-revalidate`，换皮立刻生效。
+  - 微信小程序同步：5 套主题 → 2 套，`--mint*` 改名 `--primary*`（30 处引用），删掉 `--art` 渐变与三套已下线主题的色块；`utils/theme.js` 的 `THEMES[2]` 越界兜底修掉，`app.json` 窗口底色改白。
+  - 验收：`audit_build --diff before after` 259 个文件（0 新增 / 3 删除 / 256 改变；删除的是 Geist 字体与许可，音频与图片零改动）；`verify.py` 22/22、286/286 页；`dataviz-ui.mjs` 23/23。**未部署**。
+- 2026-11-23：**图标也换成单色**。`apps/site/npesl-icon.png`（512）与 `favicon-32` / `favicon-16` / `apple-touch-icon` / `favicon.ico` 全部重做成「近黑方片 + 白字」，尺寸与字位沿用原图（字宽 383/512）。首页的 `.logo` 改成内联 SVG（方片 `currentColor`、字用 `--background`），所以浅色下是近黑片白字、深色下是近白片深字，两种主题都清楚。图标生成脚本是一次性的，留在 `build/review/make_icon.py`（gitignore）。
+- 2026-11-23：**按用户反馈修一轮**。
+  - 音标表：`.word` 的灰底去掉（原来是我给词按钮加了底色，两列零行距，色块粘成一片）。
+  - 按下弹跳：主题层统一 `transform: none`，压住各应用自己的 `:active` 缩放（drill / phonics / collocation / conversation）。
+  - 图标消失与文字消失同一根因：主题层的基础材质规则用了 `:is()`，改背景但没改文字色，压过应用的 `.playBtn.is-playing` 等状态对；改成 `:where()` 后由应用自己的状态规则说话。drill 的 女声/男声 实测：播放中 `#262626` 底 + `#fafafa` 图标与文字。
+  - 圆角统一：`.play-all` 的 980px 药丸改为 10px，和其余控件一致；徽章 6px，圆形保持 50%。
+  - 光学对齐：按钮内 SVG 改块级（消掉基线间隙）、播放三角左收 1px、图标+文字按钮统一 `line-height: 1`。
+  - 语速：全部改成三档按钮（0.75 / 1 / 1.25，默认 1），去掉滑块，图标为「一格 / 回转箭头 / 三格」；phenomena（React）、phonics 课时、conversation 章节三处一致，播放器里的 7 档菜单也缩到 3 档。
+  - 验收：`verify.py` 22/22、286/286 页；`dataviz-ui.mjs` 未动不受影响。**未部署**；Visual Vocabulary 已通知另一会话先不部署。
+- 2026-11-23：**第二轮反馈**。
+  - 音标词恢复可点观感：浅底 + 8px 圆角，`.words` 加 6px 行距，色块不再粘成一片。
+  - 音标页不再内嵌主题：`tools/build_ipa_site.py` 改成 `theme_boot("/theme.css")` + 外链 `theme.js`，和其余页面一致。以后改 `theme.css` 只需 `--only site`，不必再单独重建音标页。
+  - 播放中文字不可见的根治：主题层加一条「播放中一律深底浅字」，把文字、图标、内层 span 锁成 `--primary-foreground`。
+  - 语速图标三处统一为同一套 SVG（一格 / 回转箭头 / 三格，viewBox 12×12）；phenomena 去掉 lucide 的蜗牛/兔子。
+  - 短语搭配：`.prow` 改回圆角卡片（10px、12px 14px 内边距）；我给内容块加的边框撤掉（它们没有内边距，文字会贴边）。
+  - 短语搭配播放件：波形三根竖条加 `say-wave` 动效（0.8s，错峰 0.16s，`prefers-reduced-motion` 下关闭）。
+  - 方框底色普查：逐页扫「有底色且圆角为 0」的元素，命中项只有全宽吸顶条（刻意为之）与 `.prow`（已改圆角）。
+  - 验收：`verify.py` 22/22、286/286 页。过程中我自己引入过一处回归（内嵌脚本套娃导致音标页 SyntaxError），由运行时层抓到并修好。
+- 2026-11-23：**Visual Vocabulary 写实版（未上线）**。
+  - 用户确认出图规则：约 35° 俯视（以能看到物件顶面为准）、房间类保留后墙与地板、台面与商品类保持无缝背景、物件完整分开不裁切。
+  - 36 个场景描述已全部改写；客厅与厨房小家电两张样张在 `build/vv-work/style/real/`，全量渲染脚本 `build/vv-work/run-real.ps1`（通宵跑，断点续跑）。
+  - 点读框重标在出图后另做；线上仍是等距皮克斯 25°。
+- 2026-11-23：**第三轮反馈：可点性与播放件观感**。
+  - 音标词与 Drill 的 女声/男声 统一成同一套：无边框、8px 圆角、静止 4% 浅底、悬停 8%、按下 12%、播放中反色（近黑底浅字 / 近白底深字），0.12s 过渡。
+  - 根因：静止底色原本取 `--card`，和卡片同色，按钮等于「融进」卡片；点下去才突然变成整块黑/白。现在控件底色取 `--muted-surface`，比卡片深一档。
+  - 新增令牌 `--surface-hover`（8%）与 `--surface-press`（12%），供所有可点元素分档。
+  - 验收：`verify.py` 22/22、286/286 页；两种主题下的静止/播放状态都按像素采样核对过对比度。
+

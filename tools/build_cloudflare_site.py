@@ -101,10 +101,10 @@ HEADERS = """/fonts/*
   Cache-Control: public, max-age=0, must-revalidate
 
 /theme.css
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=0, must-revalidate
 
 /theme.js
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=0, must-revalidate
 
 /drill/audio/*
   Cache-Control: public, max-age=31536000, immutable
@@ -166,6 +166,9 @@ class PageGroup:
     url: Callable[[str], str]
     back: BackLink
     skip: frozenset[str] = frozenset()
+    # 自带样式与主题的应用（目前的 React 试点）不进 Solid Glass 主题层，
+    # 否则 html[data-theme] 的材质规则会盖掉它自己的 coss 样式。
+    theme: bool = True
 
 
 def write_page(path: Path, text: str) -> None:
@@ -251,13 +254,15 @@ def finish_group(group: PageGroup) -> None:
 
     The order is load-bearing: inject_head and inject_theme both anchor on
     </title>, so swapping them changes the bytes of every page.  Every group
-    gets the Solid Glass theme boot / theme.css / theme.js.
+    gets the Solid Glass theme boot / theme.css / theme.js unless it sets
+    `theme=False` and brings its own.
     """
     for page in sorted(group.base.glob(group.pattern)):
         if page.name in group.skip:
             continue
         inject_head(page, group.url(page.name))
-        inject_theme(page)
+        if group.theme:
+            inject_theme(page)
         if group.back.replace:
             replace_back(page, group.back.href, group.back.label)
         else:
@@ -327,10 +332,10 @@ def main() -> int:
                  "favicon.ico"):
         shutil.copy2(SITE_SRC / name, OUT / name)
 
-    # 自托管字体：Geist latin / latin-ext（可变字体）
+    # 自托管字体：Inter latin / latin-ext（可变字体）
     fonts_src = SITE_SRC / "fonts"
-    if not (fonts_src / "geist-latin-v5.woff2").exists():
-        print(f"错误：缺少 {fonts_src / 'geist-latin-v5.woff2'}；"
+    if not (fonts_src / "inter-latin-wght-normal.woff2").exists():
+        print(f"错误：缺少 {fonts_src / 'inter-latin-wght-normal.woff2'}；"
               "先放回自托管字体再装配", file=sys.stderr)
         return 2
     shutil.copytree(fonts_src, OUT / "fonts")
@@ -356,19 +361,26 @@ def main() -> int:
     finish_group(PageGroup(
         ipa_out, "index.html", lambda _: "ipa/", site_back))
 
-    # 常见发音现象：30 章 + 音频
-    if PHENOMENA.exists():
+    # 常见发音现象：30 章 + 音频。页面由 React 应用（web/ → dist/）产出，
+    # 自带 coss 样式与两套主题，所以不再注入 Solid Glass 主题层。
+    phenomena_dist = PHENOMENA / "dist"
+    phenomena_audio = PHENOMENA / "audio"
+    if (phenomena_dist / "index.html").exists():
         phenomena_out = OUT / "phenomena"
-        shutil.copytree(PHENOMENA, phenomena_out, ignore=phenomena_ignore)
+        shutil.copytree(phenomena_dist, phenomena_out)
+        if phenomena_audio.exists():
+            shutil.copytree(
+                phenomena_audio, phenomena_out / "audio", ignore=phenomena_ignore)
         finish_group(PageGroup(
-            phenomena_out, "index.html", lambda _: "phenomena/", site_back))
+            phenomena_out, "index.html", lambda _: "phenomena/", site_back,
+            theme=False))
         finish_group(PageGroup(
             phenomena_out, "*.html", lambda name: f"phenomena/{name}",
             BackLink("/phenomena/", "常见发音现象", replace=True),
-            frozenset({"index.html"})))
+            frozenset({"index.html"}), theme=False))
         print("  常见发音现象：已包含")
     else:
-        print("警告：常见发音现象 目录不存在，未包含")
+        print("警告：apps/phenomena/dist 不存在；先跑 phenomena 构建")
 
     # 短语搭配：主题页 + 每页一条 sprite
     if COLLOCATION.exists():

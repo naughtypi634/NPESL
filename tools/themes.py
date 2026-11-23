@@ -8,16 +8,17 @@ id 列表在首屏前写好 data-theme，否则新主题会被当成未知值退
 
 from __future__ import annotations
 
-# light / dark 是 Solid Glass 的两种光，glass 是同一套材质换成了墨绿底。
-# 没存过选择时用 light。顺序就是菜单顺序。
-THEME_IDS = ("light", "dark", "glass")
+# light / dark 两套，材质是 coss ui（平、单色、细边）。
+# 没存过选择时用 light；旧的 glass 已下线，存过它的会退回 light。
+# 顺序就是菜单顺序。
+THEME_IDS = ("light", "dark")
 THEME_IDS_JS = "[" + ",".join(f"'{theme}'" for theme in THEME_IDS) + "]"
 
-# Solid Glass 的字体：Geist 自托管在 /fonts/，中文走系统字体。
+# Inter 自托管在 /fonts/，中文走系统字体。
 # 预载 latin 文件（可变字体，100–900 共用一份）；latin-ext 由主题 CSS
 # 的 @font-face 按 unicode-range 按需加载。
 FONT_PRELOAD = (
-    '<link rel="preload" href="/fonts/geist-latin-v5.woff2" '
+    '<link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" '
     'as="font" type="font/woff2" crossorigin>'
 )
 

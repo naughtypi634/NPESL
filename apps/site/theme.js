@@ -2,14 +2,17 @@
   var KEY = 'npesl-theme';
   var THEMES = [
     { id: 'light', label: 'Light' },
-    { id: 'dark', label: 'Dark' },
-    { id: 'glass', label: 'Glass' }
+    { id: 'dark', label: 'Dark' }
   ];
   var VALID = THEMES.map(function (theme) { return theme.id; });
+
+  // 已下线的主题：老的 glass 是深色底，直接当深色用，别让人莫名其妙变回浅色。
+  var LEGACY = { glass: 'dark' };
 
   function read() {
     try {
       var value = localStorage.getItem(KEY);
+      if (LEGACY[value]) value = LEGACY[value];
       if (value && VALID.indexOf(value) !== -1) return value;
     } catch (err) {
       // localStorage 不可用时用浅色。
