@@ -147,4 +147,9 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
   - 根因：静止底色原本取 `--card`，和卡片同色，按钮等于「融进」卡片；点下去才突然变成整块黑/白。现在控件底色取 `--muted-surface`，比卡片深一档。
   - 新增令牌 `--surface-hover`（8%）与 `--surface-press`（12%），供所有可点元素分档。
   - 验收：`verify.py` 22/22、286/286 页；两种主题下的静止/播放状态都按像素采样核对过对比度。
+- 2026-11-23：**已部署**。用户明确指示「推送到 GitHub 并部署到主站」。
+  - 推送：`main` → `origin/main`，HEAD `559ffaa7f`（连同此前未推的 43 个提交）。
+  - 主站：`npx wrangler pages deploy build/cloudflare-site --project-name npesl --branch main`，部署 id `faa3bc44`（https://faa3bc44.npesl.pages.dev，正式地址 https://npesl.pages.dev）。本次增量上传 293 个文件。
+  - 音频站未部署：母版零改动，sprite 内容与文件名与原来一致。
+  - 线上核对：`/theme.css` 已是 coss 令牌 + Inter；`/ipa/` 改为外链 theme.css、无内嵌残留；`/phenomena/` 入口脚本 `main-CCjWMkxy.js` 200；7 个入口全部 200。
 
