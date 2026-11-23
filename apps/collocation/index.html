@@ -4,617 +4,822 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>短语搭配 Collocations</title>
-<style>
-  :root {
-    --bg:#ffffff; --fg:#1d1d1f; --muted:#6e6e73; --rule:#e5e5ea;
-    --surface:#f5f5f7;
-    --accent:var(--blue, #0071e3); --tint:var(--blue-tint, #e8f2ff);
-    --on-accent:var(--on-blue, #ffffff);
-    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",
-      "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-    color-scheme:light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#000000; --fg:#f5f5f7; --muted:#98989d; --rule:#2c2c2e;
-      --surface:#1c1c1e;
-      --accent:var(--blue, #0a84ff); --tint:var(--blue-tint, #0d2a45);
-      color-scheme:dark; }
-  }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
-    -webkit-font-smoothing:antialiased; }
-  .page { max-width:760px; margin:0 auto;
-    padding:clamp(40px,7vh,72px) 24px 96px; }
-  h1 { margin:0; font-size:clamp(2rem,6vw,2.8rem); font-weight:700;
-    letter-spacing:-0.03em; line-height:1.08; }
-  .sub { margin:10px 0 0; color:var(--muted); font-size:16px; }
-  .sub a { color:var(--accent); text-decoration:none; }
-  .crumbs { margin:0 0 10px; color:var(--muted); font-size:13px; }
-  .crumbs a { color:var(--muted); text-decoration:none; }
-  .crumbs a:hover { color:var(--accent); }
-  .level1 { display:flex; gap:8px; margin:18px 0 10px; }
-  .level1 button { appearance:none; display:inline-flex; align-items:center; gap:5px;
-    font:inherit; font-size:14px; padding:8px 16px;
-    border:1px solid var(--rule); border-radius:var(--radius-pill, 999px); background:transparent;
-    color:var(--fg); cursor:pointer; }
-  .level1 button:hover { background:var(--surface); }
-  .level1 button[aria-pressed="true"] { background:var(--accent);
-    border-color:var(--accent); color:var(--on-accent); }
-  /* 箭头提示这一栏可以展开/收起：收起指向右，展开转向下 */
-  .level1 .mode-arw { display:inline-block; font-size:1.1em; line-height:1;
-    opacity:.72; transition:transform .18s ease; }
-  .level1 button[aria-expanded="true"] .mode-arw { transform:rotate(90deg); }
-  @media (prefers-reduced-motion: reduce) {
-    .level1 .mode-arw { transition:none; }
-  }
-  .hint { margin:14px 0 0; color:var(--muted); font-size:14px; }
-  .group .theme { margin:24px 0 6px; font-size:16px; font-weight:600; }
-  .group .theme a { color:var(--fg); text-decoration:none; }
-  .group .theme a:hover { color:var(--accent); }
-  .theme-go { float:right; font-size:12px; font-weight:400; color:var(--accent); }
-  /* [hidden] 会被 .chips{display:flex} 覆盖，必须显式压回去 */
-  [hidden] { display:none !important; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 0; }
-  .chips button, .chips a { appearance:none; display:inline-block;
-    font:inherit; font-size:14px; padding:7px 14px; line-height:1.2;
-    border:1px solid var(--rule); border-radius:var(--radius-pill, 999px); background:transparent;
-    color:var(--fg); text-decoration:none; cursor:pointer; }
-  .chips button:hover, .chips a:hover { background:var(--surface); }
-  .chips button[aria-pressed="true"] { background:var(--accent);
-    border-color:var(--accent); color:var(--on-accent); }
-  .topbar { display:flex; flex-wrap:wrap; align-items:center;
-    justify-content:space-between; gap:10px; margin:18px 0 10px; }
-  .level1 { margin:0; }
-  .prow { display:flex; align-items:baseline; gap:12px; width:100%;
-    text-align:left; font:inherit; color:inherit; background:var(--bg);
-    border:1px solid var(--rule); border-radius:var(--radius-control, 14px); padding:12px 14px;
-    cursor:pointer; content-visibility:auto; contain-intrinsic-block-size:22px; }
-  .prow:hover { background:var(--surface); }
-  .prow .en { font-size:17px; font-weight:600; min-width:0; }
-  .prow .zh { margin-left:auto; max-width:48%; text-align:right; color:var(--muted);
-    font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .prow .arw { color:var(--muted); transition:transform .15s ease; }
-  .prow[aria-expanded="true"] .arw { transform:rotate(90deg); }
-  .card { margin:8px 0 16px; padding:16px; border:1px solid var(--rule);
-    border-radius:var(--radius-card, 16px); background:var(--bg); }
-  .card-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
-  .card .w { display:inline-block; padding:7px 14px; font-size:14px; font-weight:600;
-    border:1px solid var(--rule); border-radius:var(--radius-pill, 999px);
-    background:transparent; color:var(--fg);
-    transition:background-color .18s ease, color .18s ease, border-color .18s ease; }
-  .card .ipa { color:var(--muted); font-size:13px; }
-  .card .playbtn { appearance:none; border:0; background:transparent; padding:0;
-    display:inline-flex; align-items:center; cursor:pointer; color:inherit; }
-  /* 可播放提示：小圆播放件；播放时一圈向外扩散的渐变脉冲 */
-  .card .playbtn .play { position:relative; display:inline-flex; align-items:center;
-    justify-content:center; width:18px; height:18px; flex:none;
-    border:1px solid var(--rule); border-radius:50%; background:var(--bg);
-    color:var(--muted);
-    transition:background-color .12s ease, color .12s ease,
-      border-color .12s ease, transform .12s ease; }
-  .card .playbtn .play svg { display:block; width:8px; height:8px; margin-left:1px; }
-  .card .playbtn:hover .play, .card .playbtn.on .play {
-    background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
-  .card .playbtn:active .play { transform:scale(.9); }
-  .card .playbtn .bars { display:none; align-items:flex-end; gap:2px; height:9px; }
-  .card .playbtn .bars i { display:block; width:2px; height:4px; border-radius:1px;
-    background:currentColor; }
-  .card .playbtn .bars i:nth-child(2) { height:7px; }
-  .card .playbtn .bars i:nth-child(3) { height:5px; }
-  .card .playbtn.on .play svg { display:none; }
-  .card .playbtn.on .play .bars { display:inline-flex; }
-  /* 播放中三根竖条起伏，像一段在走的波形 */
-  @keyframes say-wave {
-    0%, 100% { transform:scaleY(0.4); }
-    50% { transform:scaleY(1); }
-  }
-  .card .playbtn.on .play .bars i {
-    transform-origin:bottom;
-    animation:say-wave 0.8s ease-in-out infinite;
-  }
-  .card .playbtn.on .play .bars i:nth-child(2) { animation-delay:0.16s; }
-  .card .playbtn.on .play .bars i:nth-child(3) { animation-delay:0.32s; }
-  @media (prefers-reduced-motion: reduce) {
-    .card .playbtn.on .play .bars i { animation:none; }
-  }
-  .card .say-unit:has(.playbtn.on) .w {
-    background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
-  .card .say-unit:has(.playbtn.on) .txt { color:var(--accent); }
-  .card .playbtn:focus { outline:none; }
-  .card .playbtn:focus-visible { outline:2px solid var(--accent);
-    outline-offset:3px; border-radius:50%; }
-  @media (prefers-reduced-motion: reduce) {
-    .card .playbtn .play { transition:none; }
-    .card .w, .card .txt { transition:none; }
-  }
-  .card .ex-unit { display:flex; align-items:flex-start; gap:10px; }
-  .card .ex-unit .playbtn { margin-top:3px; }
-  .card .ex-text { flex:1; min-width:0; }
-  .card .ex-text .txt { display:block; font-size:16px; line-height:1.5; }
-  .card .ex-text .zh { display:block; margin-top:3px; color:var(--muted); font-size:13px; }
-  .card .badges { display:inline-flex; gap:6px; }
-  .badge { font-size:12px; padding:2px 8px; border-radius:var(--radius-pill, 999px);
-    border:1px solid var(--rule); color:var(--muted); }
-  .badge.reg { color:var(--accent); border-color:var(--accent); }
-  .badge.kind { font-weight:600; }
-  .badge.kind-phrasal { color:var(--accent); border-color:var(--accent); }
-  .badge.kind-prep { color:#a78bfa; border-color:#a78bfa; }
-  .badge.kind-idiom { color:#f0a984; border-color:#f0a984; }
-  .card .zh-line { margin:8px 0 0; color:var(--muted); font-size:14px; }
-  .card .sense { margin-top:10px; }
-  .card .sense-zh { margin:0 0 4px; font-size:13px; color:var(--muted); }
-  .card .variants { margin-top:14px; padding-top:12px; border-top:1px dashed var(--rule); }
-  .card .variants-title { margin:0 0 8px; font-size:12px; color:var(--accent);
-    font-weight:600; letter-spacing:0.02em; }
-  .card .variant { margin-top:12px; }
-  .card .variant:first-of-type { margin-top:0; }
-  .card .variant-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; }
-  .card .variant-head .w { font-weight:600; }
-  .card .variant-zh { margin:3px 0 0; font-size:13px; color:var(--muted); }
-  .card .variant-note { margin:3px 0 0; font-size:12px; line-height:1.55;
-    color:var(--muted); }
-  .card .variant .ex-unit { margin-top:5px; }
-  .card .uses { margin-top:14px; padding-top:12px; border-top:1px dashed var(--rule); }
-  .card .uses-title { margin:0 0 8px; font-size:12px; color:var(--accent);
-    font-weight:600; letter-spacing:0.02em; }
-  .card .use { margin-top:12px; }
-  .card .use-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; }
-  .card .use-head .w { font-weight:600; }
-  .card .use-head .use-zh { font-size:13px; color:var(--muted); }
-  .card .use .ex-unit { margin-top:5px; }
-  .card .note-card { margin-top:12px; padding:12px 14px;
-    border-radius:var(--radius-control, 12px);
-    background:var(--surface-strong, var(--surface)); border:1px solid var(--rule);
-    border-left:3px solid var(--accent); }
-  .card .note-card p { margin:6px 0 0; font-size:13px; line-height:1.6; }
-  .card .note-card p b { display:inline-block; margin-right:6px; font-size:12px;
-    color:var(--accent); font-weight:600; }
-  .card .opp { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
-  .card .opp-btn { display:inline-flex; align-items:baseline; gap:5px;
-    padding:2px 10px; border:1px solid var(--accent);
-    border-radius:var(--radius-pill, 999px); background:transparent; color:var(--accent);
-    font:inherit; font-size:13px; line-height:1.5; cursor:pointer; }
-  .card .opp-btn:hover { background:var(--tint); }
-  .card .opp-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  .card .opp-btn .zh, .card .opp-word .zh { color:var(--muted); font-size:12px; }
-  .card .opp-sep { color:var(--muted); }
-  .card .opp-word { margin:6px 0 0; font-size:13px; color:var(--muted); }
-  .card .opp-word b { display:inline-block; margin-right:6px; font-size:12px;
-    color:var(--accent); font-weight:600; }
-  .card.opp-focus { box-shadow:0 0 0 3px var(--accent); }
-  .card .opp-return-inline { display:inline-flex; align-items:center; gap:6px;
-    margin-top:14px; padding:9px 16px;
-    border:1px solid var(--rule); border-radius:var(--radius-pill, 999px);
-    background:var(--surface-strong, var(--surface)); color:var(--fg);
-    font:inherit; font-size:14px; cursor:pointer; }
-  .card .opp-return-inline:hover { border-color:var(--accent); color:var(--accent); }
-  .card .opp-return-inline:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  .back { display:inline-block; margin-bottom:14px; color:var(--muted);
-    text-decoration:none; font-size:14px; }
-  .back:hover { color:var(--accent); }
-  .stage { margin:34px 0 4px; font-size:15px; font-weight:600;
-    color:var(--fg); letter-spacing:0.02em; }
-  .stage-en { font-weight:400; color:var(--muted); font-size:13px;
-    letter-spacing:0.04em; }
-  .list { display:flex; flex-direction:column; gap:14px; margin-top:12px; }
-  .row { display:flex; align-items:baseline; gap:16px; padding:16px 18px;
-    border:1px solid var(--rule); border-radius:var(--radius-card, 24px);
-    background:var(--bg); text-decoration:none; color:inherit;
-    transition:background-color .15s ease, box-shadow .15s ease,
-      transform .15s ease; }
-  .row:hover { background:var(--surface); transform:translateY(-1px);
-    box-shadow:var(--shadow-card, 0 1px 2px rgba(0, 0, 0, 0.05),
-      0 8px 24px rgba(0, 0, 0, 0.06)); }
-  .row:active { transform:scale(0.995); }
-  .num { width:26px; flex:none; color:var(--muted); font-size:13px;
-    font-variant-numeric:tabular-nums; }
-  .title { flex:1; min-width:0; }
-  .en { display:block; font-size:18px; font-weight:600; letter-spacing:-0.01em; }
-  .zh { display:block; margin-top:2px; font-size:15px; color:var(--muted); }
-  .tag { flex:none; font-size:14px; color:var(--accent); font-weight:600;
-    font-variant-numeric:tabular-nums; }
-  @media (max-width:560px) { .tag { display:none; } .row { gap:12px; padding:16px 14px; } }
+<style>/* 短语搭配页面样式。构建时内联进 index.html；线上由全站主题样式提供令牌。 */
+:root {
+  --bg: var(--background, #ffffff);
+  --fg: var(--foreground, #262626);
+  --surface: var(--card, #ffffff);
+  --muted: var(--muted-foreground, #686868);
+  --rule: var(--border, rgba(0, 0, 0, 0.1));
+  --soft: var(--muted-surface, rgba(0, 0, 0, 0.04));
+  --hover: var(--surface-hover, rgba(0, 0, 0, 0.08));
+  --press: var(--surface-press, rgba(0, 0, 0, 0.12));
+  --accent: var(--primary, #262626);
+  --on-accent: var(--primary-foreground, #fafafa);
+  --danger: var(--destructive-foreground, #b91c1c);
+  --body-font: var(--font, "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--body-font);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vh, 56px) max(20px, env(safe-area-inset-left, 0px))
+    96px max(20px, env(safe-area-inset-right, 0px));
+}
+h1 { margin: 0; font-size: clamp(1.75rem, 5vw, 2.25rem); font-weight: 700; letter-spacing: -0.02em; }
+
+.searchbar { display: flex; align-items: center; gap: 8px; margin: 20px 0 0; }
+.searchbar input {
+  flex: 1; min-width: 0; height: 44px; padding: 0 14px;
+  color: var(--fg); background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--radius-control, 10px);
+  appearance: none;
+}
+.searchbar input::placeholder { color: var(--muted); }
+.searchbar kbd {
+  flex: none; padding: 3px 8px; color: var(--muted); font-size: 12px;
+  border: 1px solid var(--rule); border-radius: var(--radius-chip, 6px);
+}
+.searchbar .clear {
+  flex: none; height: 44px; padding: 0 12px; color: var(--muted);
+  background: transparent; border: 1px solid var(--rule);
+  border-radius: var(--radius-control, 10px);
+}
+
+.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 0 10px; }
+.level1, .seg { display: flex; gap: 6px; }
+.level1 button, .seg button, .chips button {
+  min-height: 38px; padding: 7px 14px; color: var(--fg);
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-control, 10px);
+}
+.chips button { border-radius: var(--radius-chip, 6px); font-size: 14px; }
+.level1 button:hover, .seg button:hover, .chips button:hover { background: var(--hover); }
+.level1 button:active, .seg button:active, .chips button:active { background: var(--press); }
+.level1 button[aria-pressed="true"], .seg button[aria-pressed="true"],
+.chips button[aria-pressed="true"] {
+  color: var(--on-accent); background: var(--accent); border-color: var(--accent);
+}
+.mode-arw { display: inline-block; margin-left: 2px; opacity: 0.6; }
+.level1 button[aria-expanded="true"] .mode-arw { transform: rotate(90deg); }
+.voice-ico { display: inline-flex; align-items: center; margin-right: 4px; color: var(--muted); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.histbar { margin: 14px 0 0; }
+.histbar button {
+  min-height: 38px; padding: 7px 14px; color: var(--accent);
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-control, 10px);
+}
+
+#view { margin-top: 20px; }
+.group { margin: 0 0 28px; }
+.group .theme { margin: 0 0 10px; font-size: 15px; font-weight: 600; }
+.group .stage-en { margin-left: 6px; color: var(--muted); font-size: 13px; font-weight: 400; }
+.list { display: flex; flex-direction: column; gap: 8px; }
+
+.prow {
+  display: flex; align-items: baseline; gap: 12px; width: 100%;
+  padding: 13px 14px; text-align: left; color: var(--fg);
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-control, 10px);
+}
+.prow:hover { background: var(--hover); }
+.prow:active { background: var(--press); }
+.prow .en { flex: none; font-size: 17px; font-weight: 600; }
+.prow .zh {
+  flex: 1; min-width: 0; color: var(--muted); font-size: 13px;
+  line-height: 1.5; overflow-wrap: anywhere;
+}
+.prow .arw { flex: none; color: var(--muted); transition: transform 0.15s ease; }
+.prow[aria-expanded="true"] .arw { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .prow .arw { transition: none; } }
+
+.card {
+  margin: 6px 0 18px; padding: 16px;
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-control, 10px);
+}
+.card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.card-head .w, .variant-head .w, .use-head .w { font-size: 16px; font-weight: 600; }
+.card .ipa { color: var(--muted); font-size: 13px; }
+.badges { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.badge {
+  padding: 3px 8px; color: var(--muted); font-size: 12px;
+  background: var(--soft); border-radius: var(--radius-chip, 6px);
+}
+.playbtn {
+  display: inline-grid; place-items: center; flex: none;
+  width: 44px; height: 44px; padding: 0; color: var(--muted);
+  background: transparent; border: 0; border-radius: 50%;
+}
+.playbtn:hover .play, .playbtn.on .play {
+  color: var(--on-accent); background: var(--accent); border-color: var(--accent);
+}
+.playbtn.err .play { color: var(--danger); border-color: var(--danger); }
+.playbtn .play { position: relative; display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--rule); border-radius: 50%; }
+.playbtn .play svg { display: block; width: 9px; height: 9px; fill: currentColor; }
+.playbtn .bars { display: none; align-items: flex-end; gap: 2px; height: 10px; }
+.playbtn .bars i { display: block; width: 2px; height: 4px; background: currentColor; border-radius: 1px; }
+.playbtn .bars i:nth-child(2) { height: 8px; }
+.playbtn .bars i:nth-child(3) { height: 6px; }
+.playbtn.on svg.play-ico { display: none; }
+.playbtn.on .bars { display: inline-flex; }
+.playbtn.on .bars i { transform-origin: bottom; animation: say-wave 0.8s ease-in-out infinite; }
+.playbtn.on .bars i:nth-child(2) { animation-delay: 0.16s; }
+.playbtn.on .bars i:nth-child(3) { animation-delay: 0.32s; }
+@keyframes say-wave { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .playbtn.on .bars i { animation: none; }
+  .playbtn .play { transition: none; }
+}
+
+.sense { margin-top: 14px; }
+.sense .sense-zh { margin: 0 0 3px; color: var(--muted); font-size: 13px; }
+.ex-unit { display: flex; align-items: flex-start; gap: 4px; }
+.ex-unit .ex-text { flex: 1; min-width: 0; padding-top: 10px; }
+.ex-unit .txt { display: block; font-size: 16px; line-height: 1.55; }
+.ex-unit .zh { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.playbtn.on ~ .ex-text .txt { color: var(--fg); }
+
+.variants, .uses { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.variant, .use { margin-top: 12px; }
+.variant:first-of-type, .use:first-of-type { margin-top: 0; }
+.variant-head, .use-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.variant-zh, .variant-note, .use-zh { margin: 2px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.notes { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.hint-line { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.hint-line b { margin-right: 6px; color: var(--fg); font-weight: 600; }
+.opp-btn {
+  padding: 0; color: var(--fg); text-decoration: underline;
+  text-underline-offset: 3px; background: transparent; border: 0;
+}
+.opp-sep { margin: 0 4px; color: var(--muted); }
+.card.opp-focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.empty { margin: 28px 0; color: var(--muted); font-size: 15px; }
+
+@media (max-width: 560px) {
+  .topbar { gap: 8px; }
+  .level1 button, .seg button, .chips button { min-height: 40px; }
+  .prow { flex-wrap: wrap; gap: 2px 10px; }
+  .prow .zh { flex-basis: 100%; }
+  .card { padding: 14px; }
+  .searchbar kbd { display: none; }
+}
 </style>
 </head>
 <body>
 <div class="page">
 <h1>短语搭配</h1>
+<div class="searchbar"><input id="q" type="search" placeholder="搜索短语或中文释义" aria-label="搜索短语搭配" autocomplete="off"><kbd aria-hidden="true">/</kbd><button class="clear" id="qclear" type="button" hidden>清除</button></div>
 <div class="topbar"><div class="level1" role="group" aria-label="浏览方式"><button type="button" data-mode="scene" aria-pressed="true">场景话题<span class="mode-arw" aria-hidden="true">›</span></button><button type="button" data-mode="particle" aria-pressed="false">介词<span class="mode-arw" aria-hidden="true">›</span></button></div><div class="seg" role="group" aria-label="音色"><span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span><button type="button" data-voice="f" aria-pressed="true">女声</button><button type="button" data-voice="m" aria-pressed="false">男声</button></div></div>
+<div class="histbar" id="histbar" hidden><button type="button" id="histback">‹ 返回原词</button></div>
 <div class="chips" data-chips="scene"></div>
 <div class="chips" data-chips="particle" hidden></div>
 <div class="chips" data-chips="theme" hidden></div>
 <div id="view"></div>
+<div class="sr-only" id="live" role="status" aria-live="polite"></div>
 </div>
-<script src="data.9d84c1f6b4.js"></script>
+<script src="data.3dc2618387.js"></script>
 <script>
-(function(){
-var D=window.COLLOCATION_INDEX;
-var view=document.getElementById('view');
-var rowScene=document.querySelector('[data-chips="scene"]');
-var rowPart=document.querySelector('[data-chips="particle"]');
-var rowTheme=document.querySelector('[data-chips="theme"]');
-var modeBtns=document.querySelectorAll('[data-mode]');
-var STATE_KEY='pv-index-state-v1';var state={scene:'all',particle:'all'},mode='scene',open=null;
-var positions={scene:0,particle:0},chipsExpanded=true,atCategories=false;
-try{
-  var saved=JSON.parse(sessionStorage.getItem(STATE_KEY)||'null');
-  if(saved&&saved.state&&saved.positions){
-    if(saved.mode==='scene'||saved.mode==='particle')mode=saved.mode;
-    if(saved.state.scene==='all'||D.scene.some(function(g){return g.id===saved.state.scene;}))state.scene=saved.state.scene;
-    if(saved.state.particle==='all'||D.particle.some(function(g){return g.p===saved.state.particle;}))state.particle=saved.state.particle;
-    if(Number.isFinite(saved.positions.scene)&&saved.positions.scene>=0)positions.scene=saved.positions.scene;
-    if(Number.isFinite(saved.positions.particle)&&saved.positions.particle>=0)positions.particle=saved.positions.particle;
-  }
-}catch(e){}
-function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
-function chip(attr,val,label){return '<button type="button" data-'+attr+'="'+val+'">'+esc(label)+'</button>';}
-function rowButton(i){
-  var e=D.entries[i];
-  return '<button class="prow" type="button" data-i="'+i+'" aria-expanded="false"><span class="en">'+esc(e.h)+'</span><span class="zh">'+esc(e.zh)+'</span><span class="arw">›</span></button>';
-}
-function fmt(v){return (v==null?'':v.toFixed(3));}
-function card(i){
-  var e=D.entries[i];var out='<div class="card" data-card="'+i+'">';
-  out+='<div class="card-head say-unit" data-unit="'+i+'-0"><span class="w">'+esc(e.h)+'</span>'+(e.ipa?'<span class="ipa">/'+esc(e.ipa)+'/</span>':'')+'<button class="say playbtn" type="button" data-i="'+i+'" data-k="0" aria-label="播放"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span></button><span class="badges">'+(e.kind==='chunk'?'':'<span class="badge kind kind-'+e.kind+'">'+(e.kind==='prep'?'介词搭配':e.kind==='idiom'?'习语':'短语动词')+'</span>')+(e.reg?'<span class="badge reg">'+(e.reg==='spoken'?'口语':e.reg==='written'?'书面':'中性')+'</span>':'')+(e.kind==='phrasal'?'<span class="badge split">'+(e.sep?'可分':'不可分')+'</span>':'')+'</span></div>';
-  out+='<p class="zh-line">'+esc(e.zh)+'</p>';
-  for(var s=0;s<e.sen.length;s++){
-    var it=e.sen[s];
-    var wo='';
-    if(e.wo&&e.wo.length){var wl=e.wo.filter(function(w){return w[0]===s+1;});if(wl.length)wo='<p class=\"opp-word\"><b>反义</b>'+wl.map(function(w){return esc(w[1])+'<span class=\"zh\">'+esc(w[2])+'</span>';}).join(' · ')+'</p>';}
-    out+='<div class="sense"><p class="sense-zh">'+esc(it[0])+'</p><div class="say-unit ex-unit" data-unit="'+i+'-'+(s+1)+'"><button class="say playbtn" type="button" data-i="'+i+'" data-k="'+(s+1)+'" aria-label="播放"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span></button><div class="ex-text"><span class="txt">'+esc(it[1])+'</span><span class="zh">'+esc(it[2])+'</span></div></div>'+wo+'</div>';
-  }
-  if(e.var&&e.var.length){
-    out+='<div class="variants"><p class="variants-title">近义</p>';
-    for(var v=0;v<e.var.length;v++){
-      var vv=e.var[v];
-      out+='<div class="variant"><div class="variant-head"><span class="w">'+esc(vv[0])+'</span>'+(vv[1]?'<span class="ipa">/'+esc(vv[1])+'/</span>':'')+(vv[3]?'<span class="badge reg">'+(vv[3]==='spoken'?'口语':vv[3]==='written'?'书面':'中性')+'</span>':'')+'<button class="say playbtn" type="button" data-i="'+i+'" data-k="'+vv[7]+'" aria-label="播放"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span></button></div><p class="variant-zh">'+esc(vv[2])+'</p><p class="variant-note">'+esc(vv[6])+'</p><div class="say-unit ex-unit" data-unit="'+i+'-v'+v+'"><button class="say playbtn" type="button" data-i="'+i+'" data-k="'+vv[8]+'" aria-label="播放"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span></button><div class="ex-text"><span class="txt">'+esc(vv[4])+'</span><span class="zh">'+esc(vv[5])+'</span></div></div></div>';
+/* 短语搭配交互。构建时内联进 index.html；不依赖构建工具。 */
+(function () {
+  var D = window.COLLOCATION_INDEX;
+  var view = document.getElementById('view');
+  var search = document.getElementById('q');
+  var clearBtn = document.getElementById('qclear');
+  var live = document.getElementById('live');
+  var histbar = document.getElementById('histbar');
+  var histback = document.getElementById('histback');
+  var rowScene = document.querySelector('[data-chips="scene"]');
+  var rowPart = document.querySelector('[data-chips="particle"]');
+  var rowTheme = document.querySelector('[data-chips="theme"]');
+  var modeBtns = document.querySelectorAll('[data-mode]');
+  var voiceBtns = document.querySelectorAll('[data-voice]');
+  var KEY_STATE = 'pv-index-state-v1';
+  var KEY_VOICE = 'pv-voice';
+  var mode = 'scene';
+  var filter = { scene: 'all', particle: 'all' };
+  var positions = { scene: 0, particle: 0 };
+  var chipsExpanded = true;
+  var atCategories = false;
+  var open = null;
+  var q = '';
+  var beforeSearchY = 0;
+  var oppOrigin = null;
+  var labels = {};
+  var searchIndex = [];
+  var modeViews = {};
+
+  try {
+    var saved = JSON.parse(sessionStorage.getItem(KEY_STATE) || 'null');
+    if (saved && saved.state && saved.positions) {
+      if (saved.mode === 'scene' || saved.mode === 'particle') mode = saved.mode;
+      if (saved.state.scene === 'all' || D.scene.some(function (g) { return g.id === saved.state.scene; })) filter.scene = saved.state.scene;
+      if (saved.state.particle === 'all' || D.particle.some(function (g) { return g.p === saved.state.particle; })) filter.particle = saved.state.particle;
+      if (Number.isFinite(saved.positions.scene) && saved.positions.scene >= 0) positions.scene = saved.positions.scene;
+      if (Number.isFinite(saved.positions.particle) && saved.positions.particle >= 0) positions.particle = saved.positions.particle;
     }
-    out+='</div>';
+  } catch (e) {}
+  var voice = 'f';
+  try { var sv = localStorage.getItem(KEY_VOICE); if (sv === 'f' || sv === 'm') voice = sv; } catch (e2) {}
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+  function say(text) { return '<span class="play" aria-hidden="true"><svg class="play-ico" viewBox="0 0 24 24" width="9" height="9" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span>'; }
+  function sayBtn(i, k, text) {
+    return '<button class="say playbtn" type="button" data-i="' + i + '" data-k="' + k +
+      '" aria-label="播放：' + esc(text || D.entries[i].h) + '">' + say() + '</button>';
   }
-  if(e.use&&e.use.length){
-    out+='<div class="uses"><p class="uses-title">用法</p>';
-    for(var u=0;u<e.use.length;u++){
-      var uu=e.use[u];
-      out+='<div class="use"><div class="use-head"><span class="w">'+esc(uu[0])+'</span><span class="use-zh">'+esc(uu[1])+'</span><button class="say playbtn" type="button" data-i="'+i+'" data-k="'+uu[4]+'" aria-label="播放"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span></button></div><div class="say-unit ex-unit" data-unit="'+i+'-u'+u+'"><button class="say playbtn" type="button" data-i="'+i+'" data-k="'+uu[5]+'" aria-label="播放"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span></button><div class="ex-text"><span class="txt">'+esc(uu[2])+'</span><span class="zh">'+esc(uu[3])+'</span></div></div></div>';
-    }
-    out+='</div>';
-  }
-  var notes='';
-  if(e.l1)notes+='<p class="l1"><b>易错</b>'+esc(e.l1)+'</p>';
-  if(e.coll&&e.coll.length)notes+='<p class="colloc"><b>搭配</b>'+e.coll.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';
-  if(e.conf&&e.conf.length)notes+='<p class="confuse"><b>易混</b>'+e.conf.map(function(c){return esc(c[0])+(c[1]?'：'+esc(c[1]):'');}).join(' · ')+'</p>';
-  if(e.opp&&e.opp.length)notes+='<p class="opp"><b>反义</b>'+e.opp.map(function(o){return '<button type="button" class="opp-btn" data-opp-i="'+o.i+'">'+esc(o.h)+'<span class="zh">'+esc(o.zh)+'</span></button>';}).join('<span class="opp-sep">·</span>')+'</p>';
-  if(notes)out+='<div class="note-card">'+notes+'</div>';
-  if(oppOrigin&&oppOrigin.target===i){var oh=D.entries[oppOrigin.open];out+='<button class="opp-return-inline" type="button" data-opp-return-inline>‹ 返回 '+esc(oh?oh.h:'')+'</button>';}
-  return out+'</div>';
-}
-function sceneHtml(){
-  var out='';
-  D.scene.forEach(function(g){
-    out+='<section class="group" data-cat="'+g.id+'">';
-    g.themes.forEach(function(t){
-      out+='<h3 class="theme" data-theme="'+t.id+'">'+esc(t.zh)+' <span class="stage-en">'+esc(t.en)+'</span></h3>';
-      out+='<div class="list">'+t.rows.map(rowButton).join('')+'</div>';
+  function buildLabels() {
+    D.entries.forEach(function (e, i) {
+      labels[i] = { 0: e.h };
+      e.sen.forEach(function (s, n) { labels[i][n + 1] = s[1]; });
+      e.var.forEach(function (v) { labels[i][v[7]] = v[0]; labels[i][v[8]] = v[4]; });
+      e.use.forEach(function (u) { labels[i][u[4]] = u[0]; labels[i][u[5]] = u[2]; });
+      searchIndex[i] = [e.h, e.zh, e.ipa].concat(
+        e.sen.map(function (s) { return s[0] + ' ' + s[1] + ' ' + s[2]; }),
+        e.var.map(function (v) { return v.slice(0, 7).join(' '); }),
+        e.use.map(function (u) { return u.slice(0, 4).join(' '); }),
+        [e.l1, e.coll.map(function (c) { return c.join(' '); }).join(' '),
+          e.conf.map(function (c) { return c.join(' '); }).join(' ')]
+      ).join(' ').toLowerCase();
     });
-    out+='</section>';
-  });
-  return out;
-}
-function partHtml(){
-  var out='';
-  D.particle.forEach(function(g){
-    out+='<section class="group" data-particle="'+g.p+'"><h3 class="theme">'+esc(g.label||g.p)+'</h3><div class="list">'+g.rows.map(rowButton).join('')+'</div></section>';
-  });
-  return out;
-}
-var html={};
-function htmlFor(m){if(!html[m])html[m]=(m==='scene'?sceneHtml():partHtml());return html[m];}
-function themeGroup(cat){
-  for(var i=0;i<D.scene.length;i++)if(D.scene[i].id===cat)return D.scene[i];
-  return null;
-}
-function showThemeLevel(){return mode==='scene'&&state.scene!=='all'&&!atCategories;}
-function renderThemeRow(){
-  var g=themeGroup(state.scene);
-  var out='<button type="button" class="sp-chip-back" data-theme-back="1">‹ 全部分类</button>';
-  if(g)out+=g.themes.map(function(t){return '<button type="button" data-theme="'+t.id+'">'+esc(t.zh)+'</button>';}).join('');
-  rowTheme.innerHTML=out;
-}
-function setChips(m){
-  var l3=showThemeLevel();
-  rowScene.hidden=(m!=='scene')||l3;
-  rowPart.hidden=(m!=='particle');
-  rowTheme.hidden=!l3;
-  if(l3)renderThemeRow();
-  for(var i=0;i<modeBtns.length;i++){
-    var active=modeBtns[i].getAttribute('data-mode')===m;
-    modeBtns[i].setAttribute('aria-pressed',active?'true':'false');
-    modeBtns[i].setAttribute('aria-expanded',active&&chipsExpanded?'true':'false');
   }
-  var chips=(m==='scene'?rowScene:rowPart).querySelectorAll('button');
-  for(var c=0;c<chips.length;c++)chips[c].setAttribute('aria-pressed',chips[c].getAttribute('data-'+m)==='all'&&state[m]==='all'?'true':(chips[c].getAttribute('data-'+m)===state[m]?'true':'false'));
-}
-function setChipsExpanded(expanded){
-  chipsExpanded=!!expanded;
-  document.documentElement.classList.toggle('sp-chips-open',chipsExpanded);
-  for(var i=0;i<modeBtns.length;i++)modeBtns[i].setAttribute('aria-expanded',modeBtns[i].getAttribute('data-mode')===mode&&chipsExpanded?'true':'false');
-}
-function persistState(){try{sessionStorage.setItem(STATE_KEY,JSON.stringify({mode:mode,state:state,positions:positions}));}catch(e){}}
-function scrollToEl(target){
-  var banner=document.querySelector('.sp-context');
-  var offset=banner?banner.getBoundingClientRect().height+(parseFloat(getComputedStyle(banner).top)||0)+12:0;
-  var y=window.scrollY+target.getBoundingClientRect().top-offset;
-  window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
-}
-function scrollToFirstTheme(){
-  var groups=view.querySelectorAll('.group'),target=null;
-  for(var i=0;i<groups.length;i++)if(groups[i].style.display!=='none'){target=groups[i].querySelector('.theme')||groups[i].querySelector('.prow');if(target)break;}
-  if(!target){view.scrollIntoView({block:'start',behavior:'smooth'});return;}
-  scrollToEl(target);
-}
-var restoringPosition=false;
-var oppOrigin=null;
-function clearOppFocus(){var el=view.querySelector('.card.opp-focus');if(el)el.classList.remove('opp-focus');}
-function exitOpp(){if(oppOrigin){oppOrigin=null;clearOppFocus();}}
-function paint(m,value,scroll,restore,keepScroll,keepOpp){
-  if(!keepOpp)exitOpp();
-  var changed=mode!==m;var shouldRestore=(changed||restore)&&!keepScroll;
-  if(changed)positions[mode]=window.scrollY;
-  if(shouldRestore)restoringPosition=true;
-  mode=m;if(value!==undefined)state[m]=value;
-  view.innerHTML=htmlFor(m);open=null;
-  var attr=(m==='scene'?'cat':'particle');
-  var groups=view.querySelectorAll('.group');
-  for(var g=0;g<groups.length;g++)groups[g].style.display=(state[m]==='all'||groups[g].getAttribute('data-'+attr)===state[m])?'':'none';
-  setChips(m);
-  if(scroll){setChipsExpanded(showThemeLevel());scrollToFirstTheme();}
-  else if(shouldRestore)requestAnimationFrame(function(){var y=Math.min(positions[m],Math.max(0,document.documentElement.scrollHeight-window.innerHeight));window.scrollTo(0,y);positions[m]=y;restoringPosition=false;persistState();});
+  buildLabels();
+
+  function rowButton(i) {
+    var e = D.entries[i];
+    return '<button class="prow" type="button" data-i="' + i + '" aria-expanded="false">' +
+      '<span class="en">' + esc(e.h) + '</span><span class="zh">' + esc(e.zh) + '</span>' +
+      '<span class="arw" aria-hidden="true">›</span></button>';
+  }
+  function card(i) {
+    var e = D.entries[i];
+    var out = '<div class="card" data-card="' + i + '">';
+    out += '<div class="card-head say-unit"><span class="w">' + esc(e.h) + '</span>' +
+      (e.ipa ? '<span class="ipa">/' + esc(e.ipa) + '/</span>' : '') +
+      sayBtn(i, 0, e.h) + '<span class="badges">' +
+      (e.reg === 'spoken' ? '<span class="badge">口语</span>' : '') +
+      (e.kind === 'phrasal' && e.sep ? '<span class="badge">可分</span>' : '') +
+      '</span></div>';
+    e.sen.forEach(function (it, s) {
+      out += '<div class="sense">';
+      if (e.sen.length > 1) out += '<p class="sense-zh">' + esc(it[0]) + '</p>';
+      out += '<div class="ex-unit say-unit">' + sayBtn(i, s + 1, it[1]) +
+        '<div class="ex-text"><span class="txt">' + esc(it[1]) + '</span>' +
+        '<span class="zh">' + esc(it[2]) + '</span></div></div>';
+      if (e.wo && e.wo.length) {
+        e.wo.filter(function (w) { return w[0] === s + 1; }).forEach(function (w) {
+          out += '<p class="hint-line"><b>反义</b>' + esc(w[1]) + '<span class="zh">' + esc(w[2]) + '</span></p>';
+        });
+      }
+      out += '</div>';
+    });
+    if (e.var.length) {
+      out += '<div class="variants"><h4 class="sr-only">近义表达</h4>';
+      e.var.forEach(function (v) {
+        out += '<div class="variant"><div class="variant-head"><span class="w">' + esc(v[0]) + '</span>' +
+          (v[1] ? '<span class="ipa">/' + esc(v[1]) + '/</span>' : '') + sayBtn(i, v[7], v[0]) + '</div>' +
+          '<p class="variant-zh">' + esc(v[2]) + '</p>' +
+          (v[6] ? '<p class="variant-note">' + esc(v[6]) + '</p>' : '') +
+          '<div class="ex-unit say-unit">' + sayBtn(i, v[8], v[4]) +
+          '<div class="ex-text"><span class="txt">' + esc(v[4]) + '</span>' +
+          '<span class="zh">' + esc(v[5]) + '</span></div></div></div>';
+      });
+      out += '</div>';
+    }
+    if (e.use.length) {
+      out += '<div class="uses"><h4 class="sr-only">常见用法</h4>';
+      e.use.forEach(function (u) {
+        out += '<div class="use"><div class="use-head"><span class="w">' + esc(u[0]) + '</span>' +
+          '<span class="use-zh">' + esc(u[1]) + '</span>' + sayBtn(i, u[4], u[0]) + '</div>' +
+          '<div class="ex-unit say-unit">' + sayBtn(i, u[5], u[2]) +
+          '<div class="ex-text"><span class="txt">' + esc(u[2]) + '</span>' +
+          '<span class="zh">' + esc(u[3]) + '</span></div></div></div>';
+      });
+      out += '</div>';
+    }
+    var notes = '';
+    if (e.l1) notes += '<p class="hint-line"><b>易错</b>' + esc(e.l1) + '</p>';
+    if (e.coll.length) notes += '<p class="hint-line"><b>搭配</b>' + e.coll.map(function (c) { return esc(c[0]) + (c[1] ? '：' + esc(c[1]) : ''); }).join(' · ') + '</p>';
+    if (e.conf.length) notes += '<p class="hint-line"><b>易混</b>' + e.conf.map(function (c) { return esc(c[0]) + (c[1] ? '：' + esc(c[1]) : ''); }).join(' · ') + '</p>';
+    if (e.opp.length) notes += '<p class="hint-line"><b>反义</b>' + e.opp.map(function (o) {
+      return '<button type="button" class="opp-btn" data-opp-i="' + o.i + '">' + esc(o.h) +
+        '<span class="zh">' + esc(o.zh) + '</span></button>';
+    }).join('<span class="opp-sep">·</span>') + '</p>';
+    if (notes) out += '<div class="notes">' + notes + '</div>';
+    if (oppOrigin && oppOrigin.target === i) {
+      out += '<button class="opp-btn" type="button" data-opp-return-inline>‹ 返回 ' +
+        esc(D.entries[oppOrigin.open] ? D.entries[oppOrigin.open].h : '') + '</button>';
+    }
+    return out + '</div>';
+  }
+  function sceneHtml() {
+    return D.scene.map(function (g) {
+      return '<section class="group" data-cat="' + g.id + '">' + g.themes.map(function (t) {
+        return '<h3 class="theme" data-theme="' + t.id + '">' + esc(t.zh) +
+          '<span class="stage-en">' + esc(t.en) + '</span></h3>' +
+          '<div class="list">' + t.rows.map(rowButton).join('') + '</div>';
+      }).join('') + '</section>';
+    }).join('');
+  }
+  function partHtml() {
+    return D.particle.map(function (g) {
+      return '<section class="group" data-particle="' + g.p + '"><h3 class="theme">' +
+        esc(g.label || g.p) + '</h3><div class="list">' + g.rows.map(rowButton).join('') +
+        '</div></section>';
+    }).join('');
+  }
+  view.innerHTML = '<div class="modeview" data-mv="scene">' + sceneHtml() + '</div>' +
+    '<div class="modeview" data-mv="particle" hidden>' + partHtml() + '</div>' +
+    '<div id="results" hidden></div>';
+  modeViews.scene = view.querySelector('[data-mv="scene"]');
+  modeViews.particle = view.querySelector('[data-mv="particle"]');
+  var results = document.getElementById('results');
+
+  function themeGroup(cat) {
+    for (var i = 0; i < D.scene.length; i++) if (D.scene[i].id === cat) return D.scene[i];
+    return null;
+  }
+  function showThemeLevel() { return mode === 'scene' && filter.scene !== 'all' && !atCategories; }
+  function renderThemeRow() {
+    var g = themeGroup(filter.scene);
+    rowTheme.innerHTML = '<button type="button" class="sp-chip-back" data-theme-back="1">‹ 全部分类</button>' +
+      (g ? g.themes.map(function (t) {
+        return '<button type="button" data-theme="' + t.id + '">' + esc(t.zh) + '</button>';
+      }).join('') : '');
+  }
+  function setChips(m) {
+    var l3 = showThemeLevel();
+    rowScene.hidden = (m !== 'scene') || l3;
+    rowPart.hidden = (m !== 'particle');
+    rowTheme.hidden = !l3;
+    if (l3) renderThemeRow();
+    for (var i = 0; i < modeBtns.length; i++) {
+      var active = modeBtns[i].getAttribute('data-mode') === m;
+      modeBtns[i].setAttribute('aria-pressed', active ? 'true' : 'false');
+      modeBtns[i].setAttribute('aria-expanded', active && chipsExpanded ? 'true' : 'false');
+    }
+    var chips = (m === 'scene' ? rowScene : rowPart).querySelectorAll('button');
+    for (var c = 0; c < chips.length; c++) {
+      chips[c].setAttribute('aria-pressed', chips[c].getAttribute('data-' + m) === filter[m] ? 'true' : 'false');
+    }
+  }
+  function setChipsExpanded(v) {
+    chipsExpanded = !!v;
+    document.documentElement.classList.toggle('sp-chips-open', chipsExpanded);
+    for (var i = 0; i < modeBtns.length; i++) {
+      modeBtns[i].setAttribute('aria-expanded', modeBtns[i].getAttribute('data-mode') === mode && chipsExpanded ? 'true' : 'false');
+    }
+  }
+  function persistState() {
+    try { sessionStorage.setItem(KEY_STATE, JSON.stringify({ mode: mode, state: filter, positions: positions })); } catch (e) {}
+  }
+  function scrollToEl(el) {
+    if (!el) return;
+    var banner = document.querySelector('.sp-context');
+    var offset = banner ? banner.getBoundingClientRect().height + (parseFloat(getComputedStyle(banner).top) || 0) + 12 : 0;
+    window.scrollTo({ top: Math.max(0, window.scrollY + el.getBoundingClientRect().top - offset), behavior: 'smooth' });
+  }
+  function applyFilters() {
+    var token = q.toLowerCase();
+    if (token) {
+      modeViews.scene.hidden = true;
+      modeViews.particle.hidden = true;
+      results.hidden = false;
+      var html = '';
+      for (var i = 0; i < searchIndex.length; i++) {
+        if (searchIndex[i].indexOf(token) >= 0) html += rowButton(i);
+      }
+      results.innerHTML = html ? '<div class="list">' + html + '</div>' :
+        '<p class="empty">没有匹配的词条</p>';
+      open = null;
+    } else {
+      results.hidden = true;
+      results.innerHTML = '';
+      modeViews.scene.hidden = mode !== 'scene';
+      modeViews.particle.hidden = mode !== 'particle';
+      var attr = mode === 'scene' ? 'cat' : 'particle';
+      var groups = modeViews[mode].querySelectorAll('.group');
+      for (var g = 0; g < groups.length; g++) {
+        groups[g].hidden = filter[mode] !== 'all' && groups[g].getAttribute('data-' + attr) !== filter[mode];
+      }
+    }
+    setChips(mode);
+  }
+  function setMode(m, value) {
+    if (m !== mode) positions[mode] = window.scrollY;
+    mode = m;
+    if (value !== undefined) filter[m] = value;
+    applyFilters();
+    persistState();
+  }
+  function closeCard() {
+    var cardEl = view.querySelector('.card');
+    if (cardEl) cardEl.remove();
+    var prev = view.querySelector('.prow[aria-expanded="true"]');
+    if (prev) prev.setAttribute('aria-expanded', 'false');
+    open = null;
+  }
+  function toggleCard(btn) {
+    var i = +btn.getAttribute('data-i');
+    if (open === i) { closeCard(); return; }
+    closeCard();
+    prefetchAt(i);
+    open = i;
+    btn.setAttribute('aria-expanded', 'true');
+    btn.insertAdjacentHTML('afterend', card(i));
+    stopPlayback(false);
+  }
+  function showOppReturn() { histbar.hidden = !oppOrigin; }
+  function openOppTarget(i) {
+    var e = D.entries[i];
+    if (!e) return false;
+    if (e.c && filter.scene !== e.c) setMode('scene', e.c);
+    var row = view.querySelector('.prow[data-i="' + i + '"]');
+    if (!row) return false;
+    closeCard();
+    prefetchAt(i);
+    open = i;
+    row.setAttribute('aria-expanded', 'true');
+    row.insertAdjacentHTML('afterend', card(i));
+    var c = view.querySelector('.card[data-card="' + i + '"]');
+    if (c) { c.classList.add('opp-focus'); scrollToEl(c); }
+    showOppReturn();
+    return true;
+  }
+  function jumpToOpp(i) {
+    if (oppOrigin && oppOrigin.target === i) { returnToOppOrigin(); return; }
+    if (!oppOrigin) oppOrigin = { mode: mode, scene: filter.scene, particle: filter.particle, atCategories: atCategories, open: open, y: window.scrollY };
+    oppOrigin.target = i;
+    if (!openOppTarget(i)) { oppOrigin = null; showOppReturn(); }
+  }
+  function returnToOppOrigin() {
+    var o = oppOrigin;
+    if (!o) return;
+    oppOrigin = null;
+    showOppReturn();
+    atCategories = o.atCategories;
+    if (mode !== o.mode || filter.scene !== o.scene || filter.particle !== o.particle) {
+      mode = o.mode; filter.scene = o.scene; filter.particle = o.particle; applyFilters();
+    }
+    closeCard();
+    var row = view.querySelector('.prow[data-i="' + o.open + '"]');
+    if (row) {
+      open = o.open;
+      row.setAttribute('aria-expanded', 'true');
+      row.insertAdjacentHTML('afterend', card(o.open));
+      var c = view.querySelector('.card[data-card="' + o.open + '"]');
+      if (c) c.classList.add('opp-focus');
+    }
+    window.scrollTo(0, o.y || 0);
+    persistState();
+  }
+
+  var audio = new Audio();
+  audio.preload = 'auto';
+  window.__phAudio = audio;
+  window.__mediaErrors = window.__mediaErrors || [];
+  var srcCache = {}, blobOrder = [], prefetched = {}, io = null, visibleRows = [];
+  var raf = 0, stopTimer = 0, playGen = 0, stopAt = 0, playFrom = 0, onEl = null;
+  var audioState = 'idle', lastEl = null, lastPlay = null, pausedAt = 0;
+
+  function srcFor(url) {
+    if (srcCache[url]) return srcCache[url];
+    var can = location.protocol !== 'file:' && window.fetch && window.URL && URL.createObjectURL;
+    if (!can) { srcCache[url] = Promise.resolve(url); return srcCache[url]; }
+    var p = fetch(url).then(function (r) { if (!r.ok) throw 0; return r.blob(); })
+      .then(function (b) { return URL.createObjectURL(b); })
+      .catch(function () { throw new Error('audio fetch failed'); });
+    srcCache[url] = p;
+    p.then(function (src) {
+      if (src.indexOf('blob:') !== 0) return;
+      blobOrder.push([url, src, p]);
+      while (blobOrder.length > 12) {
+        var old = blobOrder.shift();
+        if (old[1] === audio.src) { blobOrder.push(old); break; }
+        try { URL.revokeObjectURL(old[1]); } catch (e) {}
+        if (srcCache[old[0]] === old[2]) delete srcCache[old[0]];
+      }
+    }, function () { delete srcCache[url]; });
+    return p;
+  }
+  function chunkRel(i, v) {
+    var rel = D.entries[i] && D.entries[i].sp;
+    var row = rel && D.spr[rel - 1];
+    var href = row && row[v || voice];
+    return href ? 'audio/' + href : '';
+  }
+  function prefetchAt(i, v) {
+    if (location.protocol === 'file:' || !window.fetch) return;
+    if (navigator.connection && navigator.connection.saveData) return;
+    var rel = chunkRel(i, v);
+    if (!rel || prefetched[rel]) return;
+    prefetched[rel] = 1;
+    fetch(rel, { cache: 'force-cache' }).then(function (r) { if (!r.ok) throw 0; return r.arrayBuffer(); })
+      .catch(function () { delete prefetched[rel]; });
+  }
+  function bindRows() {
+    if (!('IntersectionObserver' in window)) return;
+    if (io) io.disconnect();
+    visibleRows = [];
+    io = new IntersectionObserver(function (list) {
+      list.forEach(function (item) {
+        var row = item.target, at = visibleRows.indexOf(row);
+        if (item.isIntersecting) {
+          if (at < 0) visibleRows.push(row);
+          prefetchAt(+row.getAttribute('data-i'));
+        } else if (at >= 0) visibleRows.splice(at, 1);
+      });
+    }, { rootMargin: '400px 0px' });
+    view.querySelectorAll('.prow').forEach(function (row) { io.observe(row); });
+  }
+  function prefetchVisible(v) { visibleRows.forEach(function (row) { prefetchAt(+row.getAttribute('data-i'), v); }); }
+
+  function clearTimers() {
+    if (raf) cancelAnimationFrame(raf);
+    if (stopTimer) clearTimeout(stopTimer);
+    raf = 0; stopTimer = 0;
+  }
+  function clearOn() { if (onEl) { onEl.classList.remove('on', 'paused'); onEl = null; } }
+  function finishStop() {
+    if (stopAt) window.__phLast = { mode: 'ha', s: playFrom, en: stopAt, t: audio.currentTime };
+    clearTimers();
+    try { audio.pause(); } catch (e) {}
+    stopAt = 0;
+    clearOn();
+    audioState = 'idle';
+    lastEl = null;
+  }
+  function stopPlayback(record) {
+    if (!record) stopAt = 0;
+    finishStop();
+  }
+  function fail(el) {
+    clearTimers();
+    stopAt = 0;
+    try { audio.pause(); } catch (e) {}
+    clearOn();
+    if (el) {
+      el.classList.add('err');
+      el.setAttribute('aria-label', '播放失败，点此重试：' + (lastPlay ? lastPlay.text : ''));
+    }
+    live.textContent = '音频播放失败，请点播放按钮重试';
+    window.__mediaErrors.push('playback error');
+    audioState = 'error';
+  }
+  function tick() {
+    if (!stopAt) return;
+    if (audio.currentTime >= stopAt - 0.008) { finishStop(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function armStop(from, to) {
+    var ms = Math.max(0, (to - Math.max(from, audio.currentTime)) * 1000) - 20;
+    stopTimer = setTimeout(function () {
+      if (!stopAt) return;
+      if (audio.currentTime >= stopAt - 0.05) finishStop();
+      else armStop(audio.currentTime, stopAt);
+    }, Math.max(0, ms));
+  }
+  function startPlay(el, span) {
+    var gen = ++playGen;
+    clearTimers();
+    var rel = chunkRel(+el.getAttribute('data-i'));
+    if (!rel) return;
+    lastPlay = { el: el, s: span[0], en: span[1], text: labels[+el.getAttribute('data-i')][+el.getAttribute('data-k')] };
+    el.classList.remove('err', 'paused');
+    el.classList.add('on');
+    el.setAttribute('aria-busy', 'true');
+    el.setAttribute('aria-label', '正在播放：' + lastPlay.text);
+    onEl = el;
+    audioState = 'loading';
+    srcFor(rel).then(function (src) {
+      if (gen !== playGen) return;
+      var abs = new URL(src, location.href).href, changed = audio.src !== abs;
+      if (changed) audio.src = src;
+      stopAt = lastPlay.en;
+      playFrom = lastPlay.s;
+      window.__phEnd = stopAt;
+      var from = Math.max(0, lastPlay.s - 0.12), started = false, timer = 0;
+      function go() {
+        if (started || gen !== playGen) return;
+        started = true;
+        audio.playbackRate = 1;
+        var p = audio.play();
+        if (p && p.catch) p.catch(function () { if (gen === playGen) fail(el); });
+        audioState = 'playing';
+        el.removeAttribute('aria-busy');
+        clearTimers();
+        raf = requestAnimationFrame(tick);
+        armStop(from, stopAt);
+      }
+      function seek() {
+        if (gen !== playGen) return;
+        if (Math.abs(audio.currentTime - from) < 0.02) { go(); return; }
+        var done = false;
+        function onSeeked() {
+          if (done) return;
+          done = true; audio.removeEventListener('seeked', onSeeked); clearTimeout(timer); go();
+        }
+        audio.addEventListener('seeked', onSeeked);
+        timer = setTimeout(function () {
+          if (done) return;
+          done = true; audio.removeEventListener('seeked', onSeeked);
+          if (Math.abs(audio.currentTime - from) > 0.05) { try { audio.currentTime = from; } catch (e) {} }
+          go();
+        }, 600);
+        try { audio.currentTime = from; }
+        catch (e) { audio.removeEventListener('seeked', onSeeked); clearTimeout(timer); go(); }
+      }
+      if (!changed && audio.readyState > 0) seek();
+      else audio.addEventListener('loadedmetadata', seek, { once: true });
+    }).catch(function () { if (gen === playGen) fail(el); });
+  }
+  function playSay(el) {
+    var i = +el.getAttribute('data-i'), k = +el.getAttribute('data-k');
+    var span = D.entries[i].au[k];
+    if (!span || !chunkRel(i)) return;
+    var s = voice === 'f' ? span[0] : span[2], en = voice === 'f' ? span[1] : span[3];
+    if (s == null || en == null) return;
+    if (lastEl === el && (audioState === 'playing' || audioState === 'loading')) {
+      clearTimers();
+      try { audio.pause(); } catch (e) {}
+      pausedAt = audio.currentTime;
+      stopAt = 0;
+      clearOn();
+      el.classList.add('paused');
+      onEl = el;
+      audioState = 'paused';
+      el.setAttribute('aria-label', '继续播放：' + labels[i][k]);
+      live.textContent = '已暂停';
+      return;
+    }
+    if (lastEl === el && audioState === 'paused' && lastPlay) {
+      clearTimers();
+      onEl = el; el.classList.remove('paused'); el.classList.add('on');
+      stopAt = lastPlay.en;
+      playFrom = lastPlay.s;
+      audioState = 'playing';
+      el.setAttribute('aria-label', '正在播放：' + labels[i][k]);
+      try { audio.currentTime = pausedAt; } catch (e) {}
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () { fail(el); });
+      raf = requestAnimationFrame(tick);
+      armStop(pausedAt, stopAt);
+      return;
+    }
+    stopPlayback(false);
+    window.__phEnd = en;
+    lastEl = el;
+    startPlay(el, [s, en]);
+  }
+  audio.addEventListener('error', function () { if (onEl) fail(onEl); });
+  audio.addEventListener('ended', function () { if (stopAt) finishStop(); });
+
+  rowScene.innerHTML = '<button type="button" data-scene="all">全部</button>' +
+    D.scene.map(function (g) { return '<button type="button" data-scene="' + g.id + '">' + esc(g.zh) + '</button>'; }).join('');
+  rowPart.innerHTML = '<button type="button" data-particle="all">全部</button>' +
+    D.particle.map(function (g) { return '<button type="button" data-particle="' + g.p + '">' + esc(g.label || g.p) + '</button>'; }).join('');
+
+  function paintVoice() {
+    for (var i = 0; i < voiceBtns.length; i++) {
+      voiceBtns[i].setAttribute('aria-pressed', voiceBtns[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+  }
+  for (var v = 0; v < voiceBtns.length; v++) {
+    voiceBtns[v].addEventListener('click', function (e) {
+      stopPlayback(false);
+      voice = e.currentTarget.getAttribute('data-voice');
+      try { localStorage.setItem(KEY_VOICE, voice); } catch (err) {}
+      paintVoice();
+      setTimeout(function () { prefetchVisible(voice); }, 0);
+    });
+  }
+  paintVoice();
+  rowScene.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    atCategories = false;
+    setMode('scene', b.getAttribute('data-scene'));
+  });
+  rowPart.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    setMode('particle', b.getAttribute('data-particle'));
+  });
+  rowTheme.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.hasAttribute('data-theme-back')) { atCategories = true; setChips(mode); return; }
+    var target = view.querySelector('.theme[data-theme="' + b.getAttribute('data-theme') + '"]');
+    scrollToEl(target);
+  });
+  for (var m = 0; m < modeBtns.length; m++) {
+    modeBtns[m].addEventListener('click', function (e) {
+      var next = e.currentTarget.getAttribute('data-mode');
+      if (next === mode) { setChipsExpanded(!chipsExpanded); return; }
+      atCategories = false;
+      setChipsExpanded(true);
+      setMode(next, filter[next]);
+    });
+  }
+  view.addEventListener('click', function (e) {
+    var ret = e.target.closest('[data-opp-return-inline]');
+    if (ret) { returnToOppOrigin(); return; }
+    var ob = e.target.closest('.opp-btn');
+    if (ob) { jumpToOpp(+ob.getAttribute('data-opp-i')); return; }
+    var say = e.target.closest('.say');
+    if (say) { playSay(say); return; }
+    var b = e.target.closest('.prow');
+    if (b) toggleCard(b);
+  });
+  histback.addEventListener('click', returnToOppOrigin);
+
+  function runSearch() {
+    q = search.value.trim();
+    if (q) closeCard();
+    clearBtn.hidden = !q;
+    if (q && !beforeSearchY) beforeSearchY = window.scrollY;
+    applyFilters();
+    if (!q && beforeSearchY) {
+      window.scrollTo(0, beforeSearchY);
+      beforeSearchY = 0;
+    }
+    if (q) live.textContent = '搜索已更新';
+  }
+  var searchTimer = 0;
+  search.addEventListener('input', function () {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 80);
+  });
+  clearBtn.addEventListener('click', function () { search.value = ''; runSearch(); search.focus(); });
+  search.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      var first = results.querySelector('.prow');
+      if (first) { toggleCard(first); scrollToEl(first); }
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (e.key === '/' && tag !== 'input' && tag !== 'textarea') {
+      e.preventDefault(); search.focus(); search.select();
+    } else if (e.key === 'Escape') {
+      if (search.value) { search.value = ''; runSearch(); }
+      else if (open != null) closeCard();
+      else if (document.activeElement === search) search.blur();
+    }
+  });
+
+  document.addEventListener('npesl:context', function (e) {
+    var d = (e && e.detail) || {};
+    if (d.particle) {
+      if (d.kind === 'root') { filter.particle = 'all'; applyFilters(); window.scrollTo(0, 0); }
+      else {
+        var pg = view.querySelector('.group[data-particle="' + d.group + '"]');
+        scrollToEl(pg);
+      }
+      return;
+    }
+    if (d.kind === 'root') {
+      filter.scene = 'all'; atCategories = true; applyFilters(); window.scrollTo(0, 0);
+      return;
+    }
+    scrollToEl(d.theme ? view.querySelector('.theme[data-theme="' + d.theme + '"]') : null);
+  });
+
+  var stateTimer = 0;
+  window.addEventListener('scroll', function () {
+    positions[mode] = window.scrollY;
+    if (stateTimer) clearTimeout(stateTimer);
+    stateTimer = setTimeout(persistState, 120);
+  }, { passive: true });
+  window.addEventListener('pagehide', function () { positions[mode] = window.scrollY; persistState(); });
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+
+  applyFilters();
+  setChipsExpanded(chipsExpanded);
+  showOppReturn();
   bindRows();
-  persistState();
-}
-var stateTimer=0;
-window.addEventListener('scroll',function(){
-  if(restoringPosition)return;
-  positions[mode]=window.scrollY;
-  if(stateTimer)clearTimeout(stateTimer);
-  stateTimer=setTimeout(persistState,120);
-},{passive:true});
-window.addEventListener('pagehide',function(){positions[mode]=window.scrollY;persistState();});
-function toggleCard(btn){
-  exitOpp();
-  var i=+btn.getAttribute('data-i');
-  prefetchAt(i);
-  var existing=view.querySelector('.card');
-  var prev=view.querySelector('.prow[aria-expanded="true"]');
-  if(open===i){if(existing)existing.remove();btn.setAttribute('aria-expanded','false');open=null;return;}
-  if(existing)existing.remove();
-  if(prev)prev.setAttribute('aria-expanded','false');
-  open=i;btn.setAttribute('aria-expanded','true');btn.insertAdjacentHTML('afterend',card(i));
-}
-function openOppTarget(i){
-  var e=D.entries[i];if(!e)return false;
-  prefetchAt(i);
-  if(mode!=='scene'||state.scene!==e.c)paint('scene',e.c,false,false,true,true);
-  var row=view.querySelector('.prow[data-i="'+i+'"]');if(!row)return false;
-  if(open!==i){
-    var ex=view.querySelector('.card');if(ex)ex.remove();
-    var prev=view.querySelector('.prow[aria-expanded="true"]');if(prev)prev.setAttribute('aria-expanded','false');
-    open=i;row.setAttribute('aria-expanded','true');row.insertAdjacentHTML('afterend',card(i));
-  }
-  var c=view.querySelector('.card[data-card="'+i+'"]');
-  if(c){c.classList.add('opp-focus');scrollToEl(c);}
-  return true;
-}
-function jumpToOpp(i){
-  if(oppOrigin&&oppOrigin.target===i){returnToOppOrigin();return;}
-  if(!oppOrigin)oppOrigin={mode:mode,scene:state.scene,particle:state.particle,atCategories:atCategories,chipsExpanded:chipsExpanded,open:open,y:window.scrollY};
-  oppOrigin.target=i;
-  if(!openOppTarget(i))oppOrigin.target=null;
-}
-function returnToOppOrigin(){
-  var o=oppOrigin;if(!o)return;
-  oppOrigin=null;clearOppFocus();
-  atCategories=o.atCategories;
-  if(mode!==o.mode||state.scene!==o.scene||state.particle!==o.particle)paint(o.mode,o.mode==='scene'?o.scene:o.particle,false,false,true,true);
-  chipsExpanded=o.chipsExpanded;setChipsExpanded(chipsExpanded);
-  var row=view.querySelector('.prow[data-i="'+o.open+'"]');
-  if(row){
-    var ex=view.querySelector('.card');if(ex)ex.remove();
-    var prev=view.querySelector('.prow[aria-expanded="true"]');if(prev)prev.setAttribute('aria-expanded','false');
-    open=o.open;row.setAttribute('aria-expanded','true');row.insertAdjacentHTML('afterend',card(o.open));
-    var c=view.querySelector('.card[data-card="'+o.open+'"]');
-    if(c){c.classList.add('opp-focus');scrollToEl(c);}
-  }
-  persistState();
-}
-var KEY_VOICE='pv-voice';var voice='f';
-try{var sv=localStorage.getItem(KEY_VOICE);if(sv==='f'||sv==='m')voice=sv;}catch(e){}
-var audio=new Audio();audio.preload='auto';var srcCache={},blobOrder=[];var stopAt=0,onEl=null;window.__phAudio=audio;
-function srcFor(url){
-  if(srcCache[url])return srcCache[url];
-  var can=location.protocol!=='file:'&&window.fetch&&window.URL&&URL.createObjectURL;
-  if(!can){srcCache[url]=Promise.resolve(url);return srcCache[url];}
-  var p=fetch(url).then(function(r){if(!r.ok)throw 0;return r.blob();})
-    .then(function(b){return URL.createObjectURL(b);}).catch(function(){return url;});
-  srcCache[url]=p;
-  // 只保留最近 12 个 blob，避免点很多行后内存一直涨；正在播放的不回收。
-  p.then(function(src){
-    if(src.indexOf('blob:')!==0)return;
-    blobOrder.push([url,src,p]);
-    while(blobOrder.length>12){
-      var old=blobOrder.shift();
-      if(old[1]===audio.src){blobOrder.push(old);break;}
-      try{URL.revokeObjectURL(old[1]);}catch(e){}
-      if(srcCache[old[0]]===old[2])delete srcCache[old[0]];
-    }
-  });
-  return p;
-}
-function chunkRel(i,v){
-  var e=D.entries[i],k=e&&e.sp;
-  if(!k)return '';
-  var row=D.spr&&D.spr[k-1];
-  var rel=row&&row[v||voice];
-  return rel?'audio/'+rel:'';
-}
-var prefetched={};
-function prefetchAt(i,v){
-  if(stopAt)return;
-  if(location.protocol==='file:'||!window.fetch)return;
-  if(navigator.connection&&navigator.connection.saveData)return;
-  var rel=chunkRel(i,v||voice);
-  if(!rel||prefetched[rel])return;
-  prefetched[rel]=1;
-  fetch(rel,{cache:'force-cache'}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();})
-    .catch(function(){delete prefetched[rel];});
-}
-var io=null,visibleRows=[];
-function bindRows(){
-  if(!('IntersectionObserver' in window))return;
-  if(io)io.disconnect();
-  visibleRows=[];
-  io=new IntersectionObserver(function(list){
-    for(var n=0;n<list.length;n++){
-      var row=list[n].target,at=visibleRows.indexOf(row);
-      if(list[n].isIntersecting){
-        if(at<0)visibleRows.push(row);
-        prefetchAt(+row.getAttribute('data-i'));
-      }else if(at>=0)visibleRows.splice(at,1);
-    }
-  },{rootMargin:'400px 0px'});
-  var rows=view.querySelectorAll('.prow');
-  for(var i=0;i<rows.length;i++)io.observe(rows[i]);
-}
-function prefetchVisible(v){
-  for(var i=0;i<visibleRows.length;i++)prefetchAt(+visibleRows[i].getAttribute('data-i'),v);
-}
-view.addEventListener('pointerover',function(e){
-  var r=e.target.closest&&e.target.closest('.prow');
-  if(r)prefetchAt(+r.getAttribute('data-i'));
-},{passive:true});
-view.addEventListener('focusin',function(e){
-  var r=e.target.closest&&e.target.closest('.prow');
-  if(r)prefetchAt(+r.getAttribute('data-i'));
-});
-var raf=0,stopTimer=0,playGen=0,playFrom=0;
-function finishStop(){
-  try{audio.pause();}catch(e){}
-  if(stopAt)window.__phLast={mode:'ha',s:playFrom,en:stopAt,t:audio.currentTime};
-  stopAt=0;if(onEl){onEl.classList.remove('on');onEl=null;}
-}
-function tick(){
-  if(!stopAt)return;
-  if(audio.currentTime>=stopAt-0.008){finishStop();return;}
-  raf=requestAnimationFrame(tick);
-}
-function armStop(from,to){
-  if(stopTimer)clearTimeout(stopTimer);
-  var ms=Math.max(0,(to-Math.max(from,audio.currentTime))*1000)-20;
-  stopTimer=setTimeout(function(){
-    if(!stopAt)return;
-    if(audio.currentTime>=stopAt-0.05){finishStop();}
-    else{armStop(audio.currentTime,stopAt);}
-  },Math.max(0,ms));
-}
-function playFallback(el,s,en){
-  var gen=++playGen;
-  if(raf)cancelAnimationFrame(raf);
-  var rel=chunkRel(+el.getAttribute('data-i'));
-  if(!rel)return;
-  srcFor(rel).then(function(src){
-    if(gen!==playGen)return;
-    var abs=new URL(src,location.href).href,changed=audio.src!==abs;
-    if(changed)audio.src=src;
-    stopAt=en;playFrom=s;window.__phEnd=en;if(onEl)onEl.classList.remove('on');onEl=el;el.classList.add('on');
-    // iOS 的 seek 是异步的：设完 currentTime 立刻 play 会从旧位置起播、吃掉开头。
-    // 留 120ms 余量，等 seeked 落地再播。
-    var from=Math.max(0,s-0.12),started=false,timer=0;
-    var go=function(){
-      if(started||gen!==playGen)return;started=true;
-      audio.playbackRate=1;
-      var p=audio.play();if(p&&p.catch)p.catch(function(){});
-      if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);armStop(from,en);
-    };
-    var seek=function(){
-      if(gen!==playGen)return;
-      if(Math.abs(audio.currentTime-from)<0.02){go();return;}
-      var done=false,onSeeked=function(){
-        if(done)return;done=true;audio.removeEventListener('seeked',onSeeked);clearTimeout(timer);go();
-      };
-      audio.addEventListener('seeked',onSeeked);
-      timer=setTimeout(function(){
-        if(done)return;done=true;audio.removeEventListener('seeked',onSeeked);
-        if(Math.abs(audio.currentTime-from)>0.05)try{audio.currentTime=from;}catch(e){}
-        go();
-      },600);
-      try{audio.currentTime=from;}
-      catch(e){audio.removeEventListener('seeked',onSeeked);clearTimeout(timer);go();}
-    };
-    if(!changed&&audio.readyState>0)seek();else audio.addEventListener('loadedmetadata',seek,{once:true});
-  });
-}
-function playSay(el){
-  var i=+el.getAttribute('data-i'),k=+el.getAttribute('data-k');
-  var e=D.entries[i];var span=e.au[k];
-  if(!span||!chunkRel(i))return;
-  var s=voice==='f'?span[0]:span[2],en=voice==='f'?span[1]:span[3];
-  if(s==null||en==null)return;
-  window.__phEnd=en;
-  playFallback(el,s,en);
-}
-var voiceBtns=document.querySelectorAll('[data-voice]');
-function paintVoice(){
-  for(var v=0;v<voiceBtns.length;v++)voiceBtns[v].setAttribute('aria-pressed',voiceBtns[v].getAttribute('data-voice')===voice?'true':'false');
-}
-for(var vv=0;vv<voiceBtns.length;vv++)voiceBtns[vv].addEventListener('click',function(e){voice=e.currentTarget.getAttribute('data-voice');try{localStorage.setItem(KEY_VOICE,voice);}catch(err){}paintVoice();setTimeout(function(){prefetchVisible(voice);},0);});
-paintVoice();
-rowScene.innerHTML=chip('scene','all','全部')+D.scene.map(function(g){return chip('scene',g.id,g.zh);}).join('');
-rowPart.innerHTML=chip('particle','all','全部')+D.particle.map(function(g){return chip('particle',g.p,g.label||g.p);}).join('');
-rowScene.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;atCategories=false;paint('scene',b.getAttribute('data-scene'),true);});
-rowPart.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;paint('particle',b.getAttribute('data-particle'),true);});
-rowTheme.addEventListener('click',function(e){
-  var b=e.target.closest('button');if(!b)return;
-  if(b.hasAttribute('data-theme-back')){atCategories=true;setChips(mode);return;}
-  var id=b.getAttribute('data-theme');
-  var target=view.querySelector('.theme[data-theme="'+id+'"]');
-  if(target)scrollToEl(target);
-});
-for(var m=0;m<modeBtns.length;m++)modeBtns[m].addEventListener('click',function(e){var next=e.currentTarget.getAttribute('data-mode');if(next===mode){setChipsExpanded(!chipsExpanded);return;}atCategories=false;setChipsExpanded(true);paint(next,state[next],false);});
-view.addEventListener('click',function(e){
-  var ret=e.target.closest('[data-opp-return-inline]');
-  if(ret){returnToOppOrigin();return;}
-  var ob=e.target.closest('.opp-btn');
-  if(ob){jumpToOpp(+ob.getAttribute('data-opp-i'));return;}
-  var say=e.target.closest('.say');
-  if(say){playSay(say);return;}
-  var b=e.target.closest('.prow');
-  if(b)toggleCard(b);
-});
-function scrollToGroup(g){
-  if(!g)return;
-  var head=g.querySelector('.theme')||g.querySelector('.prow')||g;
-  scrollToEl(head);
-}
-// 顶部面包屑（分类 / 主题）由 scroll-progress.js 渲染成按钮，点这里回跳
-document.addEventListener('npesl:context',function(e){
-  var d=(e&&e.detail)||{};
-  if(d.particle){
-    if(d.kind==='root'){paint('particle','all',true);return;}
-    scrollToGroup(view.querySelector('.group[data-particle="'+d.group+'"]'));
-    return;
-  }
-  if(d.kind==='root'){
-    atCategories=true;setChips(mode);
-    scrollToGroup(view.querySelector('.group[data-cat="'+d.cat+'"]'));
-    return;
-  }
-  var t=d.theme?view.querySelector('.theme[data-theme="'+d.theme+'"]'):null;
-  if(t)scrollToEl(t);
-});
-try{if('scrollRestoration'in history)history.scrollRestoration='manual';}catch(e){}
-paint(mode,state[mode],false,true);
-setChipsExpanded(chipsExpanded);
+  if (positions[mode]) requestAnimationFrame(function () { window.scrollTo(0, positions[mode]); });
 })();
+
 </script>
 <script src="scroll-progress.js" defer></script>
 </body>

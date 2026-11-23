@@ -152,6 +152,13 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
   - 主站：`npx wrangler pages deploy build/cloudflare-site --project-name npesl --branch main`，部署 id `faa3bc44`（https://faa3bc44.npesl.pages.dev，正式地址 https://npesl.pages.dev）。本次增量上传 293 个文件。
   - 音频站未部署：母版零改动，sprite 内容与文件名与原来一致。
   - 线上核对：`/theme.css` 已是 coss 令牌 + Inter；`/ipa/` 改为外链 theme.css、无内嵌残留；`/phenomena/` 入口脚本 `main-CCjWMkxy.js` 200；7 个入口全部 200。
+- 2026-11-23：**短语搭配三维度修理**（用词 / 操作 / 外观）。
+  - 用词：41 主题 / 3,296 条全量审校，修语法错、英式残留、中文病句、模板化例句、chip 归属、反义配对；校验器新增英式短语、中文病句、chip 归属等硬规则。
+  - 操作：保留原有场景 / 介词 / 主题分类，新增中英文全文搜索（`/` 聚焦、Esc 退出）；音频失败有提示可重试，同一按钮可暂停续播；筛选保留展开内容，反义返回恢复原位置。
+  - 外观：列表与卡片重做，徽章只保留【口语】【可分】，改用全站单色令牌，手机端中文可换行、分类横排可滑、触控目标放大；本地与线上主题切换一致。
+  - 验证：`build_all.py --only collocation,site` 通过，534 条新音频合成；`audit_build --diff before final` 632 个差异全部是重拼音频包（新增 315 / 删除 315）与 collocation 页面/滚动层（改变 2），其他应用零差异；`verify.py` 一次通过 25/25、286/286 页，英式英语新增 0。
+  - 部署：主站部署 id `223cacb4`，线上 `/collocation/` 200 且包含搜索框；短语搭配音频随主站发布，音频站母版未变故未部署。
+
 - 2026-11-23：**清理 79 项待提交改动并再次发布**。
   - 构建：`build_all.py --only ipa,phonics,phenomena,visual-vocabulary,data-viz,site` 全部 PASS；`verify.py` 22/22、286/286 页通过，英式英语新增 0。
   - 音标表源文件中删掉的 7 个 /ər/ 例词已恢复：构建要求与 PDF 内嵌录音逐词对齐（40 组 × 10 词），删词后无法通过且没有配套新录音。

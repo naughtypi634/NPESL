@@ -1,0 +1,620 @@
+/* 短语搭配交互。构建时内联进 index.html；不依赖构建工具。 */
+(function () {
+  var D = window.COLLOCATION_INDEX;
+  var view = document.getElementById('view');
+  var search = document.getElementById('q');
+  var clearBtn = document.getElementById('qclear');
+  var live = document.getElementById('live');
+  var histbar = document.getElementById('histbar');
+  var histback = document.getElementById('histback');
+  var rowScene = document.querySelector('[data-chips="scene"]');
+  var rowPart = document.querySelector('[data-chips="particle"]');
+  var rowTheme = document.querySelector('[data-chips="theme"]');
+  var modeBtns = document.querySelectorAll('[data-mode]');
+  var voiceBtns = document.querySelectorAll('[data-voice]');
+  var KEY_STATE = 'pv-index-state-v1';
+  var KEY_VOICE = 'pv-voice';
+  var mode = 'scene';
+  var filter = { scene: 'all', particle: 'all' };
+  var positions = { scene: 0, particle: 0 };
+  var chipsExpanded = true;
+  var atCategories = false;
+  var open = null;
+  var q = '';
+  var beforeSearchY = 0;
+  var oppOrigin = null;
+  var labels = {};
+  var searchIndex = [];
+  var modeViews = {};
+
+  try {
+    var saved = JSON.parse(sessionStorage.getItem(KEY_STATE) || 'null');
+    if (saved && saved.state && saved.positions) {
+      if (saved.mode === 'scene' || saved.mode === 'particle') mode = saved.mode;
+      if (saved.state.scene === 'all' || D.scene.some(function (g) { return g.id === saved.state.scene; })) filter.scene = saved.state.scene;
+      if (saved.state.particle === 'all' || D.particle.some(function (g) { return g.p === saved.state.particle; })) filter.particle = saved.state.particle;
+      if (Number.isFinite(saved.positions.scene) && saved.positions.scene >= 0) positions.scene = saved.positions.scene;
+      if (Number.isFinite(saved.positions.particle) && saved.positions.particle >= 0) positions.particle = saved.positions.particle;
+    }
+  } catch (e) {}
+  var voice = 'f';
+  try { var sv = localStorage.getItem(KEY_VOICE); if (sv === 'f' || sv === 'm') voice = sv; } catch (e2) {}
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+  function say(text) { return '<span class="play" aria-hidden="true"><svg class="play-ico" viewBox="0 0 24 24" width="9" height="9" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="bars"><i></i><i></i><i></i></span></span>'; }
+  function sayBtn(i, k, text) {
+    return '<button class="say playbtn" type="button" data-i="' + i + '" data-k="' + k +
+      '" aria-label="播放：' + esc(text || D.entries[i].h) + '">' + say() + '</button>';
+  }
+  function buildLabels() {
+    D.entries.forEach(function (e, i) {
+      labels[i] = { 0: e.h };
+      e.sen.forEach(function (s, n) { labels[i][n + 1] = s[1]; });
+      e.var.forEach(function (v) { labels[i][v[7]] = v[0]; labels[i][v[8]] = v[4]; });
+      e.use.forEach(function (u) { labels[i][u[4]] = u[0]; labels[i][u[5]] = u[2]; });
+      searchIndex[i] = [e.h, e.zh, e.ipa].concat(
+        e.sen.map(function (s) { return s[0] + ' ' + s[1] + ' ' + s[2]; }),
+        e.var.map(function (v) { return v.slice(0, 7).join(' '); }),
+        e.use.map(function (u) { return u.slice(0, 4).join(' '); }),
+        [e.l1, e.coll.map(function (c) { return c.join(' '); }).join(' '),
+          e.conf.map(function (c) { return c.join(' '); }).join(' ')]
+      ).join(' ').toLowerCase();
+    });
+  }
+  buildLabels();
+
+  function rowButton(i) {
+    var e = D.entries[i];
+    return '<button class="prow" type="button" data-i="' + i + '" aria-expanded="false">' +
+      '<span class="en">' + esc(e.h) + '</span><span class="zh">' + esc(e.zh) + '</span>' +
+      '<span class="arw" aria-hidden="true">›</span></button>';
+  }
+  function card(i) {
+    var e = D.entries[i];
+    var out = '<div class="card" data-card="' + i + '">';
+    out += '<div class="card-head say-unit"><span class="w">' + esc(e.h) + '</span>' +
+      (e.ipa ? '<span class="ipa">/' + esc(e.ipa) + '/</span>' : '') +
+      sayBtn(i, 0, e.h) + '<span class="badges">' +
+      (e.reg === 'spoken' ? '<span class="badge">口语</span>' : '') +
+      (e.kind === 'phrasal' && e.sep ? '<span class="badge">可分</span>' : '') +
+      '</span></div>';
+    e.sen.forEach(function (it, s) {
+      out += '<div class="sense">';
+      if (e.sen.length > 1) out += '<p class="sense-zh">' + esc(it[0]) + '</p>';
+      out += '<div class="ex-unit say-unit">' + sayBtn(i, s + 1, it[1]) +
+        '<div class="ex-text"><span class="txt">' + esc(it[1]) + '</span>' +
+        '<span class="zh">' + esc(it[2]) + '</span></div></div>';
+      if (e.wo && e.wo.length) {
+        e.wo.filter(function (w) { return w[0] === s + 1; }).forEach(function (w) {
+          out += '<p class="hint-line"><b>反义</b>' + esc(w[1]) + '<span class="zh">' + esc(w[2]) + '</span></p>';
+        });
+      }
+      out += '</div>';
+    });
+    if (e.var.length) {
+      out += '<div class="variants"><h4 class="sr-only">近义表达</h4>';
+      e.var.forEach(function (v) {
+        out += '<div class="variant"><div class="variant-head"><span class="w">' + esc(v[0]) + '</span>' +
+          (v[1] ? '<span class="ipa">/' + esc(v[1]) + '/</span>' : '') + sayBtn(i, v[7], v[0]) + '</div>' +
+          '<p class="variant-zh">' + esc(v[2]) + '</p>' +
+          (v[6] ? '<p class="variant-note">' + esc(v[6]) + '</p>' : '') +
+          '<div class="ex-unit say-unit">' + sayBtn(i, v[8], v[4]) +
+          '<div class="ex-text"><span class="txt">' + esc(v[4]) + '</span>' +
+          '<span class="zh">' + esc(v[5]) + '</span></div></div></div>';
+      });
+      out += '</div>';
+    }
+    if (e.use.length) {
+      out += '<div class="uses"><h4 class="sr-only">常见用法</h4>';
+      e.use.forEach(function (u) {
+        out += '<div class="use"><div class="use-head"><span class="w">' + esc(u[0]) + '</span>' +
+          '<span class="use-zh">' + esc(u[1]) + '</span>' + sayBtn(i, u[4], u[0]) + '</div>' +
+          '<div class="ex-unit say-unit">' + sayBtn(i, u[5], u[2]) +
+          '<div class="ex-text"><span class="txt">' + esc(u[2]) + '</span>' +
+          '<span class="zh">' + esc(u[3]) + '</span></div></div></div>';
+      });
+      out += '</div>';
+    }
+    var notes = '';
+    if (e.l1) notes += '<p class="hint-line"><b>易错</b>' + esc(e.l1) + '</p>';
+    if (e.coll.length) notes += '<p class="hint-line"><b>搭配</b>' + e.coll.map(function (c) { return esc(c[0]) + (c[1] ? '：' + esc(c[1]) : ''); }).join(' · ') + '</p>';
+    if (e.conf.length) notes += '<p class="hint-line"><b>易混</b>' + e.conf.map(function (c) { return esc(c[0]) + (c[1] ? '：' + esc(c[1]) : ''); }).join(' · ') + '</p>';
+    if (e.opp.length) notes += '<p class="hint-line"><b>反义</b>' + e.opp.map(function (o) {
+      return '<button type="button" class="opp-btn" data-opp-i="' + o.i + '">' + esc(o.h) +
+        '<span class="zh">' + esc(o.zh) + '</span></button>';
+    }).join('<span class="opp-sep">·</span>') + '</p>';
+    if (notes) out += '<div class="notes">' + notes + '</div>';
+    if (oppOrigin && oppOrigin.target === i) {
+      out += '<button class="opp-btn" type="button" data-opp-return-inline>‹ 返回 ' +
+        esc(D.entries[oppOrigin.open] ? D.entries[oppOrigin.open].h : '') + '</button>';
+    }
+    return out + '</div>';
+  }
+  function sceneHtml() {
+    return D.scene.map(function (g) {
+      return '<section class="group" data-cat="' + g.id + '">' + g.themes.map(function (t) {
+        return '<h3 class="theme" data-theme="' + t.id + '">' + esc(t.zh) +
+          '<span class="stage-en">' + esc(t.en) + '</span></h3>' +
+          '<div class="list">' + t.rows.map(rowButton).join('') + '</div>';
+      }).join('') + '</section>';
+    }).join('');
+  }
+  function partHtml() {
+    return D.particle.map(function (g) {
+      return '<section class="group" data-particle="' + g.p + '"><h3 class="theme">' +
+        esc(g.label || g.p) + '</h3><div class="list">' + g.rows.map(rowButton).join('') +
+        '</div></section>';
+    }).join('');
+  }
+  view.innerHTML = '<div class="modeview" data-mv="scene">' + sceneHtml() + '</div>' +
+    '<div class="modeview" data-mv="particle" hidden>' + partHtml() + '</div>' +
+    '<div id="results" hidden></div>';
+  modeViews.scene = view.querySelector('[data-mv="scene"]');
+  modeViews.particle = view.querySelector('[data-mv="particle"]');
+  var results = document.getElementById('results');
+
+  function themeGroup(cat) {
+    for (var i = 0; i < D.scene.length; i++) if (D.scene[i].id === cat) return D.scene[i];
+    return null;
+  }
+  function showThemeLevel() { return mode === 'scene' && filter.scene !== 'all' && !atCategories; }
+  function renderThemeRow() {
+    var g = themeGroup(filter.scene);
+    rowTheme.innerHTML = '<button type="button" class="sp-chip-back" data-theme-back="1">‹ 全部分类</button>' +
+      (g ? g.themes.map(function (t) {
+        return '<button type="button" data-theme="' + t.id + '">' + esc(t.zh) + '</button>';
+      }).join('') : '');
+  }
+  function setChips(m) {
+    var l3 = showThemeLevel();
+    rowScene.hidden = (m !== 'scene') || l3;
+    rowPart.hidden = (m !== 'particle');
+    rowTheme.hidden = !l3;
+    if (l3) renderThemeRow();
+    for (var i = 0; i < modeBtns.length; i++) {
+      var active = modeBtns[i].getAttribute('data-mode') === m;
+      modeBtns[i].setAttribute('aria-pressed', active ? 'true' : 'false');
+      modeBtns[i].setAttribute('aria-expanded', active && chipsExpanded ? 'true' : 'false');
+    }
+    var chips = (m === 'scene' ? rowScene : rowPart).querySelectorAll('button');
+    for (var c = 0; c < chips.length; c++) {
+      chips[c].setAttribute('aria-pressed', chips[c].getAttribute('data-' + m) === filter[m] ? 'true' : 'false');
+    }
+  }
+  function setChipsExpanded(v) {
+    chipsExpanded = !!v;
+    document.documentElement.classList.toggle('sp-chips-open', chipsExpanded);
+    for (var i = 0; i < modeBtns.length; i++) {
+      modeBtns[i].setAttribute('aria-expanded', modeBtns[i].getAttribute('data-mode') === mode && chipsExpanded ? 'true' : 'false');
+    }
+  }
+  function persistState() {
+    try { sessionStorage.setItem(KEY_STATE, JSON.stringify({ mode: mode, state: filter, positions: positions })); } catch (e) {}
+  }
+  function scrollToEl(el) {
+    if (!el) return;
+    var banner = document.querySelector('.sp-context');
+    var offset = banner ? banner.getBoundingClientRect().height + (parseFloat(getComputedStyle(banner).top) || 0) + 12 : 0;
+    window.scrollTo({ top: Math.max(0, window.scrollY + el.getBoundingClientRect().top - offset), behavior: 'smooth' });
+  }
+  function applyFilters() {
+    var token = q.toLowerCase();
+    if (token) {
+      modeViews.scene.hidden = true;
+      modeViews.particle.hidden = true;
+      results.hidden = false;
+      var html = '';
+      for (var i = 0; i < searchIndex.length; i++) {
+        if (searchIndex[i].indexOf(token) >= 0) html += rowButton(i);
+      }
+      results.innerHTML = html ? '<div class="list">' + html + '</div>' :
+        '<p class="empty">没有匹配的词条</p>';
+      open = null;
+    } else {
+      results.hidden = true;
+      results.innerHTML = '';
+      modeViews.scene.hidden = mode !== 'scene';
+      modeViews.particle.hidden = mode !== 'particle';
+      var attr = mode === 'scene' ? 'cat' : 'particle';
+      var groups = modeViews[mode].querySelectorAll('.group');
+      for (var g = 0; g < groups.length; g++) {
+        groups[g].hidden = filter[mode] !== 'all' && groups[g].getAttribute('data-' + attr) !== filter[mode];
+      }
+    }
+    setChips(mode);
+  }
+  function setMode(m, value) {
+    if (m !== mode) positions[mode] = window.scrollY;
+    mode = m;
+    if (value !== undefined) filter[m] = value;
+    applyFilters();
+    persistState();
+  }
+  function closeCard() {
+    var cardEl = view.querySelector('.card');
+    if (cardEl) cardEl.remove();
+    var prev = view.querySelector('.prow[aria-expanded="true"]');
+    if (prev) prev.setAttribute('aria-expanded', 'false');
+    open = null;
+  }
+  function toggleCard(btn) {
+    var i = +btn.getAttribute('data-i');
+    if (open === i) { closeCard(); return; }
+    closeCard();
+    prefetchAt(i);
+    open = i;
+    btn.setAttribute('aria-expanded', 'true');
+    btn.insertAdjacentHTML('afterend', card(i));
+    stopPlayback(false);
+  }
+  function showOppReturn() { histbar.hidden = !oppOrigin; }
+  function openOppTarget(i) {
+    var e = D.entries[i];
+    if (!e) return false;
+    if (e.c && filter.scene !== e.c) setMode('scene', e.c);
+    var row = view.querySelector('.prow[data-i="' + i + '"]');
+    if (!row) return false;
+    closeCard();
+    prefetchAt(i);
+    open = i;
+    row.setAttribute('aria-expanded', 'true');
+    row.insertAdjacentHTML('afterend', card(i));
+    var c = view.querySelector('.card[data-card="' + i + '"]');
+    if (c) { c.classList.add('opp-focus'); scrollToEl(c); }
+    showOppReturn();
+    return true;
+  }
+  function jumpToOpp(i) {
+    if (oppOrigin && oppOrigin.target === i) { returnToOppOrigin(); return; }
+    if (!oppOrigin) oppOrigin = { mode: mode, scene: filter.scene, particle: filter.particle, atCategories: atCategories, open: open, y: window.scrollY };
+    oppOrigin.target = i;
+    if (!openOppTarget(i)) { oppOrigin = null; showOppReturn(); }
+  }
+  function returnToOppOrigin() {
+    var o = oppOrigin;
+    if (!o) return;
+    oppOrigin = null;
+    showOppReturn();
+    atCategories = o.atCategories;
+    if (mode !== o.mode || filter.scene !== o.scene || filter.particle !== o.particle) {
+      mode = o.mode; filter.scene = o.scene; filter.particle = o.particle; applyFilters();
+    }
+    closeCard();
+    var row = view.querySelector('.prow[data-i="' + o.open + '"]');
+    if (row) {
+      open = o.open;
+      row.setAttribute('aria-expanded', 'true');
+      row.insertAdjacentHTML('afterend', card(o.open));
+      var c = view.querySelector('.card[data-card="' + o.open + '"]');
+      if (c) c.classList.add('opp-focus');
+    }
+    window.scrollTo(0, o.y || 0);
+    persistState();
+  }
+
+  var audio = new Audio();
+  audio.preload = 'auto';
+  window.__phAudio = audio;
+  window.__mediaErrors = window.__mediaErrors || [];
+  var srcCache = {}, blobOrder = [], prefetched = {}, io = null, visibleRows = [];
+  var raf = 0, stopTimer = 0, playGen = 0, stopAt = 0, playFrom = 0, onEl = null;
+  var audioState = 'idle', lastEl = null, lastPlay = null, pausedAt = 0;
+
+  function srcFor(url) {
+    if (srcCache[url]) return srcCache[url];
+    var can = location.protocol !== 'file:' && window.fetch && window.URL && URL.createObjectURL;
+    if (!can) { srcCache[url] = Promise.resolve(url); return srcCache[url]; }
+    var p = fetch(url).then(function (r) { if (!r.ok) throw 0; return r.blob(); })
+      .then(function (b) { return URL.createObjectURL(b); })
+      .catch(function () { throw new Error('audio fetch failed'); });
+    srcCache[url] = p;
+    p.then(function (src) {
+      if (src.indexOf('blob:') !== 0) return;
+      blobOrder.push([url, src, p]);
+      while (blobOrder.length > 12) {
+        var old = blobOrder.shift();
+        if (old[1] === audio.src) { blobOrder.push(old); break; }
+        try { URL.revokeObjectURL(old[1]); } catch (e) {}
+        if (srcCache[old[0]] === old[2]) delete srcCache[old[0]];
+      }
+    }, function () { delete srcCache[url]; });
+    return p;
+  }
+  function chunkRel(i, v) {
+    var rel = D.entries[i] && D.entries[i].sp;
+    var row = rel && D.spr[rel - 1];
+    var href = row && row[v || voice];
+    return href ? 'audio/' + href : '';
+  }
+  function prefetchAt(i, v) {
+    if (location.protocol === 'file:' || !window.fetch) return;
+    if (navigator.connection && navigator.connection.saveData) return;
+    var rel = chunkRel(i, v);
+    if (!rel || prefetched[rel]) return;
+    prefetched[rel] = 1;
+    fetch(rel, { cache: 'force-cache' }).then(function (r) { if (!r.ok) throw 0; return r.arrayBuffer(); })
+      .catch(function () { delete prefetched[rel]; });
+  }
+  function bindRows() {
+    if (!('IntersectionObserver' in window)) return;
+    if (io) io.disconnect();
+    visibleRows = [];
+    io = new IntersectionObserver(function (list) {
+      list.forEach(function (item) {
+        var row = item.target, at = visibleRows.indexOf(row);
+        if (item.isIntersecting) {
+          if (at < 0) visibleRows.push(row);
+          prefetchAt(+row.getAttribute('data-i'));
+        } else if (at >= 0) visibleRows.splice(at, 1);
+      });
+    }, { rootMargin: '400px 0px' });
+    view.querySelectorAll('.prow').forEach(function (row) { io.observe(row); });
+  }
+  function prefetchVisible(v) { visibleRows.forEach(function (row) { prefetchAt(+row.getAttribute('data-i'), v); }); }
+
+  function clearTimers() {
+    if (raf) cancelAnimationFrame(raf);
+    if (stopTimer) clearTimeout(stopTimer);
+    raf = 0; stopTimer = 0;
+  }
+  function clearOn() { if (onEl) { onEl.classList.remove('on', 'paused'); onEl = null; } }
+  function finishStop() {
+    if (stopAt) window.__phLast = { mode: 'ha', s: playFrom, en: stopAt, t: audio.currentTime };
+    clearTimers();
+    try { audio.pause(); } catch (e) {}
+    stopAt = 0;
+    clearOn();
+    audioState = 'idle';
+    lastEl = null;
+  }
+  function stopPlayback(record) {
+    if (!record) stopAt = 0;
+    finishStop();
+  }
+  function fail(el) {
+    clearTimers();
+    stopAt = 0;
+    try { audio.pause(); } catch (e) {}
+    clearOn();
+    if (el) {
+      el.classList.add('err');
+      el.setAttribute('aria-label', '播放失败，点此重试：' + (lastPlay ? lastPlay.text : ''));
+    }
+    live.textContent = '音频播放失败，请点播放按钮重试';
+    window.__mediaErrors.push('playback error');
+    audioState = 'error';
+  }
+  function tick() {
+    if (!stopAt) return;
+    if (audio.currentTime >= stopAt - 0.008) { finishStop(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function armStop(from, to) {
+    var ms = Math.max(0, (to - Math.max(from, audio.currentTime)) * 1000) - 20;
+    stopTimer = setTimeout(function () {
+      if (!stopAt) return;
+      if (audio.currentTime >= stopAt - 0.05) finishStop();
+      else armStop(audio.currentTime, stopAt);
+    }, Math.max(0, ms));
+  }
+  function startPlay(el, span) {
+    var gen = ++playGen;
+    clearTimers();
+    var rel = chunkRel(+el.getAttribute('data-i'));
+    if (!rel) return;
+    lastPlay = { el: el, s: span[0], en: span[1], text: labels[+el.getAttribute('data-i')][+el.getAttribute('data-k')] };
+    el.classList.remove('err', 'paused');
+    el.classList.add('on');
+    el.setAttribute('aria-busy', 'true');
+    el.setAttribute('aria-label', '正在播放：' + lastPlay.text);
+    onEl = el;
+    audioState = 'loading';
+    srcFor(rel).then(function (src) {
+      if (gen !== playGen) return;
+      var abs = new URL(src, location.href).href, changed = audio.src !== abs;
+      if (changed) audio.src = src;
+      stopAt = lastPlay.en;
+      playFrom = lastPlay.s;
+      window.__phEnd = stopAt;
+      var from = Math.max(0, lastPlay.s - 0.12), started = false, timer = 0;
+      function go() {
+        if (started || gen !== playGen) return;
+        started = true;
+        audio.playbackRate = 1;
+        var p = audio.play();
+        if (p && p.catch) p.catch(function () { if (gen === playGen) fail(el); });
+        audioState = 'playing';
+        el.removeAttribute('aria-busy');
+        clearTimers();
+        raf = requestAnimationFrame(tick);
+        armStop(from, stopAt);
+      }
+      function seek() {
+        if (gen !== playGen) return;
+        if (Math.abs(audio.currentTime - from) < 0.02) { go(); return; }
+        var done = false;
+        function onSeeked() {
+          if (done) return;
+          done = true; audio.removeEventListener('seeked', onSeeked); clearTimeout(timer); go();
+        }
+        audio.addEventListener('seeked', onSeeked);
+        timer = setTimeout(function () {
+          if (done) return;
+          done = true; audio.removeEventListener('seeked', onSeeked);
+          if (Math.abs(audio.currentTime - from) > 0.05) { try { audio.currentTime = from; } catch (e) {} }
+          go();
+        }, 600);
+        try { audio.currentTime = from; }
+        catch (e) { audio.removeEventListener('seeked', onSeeked); clearTimeout(timer); go(); }
+      }
+      if (!changed && audio.readyState > 0) seek();
+      else audio.addEventListener('loadedmetadata', seek, { once: true });
+    }).catch(function () { if (gen === playGen) fail(el); });
+  }
+  function playSay(el) {
+    var i = +el.getAttribute('data-i'), k = +el.getAttribute('data-k');
+    var span = D.entries[i].au[k];
+    if (!span || !chunkRel(i)) return;
+    var s = voice === 'f' ? span[0] : span[2], en = voice === 'f' ? span[1] : span[3];
+    if (s == null || en == null) return;
+    if (lastEl === el && (audioState === 'playing' || audioState === 'loading')) {
+      clearTimers();
+      try { audio.pause(); } catch (e) {}
+      pausedAt = audio.currentTime;
+      stopAt = 0;
+      clearOn();
+      el.classList.add('paused');
+      onEl = el;
+      audioState = 'paused';
+      el.setAttribute('aria-label', '继续播放：' + labels[i][k]);
+      live.textContent = '已暂停';
+      return;
+    }
+    if (lastEl === el && audioState === 'paused' && lastPlay) {
+      clearTimers();
+      onEl = el; el.classList.remove('paused'); el.classList.add('on');
+      stopAt = lastPlay.en;
+      playFrom = lastPlay.s;
+      audioState = 'playing';
+      el.setAttribute('aria-label', '正在播放：' + labels[i][k]);
+      try { audio.currentTime = pausedAt; } catch (e) {}
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () { fail(el); });
+      raf = requestAnimationFrame(tick);
+      armStop(pausedAt, stopAt);
+      return;
+    }
+    stopPlayback(false);
+    window.__phEnd = en;
+    lastEl = el;
+    startPlay(el, [s, en]);
+  }
+  audio.addEventListener('error', function () { if (onEl) fail(onEl); });
+  audio.addEventListener('ended', function () { if (stopAt) finishStop(); });
+
+  rowScene.innerHTML = '<button type="button" data-scene="all">全部</button>' +
+    D.scene.map(function (g) { return '<button type="button" data-scene="' + g.id + '">' + esc(g.zh) + '</button>'; }).join('');
+  rowPart.innerHTML = '<button type="button" data-particle="all">全部</button>' +
+    D.particle.map(function (g) { return '<button type="button" data-particle="' + g.p + '">' + esc(g.label || g.p) + '</button>'; }).join('');
+
+  function paintVoice() {
+    for (var i = 0; i < voiceBtns.length; i++) {
+      voiceBtns[i].setAttribute('aria-pressed', voiceBtns[i].getAttribute('data-voice') === voice ? 'true' : 'false');
+    }
+  }
+  for (var v = 0; v < voiceBtns.length; v++) {
+    voiceBtns[v].addEventListener('click', function (e) {
+      stopPlayback(false);
+      voice = e.currentTarget.getAttribute('data-voice');
+      try { localStorage.setItem(KEY_VOICE, voice); } catch (err) {}
+      paintVoice();
+      setTimeout(function () { prefetchVisible(voice); }, 0);
+    });
+  }
+  paintVoice();
+  rowScene.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    atCategories = false;
+    setMode('scene', b.getAttribute('data-scene'));
+  });
+  rowPart.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    setMode('particle', b.getAttribute('data-particle'));
+  });
+  rowTheme.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.hasAttribute('data-theme-back')) { atCategories = true; setChips(mode); return; }
+    var target = view.querySelector('.theme[data-theme="' + b.getAttribute('data-theme') + '"]');
+    scrollToEl(target);
+  });
+  for (var m = 0; m < modeBtns.length; m++) {
+    modeBtns[m].addEventListener('click', function (e) {
+      var next = e.currentTarget.getAttribute('data-mode');
+      if (next === mode) { setChipsExpanded(!chipsExpanded); return; }
+      atCategories = false;
+      setChipsExpanded(true);
+      setMode(next, filter[next]);
+    });
+  }
+  view.addEventListener('click', function (e) {
+    var ret = e.target.closest('[data-opp-return-inline]');
+    if (ret) { returnToOppOrigin(); return; }
+    var ob = e.target.closest('.opp-btn');
+    if (ob) { jumpToOpp(+ob.getAttribute('data-opp-i')); return; }
+    var say = e.target.closest('.say');
+    if (say) { playSay(say); return; }
+    var b = e.target.closest('.prow');
+    if (b) toggleCard(b);
+  });
+  histback.addEventListener('click', returnToOppOrigin);
+
+  function runSearch() {
+    q = search.value.trim();
+    if (q) closeCard();
+    clearBtn.hidden = !q;
+    if (q && !beforeSearchY) beforeSearchY = window.scrollY;
+    applyFilters();
+    if (!q && beforeSearchY) {
+      window.scrollTo(0, beforeSearchY);
+      beforeSearchY = 0;
+    }
+    if (q) live.textContent = '搜索已更新';
+  }
+  var searchTimer = 0;
+  search.addEventListener('input', function () {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 80);
+  });
+  clearBtn.addEventListener('click', function () { search.value = ''; runSearch(); search.focus(); });
+  search.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      var first = results.querySelector('.prow');
+      if (first) { toggleCard(first); scrollToEl(first); }
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (e.key === '/' && tag !== 'input' && tag !== 'textarea') {
+      e.preventDefault(); search.focus(); search.select();
+    } else if (e.key === 'Escape') {
+      if (search.value) { search.value = ''; runSearch(); }
+      else if (open != null) closeCard();
+      else if (document.activeElement === search) search.blur();
+    }
+  });
+
+  document.addEventListener('npesl:context', function (e) {
+    var d = (e && e.detail) || {};
+    if (d.particle) {
+      if (d.kind === 'root') { filter.particle = 'all'; applyFilters(); window.scrollTo(0, 0); }
+      else {
+        var pg = view.querySelector('.group[data-particle="' + d.group + '"]');
+        scrollToEl(pg);
+      }
+      return;
+    }
+    if (d.kind === 'root') {
+      filter.scene = 'all'; atCategories = true; applyFilters(); window.scrollTo(0, 0);
+      return;
+    }
+    scrollToEl(d.theme ? view.querySelector('.theme[data-theme="' + d.theme + '"]') : null);
+  });
+
+  var stateTimer = 0;
+  window.addEventListener('scroll', function () {
+    positions[mode] = window.scrollY;
+    if (stateTimer) clearTimeout(stateTimer);
+    stateTimer = setTimeout(persistState, 120);
+  }, { passive: true });
+  window.addEventListener('pagehide', function () { positions[mode] = window.scrollY; persistState(); });
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+
+  applyFilters();
+  setChipsExpanded(chipsExpanded);
+  showOppReturn();
+  bindRows();
+  if (positions[mode]) requestAnimationFrame(function () { window.scrollTo(0, positions[mode]); });
+})();

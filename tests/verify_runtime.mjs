@@ -761,7 +761,111 @@ async function probeVisualVocabularyScene() {
   };
 }
 
+async function probeCollocationSearch() {
+  await goto('/collocation/');
+  const focused = await evaluate(`(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true }));
+    return document.activeElement && document.activeElement.id === 'q';
+  })()`);
+  const pick = await evaluate(`(() => {
+    const e = window.COLLOCATION_INDEX.entries.find((x) => x.zh && x.zh.length >= 3);
+    return e ? { zh: e.zh.slice(0, 3), en: e.h } : null;
+  })()`);
+  if (!pick) return { ok: false, detail: '没有可用于搜索的词条' };
+  const typed = await evaluate(`(() => {
+    const q = document.getElementById('q');
+    q.value = ${JSON.stringify(pick.zh)};
+    q.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  const rows = await waitFor("document.querySelectorAll('#results .prow').length > 0", 3000);
+  const matched = await evaluate(`(() => ({
+    rows: document.querySelectorAll('#results .prow').length,
+    text: document.querySelector('#results .prow .en')?.textContent || '',
+    badges: document.querySelectorAll('.badge.kind, .badge.reg, .badge.split').length,
+    label: document.querySelector('.card .say')?.getAttribute('aria-label') || '',
+  }))()`);
+  await click('#results .prow');
+  const opened = await waitFor("!!document.querySelector('#results .card')", 3000);
+  const labelOk = await evaluate(`(() => {
+    const b = document.querySelector('#results .card .say');
+    const extra = document.querySelectorAll('#results .card .badge.kind, #results .card .badge.reg, #results .card .badge.split').length;
+    return !!b && extra === 0 && b.getAttribute('aria-label').length > 4 && b.getBoundingClientRect().width >= 40;
+  })()`);
+  const cleared = await evaluate(`(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    return document.getElementById('q').value === '';
+  })()`);
+  const restored = await waitFor("document.getElementById('results').hidden", 2000);
+  return {
+    ok: focused && typed && rows && opened && labelOk && cleared && matched.badges === 0 && restored,
+    detail: `focus=${focused} rows=${matched.rows} first=${matched.text} open=${opened} label=${labelOk} badges=${matched.badges} clear=${cleared}`,
+  };
+}
+
+async function probeCollocationAudioStates() {
+  await goto('/collocation/');
+  await click('.prow');
+  const hit = await evaluate(`(() => {
+    const b = document.querySelector('.card .say');
+    return b ? b.getBoundingClientRect().width >= 40 : false;
+  })()`);
+  await click('.card .say');
+  const played = await started(10000);
+  const paused = await evaluate(`(() => {
+    document.querySelector('.card .say').click();
+    return new Promise((r) => setTimeout(() => r(
+      !!(window.__lastAudio && window.__lastAudio.paused &&
+        document.querySelector('.card .say.paused'))), 250));
+  })()`);
+  const resumed = await evaluate(`(() => {
+    document.querySelector('.card .say').click();
+    return new Promise((r) => setTimeout(() => r(
+      !!(window.__lastAudio && !window.__lastAudio.paused &&
+        document.querySelector('.card .say.on'))), 500));
+  })()`);
+  await goto('/collocation/');
+  await click('.prow');
+  await evaluate(`HTMLMediaElement.prototype.play = function () { return Promise.reject(new Error('stub')); };`);
+  await click('.card .say');
+  const failed = await waitFor("!!document.querySelector('.card .say.err')", 5000);
+  const stuck = await evaluate(`!!document.querySelector('.card .say.on')`);
+  return {
+    ok: hit && played && paused && resumed && failed && !stuck,
+    detail: `hit=${hit} play=${played} pause=${paused} resume=${resumed} err=${failed} stuck=${stuck}`,
+  };
+}
+
+async function probeCollocationState() {
+  await goto('/collocation/');
+  const pick = await evaluate(`(() => {
+    const D = window.COLLOCATION_INDEX;
+    const e = D.entries.find((x) => x.opp && x.opp.length);
+    return e ? { i: D.entries.indexOf(e), j: e.opp[0].i } : null;
+  })()`);
+  if (!pick) return { ok: false, detail: '没有反义词条' };
+  await click(`.prow[data-i="${pick.i}"]`);
+  await click(`.card[data-card="${pick.i}"] .opp-btn`);
+  const jumped = await waitFor(`!!document.querySelector('.card[data-card="${pick.j}"]')`, 4000);
+  await click('.prow:not([aria-expanded="true"])');
+  const returnable = await waitFor("!!document.querySelector('#histbar:not([hidden])')", 2000);
+  await click('#histback');
+  const back = await waitFor(`!!document.querySelector('.card[data-card="${pick.i}"]')`, 3000);
+  const saved = await evaluate(`(() => {
+    const before = document.querySelector('.card');
+    document.querySelector('[data-scene="all"]').click();
+    return !!before && !!document.querySelector('.card');
+  })()`);
+  return {
+    ok: jumped && returnable && back && saved,
+    detail: `jump=${jumped} return=${returnable} back=${back} filterKeepsCard=${saved}`,
+  };
+}
+
 if (!SKIP_PLAYBACK) {
+  await probe('collocation-search', probeCollocationSearch);
+  await probe('collocation-audio', probeCollocationAudioStates);
+  await probe('collocation-state', probeCollocationState);
   await probe('phonics', probePhonics);
   await probe('phonics-all', probePhonicsPlayAll);
   await probe('ipa', probeIpa);

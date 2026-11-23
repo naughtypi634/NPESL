@@ -14,9 +14,10 @@
       'font-size:13px;line-height:1.2;flex:none}',
       '.sp-context-chips{display:none;margin:5px 0 7px;padding-top:5px}',
       'html.sp-chips-open .sp-context-chips{display:block}',
-      '.sp-context-chips .chips{margin:0;padding:5px 0;gap:6px;max-height:30vh;',
-      'overflow-y:auto;overscroll-behavior:contain;align-content:flex-start}',
-      '.sp-context-chips .chips button{padding:5px 10px;font-size:12px}',
+      '.sp-context-chips .chips{margin:0;padding:5px 0;gap:6px;',
+      'max-height:min(40vh,240px);overflow-y:auto;overscroll-behavior:contain;',
+      'align-content:flex-start}',
+      '.sp-context-chips .chips button{min-height:40px;padding:8px 12px;font-size:14px}',
       '.sp-context-chips .chips button.sp-chip-back{color:var(--muted)}',
       '.sp-context-chips .chips button[aria-current="true"]{border-color:var(--accent);',
       'color:var(--accent)}',
@@ -34,8 +35,6 @@
       '.sp-context-sep{color:var(--muted);font-size:12px;flex:none}',
       '.sp-context-root:focus-visible,.sp-context-leaf:focus-visible{outline:2px solid var(--accent);',
       'outline-offset:2px}',
-      '.sp-context-track{height:2px;overflow:hidden;border-radius:999px}',
-      '.sp-context-fill{height:100%;width:0;background:var(--accent);transition:width .14s linear}',
       '.sp-context-mode{flex:none}',
       '.sp-context-mode .level1{margin:0;gap:3px}',
       '.sp-context-mode .level1 button{padding:6px 10px;font-size:12px}',
@@ -48,6 +47,11 @@
       '@media(max-width:560px){.sp-context-row{flex-wrap:wrap;gap:5px 10px}',
       '.sp-context-path{flex-basis:100%;font-size:13px}',
       '.sp-context-mode{order:2}.sp-right{order:3}',
+      '.sp-context-chips .chips{flex-wrap:nowrap;max-height:none;',
+      'overflow-x:auto;overflow-y:hidden;padding-bottom:2px;',
+      'scrollbar-width:none}',
+      '.sp-context-chips .chips::-webkit-scrollbar{display:none}',
+      '.sp-context-chips .chips button{flex:none}',
       '.sp-context-row.sp-has-back .sp-context-path{flex:1 1 130px}}',
       // 章节页没有横幅，返回胶囊不 sticky，免得压住粘性工具栏。
       '.sp-detail-back .npesl-back{position:static;top:auto;z-index:auto}',
@@ -76,7 +80,6 @@
     var contextRoot = null;
     var contextSep = null;
     var contextLeaf = null;
-    var contextFill = null;
     var chipHost = null;
     var inline = null;
     var inlinePos = null;
@@ -90,10 +93,8 @@
         '<span class="sp-context-sep" aria-hidden="true">›</span>' +
         '<button type="button" class="sp-context-leaf"></button></div><div class="sp-context-mode"></div>' +
         '</div>' +
-        '<div class="sp-context-chips" id="sp-context-chips"></div>' +
-        '<div class="sp-context-track" role="progressbar" aria-label="当前主题阅读进度" ' +
-        'aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="sp-context-fill"></div></div>';
-      var heading = page.querySelector('h1');
+        '<div class="sp-context-chips" id="sp-context-chips"></div>';
+      var heading = page.querySelector('.searchbar') || page.querySelector('h1');
       if (heading) heading.insertAdjacentElement('afterend', context);
       // 部署时注入的返回胶囊也是 sticky，会压在横幅上：收进横幅首行，
       // 滚动时两者不再重叠，返回入口还一直在。
@@ -131,7 +132,6 @@
       contextRoot = context.querySelector('.sp-context-root');
       contextSep = context.querySelector('.sp-context-sep');
       contextLeaf = context.querySelector('.sp-context-leaf');
-      contextFill = context.querySelector('.sp-context-fill');
       // 面包屑两段都是按钮：点分类回到上级，点主题跳到本节开头。
       // 页面自己的状态在 index.html 的 IIFE 里，这里只发事件，由它去跳。
       function navContext(kind) {
@@ -291,11 +291,6 @@
       contextLeaf.textContent = leaf || '';
       contextSep.hidden = !leaf;
       contextLeaf.hidden = !leaf;
-      var value = Math.round(clamp(pct, 0, 1) * 100);
-      contextFill.style.width = value + '%';
-      var progress = context.querySelector('.sp-context-track');
-      progress.setAttribute('aria-valuenow', String(value));
-      progress.setAttribute('aria-valuetext', (leaf ? root + ' › ' + leaf : root));
     }
 
     // 第三级 chip（分类下的主题）跟着滚动高亮当前主题。

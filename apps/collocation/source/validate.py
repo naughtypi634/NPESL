@@ -30,6 +30,20 @@ BRITISH = {
     "neighbour", "neighbours", "apologise", "apologised", "practise", "practised",
 }
 
+# 词表抓不到、但出现在这里就一定是英式残留的整段说法。
+BRITISH_PHRASES = (
+    "full up", "jet off", "on holiday", "in hospital", "at the weekend",
+    "queue up", "take the mickey", "knackered",
+)
+# 中文母語迁移说明里的病句套路：这些句式常把正确说法和错误说法混在一起。
+BAD_ZH_PATTERNS = (
+    re.compile(r"不是.{0,20}也能说"),
+    re.compile(r"也能说.{0,20}更常见"),
+    re.compile(r"偏英式"),
+    re.compile(r"英式也用"),
+    re.compile(r"也行但"),
+)
+
 CJK = re.compile(r"[㐀-鿿　-〿＀-￯]")
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 IPA_OK = set("ˈˌːəɪʊɛæɑɔʌɝɚθðʃʒŋɡʧʤjwpbtdkgfvszhlmnraeiou ʔ")
@@ -307,6 +321,51 @@ def check_opposites(seen_ids, sense_counts, bad):
     return len(pairs), word_count
 
 
+def english_fields(entry):
+    """会显示在页面上的英文串，逐条做英式短语检查。"""
+    result = [str(entry.get("head", ""))]
+    for sense in entry.get("senses", []):
+        result.append(str((sense.get("example") or {}).get("en", "")))
+    for group in ("variants", "uses"):
+        for item in entry.get(group, []):
+            result.append(str(item.get("head", "")))
+            result.append(str((item.get("example") or {}).get("en", "")))
+    return result
+
+
+def chinese_notes(entry):
+    result = [str(entry.get("l1_note", ""))]
+    for variant in entry.get("variants", []):
+        result.append(str(variant.get("note_zh", "")))
+    return result
+
+
+def near_duplicates(sentences):
+    """只换一两个词的例句：归一化后按词集合的 Jaccard 相似度报警。"""
+    seen = []
+    for text, where in sentences:
+        tokens = set(re.findall(r"[a-z']+", text.lower()))
+        if len(tokens) < 4:
+            continue
+        for other_tokens, other_where in seen:
+            union = tokens | other_tokens
+            if union and len(tokens & other_tokens) / len(union) >= 0.85:
+                yield where, other_where
+        seen.append((tokens, where))
+
+
+def id_head_report(entry_id, head):
+    """id 里的实词应当能在 head 里找到；历史重命名进入白名单。"""
+    # pb-* 是历史批量导入时留下的 id，与 head 的写法本来就不逐词对应。
+    if entry_id.startswith("pb-"):
+        return []
+    ignore = {"one", "s", "someone", "something", "a", "the", "get"}
+    tokens = [w for w in entry_id.split("-") if w not in ignore]
+    head_words = set(re.findall(r"[a-z']+", head.lower()))
+    missing = [w for w in tokens if w not in head_words]
+    return missing
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -318,6 +377,13 @@ def main():
         print(f"  !! {message}")
         problems += 1
 
+    reports = 0
+
+    def report(message):
+        nonlocal reports
+        print(f"  ?? {message}")
+        reports += 1
+
     try:
         themes = json.loads((CONTENT / "themes.json").read_text(encoding="utf-8"))
     except Exception as error:  # noqa: BLE001 - surface and stop
@@ -327,13 +393,12 @@ def main():
     chips_doc = json.loads(CHIPS.read_text(encoding="utf-8"))
     chips = set(chips_doc["chips"])
 
-    PER_THEME = 30
     seen_themes = set()
     seen_ids = {}
     seen_sentences = {}
     sense_counts = {}
     total = 0
-    short = []
+    all_sentences = []
 
     for theme in themes.get("themes", []):
         tid = theme.get("id")
@@ -358,19 +423,37 @@ def main():
         if not entries:
             bad(f"{path.name}: entries 为空")
         total += len(entries)
+        allowed_chips = set(theme.get("chips", []))
         for entry in entries:
             sense_counts[entry.get("id")] = len(entry.get("senses") or [])
+            where = f"{path.name}/{entry.get('id')}"
+            if entry.get("chip") not in allowed_chips:
+                bad(f"{where}: chip {entry.get('chip')!r} 不属于主题 {tid} 的 chips")
+            for text in english_fields(entry):
+                lowered = text.lower()
+                for phrase in BRITISH_PHRASES:
+                    if phrase in lowered:
+                        bad(f"{where}: 英式说法 {phrase!r}")
+            for note in chinese_notes(entry):
+                for pattern in BAD_ZH_PATTERNS:
+                    if pattern.search(note):
+                        bad(f"{where}: 中文说明病句 {pattern.pattern}：{note[:40]}")
+            for sense in entry.get("senses", []):
+                example = sense.get("example") or {}
+                if example.get("en"):
+                    all_sentences.append((example["en"], f"{where}/例句"))
+            missing = id_head_report(str(entry.get("id", "")), str(entry.get("head", "")))
+            if missing:
+                report(f"{where}: id 词元 {missing} 不在 head 中，人工确认是否历史重命名")
         check_entries(entries, tid, chips, seen_ids, seen_sentences, bad)
-        mark = "" if len(entries) >= PER_THEME else f"  ← 还差 {PER_THEME - len(entries)}"
-        if len(entries) < PER_THEME:
-            short.append(tid)
-        print(f"{tid:<16} {len(entries):>3} 条  {theme.get('title_zh', '')}{mark}")
+        print(f"{tid:<16} {len(entries):>3} 条  {theme.get('title_zh', '')}")
 
+    for left, right in near_duplicates(all_sentences):
+        report(f"例句高度相似：{left} / {right}")
     pairs_count, words_count = check_opposites(seen_ids, sense_counts, bad)
     print(f"\n主题 {len(seen_themes)} 个，词条 {total} 条，"
-          f"反义 {pairs_count} 对 + 单词反义 {words_count} 条，问题 {problems} 条")
-    if short:
-        print(f"少于 {PER_THEME} 条的主题：{', '.join(short)}")
+          f"反义 {pairs_count} 对 + 单词反义 {words_count} 条，"
+          f"问题 {problems} 条，待人工确认 {reports} 条")
     return 1 if problems else 0
 
 
