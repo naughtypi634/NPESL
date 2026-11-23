@@ -27,6 +27,7 @@ HOST = "http://127.0.0.1:8188"
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / "build" / "vv-work"
 SUBFOLDER = "vv_styles"
+NEG = "extra objects, duplicate objects, clutter, sink, counter, table, text, watermark, logo, people, distorted shapes, overlapping objects"
 
 
 def graph(prompt: str, seed: int, prefix: str, w: int, h: int, steps: int) -> dict:
@@ -42,7 +43,7 @@ def graph(prompt: str, seed: int, prefix: str, w: int, h: int, steps: int) -> di
         "4": {"class_type": "CLIPTextEncode",
               "inputs": {"clip": ["2", 0], "text": prompt}},
         "5": {"class_type": "CLIPTextEncode",
-              "inputs": {"clip": ["2", 0], "text": ""}},
+              "inputs": {"clip": ["2", 0], "text": NEG}},
         "6": {"class_type": "EmptyLatentImage",
               "inputs": {"width": w, "height": h, "batch_size": 1}},
         "8": {"class_type": "KSampler",
@@ -98,7 +99,7 @@ def main() -> int:
         spec = json.loads(path.read_text(encoding="utf-8"))
         base = clean_prompt(spec.get("prompt", ""))
         for style in styles:
-            prompt = f"{base}, {STYLES[style]}"
+            prompt = f"{STYLES[style]}, {base}"
             prefix = f"{SUBFOLDER}/{style}/{spec['page']}"
             body = {"prompt": graph(prompt, args.seed, prefix,
                                     args.width, args.height, args.steps),

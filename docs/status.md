@@ -16,8 +16,8 @@
 | Conversation Starters | 150 个故事 / 503 段 | `content/conversation/{A1,B1,ESLSE}/content.py`（每级 10 单元 × 5 故事） |
 | Phonics | 48 课 | `apps/phonics/source/content/` |
 | IPA | 40 音标 × 10 词 × 男女两版 | `apps/ipa/` |
-| Phenomena | 30 章 | `apps/phenomena/` |
-| Visual Vocabulary | 7 主题 / 36 场景 / 287 热点 / 等距扁平（线上） | `content/visual-vocabulary/` → `tools/vv/` → `apps/visual-vocabulary/` |
+| Phenomena | 30 章 | `apps/phenomena/source/`（音频 + `phenomena.json`）→ `apps/phenomena/web/`（React + Vite，产出 `dist/`）。地址不变：`/phenomena/` 与 `/phenomena/<slug>.html`。`/phenomena/*` 不注入全站 `theme.css`，自带 coss 令牌与浅色/深色两套主题。**coss 试点，未部署** |
+| Visual Vocabulary | 7 主题 / 36 场景 / 275 热点 / 等距皮克斯（线上） | `content/visual-vocabulary/` → `tools/vv/` → `apps/visual-vocabulary/` |
 
 ## 语音后端
 
@@ -37,9 +37,8 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
   - 主题 7 个：厨房 / 家居 / 服装 / 食物 / 身体部位 / 美妆与护肤 / 出行；场景 36 个、热点 292 个、词卡 7 套。`home` 的 227 张词卡拆成厨房 60 张 + 家居 167 张，`home/index.html` 下线。
   - 交互：命中改为按物件范围框（重叠取面积最小的），点物件任意位置都能选中；模拟命中率 54% → 96%。卡片视图恢复（上一轮改发光时误删的样式）。
   - 层级：每个主题只有一张落地页（场景缩略图 + 分组词卡），所有页面顶部有七个主题的直达条；去掉跨主题的线性翻页，场景页只保留「返回主题 + 同主题前后」。
-  - 场景按「等距、俯视 25°」从零重建（提示词生成，不再从旧写实图重绘），37 个未画出物件的词条从该场景的热点里移除，词卡表不变。线上使用**等距扁平**（`iso-flat`），坐标与遮罩都按新构图重标；只剩 2 个热点没有轮廓图。另两套候选画风（等距皮克斯 3D、等距插画）已各生成 36 张，构图不同，需选定后单独标注坐标才能上线。对照图在 `build/vv-work/qa/gallery-*.jpg`。
-  - 内容源迁入 `content/visual-vocabulary/`（`topics.json`、`scenes/*.json`、`sets/*.json`、`actions.json`），页面由 `tools/vv/` 生成并接入 `build_all.py` 的 `visual-vocabulary` 步骤。
-  - 校验：`tools/vv/validate.py` 进 verify 内容层（坐标 / 范围框 / 遮罩 / 录音 / 主题归属）；`tests/verify_runtime.mjs` 新增 `vv-scene` 用例（点物件框边缘能选中并出声）。
+  - 场景定稿为**等距皮克斯 3D**（统一低饱和色板、俯视 25°、平行透视、物品分离不遮挡），36 个场景从零生成，逐件人工标定坐标。未画出的物件从该场景热点中移除，词卡表不变。
+  - 高亮改为**按标注框显示的柔和描边**（不再用自动抠图遮罩）：位置来自逐件标注，任意物件都不会出现光晕错位。
   - 补齐内衣场景里已画出但没标的 `boxer shorts`。
 - 2026-11-21：图解词汇改为「场景 + 卡片」双视图。
   - 场景 36 个：厨房 7 区（水槽 / 灶台 / 备餐 / 小家电 / 冰箱 / 储物 / 清洁角）、房间 7 处（客厅 / 卧室 / 卫浴 / 餐厅 / 书房 / 家务区 / 玄关）、衣柜 / 鞋 / 包 / 上衣 / 下装、果蔬 / 乳品 / 饮料 / 肉类 / 冷冻 / 香料、梳妆台、行李箱；共标注 221 个词。
@@ -103,3 +102,11 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
 
 - 视觉层（主题、模板、构建器、visual-vocabulary 页面与产物）由另一个并行会话负责；只提交本任务文件，不要把别人的视觉层 WIP 带进提交。
 - 数据图表英语已装配到主站 `/charts/`，首页不列入入口；主站部署会自动带上 `charts/`。
+- 2026-11-23：**coss ui 试点**（只做 Phenomena）。全站统一到 coss 的方案先拿一个应用真做一遍，看效果与成本再决定是否铺开。
+  - 页面改由 `apps/phenomena/web/`（React 19 + Vite 7 + Tailwind v4 + coss 组件源码）产出，`apps/phenomena/source/build.py` 只做音频与 `web/src/generated/phenomena.json`。
+  - 地址不变：`/phenomena/`、`/phenomena/<slug>.html`；31 个入口由 `web/scripts/build-entries.mjs` 按 JSON 生成。
+  - 该目录**不注入** `apps/site/theme.css`（玻璃层会盖掉 coss）；自带 `apps/phenomena/web/src/styles/index.css` 的 coss 令牌，浅色/深色两套。
+  - 交互与旧页面逐项一致：`data-start-f/m`、`[data-play-all]`、`.line.playing`、`.chips button[data-cat]`、`.group[data-cat]`、localStorage 键 `rs-voice` / `rs-speed` / `rs-zh` / `rs-cat` 全部保留，`tests/verify_runtime.mjs` 未改一行。
+  - 小程序数据源改为读同一份 JSON（`tools/miniprogram/build_data.py`），30 章 / 360 行不变。
+  - 新增自托管字体 `apps/site/fonts/inter-latin*-wght-normal.woff2`（OFL），只被试点引用，`theme.css` 未改。
+  - **未部署**：用户要求先看效果再决定。

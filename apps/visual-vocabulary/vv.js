@@ -44,6 +44,19 @@
         var mask = chip.getAttribute('data-mask-' + s);
         if (mask) chip.setAttribute('data-mask', mask);
       });
+      document.querySelectorAll('[data-box-' + s + ']').forEach(function (chip) {
+        chip.setAttribute('data-box', chip.getAttribute('data-box-' + s));
+      });
+      document.querySelectorAll('[data-xy-' + s + ']').forEach(function (chip) {
+        var xy = chip.getAttribute('data-xy-' + s).split(',');
+        chip.setAttribute('data-x', xy[0]);
+        chip.setAttribute('data-y', xy[1]);
+      });
+      document.querySelectorAll('[data-pos-' + s + ']').forEach(function (dot) {
+        var xy = dot.getAttribute('data-pos-' + s).split(',');
+        dot.style.left = xy[0] + '%';
+        dot.style.top = xy[1] + '%';
+      });
       paint(s);
       try { localStorage.setItem(STYLE_KEY, s); } catch (e) {}
       document.dispatchEvent(new CustomEvent('vv-style', { detail: s }));
@@ -206,7 +219,7 @@
      点图任意位置时取最近的点，距离太远就当没点中，墙面、窗子这些空白处不会乱出词。 */
   function initScene(root) {
     var stage = root.querySelector('.vv-stage');
-    var lift = root.querySelector('[data-vv-lift]');
+    var focus = root.querySelector('[data-vv-focus]');
     var dots = [].slice.call(root.querySelectorAll('.vv-dot'));
     var en = document.querySelector('[data-vv-en]');
     var zh = document.querySelector('[data-vv-zh]');
@@ -261,37 +274,16 @@
       dots.forEach(function (d) {
         d.classList.toggle('on', live && d.dataset.vvDot === chip.dataset.vvWord);
       });
-      if (!lift) return;
-      var mask = live ? chip.getAttribute('data-mask') : null;
-      if (!mask) { lift.classList.remove('on'); return; }
-      var url = 'url("' + mask + '")';
-      lift.style.maskImage = url;
-      lift.style.webkitMaskImage = url;
-      lift.classList.add('on');
+      if (!focus) return;
+      if (!live) { focus.classList.remove('on'); return; }
+      var b = boxOf(chip);
+      if (!b) { focus.classList.remove('on'); return; }
+      focus.style.left = b[0] + '%';
+      focus.style.top = b[1] + '%';
+      focus.style.width = (b[2] - b[0]) + '%';
+      focus.style.height = (b[3] - b[1]) + '%';
+      focus.classList.add('on');
     }
-
-    /* 轮廓图只在第一次交互之后才开始取，避免首屏多出一串请求。 */
-    var masksWarmed = false;
-    function warmMasks() {
-      if (masksWarmed) return;
-      masksWarmed = true;
-      chips.forEach(function (c, i) {
-        var m = c.getAttribute('data-mask');
-        if (!m) return;
-        window.setTimeout(function () { var img = new Image(); img.src = m; }, i * 120);
-      });
-    }
-    if (stage) {
-      stage.addEventListener('pointerdown', warmMasks, { passive: true });
-      stage.addEventListener('pointermove', warmMasks, { passive: true });
-    }
-
-    /* 换画风后轮廓图也换了：重新预热，并保持当前选中的高亮。 */
-    document.addEventListener('vv-style', function () {
-      masksWarmed = false;
-      light(current, current ? 'sel' : '');
-      if (stage) warmMasks();
-    });
 
     /* 音频：空闲时把本页所有词先取回来，点的时候不再等网络。 */
     function warmAudio() {

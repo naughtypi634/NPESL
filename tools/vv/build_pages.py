@@ -99,7 +99,7 @@ main {{ max-width: 1180px; margin: 0 auto; }}
   <div class="vv-scene" data-vv-scene>
     <div class="vv-stage">
       <img class="vv-scene-img" alt="" width="{w}" height="{h}" src="{img}"{srcset} loading="lazy" fetchpriority="high" decoding="async">
-      <span class="vv-lift" data-vv-lift aria-hidden="true"></span>
+      <span class="vv-focus" data-vv-focus aria-hidden="true"></span>
 {dots}
     </div>
   </div>
@@ -130,9 +130,10 @@ main {{ max-width: 1180px; margin: 0 auto; }}
 </html>
 """
 
-DOT = '      <span class="vv-dot" data-vv-dot="{slug}" style="left:{cx}%;top:{cy}%"></span>'
+DOT = ('      <span class="vv-dot" data-vv-dot="{slug}" style="left:{cx}%;top:{cy}%"'
+       '{pos}></span>')
 CHIP = ('  <button type="button" data-vv-word="{slug}" data-en="{en}" data-zh="{zh}" '
-        'data-x="{cx}" data-y="{cy}"{box}{mask}{masks}{audio} aria-pressed="false">{en}</button>')
+        'data-x="{cx}" data-y="{cy}"{box}{mask}{masks}{per}{audio} aria-pressed="false">{en}</button>')
 CARD = ('  <button type="button" class="vv-card" data-vv-word="{slug}"'
         '{audio}><img loading="lazy" decoding="async" alt="" '
         'src="{img}"><span class="en">{en}</span>'
@@ -196,7 +197,10 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
     for w in spec["words"]:
         cx, cy = w["pt"]
         cx, cy = round(float(cx), 2), round(float(cy), 2)
-        dots.append(DOT.format(slug=w["slug"], cx=cx, cy=cy))
+        pos = ""
+        for style, xy in (w.get("pts") or {}).items():
+            pos += f' data-pos-{style}="{round(float(xy[0]), 2)},{round(float(xy[1]), 2)}"'
+        dots.append(DOT.format(slug=w["slug"], cx=cx, cy=cy, pos=pos))
 
         mask = ""
         if w.get("mask"):
@@ -205,7 +209,13 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
 
         masks = ""
         for style, path in (w.get("masks") or {}).items():
-            masks += f' data-mask-{style}="{path}"'
+            masks += f' data-mask-{style}="{path}'
+
+        per = ""
+        for style, bx in (w.get("boxes") or {}).items():
+            per += f' data-box-{style}="{",".join(str(round(float(v), 2)) for v in bx)}"'
+        for style, xy in (w.get("pts") or {}).items():
+            per += f' data-xy-{style}="{round(float(xy[0]), 2)},{round(float(xy[1]), 2)}"'
 
         box = ""
         if w.get("box"):
@@ -215,7 +225,7 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
         audio = audio_attrs(w)
         chips.append(CHIP.format(slug=w["slug"], en=w["en"], zh=w["zh"],
                                  cx=cx, cy=cy, box=box, mask=mask, masks=masks,
-                                 audio=audio))
+                                 per=per, audio=audio))
 
         img = w.get("img") or f'assets/{spec["dir"]}/color/{w["slug"]}.webp'
         cards.append(CARD.format(slug=w["slug"], img=img, en=w["en"],

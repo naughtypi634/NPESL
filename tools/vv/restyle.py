@@ -53,17 +53,17 @@ STYLES = {
             "flat muted color fills, no gradients, slight paper texture, each object "
             "clearly separated with a readable silhouette, no people, no text, "
             "no letters, no logo"),
-    "iso-flat": ("isometric flat vector illustration seen from 25 degrees above, "
-                 "bold clean geometric shapes, solid flat color fills, no gradients, "
+    "iso-flat": ("isometric flat vector illustration, bold clean geometric shapes, "
+                 "vivid flat color fills (never grey or monochrome), no gradients, "
                  "crisp edges, soft pastel palette, every object fully visible, "
                  "no people, no text, no letters, no logo"),
-    "iso-pixar": ("isometric Pixar 3D cartoon render seen from 25 degrees above, "
-                  "rounded chunky toy-like forms, glossy matte materials, warm "
-                  "cinematic lighting, bright saturated colors, every object fully "
-                  "visible, keep the exact same layout and object positions as "
-                  "the reference image, no people, no text, no letters, no logo"),
-    "iso-illust": ("isometric storybook illustration seen from 25 degrees above, "
-                   "soft hand-painted shading, gentle outlines, warm muted palette, "
+    "iso-pixar": ("isometric Pixar 3D animation render, soft rounded forms with "
+                  "real-world proportions and correct mechanical details, warm "
+                  "cinematic lighting, muted pastel palette, consistent parallel "
+                  "perspective, every object fully visible, no people, no text, "
+                  "no letters, no logo"),
+    "iso-illust": ("isometric storybook illustration, soft hand-painted shading, gentle "
+                   "outlines, warm colorful palette, "
                    "every object fully visible, keep the exact same layout and "
                    "object positions as the reference image, no people, no text, no letters, "
                    "no logo"),
@@ -184,7 +184,7 @@ def main() -> int:
         name = f"vv_restyle_{spec['page']}.png"
         base = clean_prompt(spec.get("prompt", ""))
         for style in styles:
-            prompt = f"{base}, {STYLES[style]}"
+            prompt = f"{STYLES[style]}, {base}"
             for d in denoises:
                 tag = f"{style}-{int(d * 100)}" if multi else style
                 if args.skip_existing and (WORK / "style" / tag / f'{spec["page"]}.png').exists():

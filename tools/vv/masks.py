@@ -147,8 +147,8 @@ def run(spec: dict, style: str, source_style: str = "") -> None:
         x0, y0, x1, y1 = w["box"]
         x0, x1 = float(x0) / 100 * W, float(x1) / 100 * W
         y0, y1 = float(y0) / 100 * H, float(y1) / 100 * H
-        pad_x = (x1 - x0) * 0.18
-        pad_y = (y1 - y0) * 0.18
+        pad_x = (x1 - x0) * 0.32
+        pad_y = (y1 - y0) * 0.32
         x0 = max(0, int(x0 - pad_x)); y0 = max(0, int(y0 - pad_y))
         x1 = min(W, int(x1 + pad_x)); y1 = min(H, int(y1 + pad_y))
         crop = scene.crop((x0, y0, x1, y1))
