@@ -219,7 +219,6 @@
      点图任意位置时取最近的点，距离太远就当没点中，墙面、窗子这些空白处不会乱出词。 */
   function initScene(root) {
     var stage = root.querySelector('.vv-stage');
-    var focus = root.querySelector('[data-vv-focus]');
     var dots = [].slice.call(root.querySelectorAll('.vv-dot'));
     var en = document.querySelector('[data-vv-en]');
     var zh = document.querySelector('[data-vv-zh]');
@@ -267,22 +266,12 @@
 
     /* state: '' 收起、'on' 悬停预览、'sel' 选中后常亮。
        每个物件自己的点放大，其余保持原样。 */
-    /* 物件从画面里“浮起来”：同一张图放大一点、只露物件轮廓、加一层投影，
-       背景原样不动。没有轮廓图（少数抠不干净的物件）就只放大白点。 */
+    /* 选中或悬停时只放大对应的白点，不再画范围框。 */
     function light(chip, state) {
       var live = !!chip && (state === 'on' || state === 'sel');
       dots.forEach(function (d) {
         d.classList.toggle('on', live && d.dataset.vvDot === chip.dataset.vvWord);
       });
-      if (!focus) return;
-      if (!live) { focus.classList.remove('on'); return; }
-      var b = boxOf(chip);
-      if (!b) { focus.classList.remove('on'); return; }
-      focus.style.left = b[0] + '%';
-      focus.style.top = b[1] + '%';
-      focus.style.width = (b[2] - b[0]) + '%';
-      focus.style.height = (b[3] - b[1]) + '%';
-      focus.classList.add('on');
     }
 
     /* 音频：空闲时把本页所有词先取回来，点的时候不再等网络。 */
@@ -386,22 +375,6 @@
     }
   }
 
-  /* 场景页的两种看法：场景里点，或者一排卡片集中看。 */
-  function initViewToggle() {
-    var buttons = [].slice.call(document.querySelectorAll('[data-vv-view]'));
-    if (!buttons.length) return;
-    buttons.forEach(function (b) {
-      b.addEventListener('click', function () {
-        var view = b.dataset.vvView;
-        buttons.forEach(function (x) {
-          x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
-        });
-        document.body.classList.toggle('vv-cards-view', view === 'cards');
-        if (view === 'cards') window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    });
-  }
-
   /* 主题页的词卡：点一下出声，同时把这一张标出来。
      听音找图开启时由上面的捕获阶段接管，这里不会重复触发。 */
   function initCards() {
@@ -462,7 +435,6 @@
     if (quizBtn) initQuiz(quizBtn);
     var scene = document.querySelector('[data-vv-scene]');
     if (scene) initScene(scene);
-    initViewToggle();
     initCards();
     initSceneCards();
   }

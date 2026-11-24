@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""生成图解词汇的场景页（场景图 + 白色热点 + 词条 + 卡片视图）。
+"""生成图解词汇的场景页（场景图 + 白色热点 + 词条）。
 
     python -I tools/vv/build_pages.py [--check]
 
@@ -89,7 +89,6 @@ main {{ max-width: 1180px; margin: 0 auto; }}
 <header>
   <h1>{title} <span>{title_zh}</span></h1>
   <div class="vv-tools">
-    <div class="seg" role="group" aria-label="视图"><button type="button" data-vv-view="scene" aria-pressed="true">场景</button><button type="button" data-vv-view="cards" aria-pressed="false">卡片</button></div>
     <div class="seg" role="group" aria-label="画风">{style_btns}</div>
     <div class="seg" role="group" aria-label="音色"><span class="voice-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></span><button type="button" data-voice="h2" aria-pressed="true">女声</button><button type="button" data-voice="c" aria-pressed="false">男声</button></div>
   </div>
@@ -99,7 +98,6 @@ main {{ max-width: 1180px; margin: 0 auto; }}
   <div class="vv-scene" data-vv-scene>
     <div class="vv-stage">
       <img class="vv-scene-img" alt="" width="{w}" height="{h}" src="{img}"{srcset} loading="lazy" fetchpriority="high" decoding="async">
-      <span class="vv-focus" data-vv-focus aria-hidden="true"></span>
 {dots}
     </div>
   </div>
@@ -114,10 +112,6 @@ main {{ max-width: 1180px; margin: 0 auto; }}
 
 <div class="vv-words">
 {chips}
-</div>
-
-<div class="vv-cards">
-{cards}
 </div>
 </main>
 <nav class="vv-pager" aria-label="同主题导航">
@@ -134,11 +128,6 @@ DOT = ('      <span class="vv-dot" data-vv-dot="{slug}" style="left:{cx}%;top:{c
        '{pos}></span>')
 CHIP = ('  <button type="button" data-vv-word="{slug}" data-en="{en}" data-zh="{zh}" '
         'data-x="{cx}" data-y="{cy}"{box}{mask}{masks}{per}{audio} aria-pressed="false">{en}</button>')
-CARD = ('  <button type="button" class="vv-card" data-vv-word="{slug}"'
-        '{audio}><img loading="lazy" decoding="async" alt="" '
-        'src="{img}"><span class="en">{en}</span>'
-        '<span class="zh">{zh}</span></button>')
-
 W, H = 2400, 1500
 STYLE_LABEL = {"iso-flat": "扁平", "iso-pixar": "皮克斯", "iso-illust": "插画"}
 STYLE_ORDER = ["iso-flat", "iso-pixar", "iso-illust"]
@@ -193,7 +182,7 @@ def topic_bar(topics: list[dict], active: str) -> str:
 
 
 def render(spec: dict, topics: list[dict], where: dict) -> str:
-    dots, chips, cards = [], [], []
+    dots, chips = [], []
     for w in spec["words"]:
         cx, cy = w["pt"]
         cx, cy = round(float(cx), 2), round(float(cy), 2)
@@ -227,10 +216,6 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
                                  cx=cx, cy=cy, box=box, mask=mask, masks=masks,
                                  per=per, audio=audio))
 
-        img = w.get("img") or f'assets/{spec["dir"]}/color/{w["slug"]}.webp'
-        cards.append(CARD.format(slug=w["slug"], img=img, en=w["en"],
-                                 zh=w["zh"], audio=audio))
-
     topic, index = where[spec["page"]]
     prev_href = prev_label = ""
     if index > 0:
@@ -250,17 +235,14 @@ def render(spec: dict, topics: list[dict], where: dict) -> str:
     default_img = (spec.get("images") or {}).get(styles[0], spec["image"]) if styles \
         else spec["image"]
 
-    srcset = ""
-    for style, path in (spec.get("images") or {}).items():
-        srcset += f' data-src-{style}="{path}"'
     styles = spec.get("styles") or []
-    default_img = (spec.get("images") or {}).get(styles[0], spec["image"]) if styles         else spec["image"]
+    default_img = (spec.get("images") or {}).get(styles[0], spec["image"]) if styles else spec["image"]
 
     return PAGE.format(
         title=spec["title"], title_zh=spec["title_zh"], img=default_img,
         w=W, h=H, srcset=srcset, style_btns=style_buttons(spec), v=asset_version(),
         bar=topic_bar(topics, topic["id"]),
-        dots="\n".join(dots), chips="\n".join(chips), cards="\n".join(cards),
+        dots="\n".join(dots), chips="\n".join(chips),
         prev_href=prev_href, prev_label=prev_label,
         next_href=next_href, next_label=next_label,
         home_href=topic_href, home_label=topic["zh"],
