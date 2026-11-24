@@ -26,7 +26,7 @@
 | `content/collocation/` | 短语搭配：`themes.json` + 每个主题一个词条 JSON（内容源） |
 | `content/data-viz/atlas/` | 数据图表英语：图表课、表达分类、模拟数据集与场景（规范见 `apps/data-viz/source/AUTHORING.md`） |
 | `content/visual-vocabulary/` | 图解词汇：主题表 `topics.json`、场景坐标与画风 `scenes/`、词卡分组 `sets/`（管线见 `tools/vv/README.md`） |
-| `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Light / Dark / Glass） |
+| `apps/site/` | 站点入口页、NPESL 图标、全站主题切换（Light / Dark） |
 | `apps/phonics/` | 自然拼读网页、`source/`（内容与构建器）、`audio/` |
 | `apps/ipa/` | 音标表网页（`index.html` + `audio/`） |
 | `apps/drill/` | 中译英练习网页（`index.html` + `audio/f,m/`）与独立单文件 HTML |

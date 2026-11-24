@@ -28,7 +28,7 @@
 | `edge.mjs` | 无头 Edge 助手；`node tools/edge.mjs` 清残留进程 |
 | `../tests/verify_runtime.mjs` | 新版运行时层：全站巡检 + 七应用点读/交互；`--only <case>` 单跑 |
 | `vv/build_pages.py` | 图解词汇场景页：读 `content/visual-vocabulary/scenes/*.json`，写 `apps/visual-vocabulary/<dir>/*.html`；`--check` 只报告过期页 |
-| `vv/build_set_pages.py` | 图解词汇主题页：读 `content/visual-vocabulary/sets/*.json`，替换各套 `<main>`；`--check` 只报告过期页 |
+| `vv/build_topic_pages.py` | 图解词汇主题页：读 `content/visual-vocabulary/sets/*.json`，替换各套 `<main>`；`--check` 只报告过期页 |
 | `vv/build_actions_page.py` | 图解词汇烹饪动作页：读 `content/visual-vocabulary/actions.json`，补 512px 动作图 |
 | `miniprogram/build_data.py` | 从已构建的 IPA / Phonics / Phenomena 页面抽小程序数据 |
 | `miniprogram/upload_audio.py` | 把小程序引用的音频按内容哈希传到微信云存储 |
@@ -76,7 +76,6 @@
 | `drill/audit.py` | 题库质量统计 |
 | `drill/metrics.py` | 原始批次质量标记 |
 | `drill/diff_batches.py` | raw / reviewed / final 批次差异 |
-| `drill/validate_bank.py` | 旧的批次契约检查（已被题库工具取代） |
 | `apps/phenomena/source/audition.py` | TTS 拼写试听 |
 | `apps/phenomena/source/audition_rate.py` | 不同语速试听 |
 | `apps/phonics/source/check_sounds.py` | 用 cmudict 检查音素 |

@@ -25,7 +25,7 @@
 | 脚本 | 作用 |
 |---|---|
 | `build_pages.py` | 场景页；`--check` 只报告过期页 |
-| `build_set_pages.py` | 主题页的词卡 `<main>`；贴图页外壳仍写在 HTML 里 |
+| `build_topic_pages.py` | 主题页的词卡 `<main>`；贴图页外壳仍写在 HTML 里 |
 | `build_actions_page.py` | 烹饪动作页；缺原图时会提示先跑 `gen_actions.py` |
 
 三个脚本都是幂等的：内容没变时输出逐字节相同。

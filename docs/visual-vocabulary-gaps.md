@@ -3,7 +3,7 @@
 2026-11-22 逐场景看图整理。分两类：
 
 - **补标注**：图上已经画出来，只是没有对应的词条。只改 `content/visual-vocabulary/scenes/*.json`，不用重画。
-- **补画面**：场景里该有、但图上没有的常见物件。要改该场景的提示词重画，再重新标注（三种画风共用坐标，重画一次即可）。
+- **补画面**：场景里该有、但图上没有的常见物件。要改该场景的提示词重画，再重新标注（全站统一皮克斯画风，重画一次即可）。
 
 ## 已处理
 
@@ -44,7 +44,7 @@
 
 1. 先定每个场景的目标词数：大场景（厨房、客厅、超市）14–18，小场景 8–12。
 2. 只补「图上已画」的先做，成本最低。
-3. 需要重画场景的，把新物件写进提示词，按现有管线重画一次（三种画风共用坐标）：
-   `restyle.py --styles flat` → `restyle.py --styles clay,ink --source-style flat`
-   → `masks.py --all --source-style flat` → `build_images.py --all --style …`。
+3. 需要重画场景的，把新物件写进提示词，按现有管线重画一次（全站统一皮克斯画风，坐标一致）：
+   `restyle.py --all --styles pixar --denoise 0.88 --source-style flat`
+   → `masks.py --all --source-style pixar` → `build_images.py --all`。
 4. 新词先查词卡库；库里没有的，用 `gen_cutout.py` 生成词卡图、`gen_audio.py` 补男女声录音。
