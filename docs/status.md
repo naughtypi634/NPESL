@@ -17,7 +17,7 @@
 | Phonics | 48 课 | `apps/phonics/source/content/` |
 | IPA | 40 音标 × 10 词 × 男女两版 | `apps/ipa/` |
 | Phenomena | 30 章 | `apps/phenomena/source/`（音频 + `phenomena.json`）→ `apps/phenomena/web/`（React + Vite，产出 `dist/`）。地址不变：`/phenomena/` 与 `/phenomena/<slug>.html`。`/phenomena/*` 不注入全站 `theme.css`，自带 coss 令牌与浅色/深色两套主题。**coss 试点，未部署** |
-| Visual Vocabulary | 7 主题 / 36 场景 / 275 热点 / 等距皮克斯（线上） | `content/visual-vocabulary/` → `tools/vv/` → `apps/visual-vocabulary/` |
+| Visual Vocabulary | 7 主题 / 36 场景 / 268 热点 / 写实照片（线上） | `content/visual-vocabulary/` → `tools/vv/` → `apps/visual-vocabulary/` |
 
 ## 语音后端
 
@@ -33,6 +33,12 @@ Qwen3-TTS 本地环境：`F:\AIProject\tts-lab`（仅 Conversation 合成时使�
 
 ## 门禁基线
 
+- 2026-11-25：Visual Vocabulary 写实版上线，替换等距皮克斯。
+  - 36 个场景的 35° 俯视写实图已全部导出；自动重标的框误认率高，改为逐图人工核对，268 个热点保留，7 个照片里没有画出的词从场景热点移除（词卡与录音仍在，只影响场景页）。
+  - 遮罩按新框重抠；`room-bedroom/wardrobe` 遮罩覆盖率不足，改为只用白点放大，点读不受影响。
+  - 验收：`tools/vv/validate.py` 36 场景 / 268 热点 / 7 套词卡；`build_all.py --only visual-vocabulary,site`；`verify.py` 25/25、286/286 页，英式英语新增 0；桌面浅色与手机深色实际看过，白点位置正确。
+  - 旧等距图与失效遮罩共 116 个文件仍留在 apps 目录、页面不再引用，未删除（避免不可逆清理），不影响线上。
+  - 部署：主站部署 id `11318896`（https://11318896.npesl.pages.dev），线上场景页 200 且引用新图；音频未变，音频站未部署。
 - 2026-11-22：图解词汇重做为「七个主题 · 一层落地页 · 三种画风」。
   - 主题 7 个：厨房 / 家居 / 服装 / 食物 / 身体部位 / 美妆与护肤 / 出行；场景 36 个、热点 292 个、词卡 7 套。`home` 的 227 张词卡拆成厨房 60 张 + 家居 167 张，`home/index.html` 下线。
   - 交互：命中改为按物件范围框（重叠取面积最小的），点物件任意位置都能选中；模拟命中率 54% → 96%。卡片视图恢复（上一轮改发光时误删的样式）。
