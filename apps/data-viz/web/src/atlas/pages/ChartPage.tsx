@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ChartSpec } from 'ztd-charts';
+import type { ChartEvent, ChartSpec } from 'ztd-charts';
 import type { AtlasIndex, ChartLesson } from '../types';
 import { loadChart } from '../loader';
 import { useAsync } from '../use-async';
 import { ChartFigure } from '../components/ChartFigure';
-import { DataEditor } from '../components/DataEditor';
+import { PointEditor, editTargetFor, type PointEdit } from '../components/DataEditor';
 import { LiveEnglishInsights, LiveEnglishVersions } from '../components/LiveEnglish';
 import { A, Eyebrow, Section } from '../components/chrome';
 import {
   describeMetrics,
+  fieldZh,
   getChartRows,
   getPreferredMetric,
   type ChartRow,
@@ -58,14 +59,14 @@ export function ChartPage({ index, id }: { index: AtlasIndex; id: string }) {
 
   const [editedRows, setEditedRows] = useState<ChartRow[] | null>(null);
   const [history, setHistory] = useState<ChartRow[][]>([]);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [pointEdit, setPointEdit] = useState<PointEdit | null>(null);
   const [selectedMetric, setSelectedMetric] = useState('');
   const pendingHistory = useRef(false);
 
   useEffect(() => {
     setEditedRows(null);
     setHistory([]);
-    setEditorOpen(false);
+    setPointEdit(null);
     setSelectedMetric('');
     pendingHistory.current = false;
   }, [id]);
@@ -131,7 +132,40 @@ export function ChartPage({ index, id }: { index: AtlasIndex; id: string }) {
   const reset = useCallback(() => {
     setEditedRows(null);
     setHistory([]);
+    setPointEdit(null);
   }, []);
+
+  const handlePointClick = useCallback((
+    event: ChartEvent<Record<string, unknown>>,
+    point: { x: number; y: number },
+  ) => {
+    if (!lesson) return;
+    const target = editTargetFor(event, currentRows, lesson.spec);
+    if (!target) return;
+    const raw = currentRows[target.rowIndex][target.field];
+    const value = typeof raw === 'number' && Number.isFinite(raw) ? raw : Number(event.value ?? 0);
+    beginEdit();
+    setPointEdit({
+      rowIndex: target.rowIndex,
+      field: target.field,
+      label: `${event.series ? `${event.series} · ` : ''}${event.label || fieldZh(target.field)}`,
+      value,
+      x: point.x,
+      y: point.y,
+    });
+  }, [lesson, currentRows, beginEdit]);
+
+  const changePoint = useCallback((value: number) => {
+    if (!pointEdit) return;
+    updateRows(currentRows.map((row, index) => (
+      index === pointEdit.rowIndex ? { ...row, [pointEdit.field]: value } : row
+    )));
+  }, [pointEdit, currentRows, updateRows]);
+
+  const closePoint = useCallback(() => {
+    setPointEdit(null);
+    endEdit();
+  }, [endEdit]);
 
   if (error) {
     return (
@@ -182,37 +216,45 @@ export function ChartPage({ index, id }: { index: AtlasIndex; id: string }) {
         ) : null}
       </header>
 
-      <div className={`chart-learning-layout${editorOpen ? ' is-editing' : ''}`}>
+      <div className="chart-learning-layout">
         <aside className="chart-workspace" id="chart-workspace">
-          <ChartFigure lesson={lesson} spec={currentSpec} height={380} />
-          <div className="chart-workspace-actions">
-            <button
-              type="button"
-              className="edit-data-button"
-              aria-expanded={editorOpen}
-              onClick={() => setEditorOpen((open) => !open)}
-            >
-              {editorOpen ? '收起改数字' : '改数字看看'}
-            </button>
-          </div>
-          <p className="chart-edit-hint">点上面的按钮可以改数字；改完图、英文和中文会跟着变。</p>
-          {editorOpen ? (
-            <DataEditor
-              rows={currentRows}
-              originalRows={originalRows}
-              spec={lesson.spec}
-              dataset={lesson.dataset}
-              analysis={analysis}
-              edited={isEdited}
-              selectedMetric={activeMetric}
-              onRowsChange={updateRows}
-              onReset={reset}
-              onClose={() => setEditorOpen(false)}
-              onUndo={undo}
-              canUndo={history.length > 0}
-              onBeginEdit={beginEdit}
-              onEndEdit={endEdit}
-            />
+          <ChartFigure
+            lesson={lesson}
+            spec={currentSpec}
+            height={380}
+            onPointClick={handlePointClick}
+            editor={pointEdit ? (
+              <PointEditor
+                key={`${pointEdit.rowIndex}-${pointEdit.field}`}
+                edit={pointEdit}
+                onChange={changePoint}
+                onClose={closePoint}
+              />
+            ) : null}
+          />
+          <p className="chart-edit-hint">点图上的点、柱子或色块，直接输入新数字；图和下面的英文会一起变。</p>
+          {isEdited ? (
+            <>
+              <div className="chart-live-read" aria-live="polite">
+                <span>现在图里的数据</span>
+                {analysis?.observations[0] ? (
+                  <>
+                    <p className="chart-live-en">{analysis.observations[0].en}</p>
+                    <p className="chart-live-zh">{analysis.observations[0].zh}</p>
+                  </>
+                ) : (
+                  <p className="chart-live-zh">这组数字暂时算不出新说法，图表仍然可用。</p>
+                )}
+              </div>
+              <div className="chart-edit-tools">
+                <button type="button" onClick={undo} disabled={!history.length}>
+                  撤销刚才那一步
+                </button>
+                <button type="button" onClick={reset}>
+                  恢复原来的数字
+                </button>
+              </div>
+            </>
           ) : null}
         </aside>
 

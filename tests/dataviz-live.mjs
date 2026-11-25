@@ -1,4 +1,4 @@
-// 数据图鉴：47 种图表的实时分析、编辑联动、预览与布局巡检。
+// 数据图鉴：47 种图表的实时分析、图上改数字联动、预览与布局巡检。
 //
 //   node tests/dataviz-live.mjs
 //
@@ -30,7 +30,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const server = createServer(async (req, res) => {
   if (req.url === '/favicon.ico') { res.writeHead(204); res.end(); return; }
   let rel = decodeURIComponent(req.url.split('?')[0]);
-  if (!rel.startsWith(PREFIX)) { res.writeHead(404); res.end(); return; }
+  if (!rel.startsWith(PREFIX)) { res.writeHead(404); res.end('not found'); return; }
   rel = rel.slice(PREFIX.length);
   if (rel === '' || rel.endsWith('/')) rel += 'index.html';
   try {
@@ -38,8 +38,7 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, { 'content-type': MIME[extname(rel)] || 'application/octet-stream' });
     res.end(buf);
   } catch {
-    res.writeHead(404);
-    res.end('not found');
+    res.writeHead(404); res.end('not found');
   }
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -85,9 +84,24 @@ function record(name, ok, detail) {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(30)} ${detail}`);
 }
 
+async function clickChartPoint() {
+  const items = await evaluate(`(() => [...document.querySelectorAll('.figure-canvas svg *')].map((el, i) => {
+    const r = el.getBoundingClientRect();
+    return { i, tag: el.tagName, x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
+  }).filter((it) => it.w > 3 && it.h > 3 && it.x > 0 && it.y > 0 && it.y < window.innerHeight).slice(0, 70))()`);
+  for (const item of items) {
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: item.x, y: item.y });
+    await sleep(20);
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: item.x, y: item.y, button: 'left', clickCount: 1 });
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: item.x, y: item.y, button: 'left', clickCount: 1 });
+    if (await evaluate("!!document.querySelector('.point-editor input')")) return item;
+  }
+  return null;
+}
+
 await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 1000, deviceScaleFactor: 1, mobile: false });
 await send('Page.navigate', { url: `${BASE}${PREFIX}` });
-await waitFor("document.querySelectorAll('.entry').length === 3");
+await waitFor("document.querySelectorAll('.entry').length === 9");
 await evaluate("location.hash = '#/charts'");
 await waitFor("document.querySelectorAll('.chart-card').length === 47");
 
@@ -115,15 +129,7 @@ const ids = await evaluate(
 );
 record('chart ids', ids.length === 47, `${ids.length} charts`);
 
-// ---- 47 种图表的实时分析 + 编辑联动 ---------------------------------------
-
-const focusScript = `(() => {
-  const inputs = [...document.querySelectorAll('.editor-table td.is-metric input.editor-cell-input')];
-  const input = inputs[0] || document.querySelector('.editor-cell-input');
-  if (!input) return null;
-  input.focus();
-  return { before: input.value };
-})()`;
+// ---- 47 种图表的实时分析 + 图上改数字联动 -----------------------------------
 
 const liveFailures = [];
 for (const chartId of ids) {
@@ -140,51 +146,44 @@ for (const chartId of ids) {
     continue;
   }
 
+  await evaluate("document.querySelector('.figure-canvas')?.scrollIntoView({ block: 'center' })");
+  await sleep(180);
   const chartBefore = await evaluate("document.querySelector('.figure-canvas svg')?.outerHTML || document.querySelector('.figure-canvas canvas')?.toDataURL?.() || ''");
-  const editOpen = await evaluate("(() => { document.querySelector('.edit-data-button')?.click(); return true; })()");
-  const editorReady = await waitFor("!!document.querySelector('.data-editor') && document.querySelectorAll('.editor-cell-input').length > 0", 5000);
-  if (!editOpen || !editorReady) {
-    liveFailures.push(`${chartId}: editor did not open`);
+  const clicked = await clickChartPoint();
+  if (!clicked) {
+    liveFailures.push(`${chartId}: chart point not clickable`);
     continue;
   }
-  const editorBefore = await evaluate("document.querySelector('.data-editor')?.innerText || ''");
-  const changed = await evaluate(focusScript);
-  if (!changed) {
-    liveFailures.push(`${chartId}: no numeric cell`);
+  const beforeValue = await evaluate("Number(document.querySelector('.point-editor input')?.value)");
+  if (!Number.isFinite(beforeValue)) {
+    liveFailures.push(`${chartId}: no number in point editor`);
     continue;
   }
-  const numeric = Number(changed.before);
-  const next = Number.isFinite(numeric) ? numeric + Math.max(1, Math.round(Math.abs(numeric) * 0.5)) : 1;
+  const next = beforeValue + Math.max(1, Math.round(Math.abs(beforeValue) * 0.5));
   await send('Input.insertText', { text: String(next) });
-  await sleep(140);
-  const typed = await evaluate("document.querySelector('.editor-table td.is-metric input.editor-cell-input')?.value || ''");
-  if (typed !== String(next)) liveFailures.push(`${chartId}: typing did not replace the old number (${typed})`);
-  await evaluate('document.activeElement?.blur()');
-  await sleep(450);
-  const editorAfter = await evaluate("document.querySelector('.data-editor')?.innerText || ''");
+  await sleep(180);
+  const typed = await evaluate("document.querySelector('.point-editor input')?.value || ''");
   const chartAfter = await evaluate("document.querySelector('.figure-canvas svg')?.outerHTML || document.querySelector('.figure-canvas canvas')?.toDataURL?.() || ''");
-  const chinese = await evaluate("document.querySelector('.editor-live-zh')?.innerText || ''");
-  if (editorAfter === editorBefore) liveFailures.push(`${chartId}: English/stats did not change`);
-  // barRace 只展示最后一帧；改第一格（2024-Q1）不会改变最后一帧的SVG，
-  // 但上面的实时分析已经验证它跟着数字变了，所以不对这张图断言画面变化。
+  const chinese = await evaluate("document.querySelector('.chart-live-zh')?.innerText || ''");
+  if (typed !== String(next)) liveFailures.push(`${chartId}: typing did not replace the old number (${typed})`);
   if (chartAfter === chartBefore && chartId !== 'barRace') liveFailures.push(`${chartId}: chart did not change`);
   if (!chinese.trim()) liveFailures.push(`${chartId}: missing Chinese`);
 
   await evaluate(`(() => {
-    const reset = [...document.querySelectorAll('.editor-head-actions .editor-reset')]
-      .find((button) => button.textContent.trim() === '全部恢复原来的数字');
+    const reset = [...document.querySelectorAll('.chart-edit-tools button')]
+      .find((button) => button.textContent.includes('恢复原来的数字'));
     reset?.click();
   })()`);
-  await sleep(350);
-  const resetStatus = await evaluate("document.querySelector('.editor-status')?.innerText || ''");
-  const editorReset = await evaluate("document.querySelector('.data-editor')?.innerText || ''");
-  if (!resetStatus.includes('原始数据') || editorReset !== editorBefore) {
+  await sleep(260);
+  const resetState = await evaluate(`(() => ({
+    live: !!document.querySelector('.chart-live-read'),
+    editor: !!document.querySelector('.point-editor'),
+    tools: !!document.querySelector('.chart-edit-tools'),
+  }))()`);
+  if (resetState.live || resetState.editor || resetState.tools) {
     liveFailures.push(`${chartId}: reset did not restore`);
   }
   if (pageErrors.length) liveFailures.push(`${chartId}: ${pageErrors[0]}`);
-
-  await evaluate("document.querySelector('.edit-data-button')?.click()");
-  await sleep(120);
 }
 
 record(
@@ -193,37 +192,35 @@ record(
   liveFailures.length ? liveFailures.slice(0, 6).join(' | ') : 'all charts recomputed and reset',
 );
 
-// ---- 撤销与主题预览 --------------------------------------------------------
+// ---- 撤销、非法输入与主题预览 -----------------------------------------------
 
 await evaluate("location.hash = '#/charts/line'");
 await waitFor("document.querySelector('.chart-head h1')?.textContent.trim() === 'Line chart'", 5000);
-await evaluate("document.querySelector('.edit-data-button')?.click()");
-await waitFor("!!document.querySelector('.data-editor')");
-await evaluate("(() => { const input = document.querySelector('.editor-table td.is-metric input'); input.focus(); })()");
+await evaluate("document.querySelector('.figure-canvas')?.scrollIntoView({ block: 'center' })");
+await sleep(180);
+await clickChartPoint();
 await send('Input.insertText', { text: '777' });
-await sleep(140);
-await evaluate('document.activeElement?.blur()');
-await sleep(400);
-const editedStatus = await evaluate("document.querySelector('.editor-status')?.innerText || ''");
+await sleep(180);
+const editedValue = await evaluate("document.querySelector('.point-editor input')?.value || ''");
 await evaluate(`(() => {
-  const undo = [...document.querySelectorAll('.editor-head-actions .editor-reset')]
-    .find((button) => button.textContent.trim() === '撤销刚才那一步');
+  const undo = [...document.querySelectorAll('.chart-edit-tools button')]
+    .find((button) => button.textContent.includes('撤销刚才那一步'));
   undo?.click();
 })()`);
-await sleep(350);
-const undoStatus = await evaluate("document.querySelector('.editor-status')?.innerText || ''");
-record('undo restores data', editedStatus.includes('已改动') && undoStatus.includes('原始数据'), `${editedStatus} → ${undoStatus}`);
-await evaluate("(() => { const input = document.querySelector('.editor-table td.is-metric input.editor-cell-input'); input.focus(); })()");
+await sleep(260);
+const liveAfterUndo = await evaluate("!!document.querySelector('.chart-live-read')");
+record('undo restores data', editedValue === '777' && !liveAfterUndo, `${editedValue} → restored`);
+
+await clickChartPoint();
 await send('Input.insertText', { text: 'abc' });
-await sleep(200);
+await sleep(180);
 const badInput = await evaluate(`(() => ({
-  message: document.querySelector('.editor-error')?.innerText || '',
-  invalid: document.activeElement?.getAttribute('aria-invalid') === 'true',
+  message: document.querySelector('.point-editor-hint')?.innerText || '',
+  invalid: document.querySelector('.point-editor input')?.getAttribute('aria-invalid') === 'true',
 }))()`);
 record('bad input explained', badInput.message.includes('这里要填数字') && badInput.invalid, badInput.message || 'no message');
-await evaluate('document.activeElement?.blur()');
-await sleep(200);
-await evaluate("document.querySelector('.edit-data-button')?.click()");
+await evaluate("document.querySelector('.point-editor input')?.blur()");
+await sleep(120);
 
 await evaluate("location.hash = '#/charts'");
 await waitFor("document.querySelectorAll('.chart-card-preview img').length === 47");
@@ -256,18 +253,19 @@ record('desktop two columns', layout.columns.split(' ').length === 2, layout.col
 record('sticky chart', layout.position === 'sticky', layout.position);
 record('content order', layout.ordered, 'read → expressions → versions → live → notes');
 
-await evaluate("document.querySelector('.edit-data-button')?.click()");
-await waitFor("!!document.querySelector('.data-editor')");
+await evaluate("document.querySelector('.figure-canvas')?.scrollIntoView({ block: 'center' })");
+await sleep(180);
+await clickChartPoint();
 const editingVersions = await evaluate("document.querySelectorAll('.chart-learning-content .version').length");
-record('versions stay while editing', editingVersions === 3, `${editingVersions} versions with editor open`);
-await evaluate("document.querySelector('.edit-data-button')?.click()");
+record('versions stay while editing', editingVersions === 3, `${editingVersions} versions with point editor open`);
+await evaluate("document.querySelector('.point-editor input')?.blur()");
 
 // ---- 手机宽度 --------------------------------------------------------------
 
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
 await evaluate("location.hash = '#/charts/line'");
 await sleep(500);
-await evaluate("window.scrollTo(0, 0)");
+await evaluate('window.scrollTo(0, 0)');
 const mobile = await evaluate(`(() => {
   const grid = getComputedStyle(document.querySelector('.chart-learning-layout'));
   return {
@@ -278,17 +276,17 @@ const mobile = await evaluate(`(() => {
 })()`);
 record('phone layout', mobile.scroll <= mobile.inner + 2 && mobile.columns.split(' ').length === 1, `${mobile.scroll}/${mobile.inner} · ${mobile.columns}`);
 
-await evaluate("document.querySelector('.edit-data-button')?.click()");
-await waitFor("!!document.querySelector('.data-editor')");
-await sleep(300);
+await evaluate("document.querySelector('.figure-canvas')?.scrollIntoView({ block: 'center' })");
+await sleep(180);
+const phonePoint = await clickChartPoint();
 const phoneEditor = await evaluate(`(() => ({
   scroll: document.documentElement.scrollWidth,
   inner: window.innerWidth,
-  table: !!document.querySelector('.editor-table'),
+  input: !!document.querySelector('.point-editor input'),
   chart: !!document.querySelector('.figure-canvas svg'),
   versions: document.querySelectorAll('.chart-learning-content .version').length,
 }))()`);
-record('phone editor', phoneEditor.scroll <= phoneEditor.inner + 2 && phoneEditor.table && phoneEditor.chart && phoneEditor.versions === 3, `${phoneEditor.scroll}/${phoneEditor.inner} · ${phoneEditor.versions} versions`);
+record('phone point editor', phonePoint && phoneEditor.scroll <= phoneEditor.inner + 2 && phoneEditor.input && phoneEditor.chart && phoneEditor.versions === 3, `${phoneEditor.scroll}/${phoneEditor.inner} · ${phoneEditor.versions} versions`);
 
 const failed = results.filter((result) => !result.ok);
 edge.close();

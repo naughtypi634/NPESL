@@ -170,6 +170,11 @@ await gotoHash('#/charts/line');
 const lineReady = await waitFor("!!document.querySelector('.chart-page') && !!document.querySelector('.figure-canvas svg')");
 const lineText = await evaluate('document.body.innerText');
 record('chart page', lineReady, 'line chart and lesson rendered');
+const directEdit = await evaluate(`(() => ({
+  hint: document.body.innerText.includes('点图上的点、柱子或色块'),
+  noButton: !document.querySelector('.edit-data-button'),
+}))()`);
+record('edit on chart', directEdit.hint && directEdit.noButton, directEdit.noButton ? 'no extra button' : 'old button still present');
 record('chart sections', ['How to read it', 'Key observations', 'How to describe it', 'Complete descriptions', 'Useful language notes'].every((s) => lineText.includes(s)), 'all five sections present');
 record('no quiz prompts', !/your turn|try to describe|what can you see|which one is|can you describe|试一试|你来答|答题|答对/i.test(lineText), 'no task-style prompt');
 record('demo data label', lineText.includes('Demo data · 模拟数据'), 'chart caption and footer keep the label');
