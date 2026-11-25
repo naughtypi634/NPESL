@@ -6,10 +6,9 @@ export function Expressions({ index }: { index: AtlasIndex }) {
   return (
     <div className="page">
       <PageHead
-        eyebrow="Expressions"
-        title="Browse by language function"
-        titleZh="学表达"
-        lede="按“想表达什么”来找说法：描述上升、比较高低、说明占比、解释分布，或者把一组数字讲给同事听。"
+        eyebrow="Browse by language function"
+        title="学表达"
+        lede="按想表达的意思，找对应的英文说法。"
       />
       <div className="group-grid">
         {groups.map((group) => (

@@ -1,4 +1,5 @@
 import type { Analysis } from '../live';
+import { fieldZh } from '../data-tools';
 
 export function LiveEnglishInsights({
   analysis,
@@ -16,7 +17,7 @@ export function LiveEnglishInsights({
   if (!analysis) {
     return (
       <p className="live-empty">
-        这组数据暂时无法生成实时分析；图表和原始示例仍然可用。
+        这组数字暂时算不出新说法，下面的原始范文还能看。
       </p>
     );
   }
@@ -26,14 +27,14 @@ export function LiveEnglishInsights({
       <div className="live-english-toolbar">
         <div>
           <span className="live-status-dot" />
-          <span className="live-status-label">LIVE FROM CURRENT DATA</span>
+          <span className="live-status-label">下面的话跟着数字变</span>
         </div>
         {metricOptions.length > 1 ? (
           <label className="live-metric-select">
-            <span>Describe</span>
+            <span>讲哪一项</span>
             <select value={selectedMetric} onChange={(event) => onMetricChange(event.target.value)}>
               {metricOptions.map((field) => (
-                <option key={field} value={field}>{field.replace(/[_-]+/g, ' ')}</option>
+                <option key={field} value={field}>{fieldZh(field)}</option>
               ))}
             </select>
           </label>
@@ -78,9 +79,9 @@ export function LiveEnglishInsights({
 export function LiveEnglishVersions({ analysis }: { analysis: Analysis | null }) {
   if (!analysis) return null;
   const versions = [
-    { key: 'academic', title: 'Academic writing', zh: '学术写作', narrative: analysis.academic },
-    { key: 'business', title: 'Business presentation', zh: '商务汇报', narrative: analysis.business },
-    { key: 'everyday', title: 'Everyday English', zh: '日常英语', narrative: analysis.everyday },
+    { key: 'academic', title: '学术写作', en: 'Academic writing', narrative: analysis.academic },
+    { key: 'business', title: '商务汇报', en: 'Business presentation', narrative: analysis.business },
+    { key: 'everyday', title: '日常英语', en: 'Everyday English', narrative: analysis.everyday },
   ];
   return (
     <div className="live-version-wrap">
@@ -92,7 +93,7 @@ export function LiveEnglishVersions({ analysis }: { analysis: Analysis | null })
           <article className="version live-version" key={version.key}>
             <header>
               <h3>{version.title}</h3>
-              <span>{version.zh}</span>
+              <span>{version.en}</span>
             </header>
             <p className="version-en">{version.narrative.en}</p>
             <p className="version-zh">{version.narrative.zh}</p>

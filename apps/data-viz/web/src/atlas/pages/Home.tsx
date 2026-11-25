@@ -6,26 +6,21 @@ export function Home({ index }: { index: AtlasIndex }) {
   return (
     <div className="home">
       <section className="hero">
-        <p className="eyebrow">Data Visualization × English Expression Atlas</p>
-        <h1>
-          See the data.
-          <br />
-          Say it in English.
-        </h1>
-        <p className="hero-zh">{site.title_zh}</p>
+        <p className="eyebrow">{site.title_en}</p>
+        <h1>{site.title_zh}</h1>
         <p className="hero-lede">{site.tagline_zh}</p>
         <p className="hero-intro">{site.intro_zh}</p>
       </section>
 
-      <section className="entries" aria-label="Ways in">
+      <section className="entries" aria-label="入口">
         {site.entries.map((entry) => (
           <A key={entry.id} href={entry.href} className="entry">
             <span className="entry-glyph" aria-hidden="true">
               <FamilyGlyph family={entry.id === 'charts' ? 'trend' : entry.id === 'expressions' ? 'comparison' : 'flow'} />
             </span>
             <span className="entry-copy">
-              <span className="entry-en">{entry.name_en}</span>
-              <span className="entry-zh">{entry.name_zh}</span>
+              <span className="entry-zh" style={{ fontSize: 22, fontWeight: 600 }}>{entry.name_zh}</span>
+              <span className="entry-en" style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}>{entry.name_en}</span>
               <span className="entry-desc">{entry.desc_zh}</span>
             </span>
             <Arrow />
@@ -33,25 +28,10 @@ export function Home({ index }: { index: AtlasIndex }) {
         ))}
       </section>
 
-      <section className="principles" aria-label="How this atlas works">
-        <div>
-          <p className="eyebrow">Read, don't drill</p>
-          <p className="principle-text">
-            每张图都把结论、说法和完整范文直接摊开。不需要作答、改数据或完成任何任务。
-          </p>
-        </div>
-        <div>
-          <p className="eyebrow">One idea, three registers</p>
-          <p className="principle-text">
-            同一组数据，分别给出学术写作、商务汇报和日常英语三种版本，语气差别一眼可见。
-          </p>
-        </div>
-        <div>
-          <p className="eyebrow">Numbers you can trust</p>
-          <p className="principle-text">
-            所有例句里的数字都来自图表本身，构建时会逐条核对；页面标明模拟数据，不冒充真实统计。
-          </p>
-        </div>
+      <section className="principles" aria-label="使用说明">
+        <p className="principle-text">
+          点开一张图，先看中文讲解，下面就是英文说法。不用答题。
+        </p>
       </section>
     </div>
   );

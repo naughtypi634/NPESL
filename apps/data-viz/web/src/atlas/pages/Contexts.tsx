@@ -6,10 +6,9 @@ export function Contexts({ index }: { index: AtlasIndex }) {
   return (
     <div className="page">
       <PageHead
-        eyebrow="Real-world Contexts"
-        title="Browse by situation"
-        titleZh="看实际应用"
-        lede="同一张图，在雅思考场、周会汇报和朋友圈里说法完全不同。这里按真实场景组织：先看这个场景要完成什么，再看该用哪些表达。"
+        eyebrow="Browse by situation"
+        title="看场景"
+        lede="按真实场景，看同一组数据的英文说法。"
       />
       <div className="context-grid">
         {contexts.map((context) => (

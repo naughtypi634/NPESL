@@ -40,20 +40,34 @@ export function Charts({ index }: { index: AtlasIndex }) {
   return (
     <div className="page">
       <PageHead
-        eyebrow="Charts"
-        title="Browse by chart"
-        titleZh="看图表"
-        lede="先看图形预览，再选一种图表。进入详情后，可以直接改数据、观察图表变化，并学习对应的英语表达。"
+        eyebrow="Browse by chart"
+        title="看图表"
+        lede="点开一种图，先看懂图，再看英文说法。"
       />
 
-      <nav className="family-jump" aria-label="Chart families">
-        {families.map((family) => (
-          <a key={family.id} href={`#family-${family.id}`} className="chip">
-            {family.name_en}
-            <span>{family.name_zh}</span>
-          </a>
-        ))}
-      </nav>
+      {charts.length ? (
+        <button
+          type="button"
+          onClick={() => {
+            window.location.hash = `#/charts/${charts[0].id}`;
+          }}
+          style={{
+            display: 'block',
+            width: '100%',
+            maxWidth: 320,
+            padding: '16px 24px',
+            border: '1px solid var(--pane-edge)',
+            borderRadius: 12,
+            background: 'var(--pane)',
+            color: 'var(--fg)',
+            fontSize: 20,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          看一张图
+        </button>
+      ) : null}
 
       {families.map((family) => {
         const own = charts.filter((chart) => chart.family === family.id);

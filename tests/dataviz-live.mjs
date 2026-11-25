@@ -118,9 +118,8 @@ record('chart ids', ids.length === 47, `${ids.length} charts`);
 // ---- 47 种图表的实时分析 + 编辑联动 ---------------------------------------
 
 const focusScript = `(() => {
-  const inputs = [...document.querySelectorAll('.editor-table td.is-metric input.editor-cell-input')]
-    .filter((input) => input.type === 'number');
-  const input = inputs[0] || [...document.querySelectorAll('.editor-cell-input')].find((item) => item.type === 'number');
+  const inputs = [...document.querySelectorAll('.editor-table td.is-metric input.editor-cell-input')];
+  const input = inputs[0] || document.querySelector('.editor-cell-input');
   if (!input) return null;
   input.focus();
   input.select();
@@ -165,18 +164,20 @@ for (const chartId of ids) {
   const chartAfter = await evaluate("document.querySelector('.figure-canvas svg')?.outerHTML || document.querySelector('.figure-canvas canvas')?.toDataURL?.() || ''");
   const chinese = await evaluate("document.querySelector('.editor-live-zh')?.innerText || ''");
   if (editorAfter === editorBefore) liveFailures.push(`${chartId}: English/stats did not change`);
-  if (chartAfter === chartBefore) liveFailures.push(`${chartId}: chart did not change`);
+  // barRace 只展示最后一帧；改第一格（2024-Q1）不会改变最后一帧的SVG，
+  // 但上面的实时分析已经验证它跟着数字变了，所以不对这张图断言画面变化。
+  if (chartAfter === chartBefore && chartId !== 'barRace') liveFailures.push(`${chartId}: chart did not change`);
   if (!chinese.trim()) liveFailures.push(`${chartId}: missing Chinese`);
 
   await evaluate(`(() => {
     const reset = [...document.querySelectorAll('.editor-head-actions .editor-reset')]
-      .find((button) => button.textContent.trim() === 'Reset');
+      .find((button) => button.textContent.trim() === '全部恢复原来的数字');
     reset?.click();
   })()`);
   await sleep(350);
   const resetStatus = await evaluate("document.querySelector('.editor-status')?.innerText || ''");
   const editorReset = await evaluate("document.querySelector('.data-editor')?.innerText || ''");
-  if (!resetStatus.includes('Original data') || editorReset !== editorBefore) {
+  if (!resetStatus.includes('原始数据') || editorReset !== editorBefore) {
     liveFailures.push(`${chartId}: reset did not restore`);
   }
   if (pageErrors.length) liveFailures.push(`${chartId}: ${pageErrors[0]}`);
@@ -205,12 +206,22 @@ await sleep(400);
 const editedStatus = await evaluate("document.querySelector('.editor-status')?.innerText || ''");
 await evaluate(`(() => {
   const undo = [...document.querySelectorAll('.editor-head-actions .editor-reset')]
-    .find((button) => button.textContent.trim() === 'Undo');
+    .find((button) => button.textContent.trim() === '撤销刚才那一步');
   undo?.click();
 })()`);
 await sleep(350);
 const undoStatus = await evaluate("document.querySelector('.editor-status')?.innerText || ''");
-record('undo restores data', editedStatus.includes('Edited') && undoStatus.includes('Original data'), `${editedStatus} → ${undoStatus}`);
+record('undo restores data', editedStatus.includes('已改动') && undoStatus.includes('原始数据'), `${editedStatus} → ${undoStatus}`);
+await evaluate("(() => { const input = document.querySelector('.editor-table td.is-metric input.editor-cell-input'); input.focus(); input.select(); })()");
+await send('Input.insertText', { text: 'abc' });
+await sleep(200);
+const badInput = await evaluate(`(() => ({
+  message: document.querySelector('.editor-error')?.innerText || '',
+  invalid: document.activeElement?.getAttribute('aria-invalid') === 'true',
+}))()`);
+record('bad input explained', badInput.message.includes('这里要填数字') && badInput.invalid, badInput.message || 'no message');
+await evaluate('document.activeElement?.blur()');
+await sleep(200);
 await evaluate("document.querySelector('.edit-data-button')?.click()");
 
 await evaluate("location.hash = '#/charts'");
@@ -232,31 +243,23 @@ await waitFor("!!document.querySelector('.chart-learning-layout') && !!document.
 const layout = await evaluate(`(() => {
   const grid = getComputedStyle(document.querySelector('.chart-learning-layout'));
   const workspace = getComputedStyle(document.querySelector('.chart-workspace'));
-  const nav = getComputedStyle(document.querySelector('.chart-local-nav'));
-  const buttons = [...document.querySelectorAll('.chart-local-nav button')];
+  const ids = ['read', 'expressions', 'versions', 'live-english', 'observations', 'notes', 'related'];
+  const tops = ids.map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? Infinity);
   return {
     columns: grid.gridTemplateColumns,
     position: workspace.position,
-    navPosition: nav.position,
-    buttons: buttons.length,
-    labels: buttons.map((b) => b.textContent.trim()),
+    ordered: tops.every((top, index) => index === 0 || top > tops[index - 1]),
   };
 })()`);
 record('desktop two columns', layout.columns.split(' ').length === 2, layout.columns);
 record('sticky chart', layout.position === 'sticky', layout.position);
-record('sticky nav', layout.navPosition === 'sticky', layout.navPosition);
-record('section nav', layout.buttons === 7, layout.labels.join(' · '));
+record('content order', layout.ordered, 'read → expressions → versions → live → notes');
 
-const navJump = await evaluate(`(() => {
-  const button = [...document.querySelectorAll('.chart-local-nav button')]
-    .find((item) => item.textContent.trim() === 'How to read');
-  if (!button) return false;
-  button.click();
-  return true;
-})()`);
-await waitFor("Math.round(document.getElementById('read')?.getBoundingClientRect().top ?? 9999) < 220", 3000);
-const navTop = await evaluate("Math.round(document.getElementById('read')?.getBoundingClientRect().top ?? -1)");
-record('nav jumps to section', navJump && navTop >= 0 && navTop < 220, `section top ${navTop}`);
+await evaluate("document.querySelector('.edit-data-button')?.click()");
+await waitFor("!!document.querySelector('.data-editor')");
+const editingVersions = await evaluate("document.querySelectorAll('.chart-learning-content .version').length");
+record('versions stay while editing', editingVersions === 3, `${editingVersions} versions with editor open`);
+await evaluate("document.querySelector('.edit-data-button')?.click()");
 
 // ---- 手机宽度 --------------------------------------------------------------
 
@@ -282,8 +285,9 @@ const phoneEditor = await evaluate(`(() => ({
   inner: window.innerWidth,
   table: !!document.querySelector('.editor-table'),
   chart: !!document.querySelector('.figure-canvas svg'),
+  versions: document.querySelectorAll('.chart-learning-content .version').length,
 }))()`);
-record('phone editor', phoneEditor.scroll <= phoneEditor.inner + 2 && phoneEditor.table && phoneEditor.chart, `${phoneEditor.scroll}/${phoneEditor.inner}`);
+record('phone editor', phoneEditor.scroll <= phoneEditor.inner + 2 && phoneEditor.table && phoneEditor.chart && phoneEditor.versions === 3, `${phoneEditor.scroll}/${phoneEditor.inner} · ${phoneEditor.versions} versions`);
 
 const failed = results.filter((result) => !result.ok);
 edge.close();

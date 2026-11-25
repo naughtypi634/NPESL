@@ -6,17 +6,27 @@ import { useAsync } from '../use-async';
 import { A, Breadcrumb, Eyebrow, Section } from '../components/chrome';
 
 const SCENE_LABEL: Record<Scene, string> = {
-  academic: 'Academic',
-  business: 'Business',
-  everyday: 'Everyday',
+  academic: '学术写作',
+  business: '商务汇报',
+  everyday: '日常',
 };
 
 const FILTERS: { id: Scene | 'all'; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'academic', label: 'Academic' },
-  { id: 'business', label: 'Business' },
-  { id: 'everyday', label: 'Everyday' },
+  { id: 'all', label: '全部' },
+  { id: 'academic', label: '学术写作' },
+  { id: 'business', label: '商务汇报' },
+  { id: 'everyday', label: '日常' },
 ];
+
+const REGISTER_ZH: Record<string, string> = {
+  neutral: '通用',
+  formal: '正式',
+  informal: '随便用',
+};
+
+function registerZh(value: string): string {
+  return REGISTER_ZH[value] ?? value;
+}
 
 export function GroupPage({ index, id }: { index: AtlasIndex; id: string }) {
   const { data: group, error } = useAsync(() => loadGroup(id), id);
@@ -52,7 +62,7 @@ export function GroupPage({ index, id }: { index: AtlasIndex; id: string }) {
 
   return (
     <div className="page">
-      <Breadcrumb items={[{ href: '#/expressions', label: 'Expressions' }, { label: group.name_en }]} />
+      <Breadcrumb items={[{ href: '#/expressions', label: '表达分类' }, { label: group.name_en }]} />
       <header className="group-head">
         <Eyebrow>Expressions</Eyebrow>
         <h1>{group.name_en}</h1>
@@ -81,8 +91,7 @@ export function GroupPage({ index, id }: { index: AtlasIndex; id: string }) {
               <h2>{expression.head}</h2>
               <span className="expression-meaning">{expression.meaning_zh}</span>
               <span className="tags">
-                <span className="tag">{expression.cefr}</span>
-                <span className="tag">{expression.register}</span>
+                <span className="tag">{registerZh(expression.register)}</span>
                 {expression.scenes.map((item) => (
                   <span className="tag tag-scene" key={item}>
                     {SCENE_LABEL[item]}
@@ -91,11 +100,11 @@ export function GroupPage({ index, id }: { index: AtlasIndex; id: string }) {
               </span>
             </header>
             <p className="pattern">
-              <span>Pattern</span>
+              <span>句型</span>
               {expression.pattern}
             </p>
             <div className="collocations">
-              <span>Collocations</span>
+              <span>常一起用的词</span>
               <ul>
                 {expression.collocations.map((collocation) => (
                   <li key={collocation}>{collocation}</li>
@@ -109,14 +118,14 @@ export function GroupPage({ index, id }: { index: AtlasIndex; id: string }) {
                   <p className="example-zh">{example.zh}</p>
                   {example.chart ? (
                     <A href={`#/charts/${example.chart}`} className="example-chart">
-                      See it on the {chartName(example.chart)} →
+                      在《{chartName(example.chart)}》里看这个说法 →
                     </A>
                   ) : null}
                 </div>
               ))}
             </div>
             <p className="contrast">
-              <span>Compare</span>
+              <span>对比</span>
               {expression.contrast_zh}
             </p>
             {expression.caution_zh ? (
@@ -130,7 +139,7 @@ export function GroupPage({ index, id }: { index: AtlasIndex; id: string }) {
       </div>
 
       {group.charts.length ? (
-        <Section kicker="In use" title="Charts that practice this" titleEn="See the language on real charts">
+        <Section kicker="In use" title="用到这个说法的图" titleEn="See the language on real charts">
           <div className="chip-row">
             {group.charts.map((item) => (
               <A key={item.chart} href={`#/charts/${item.chart}`} className="chip">
@@ -142,7 +151,7 @@ export function GroupPage({ index, id }: { index: AtlasIndex; id: string }) {
       ) : null}
 
       <div className="page-end">
-        <A href="#/expressions" className="text-link">← All expressions</A>
+        <A href="#/expressions" className="text-link">← 回到表达分类</A>
       </div>
     </div>
   );

@@ -120,6 +120,12 @@ await send('Page.navigate', { url: `${BASE}${PREFIX}` });
 const homeReady = await waitFor("document.querySelectorAll('.entry').length === 3");
 record('home entries', homeReady, 'three ways in rendered');
 record('home console', pageErrors.length === 0, pageErrors.join(' | ') || 'clean');
+const skip = await evaluate(`(() => {
+  const before = location.hash;
+  document.querySelector('.skip')?.click();
+  return { before, after: location.hash, focused: document.activeElement?.id };
+})()`);
+record('skip stays on page', skip.before === skip.after && skip.focused === 'main', `${skip.before || '(empty)'} → ${skip.after || '(empty)'}, focus ${skip.focused}`);
 
 // ---- 图表目录 ------------------------------------------------------------
 
@@ -129,6 +135,18 @@ const chartsReady = await waitFor("document.querySelectorAll('.chart-card').leng
 const families = await evaluate("document.querySelectorAll('.family').length");
 record('chart catalog', chartsReady, `${await evaluate("document.querySelectorAll('.chart-card').length")} cards, ${families} families`);
 record('catalog console', pageErrors.length === 0, pageErrors.join(' | ') || 'clean');
+const bigJump = await evaluate(`(() => {
+  const el = [...document.querySelectorAll('button,a')].find((item) => item.textContent.includes('看一张图'));
+  if (!el) return false;
+  el.click();
+  return true;
+})()`);
+await waitFor("location.hash.startsWith('#/charts/')", 3000);
+const jumpHash = await evaluate('location.hash');
+record('one-click chart', bigJump && jumpHash.startsWith('#/charts/') && !jumpHash.includes('family'), jumpHash);
+await gotoHash('#/no-such-page');
+const missing = await evaluate("document.body.innerText.includes('这个地址没有对应的页面。')");
+record('unknown route explained', missing, missing ? 'Chinese message shown' : 'no message');
 
 // ---- 图表详情 ------------------------------------------------------------
 
@@ -138,7 +156,8 @@ const lineReady = await waitFor("!!document.querySelector('.chart-page') && !!do
 const lineText = await evaluate('document.body.innerText');
 record('chart page', lineReady, 'line chart and lesson rendered');
 record('chart sections', ['How to read it', 'Key observations', 'How to describe it', 'Complete descriptions', 'Useful language notes'].every((s) => lineText.includes(s)), 'all five sections present');
-record('no quiz prompts', !/your turn|try to describe|what can you see|which one is|can you describe/i.test(lineText), 'no task-style prompt');
+record('no quiz prompts', !/your turn|try to describe|what can you see|which one is|can you describe|试一试|你来答|答题|答对/i.test(lineText), 'no task-style prompt');
+record('demo data label', lineText.includes('Demo data · 模拟数据'), 'chart caption and footer keep the label');
 record('chart console', pageErrors.length === 0, pageErrors.join(' | ') || 'clean');
 
 // ---- 全部图表页 ----------------------------------------------------------
@@ -154,7 +173,12 @@ for (const chartId of chartIndex) {
     "(!!document.querySelector('.figure-canvas svg') || !!document.querySelector('.figure-canvas canvas'))",
     8000,
   );
-  if (!ok || pageErrors.length) badCharts.push(`${chartId}:${ok ? '' : 'no chart'}${pageErrors.length ? ` ${pageErrors[0]}` : ''}`);
+  const lesson = ok ? await evaluate(`(() => {
+    const versions = [...document.querySelectorAll('.chart-learning-content .version')];
+    return versions.length === 3 && versions.every((item) =>
+      item.querySelector('.version-en')?.innerText.trim() && item.querySelector('.version-zh')?.innerText.trim());
+  })()`) : false;
+  if (!ok || pageErrors.length || !lesson) badCharts.push(`${chartId}:${ok ? '' : 'no chart'}${lesson ? '' : ' no 3 versions'}${pageErrors.length ? ` ${pageErrors[0]}` : ''}`);
 }
 record('all chart pages', badCharts.length === 0, badCharts.length ? badCharts.join(' | ') : `${chartIndex.length}/${chartIndex.length} rendered`);
 
@@ -169,7 +193,7 @@ const groupReady = await waitFor("document.querySelectorAll('.expression').lengt
 const groupCount = await evaluate("document.querySelectorAll('.expression').length");
 record('expression page', groupReady, `${groupCount} expressions rendered`);
 const filterWorks = await evaluate(`(() => {
-  const button = [...document.querySelectorAll('.filter')].find((b) => b.textContent === 'Academic');
+  const button = [...document.querySelectorAll('.filter')].find((b) => b.textContent.trim() === '学术写作');
   if (!button) return false;
   button.click();
   return true;

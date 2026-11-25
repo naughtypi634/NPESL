@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadIndex } from './loader';
 import { Home } from './pages/Home';
@@ -20,7 +20,8 @@ type Route =
   | { view: 'expressions' }
   | { view: 'group'; id: string }
   | { view: 'contexts' }
-  | { view: 'context'; id: string };
+  | { view: 'context'; id: string }
+  | { view: 'missing' };
 
 function parseRoute(): Route {
   const hash = window.location.hash.replace(/^#\/?/, '');
@@ -29,7 +30,8 @@ function parseRoute(): Route {
   if (section === 'charts') return id ? { view: 'chart', id } : { view: 'charts' };
   if (section === 'expressions') return id ? { view: 'group', id } : { view: 'expressions' };
   if (section === 'contexts') return id ? { view: 'context', id } : { view: 'contexts' };
-  return { view: 'home' };
+  if (!section) return { view: 'home' };
+  return { view: 'missing' };
 }
 
 function useRoute(): Route {
@@ -54,6 +56,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const route = useRoute();
   const active = sectionOf(route);
+  const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let alive = true;
@@ -75,9 +78,9 @@ export default function App() {
 
   const nav = useMemo(
     () => [
-      { id: 'charts', href: '#/charts', label: 'Charts' },
-      { id: 'expressions', href: '#/expressions', label: 'Expressions' },
-      { id: 'contexts', href: '#/contexts', label: 'Contexts' },
+      { id: 'charts', href: '#/charts', label: '看图表' },
+      { id: 'expressions', href: '#/expressions', label: '学表达' },
+      { id: 'contexts', href: '#/contexts', label: '看场景' },
     ],
     [],
   );
@@ -92,7 +95,7 @@ export default function App() {
   } else if (!index) {
     main = (
       <div className="state">
-        <p>Loading the atlas…</p>
+        <p>正在打开图鉴…</p>
       </div>
     );
   } else if (route.view === 'home') {
@@ -105,6 +108,18 @@ export default function App() {
     main = <Expressions index={index} />;
   } else if (route.view === 'group') {
     main = <GroupPage index={index} id={route.id} />;
+  } else if (route.view === 'missing') {
+    main = (
+      <div className="state">
+        <p>这个地址没有对应的页面。</p>
+        <a
+          href="#/charts"
+          style={{ display: 'inline-block', marginTop: 18, fontSize: 24, fontWeight: 600 }}
+        >
+          去看图表目录
+        </a>
+      </div>
+    );
   } else if (route.view === 'contexts') {
     main = <Contexts index={index} />;
   } else {
@@ -113,9 +128,19 @@ export default function App() {
 
   return (
     <div className="atlas">
-      <a className="skip" href="#main">
-        Skip to content
-      </a>
+      <button
+        type="button"
+        className="skip"
+        style={{ border: 0, color: 'var(--fg)', cursor: 'pointer' }}
+        onClick={() => {
+          const el = mainRef.current;
+          if (!el) return;
+          el.focus();
+          el.scrollIntoView();
+        }}
+      >
+        跳到正文
+      </button>
       <header className="topbar">
         <A href="#/" className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -123,22 +148,23 @@ export default function App() {
             <span />
             <span />
           </span>
-          <span className="brand-name">Data · English</span>
+          <span className="brand-name">数据英语图鉴</span>
         </A>
-        <nav className="nav" aria-label="Sections">
+        <nav className="nav" aria-label="栏目">
           {nav.map((item) => (
-            <A
+            <a
               key={item.id}
               href={item.href}
               className={`nav-link${active === item.id ? ' is-active' : ''}`}
+              aria-current={active === item.id ? 'page' : undefined}
             >
               {item.label}
-            </A>
+            </a>
           ))}
         </nav>
       </header>
-      <main id="main">
-        <Suspense fallback={<div className="state"><p>Loading the chart…</p></div>}>{main}</Suspense>
+      <main id="main" ref={mainRef} tabIndex={-1}>
+        <Suspense fallback={<div className="state"><p>正在打开图表…</p></div>}>{main}</Suspense>
       </main>
       <footer className="foot">
         <span>{index?.site.title_en ?? 'Data Visualization × English Expression Atlas'}</span>
