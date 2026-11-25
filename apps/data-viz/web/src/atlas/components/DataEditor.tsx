@@ -80,8 +80,9 @@ function CellInput({
       aria-label={label}
       aria-invalid={bad || undefined}
       onChange={handleChange}
-      onFocus={() => {
+      onFocus={(event) => {
         focused.current = true;
+        event.currentTarget.select();
         onFocusCell();
       }}
       onBlur={handleBlur}
@@ -157,28 +158,14 @@ export function DataEditor({
         {errorMessage}
       </p>
 
-      {analysis ? (
-        <div className="editor-live-read" aria-live="polite">
-          <span>现在图里的数据</span>
-          <p>{analysis.observations[0]?.en}</p>
-          <p className="editor-live-zh">{analysis.observations[0]?.zh}</p>
-          <div className="editor-live-stats">
-            {analysis.stats.slice(0, 4).map((stat) => (
-              <span key={`${stat.labelEn}-${stat.value}`}>
-                <small>{stat.labelEn}</small>
-                {stat.value}
-              </span>
-            ))}
+      <div className="editor-body">
+        <div className="editor-main">
+          <div className="editor-table-topline">
+            <div>
+              <strong>数据表</strong>
+              <span>点一下格子，直接输入新数字；原来的数字会被换掉。</span>
+            </div>
           </div>
-        </div>
-      ) : null}
-
-      <div className="editor-table-topline">
-        <div>
-          <strong>数据表</strong>
-          <span>直接点格子改数字，下面的英文会跟着变。</span>
-        </div>
-      </div>
 
       <div className="editor-table-scroll">
         <table className="editor-table">
@@ -235,6 +222,28 @@ export function DataEditor({
           {series ? '同色圆点是同一组；' : ''}
           这里改的数字只在这个页面里生效，不会改掉原来的内容。
         </span>
+      </div>
+        </div>
+
+        <aside className="editor-live-read" aria-live="polite">
+          <span>现在图里的数据</span>
+          {analysis ? (
+            <>
+              <p className="editor-live-en">{analysis.observations[0]?.en}</p>
+              <p className="editor-live-zh">{analysis.observations[0]?.zh}</p>
+              <div className="editor-live-stats">
+                {analysis.stats.slice(0, 4).map((stat) => (
+                  <span key={`${stat.labelEn}-${stat.value}`}>
+                    <small>{stat.labelEn}</small>
+                    {stat.value}
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="editor-live-zh">这组数字暂时算不出新说法，图表仍然可用。</p>
+          )}
+        </aside>
       </div>
     </section>
   );

@@ -117,8 +117,19 @@ function record(name, ok, detail) {
 
 pageErrors = [];
 await send('Page.navigate', { url: `${BASE}${PREFIX}` });
-const homeReady = await waitFor("document.querySelectorAll('.entry').length === 3");
-record('home entries', homeReady, 'three ways in rendered');
+const homeReady = await waitFor("document.querySelectorAll('.entry').length === 9");
+record('home chart types', homeReady, `${await evaluate("document.querySelectorAll('.entry').length")} type cards`);
+const cardSnap = await evaluate(`(() => {
+  const el = document.querySelector('.entries');
+  if (!el) return null;
+  const style = getComputedStyle(el);
+  return {
+    type: style.scrollSnapType,
+    overflow: style.overflowX,
+    scrollable: el.scrollWidth > el.clientWidth + 2,
+  };
+})()`);
+record('card snapping', !!cardSnap && cardSnap.type.includes('mandatory') && cardSnap.overflow === 'auto' && cardSnap.scrollable, `${cardSnap?.type || 'none'}, ${cardSnap?.scrollable ? 'scrollable' : 'not scrollable'}`);
 record('home console', pageErrors.length === 0, pageErrors.join(' | ') || 'clean');
 const skip = await evaluate(`(() => {
   const before = location.hash;
@@ -126,6 +137,10 @@ const skip = await evaluate(`(() => {
   return { before, after: location.hash, focused: document.activeElement?.id };
 })()`);
 record('skip stays on page', skip.before === skip.after && skip.focused === 'main', `${skip.before || '(empty)'} → ${skip.after || '(empty)'}, focus ${skip.focused}`);
+const typeJump = await evaluate("(() => { const card = document.querySelector('.entry'); if (!card) return false; card.click(); return true; })()");
+await waitFor("!!document.querySelector('.chart-page') && !!document.querySelector('.figure-canvas svg')", 6000);
+const typeHash = await evaluate('location.hash');
+record('type card opens chart', typeJump && typeHash.startsWith('#/charts/'), typeHash);
 
 // ---- 图表目录 ------------------------------------------------------------
 
@@ -240,6 +255,14 @@ for (const [label, hash] of [['home', '#/'], ['chart', '#/charts/line'], ['expre
     figure: ${expectFigure} ? !!document.querySelector('.figure-canvas svg') : true,
   }))()`);
   record(`phone ${label}`, overflow.scroll <= overflow.inner + 2 && overflow.figure, `width ${overflow.scroll}/${overflow.inner}`);
+  if (label === 'home') {
+    const phoneSnap = await evaluate(`(() => {
+      const el = document.querySelector('.entries');
+      if (!el) return false;
+      return getComputedStyle(el).scrollSnapType.includes('mandatory') && el.scrollWidth > el.clientWidth + 2;
+    })()`);
+    record('phone card snapping', phoneSnap, phoneSnap ? 'one card at a time' : 'not scrollable');
+  }
 }
 
 const failed = results.filter((result) => !result.ok);

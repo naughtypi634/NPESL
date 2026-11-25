@@ -3,6 +3,9 @@ import { A, Arrow, FamilyGlyph } from '../components/chrome';
 
 export function Home({ index }: { index: AtlasIndex }) {
   const site = index.site;
+  const families = [...index.families].sort((a, b) => a.order - b.order);
+  const firstChart = (familyId: string) => index.charts.find((chart) => chart.family === familyId);
+
   return (
     <div className="home">
       <section className="hero">
@@ -12,26 +15,24 @@ export function Home({ index }: { index: AtlasIndex }) {
         <p className="hero-intro">{site.intro_zh}</p>
       </section>
 
-      <section className="entries" aria-label="入口">
-        {site.entries.map((entry) => (
-          <A key={entry.id} href={entry.href} className="entry">
-            <span className="entry-glyph" aria-hidden="true">
-              <FamilyGlyph family={entry.id === 'charts' ? 'trend' : entry.id === 'expressions' ? 'comparison' : 'flow'} />
-            </span>
-            <span className="entry-copy">
-              <span className="entry-zh" style={{ fontSize: 22, fontWeight: 600 }}>{entry.name_zh}</span>
-              <span className="entry-en" style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}>{entry.name_en}</span>
-              <span className="entry-desc">{entry.desc_zh}</span>
-            </span>
-            <Arrow />
-          </A>
-        ))}
-      </section>
-
-      <section className="principles" aria-label="使用说明">
-        <p className="principle-text">
-          点开一张图，先看中文讲解，下面就是英文说法。不用答题。
-        </p>
+      <section className="entries" aria-label="图表类型">
+        {families.map((family) => {
+          const chart = firstChart(family.id);
+          if (!chart) return null;
+          return (
+            <A key={family.id} href={`#/charts/${chart.id}`} className="entry">
+              <span className="entry-glyph" aria-hidden="true">
+                <FamilyGlyph family={family.id} />
+              </span>
+              <span className="entry-copy">
+                <span className="entry-zh">{family.name_zh}</span>
+                <span className="entry-en">{family.name_en}</span>
+                <span className="entry-desc">{family.intro_zh}</span>
+              </span>
+              <Arrow />
+            </A>
+          );
+        })}
       </section>
     </div>
   );

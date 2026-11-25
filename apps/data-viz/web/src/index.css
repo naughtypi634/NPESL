@@ -366,18 +366,26 @@ a:hover .arrow {
 }
 
 .entries {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 16px;
   margin-top: clamp(36px, 5vw, 60px);
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 24px;
+  padding-bottom: 10px;
 }
 
 .entry {
   display: flex;
+  flex: 0 0 clamp(260px, 26vw, 380px);
   flex-direction: column;
   gap: 22px;
   padding: 26px 26px 22px;
   min-height: 260px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
   border: 1px solid var(--pane-edge);
   border-radius: var(--radius-card, 18px);
   background: var(--pane);
@@ -407,14 +415,15 @@ a:hover .arrow {
 }
 
 .entry-en {
-  font-size: 22px;
-  letter-spacing: -0.02em;
-  font-weight: 600;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 400;
 }
 
 .entry-zh {
-  font-size: 15px;
+  font-size: 22px;
   color: var(--fg);
+  font-weight: 600;
 }
 
 .entry-desc {
@@ -1390,7 +1399,6 @@ a:hover .arrow {
 /* ---- 窄屏 ---------------------------------------------------------- */
 
 @media (max-width: 960px) {
-  .entries,
   .principles,
   .versions,
   .related {
@@ -1403,6 +1411,7 @@ a:hover .arrow {
 
   .entry {
     min-height: 0;
+    flex-basis: min(84vw, 360px);
   }
 
   .expression-list,
@@ -2240,6 +2249,51 @@ a:hover .arrow {
   box-shadow: inset 0 1px 0 var(--pane-rim), var(--shadow-card);
 }
 
+.editor-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.editor-main {
+  min-width: 0;
+}
+
+/* 改数字时整页并成一栏，表格和实时文字左右并排，不用滚来滚去。 */
+.chart-learning-layout.is-editing {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.chart-learning-layout.is-editing .chart-workspace {
+  position: static;
+}
+
+.chart-learning-layout.is-editing .figure-canvas {
+  min-height: 260px;
+  height: 320px;
+}
+
+@media (min-width: 961px) {
+  .editor-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .editor-live-read {
+    position: sticky;
+    top: 16px;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+  }
+
+  .editor-live-read p.editor-live-en {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+}
+
 .editor-status {
   padding: 4px 9px;
   border: 1px solid var(--pane-edge);
@@ -2513,4 +2567,35 @@ body > div.page {
 /* 深色主题下次要文字要看得清。 */
 html[data-theme="dark"] .atlas {
   --muted: #b8b8b8;
+}
+
+/* 三段范文：用左边框直接区分写论文、开会汇报、日常聊天。 */
+.versions .version:nth-child(1) {
+  border-left: 5px solid var(--primary);
+}
+
+.versions .version:nth-child(2) {
+  border-left: 5px solid var(--warning);
+}
+
+.versions .version:nth-child(3) {
+  border-left: 5px dashed var(--muted);
+}
+
+/* 滚动吸附：卡片和详情页长内容滑一下就对齐到下一块。 */
+html {
+  scroll-snap-type: y proximity;
+}
+
+.entries {
+  scroll-snap-type: x mandatory;
+}
+
+.entry,
+.chart-head,
+.chart-workspace,
+.section,
+.page-end {
+  scroll-snap-align: start;
+  scroll-margin-top: 24px;
 }

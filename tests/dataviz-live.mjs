@@ -122,7 +122,6 @@ const focusScript = `(() => {
   const input = inputs[0] || document.querySelector('.editor-cell-input');
   if (!input) return null;
   input.focus();
-  input.select();
   return { before: input.value };
 })()`;
 
@@ -158,6 +157,8 @@ for (const chartId of ids) {
   const next = Number.isFinite(numeric) ? numeric + Math.max(1, Math.round(Math.abs(numeric) * 0.5)) : 1;
   await send('Input.insertText', { text: String(next) });
   await sleep(140);
+  const typed = await evaluate("document.querySelector('.editor-table td.is-metric input.editor-cell-input')?.value || ''");
+  if (typed !== String(next)) liveFailures.push(`${chartId}: typing did not replace the old number (${typed})`);
   await evaluate('document.activeElement?.blur()');
   await sleep(450);
   const editorAfter = await evaluate("document.querySelector('.data-editor')?.innerText || ''");
@@ -198,7 +199,7 @@ await evaluate("location.hash = '#/charts/line'");
 await waitFor("document.querySelector('.chart-head h1')?.textContent.trim() === 'Line chart'", 5000);
 await evaluate("document.querySelector('.edit-data-button')?.click()");
 await waitFor("!!document.querySelector('.data-editor')");
-await evaluate("(() => { const input = document.querySelector('.editor-table td.is-metric input'); input.focus(); input.select(); })()");
+await evaluate("(() => { const input = document.querySelector('.editor-table td.is-metric input'); input.focus(); })()");
 await send('Input.insertText', { text: '777' });
 await sleep(140);
 await evaluate('document.activeElement?.blur()');
@@ -212,7 +213,7 @@ await evaluate(`(() => {
 await sleep(350);
 const undoStatus = await evaluate("document.querySelector('.editor-status')?.innerText || ''");
 record('undo restores data', editedStatus.includes('已改动') && undoStatus.includes('原始数据'), `${editedStatus} → ${undoStatus}`);
-await evaluate("(() => { const input = document.querySelector('.editor-table td.is-metric input.editor-cell-input'); input.focus(); input.select(); })()");
+await evaluate("(() => { const input = document.querySelector('.editor-table td.is-metric input.editor-cell-input'); input.focus(); })()");
 await send('Input.insertText', { text: 'abc' });
 await sleep(200);
 const badInput = await evaluate(`(() => ({
