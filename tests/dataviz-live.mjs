@@ -192,6 +192,14 @@ record(
   liveFailures.length ? liveFailures.slice(0, 6).join(' | ') : 'all charts recomputed and reset',
 );
 
+await evaluate("location.hash = '#/charts/heatmap'");
+await waitFor("document.querySelector('.chart-head h1')?.textContent.trim() === 'Heatmap'", 5000);
+await waitFor("document.querySelectorAll('.figure-canvas .ztd-mark').length > 0", 5000);
+const colorBands = await evaluate(`(() => [...new Set(
+  [...document.querySelectorAll('.figure-canvas .ztd-mark')].map((mark) => mark.getAttribute('opacity')),
+)].sort())()`);
+record('sequential color bands', colorBands.length === 3, `${colorBands.length} distinct bands`);
+
 // ---- 撤销、非法输入与主题预览 -----------------------------------------------
 
 await evaluate("location.hash = '#/charts/line'");
