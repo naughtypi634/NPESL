@@ -1,0 +1,143 @@
+/* Travel 场景页：一张图 + 白点热点 + 词与对话卡片。
+   颜色只走主题变量，light / dark 两套都沿用站点外观。 */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg, #fff);
+  color: var(--fg, #262626);
+  font-family: var(--font, system-ui, sans-serif);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; }
+[hidden] { display: none !important; }
+
+.page { max-width: 1240px; margin: 0 auto; padding: 26px 20px 80px; }
+
+.tv-head {
+  display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.tv-back { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600; }
+.tv-back:hover { color: var(--fg); }
+.tv-back:focus-visible, button:focus-visible {
+  outline: 2px solid var(--focus-line, currentColor); outline-offset: 3px;
+}
+h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); letter-spacing: -.4px; }
+h1 span { font-size: .55em; font-weight: 500; color: var(--muted); margin-left: 8px; }
+
+.tv-main { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 18px; align-items: start; }
+
+.tv-scene-card {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card, 16px);
+  overflow: hidden;
+  background: var(--pane-solid, var(--pane, #fff));
+  box-shadow: var(--shadow-card, none);
+}
+.tv-stage { position: relative; width: 100%; aspect-ratio: 8 / 5; background: var(--pane-solid, #f4f4f4); }
+.tv-scene-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+
+.tv-dot {
+  position: absolute; width: 15px; height: 15px; padding: 0;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, .95);
+  border-radius: 50%; background: rgba(20, 20, 20, .42);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease;
+}
+.tv-dot:hover { transform: translate(-50%, -50%) scale(1.25); }
+.tv-dot[aria-pressed="true"] {
+  background: var(--blue, #262626); transform: translate(-50%, -50%) scale(1.4);
+}
+.tv-dot.dim { opacity: .38; }
+@media (prefers-reduced-motion: reduce) { .tv-dot { transition: none; } }
+
+.tv-box {
+  position: absolute; border: 2px solid var(--blue, #262626);
+  border-radius: 10px; pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .75);
+}
+
+.tv-readout {
+  min-height: 48px; display: flex; align-items: center; flex-wrap: wrap;
+  gap: 6px 12px; padding: 10px 16px; border-top: 1px solid var(--rule);
+}
+.tv-readout .tv-hint { color: var(--muted); font-size: 14px; }
+.tv-readout .tv-word { font-weight: 700; font-size: 18px; }
+.tv-readout .tv-zh { color: var(--muted); font-size: 14px; }
+
+.tv-detail {
+  min-height: 240px; padding: 22px;
+  border: 1px solid var(--rule); border-radius: var(--radius-card, 16px);
+  background: var(--pane, #fff); box-shadow: var(--shadow-card, none);
+}
+.tv-detail-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.tv-detail-head h2 { margin: 0; font-size: 25px; letter-spacing: -.3px; }
+.tv-detail-head span { color: var(--muted); font-size: 15px; }
+.tv-example {
+  margin: 14px 0 18px; padding-left: 12px;
+  border-left: 3px solid var(--blue, #262626); font-size: 15px;
+}
+.tv-dialog { display: grid; gap: 12px; }
+.tv-line { margin: 0; display: grid; gap: 2px; }
+.tv-who { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .3px; }
+.tv-say { font-size: 15px; }
+
+.tv-steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 14px; }
+.tv-step {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  padding: 8px 14px; border: 1px solid var(--rule); border-radius: 999px;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.tv-step:hover { color: var(--fg); border-color: var(--muted); }
+.tv-step[aria-pressed="true"] { background: var(--blue, #262626); border-color: var(--blue, #262626); color: var(--on-blue, #fff); }
+.tv-step em { font-style: normal; font-size: 12px; opacity: .82; }
+
+.tv-group { margin: 0 0 18px; }
+.tv-group h3 { margin: 0 0 8px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.tv-term-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.tv-term {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  padding: 8px 14px; border: 1px solid var(--rule); border-radius: 999px;
+  background: transparent; color: var(--fg); cursor: pointer;
+}
+.tv-term:hover { border-color: var(--muted); }
+.tv-term[aria-pressed="true"] { background: var(--blue, #262626); border-color: var(--blue, #262626); color: var(--on-blue, #fff); }
+.tv-term small { font-size: 12px; opacity: .75; }
+
+@media (max-width: 880px) {
+  .page { padding: 20px 14px 64px; }
+  .tv-main { grid-template-columns: 1fr; }
+  .tv-detail { min-height: 0; }
+}
+
+.tv-pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px 20px; flex-wrap: wrap; max-width: 1240px;
+  margin: 48px auto 0; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+.tv-pager a { color: var(--muted); font-size: 14px; text-decoration: none; padding: 8px 0; }
+.tv-pager a:hover { color: var(--fg); }
+.tv-pager a:focus-visible { outline: 2px solid var(--focus-line, currentColor); outline-offset: 3px; }
+.tv-pager .tv-pager-home { font-weight: 700; color: var(--fg); }
+.tv-pager .tv-pager-next { margin-left: auto; }
+.tv-pager a:empty { visibility: hidden; }
+
+.tv-hub { display: grid; gap: 34px; }
+.tv-hub-stage h2 { margin: 0 0 14px; font-size: 18px; }
+.tv-hub-stage h2 span { color: var(--muted); font-size: 14px; font-weight: 500; margin-left: 8px; }
+.tv-hub-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.tv-hub-card {
+  display: block; overflow: hidden; text-decoration: none; color: var(--fg);
+  border: 1px solid var(--rule); border-radius: var(--radius-card, 16px);
+  background: var(--pane, #fff); box-shadow: var(--shadow-card, none);
+}
+.tv-hub-card:hover { border-color: var(--muted); }
+.tv-hub-card:focus-visible { outline: 2px solid var(--focus-line, currentColor); outline-offset: 3px; }
+.tv-hub-card img { display: block; width: 100%; aspect-ratio: 8 / 5; object-fit: cover; }
+.tv-hub-card span { display: block; padding: 12px 14px; font-size: 15px; font-weight: 700; }
+.tv-hub-card small { display: block; padding: 0 14px 14px; color: var(--muted); font-size: 13px; }
