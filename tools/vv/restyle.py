@@ -33,6 +33,13 @@ WORK = ROOT / "build" / "vv-work"
 COMFY_INPUT = Path("F:/AIProject/comfyui/input")
 SUBFOLDER = "vv_restyle"
 W, H = 1536, 960
+SIGMA_BASE = (1.0, 0.978453, 0.95418, 0.926626, 0.89508,
+              0.845148, 0.704534, 0.414568, 0.0)
+
+
+def turbo_sigmas(denoise: float) -> str:
+    return ", ".join(f"{s * denoise:.6f}".rstrip("0").rstrip(".") or "0"
+                     for s in SIGMA_BASE)
 
 # 写实提示词里的摄影词会和风格打架，重绘时去掉。
 PHOTO_WORDS = [
@@ -87,10 +94,10 @@ STYLES = {
 
 
 def graph(prompt: str, image_name: str, seed: int, prefix: str, denoise: float,
-          width: int = W, height: int = H, steps: int = 30) -> dict:
+          width: int = W, height: int = H) -> dict:
     return {
         "1": {"class_type": "UNETLoader",
-              "inputs": {"unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+              "inputs": {"unet_name": "qwen_image_2.1_turbo_int8_convrot.safetensors",
                          "weight_dtype": "default"}},
         "2": {"class_type": "CLIPLoader",
               "inputs": {"clip_name": "qwen3vl_8b_int8_convrot.safetensors",
@@ -99,17 +106,26 @@ def graph(prompt: str, image_name: str, seed: int, prefix: str, denoise: float,
               "inputs": {"vae_name": "qwen_image_2.1_vae_bf16.safetensors"}},
         "4": {"class_type": "LoadImage", "inputs": {"image": image_name}},
         "5": {"class_type": "VAEEncode", "inputs": {"pixels": ["4", 0], "vae": ["3", 0]}},
-        "6": {"class_type": "CLIPTextEncode",
-              "inputs": {"clip": ["2", 0], "text": prompt}},
-        "7": {"class_type": "CLIPTextEncode",
-              "inputs": {"clip": ["2", 0], "text": ""}},
-        "8": {"class_type": "KSampler",
-              "inputs": {"model": ["1", 0], "positive": ["6", 0],
-                         "negative": ["7", 0], "latent_image": ["5", 0],
-                         "seed": seed, "steps": steps, "cfg": 1.0,
-                         "sampler_name": "euler", "scheduler": "simple",
-                         "denoise": denoise}},
-        "9": {"class_type": "VAEDecode", "inputs": {"samples": ["8", 0], "vae": ["3", 0]}},
+        "6": {"class_type": "TextEncodeQwenImage21",
+              "inputs": {"clip": ["2", 0], "prompt": prompt,
+                         "negative_prompt": "", "resolution": 1024}},
+        "7": {"class_type": "TextEncodeQwenImage21",
+              "inputs": {"clip": ["2", 0], "prompt": "",
+                         "negative_prompt": "", "resolution": 1024}},
+        "101": {"class_type": "QwenImage21Cache",
+                "inputs": {"model": ["1", 0], "device": "auto", "dtype": "default"}},
+        "102": {"class_type": "CFGGuider",
+                "inputs": {"model": ["101", 0], "positive": ["6", 0],
+                           "negative": ["7", 0], "cfg": 1.0}},
+        "103": {"class_type": "RandomNoise", "inputs": {"noise_seed": seed}},
+        "104": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "euler"}},
+        "105": {"class_type": "ManualSigmas",
+                "inputs": {"sigmas": turbo_sigmas(denoise)}},
+        "106": {"class_type": "SamplerCustomAdvanced",
+                "inputs": {"noise": ["103", 0], "guider": ["102", 0],
+                           "sampler": ["104", 0], "sigmas": ["105", 0],
+                           "latent_image": ["5", 0]}},
+        "9": {"class_type": "VAEDecode", "inputs": {"samples": ["106", 0], "vae": ["3", 0]}},
         "10": {"class_type": "SaveImage",
                "inputs": {"images": ["9", 0], "filename_prefix": prefix}},
     }
@@ -156,7 +172,6 @@ def main() -> int:
     ap.add_argument("--denoise", default="0.62",
                     help="重画幅度，可给多个：0.62,0.78,0.9")
     ap.add_argument("--seed", type=int, default=20261122)
-    ap.add_argument("--steps", type=int, default=30)
     ap.add_argument("--width", type=int, default=W)
     ap.add_argument("--height", type=int, default=H)
     ap.add_argument("--skip-existing", action="store_true",
@@ -201,8 +216,7 @@ def main() -> int:
                 if args.skip_existing and (WORK / "style" / tag / f'{spec["page"]}.png').exists():
                     continue
                 prefix = f"{SUBFOLDER}/{tag}/{spec['page']}"
-                r = post({"prompt": graph(prompt, name, args.seed, prefix, d,
-                                          steps=args.steps),
+                r = post({"prompt": graph(prompt, name, args.seed, prefix, d),
                           "client_id": client}, f"{HOST}/prompt")
                 if r.get("node_errors"):
                     print("node error", spec["page"], style, r["node_errors"])

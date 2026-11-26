@@ -38,7 +38,7 @@
 构图与坐标一致；遮罩直接从皮克斯图抠，发光才贴合物件：
 
 ```powershell
-.venv\Scripts\python.exe -I tools\vv\restyle.py --all --styles pixar --denoise 0.88 --source-style flat --steps 26 --width 1344 --height 840
+.venv\Scripts\python.exe -I tools\vv\restyle.py --all --styles pixar --denoise 0.88 --source-style flat --width 1344 --height 840
 .venv\Scripts\python.exe -I tools\vv\masks.py --all --source-style pixar
 ```
 

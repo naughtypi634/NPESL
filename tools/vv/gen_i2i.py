@@ -19,13 +19,20 @@ from PIL import Image
 HOST = "http://127.0.0.1:8188"
 COMFY_INPUT = pathlib.Path("F:/AIProject/comfyui/input")
 SUBFOLDER = "vv_i2i"
+SIGMA_BASE = (1.0, 0.978453, 0.95418, 0.926626, 0.89508,
+              0.845148, 0.704534, 0.414568, 0.0)
+
+
+def turbo_sigmas(denoise: float) -> str:
+    return ", ".join(f"{s * denoise:.6f}".rstrip("0").rstrip(".") or "0"
+                     for s in SIGMA_BASE)
 
 
 def graph(prompt: str, image_name: str, seed: int, prefix: str,
           denoise: float) -> dict:
     return {
         "1": {"class_type": "UNETLoader",
-              "inputs": {"unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+              "inputs": {"unet_name": "qwen_image_2.1_turbo_int8_convrot.safetensors",
                          "weight_dtype": "default"}},
         "2": {"class_type": "CLIPLoader",
               "inputs": {"clip_name": "qwen3vl_8b_int8_convrot.safetensors",
@@ -35,18 +42,27 @@ def graph(prompt: str, image_name: str, seed: int, prefix: str,
         "4": {"class_type": "LoadImage", "inputs": {"image": image_name}},
         "5": {"class_type": "VAEEncode",
               "inputs": {"pixels": ["4", 0], "vae": ["3", 0]}},
-        "6": {"class_type": "CLIPTextEncode",
-              "inputs": {"clip": ["2", 0], "text": prompt}},
-        "7": {"class_type": "CLIPTextEncode",
-              "inputs": {"clip": ["2", 0], "text": ""}},
-        "8": {"class_type": "KSampler",
-              "inputs": {"model": ["1", 0], "positive": ["6", 0],
-                         "negative": ["7", 0], "latent_image": ["5", 0],
-                         "seed": seed, "steps": 30, "cfg": 1.0,
-                         "sampler_name": "euler", "scheduler": "simple",
-                         "denoise": denoise}},
+        "6": {"class_type": "TextEncodeQwenImage21",
+              "inputs": {"clip": ["2", 0], "prompt": prompt,
+                         "negative_prompt": "", "resolution": 1024}},
+        "7": {"class_type": "TextEncodeQwenImage21",
+              "inputs": {"clip": ["2", 0], "prompt": "",
+                         "negative_prompt": "", "resolution": 1024}},
+        "101": {"class_type": "QwenImage21Cache",
+                "inputs": {"model": ["1", 0], "device": "auto", "dtype": "default"}},
+        "102": {"class_type": "CFGGuider",
+                "inputs": {"model": ["101", 0], "positive": ["6", 0],
+                           "negative": ["7", 0], "cfg": 1.0}},
+        "103": {"class_type": "RandomNoise", "inputs": {"noise_seed": seed}},
+        "104": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "euler"}},
+        "105": {"class_type": "ManualSigmas",
+                "inputs": {"sigmas": turbo_sigmas(denoise)}},
+        "106": {"class_type": "SamplerCustomAdvanced",
+                "inputs": {"noise": ["103", 0], "guider": ["102", 0],
+                           "sampler": ["104", 0], "sigmas": ["105", 0],
+                           "latent_image": ["5", 0]}},
         "9": {"class_type": "VAEDecode",
-              "inputs": {"samples": ["8", 0], "vae": ["3", 0]}},
+              "inputs": {"samples": ["106", 0], "vae": ["3", 0]}},
         "10": {"class_type": "SaveImage",
                "inputs": {"images": ["9", 0], "filename_prefix": prefix}},
     }
